@@ -1,0 +1,33 @@
+# Development Plan (internal use only)
+IMPLEMENTATION_PLAN.md
+
+# Editor and IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependency directories (if you add any build tools later)
+node_modules/
+bower_components/
+
+# Optional: Backup files
+*.bak
+*.backup
+
+# Optional: Draft content
+drafts/
+_drafts/
+
+# Optional: Local environment files
+.env
+.env.local
+.env.*.local

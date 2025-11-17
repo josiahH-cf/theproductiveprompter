@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Personal portfolio of Josiah Hunter - Senior Security Engineer specializing in cloud security, infrastructure automation, and compliance">
+    <title>Josiah Hunter | Senior Security Engineer</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <!-- Sticky Navigation -->
+    <nav class="nav" id="nav">
+        <div class="nav__container">
+            <a href="#hero" class="nav__logo">JH</a>
+            <ul class="nav__menu" id="navMenu">
+                <li class="nav__item">
+                    <a href="#articles" class="nav__link">
+                        <span class="nav__number">01.</span> Writing
+                    </a>
+                </li>
+                <li class="nav__item">
+                    <a href="#projects" class="nav__link">
+                        <span class="nav__number">02.</span> Projects
+                    </a>
+                </li>
+                <li class="nav__item">
+                    <a href="#about" class="nav__link">
+                        <span class="nav__number">03.</span> About
+                    </a>
+                </li>
+                <li class="nav__item">
+                    <a href="#contact" class="nav__link">
+                        <span class="nav__number">04.</span> Contact
+                    </a>
+                </li>
+            </ul>
+            <!-- Mobile hamburger menu toggle -->
+            <button class="nav__toggle" id="navToggle" aria-label="Toggle navigation">
+                <span class="nav__toggle-line"></span>
+                <span class="nav__toggle-line"></span>
+                <span class="nav__toggle-line"></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Fixed Social Sidebar (Desktop) -->
+    <aside class="social-sidebar" aria-label="Social media links">
+        <ul class="social-sidebar__list">
+            <li class="social-sidebar__item">
+                <a href="https://github.com/josiahH-cf" class="social-sidebar__link" target="_blank" rel="noopener noreferrer" aria-label="GitHub Profile">
+                    <!-- TODO: Replace with your real GitHub username -->
+                    <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                </a>
+            </li>
+            <li class="social-sidebar__item">
+                <a href="https://www.linkedin.com/in/josiahhunter/" class="social-sidebar__link" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn Profile">
+                    <!-- TODO: Replace with your real LinkedIn -->
+                    <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                    </svg>
+                </a>
+            </li>
+            <li class="social-sidebar__item">
+                <a href="mailto:josiah.hunter.it@gmail.com" class="social-sidebar__link" aria-label="Send Email" id="emailLink">
+                    <!-- TODO: Replace with your real email -->
+                    <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                    </svg>
+                </a>
+            </li>
+        </ul>
+        <div class="social-sidebar__line"></div>
+    </aside>
+
+    <!-- Hero Section -->
+    <section class="hero" id="hero">
+        <div class="hero__container">
+            <!-- Left side: Text content -->
+            <div class="hero__content fade-in">
+                <p class="hero__greeting">Hi, my name is</p>
+                <h1 class="hero__name">Josiah Hunter.</h1>
+                <h2 class="hero__tagline">Senior Security Engineer turning complex security problems into solutions.</h2>
+                <p class="hero__description">
+                    Cloud, compliance & AI enthusiast. I specialize in building secure, resilient infrastructures while ensuring operational excellence.
+                </p>
+                <div class="hero__cta-group">
+                    <a href="#articles" class="hero__cta hero__cta--primary">Read My Writing</a>
+                    <a href="#projects" class="hero__cta hero__cta--secondary">View Projects</a>
+                </div>
+
+                <!-- Social Links in Hero -->
+                <div class="hero__social">
+                    <a href="https://github.com/josiahH-cf" class="hero__social-link" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                        <!-- TODO: Replace with your real GitHub -->
+                        <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        </svg>
+                    </a>
+                    <a href="https://www.linkedin.com/in/josiahhunter/" class="hero__social-link" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                        <!-- TODO: Replace with your real LinkedIn -->
+                        <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                        </svg>
+                    </a>
+                    <a href="mailto:josiah.hunter.it@gmail.com" class="hero__social-link" aria-label="Email">
+                        <!-- TODO: Replace with your real email -->
+                        <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Right side: Visual element -->
+            <div class="hero__visual fade-in">
+                <div class="split-card">
+                    <div class="split-card__side split-card__side--design">
+                        <svg class="split-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 19l7-7 3 3-7 7-3-3z"/>
+                            <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
+                            <path d="M2 2l7.586 7.586"/>
+                            <circle cx="11" cy="11" r="2"/>
+                        </svg>
+                        <span class="split-card__label">Design</span>
+                    </div>
+                    <div class="split-card__side split-card__side--code">
+                        <svg class="split-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="16 18 22 12 16 6"/>
+                            <polyline points="8 6 2 12 8 18"/>
+                        </svg>
+                        <span class="split-card__label">Code</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Articles Section -->
+    <section class="articles" id="articles">
+        <div class="container">
+            <h2 class="section-heading">
+                <span class="section-heading__number">01.</span>
+                <span class="section-heading__text">Writing & Articles</span>
+            </h2>
+
+            <!-- Featured Article -->
+            <article class="article-card article-card--featured reveal-on-scroll">
+                <div class="article-card__badge">Featured</div>
+                <div class="article-card__thumbnail">
+                    <!-- Placeholder for article thumbnail -->
+                    <div class="article-card__thumbnail-placeholder">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                            <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="article-card__content">
+                    <div class="article-card__meta">
+                        <time class="article-card__date">November 15, 2024</time> <!-- TODO: Replace with real date -->
+                        <span class="article-card__separator">•</span>
+                        <span class="article-card__reading-time">8 min read</span>
+                    </div>
+                    <div class="article-card__categories">
+                        <span class="article-category article-category--javascript">JavaScript</span>
+                        <span class="article-category article-category--react">React</span>
+                    </div>
+                    <h3 class="article-card__title">
+                        <a href="#" class="article-card__link">Understanding Modern JavaScript Patterns</a>
+                        <!-- TODO: Replace with real article title and link -->
+                    </h3>
+                    <p class="article-card__summary">
+                        An exploration of contemporary JavaScript design patterns and how they improve code
+                        organization, maintainability, and developer experience in modern applications.
+                        <!-- TODO: Replace with real summary -->
+                    </p>
+                </div>
+            </article>
+
+            <!-- Browse by Category -->
+            <div class="category-filters">
+                <button class="category-filter category-filter--active" data-category="all">All Articles</button>
+                <button class="category-filter" data-category="javascript">JavaScript</button>
+                <button class="category-filter" data-category="react">React</button>
+                <button class="category-filter" data-category="css">CSS</button>
+                <button class="category-filter" data-category="career">Career</button>
+                <button class="category-filter" data-category="tutorials">Tutorials</button>
+            </div>
+
+            <!-- Articles List -->
+            <div class="articles__list">
+                <!-- Article 1 -->
+                <article class="article-card reveal-on-scroll" data-categories="css tutorials">
+                    <div class="article-card__thumbnail">
+                        <div class="article-card__thumbnail-placeholder">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                <path d="M3 9h18M9 21V9"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="article-card__content">
+                        <div class="article-card__meta">
+                            <time class="article-card__date">October 28, 2024</time> <!-- TODO: Replace with real date -->
+                            <span class="article-card__separator">•</span>
+                            <span class="article-card__reading-time">12 min read</span>
+                        </div>
+                        <div class="article-card__categories">
+                            <span class="article-category article-category--css">CSS</span>
+                            <span class="article-category article-category--tutorials">Tutorials</span>
+                        </div>
+                        <h3 class="article-card__title">
+                            <a href="#" class="article-card__link">Building Accessible Web Applications</a>
+                            <!-- TODO: Replace with real article title and link -->
+                        </h3>
+                        <p class="article-card__summary">
+                            A comprehensive guide to creating inclusive web experiences, covering semantic HTML,
+                            ARIA attributes, keyboard navigation, and testing strategies for accessibility.
+                            <!-- TODO: Replace with real summary -->
+                        </p>
+                    </div>
+                </article>
+
+                <!-- Article 2 -->
+                <article class="article-card reveal-on-scroll" data-categories="css tutorials">
+                    <div class="article-card__thumbnail">
+                        <div class="article-card__thumbnail-placeholder">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="4 7 4 4 20 4 20 7"/>
+                                <line x1="9" y1="20" x2="15" y2="20"/>
+                                <line x1="12" y1="4" x2="12" y2="20"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="article-card__content">
+                        <div class="article-card__meta">
+                            <time class="article-card__date">September 12, 2024</time> <!-- TODO: Replace with real date -->
+                            <span class="article-card__separator">•</span>
+                            <span class="article-card__reading-time">6 min read</span>
+                        </div>
+                        <div class="article-card__categories">
+                            <span class="article-category article-category--css">CSS</span>
+                            <span class="article-category article-category--tutorials">Tutorials</span>
+                        </div>
+                        <h3 class="article-card__title">
+                            <a href="#" class="article-card__link">CSS Grid vs Flexbox: When to Use Each</a>
+                            <!-- TODO: Replace with real article title and link -->
+                        </h3>
+                        <p class="article-card__summary">
+                            A practical comparison of CSS Grid and Flexbox, with real-world examples showing
+                            when each layout system shines and how to choose the right tool for your project.
+                            <!-- TODO: Replace with real summary -->
+                        </p>
+                    </div>
+                </article>
+
+                <!-- Article 3 -->
+                <article class="article-card reveal-on-scroll" data-categories="react javascript">
+                    <div class="article-card__thumbnail">
+                        <div class="article-card__thumbnail-placeholder">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M12 6v6l4 2"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="article-card__content">
+                        <div class="article-card__meta">
+                            <time class="article-card__date">August 5, 2024</time> <!-- TODO: Replace with real date -->
+                            <span class="article-card__separator">•</span>
+                            <span class="article-card__reading-time">10 min read</span>
+                        </div>
+                        <div class="article-card__categories">
+                            <span class="article-category article-category--react">React</span>
+                            <span class="article-category article-category--javascript">JavaScript</span>
+                        </div>
+                        <h3 class="article-card__title">
+                            <a href="#" class="article-card__link">Optimizing React Performance</a>
+                            <!-- TODO: Replace with real article title and link -->
+                        </h3>
+                        <p class="article-card__summary">
+                            Learn practical techniques for improving React application performance, including
+                            memoization, code splitting, lazy loading, and profiling tools.
+                            <!-- TODO: Replace with real summary -->
+                        </p>
+                    </div>
+                </article>
+
+                <!-- Article 4 -->
+                <article class="article-card reveal-on-scroll" data-categories="career">
+                    <div class="article-card__thumbnail">
+                        <div class="article-card__thumbnail-placeholder">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="article-card__content">
+                        <div class="article-card__meta">
+                            <time class="article-card__date">July 19, 2024</time> <!-- TODO: Replace with real date -->
+                            <span class="article-card__separator">•</span>
+                            <span class="article-card__reading-time">5 min read</span>
+                        </div>
+                        <div class="article-card__categories">
+                            <span class="article-category article-category--career">Career</span>
+                        </div>
+                        <h3 class="article-card__title">
+                            <a href="#" class="article-card__link">My Journey Learning TypeScript</a>
+                            <!-- TODO: Replace with real article title and link -->
+                        </h3>
+                        <p class="article-card__summary">
+                            Reflections on transitioning from JavaScript to TypeScript, covering the benefits,
+                            challenges, and lessons learned along the way in building type-safe applications.
+                            <!-- TODO: Replace with real summary -->
+                        </p>
+                    </div>
+                </article>
+
+                <!-- Article 5 (Hidden initially for Load More) -->
+                <article class="article-card reveal-on-scroll article-card--hidden" data-categories="javascript tutorials">
+                    <div class="article-card__thumbnail">
+                        <div class="article-card__thumbnail-placeholder">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                                <polyline points="2 17 12 22 22 17"/>
+                                <polyline points="2 12 12 17 22 12"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="article-card__content">
+                        <div class="article-card__meta">
+                            <time class="article-card__date">June 10, 2024</time> <!-- TODO: Replace with real date -->
+                            <span class="article-card__separator">•</span>
+                            <span class="article-card__reading-time">7 min read</span>
+                        </div>
+                        <div class="article-card__categories">
+                            <span class="article-category article-category--javascript">JavaScript</span>
+                            <span class="article-category article-category--tutorials">Tutorials</span>
+                        </div>
+                        <h3 class="article-card__title">
+                            <a href="#" class="article-card__link">Async/Await Best Practices</a>
+                            <!-- TODO: Replace with real article title and link -->
+                        </h3>
+                        <p class="article-card__summary">
+                            Master asynchronous JavaScript with practical examples and best practices for using
+                            async/await, handling errors, and managing concurrent operations.
+                            <!-- TODO: Replace with real summary -->
+                        </p>
+                    </div>
+                </article>
+
+                <!-- Article 6 (Hidden initially for Load More) -->
+                <article class="article-card reveal-on-scroll article-card--hidden" data-categories="css">
+                    <div class="article-card__thumbnail">
+                        <div class="article-card__thumbnail-placeholder">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="article-card__content">
+                        <div class="article-card__meta">
+                            <time class="article-card__date">May 3, 2024</time> <!-- TODO: Replace with real date -->
+                            <span class="article-card__separator">•</span>
+                            <span class="article-card__reading-time">9 min read</span>
+                        </div>
+                        <div class="article-card__categories">
+                            <span class="article-category article-category--css">CSS</span>
+                        </div>
+                        <h3 class="article-card__title">
+                            <a href="#" class="article-card__link">Modern CSS Animation Techniques</a>
+                            <!-- TODO: Replace with real article title and link -->
+                        </h3>
+                        <p class="article-card__summary">
+                            Explore the latest CSS animation capabilities including view transitions, scroll-driven
+                            animations, and performance optimization strategies.
+                            <!-- TODO: Replace with real summary -->
+                        </p>
+                    </div>
+                </article>
+            </div>
+
+            <!-- Load More Button -->
+            <div class="articles__load-more">
+                <button class="load-more-btn" id="loadMoreBtn">
+                    Show More Articles
+                    <svg class="load-more-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="about" id="about">
+        <div class="container">
+            <h2 class="section-heading">
+                <span class="section-heading__number">03.</span>
+                <span class="section-heading__text">About Me</span>
+            </h2>
+            
+            <div class="about__content">
+                <div class="about__text">
+                    <p>
+                        As an experienced cloud and security professional, I specialize in building secure, resilient infrastructures while ensuring operational excellence and client support. Skilled in leveraging AWS, Azure, and GCP, I deploy scalable solutions that integrate security and efficiency. I bring a strong focus on critical thinking, using Infrastructure-as-Code and automation to maintain compliance, streamline configurations, and resolve site issues proactively.
+                    </p>
+                    <p>
+                        Collaborating closely with DevOps and client teams, I monitor and manage performance, security, and cost. My experience includes authoring secure design documentation, conducting rigorous security testing, and providing 24x7 support to safeguard operations in both production and non-production environments.
+                    </p>
+                </div>
+
+                <div class="about__details">
+                    <div class="detail-card">
+                        <h3 class="detail-card__heading">Role</h3>
+                        <p class="detail-card__text">Senior Security Engineer</p>
+                    </div>
+                    <div class="detail-card">
+                        <h3 class="detail-card__heading">Focus</h3>
+                        <p class="detail-card__text">Cloud Security & Infrastructure</p>
+                    </div>
+                    <div class="detail-card">
+                        <h3 class="detail-card__heading">Platforms</h3>
+                        <p class="detail-card__text">AWS, Azure, GCP</p>
+                    </div>
+                    <div class="detail-card">
+                        <h3 class="detail-card__heading">Expertise</h3>
+                        <p class="detail-card__text">IaC, Compliance, Automation</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Projects Section -->
+    <section class="projects" id="projects">
+        <div class="container">
+            <h2 class="section-heading">
+                <span class="section-heading__number">02.</span>
+                <span class="section-heading__text">Projects</span>
+            </h2>
+
+            <div class="projects__grid">
+                <!-- Featured Project 1 -->
+                <article class="project-card project-card--featured reveal-on-scroll" data-delay="0">
+                    <div class="project-card__badges">
+                        <span class="project-badge project-badge--featured">Featured</span>
+                        <span class="project-badge project-badge--status project-badge--active">Active</span>
+                    </div>
+                    
+                    <div class="project-card__thumbnail">
+                        <!-- Placeholder for project screenshot -->
+                        <div class="project-card__thumbnail-placeholder">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                <path d="M3 9h18M9 21V9"/>
+                            </svg>
+                        </div>
+                        <div class="project-card__thumbnail-overlay">
+                            <span class="project-card__view-hint">View Project →</span>
+                        </div>
+                    </div>
+                    
+                    <div class="project-card__content">
+                        <div class="project-card__header">
+                            <div class="project-card__language">
+                                <span class="language-dot language-dot--javascript"></span>
+                                <span class="language-name">JavaScript</span>
+                            </div>
+                            <time class="project-card__updated">Updated 2 days ago</time> <!-- TODO: Replace with real date -->
+                        </div>
+                        
+                        <h3 class="project-card__title">E-Commerce Platform</h3> <!-- TODO: Replace with real project -->
+                        <p class="project-card__description">
+                            A full-featured e-commerce platform with user authentication, product management,
+                            shopping cart, and secure payment integration. Built with modern best practices.
+                            <!-- TODO: Replace with real description -->
+                        </p>
+                        
+                        <ul class="project-card__tech">
+                            <li class="tech-badge">React</li>
+                            <li class="tech-badge">Node.js</li>
+                            <li class="tech-badge">PostgreSQL</li>
+                            <li class="tech-badge">Stripe</li>
+                            <!-- TODO: Replace with real tech stack -->
+                        </ul>
+                        
+                        <div class="project-card__footer">
+                            <div class="project-stats">
+                                <span class="project-stat">
+                                    <svg class="project-stat__icon" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M8 .25a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L8 12.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.194L.818 6.374a.75.75 0 01.416-1.28l4.21-.611L7.327.668A.75.75 0 018 .25z"/>
+                                    </svg>
+                                    <span class="project-stat__count">42</span> <!-- TODO: Replace with real count -->
+                                </span>
+                                <span class="project-stat">
+                                    <svg class="project-stat__icon" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75v-.878a2.25 2.25 0 111.5 0v.878a2.25 2.25 0 01-2.25 2.25h-1.5v2.128a2.251 2.251 0 11-1.5 0V8.5h-1.5A2.25 2.25 0 013 6.25v-.878a2.25 2.25 0 111.5 0zM5 3.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm6.75.75a.75.75 0 100-1.5.75.75 0 000 1.5zm-3 8.75a.75.75 0 100-1.5.75.75 0 000 1.5z"/>
+                                    </svg>
+                                    <span class="project-stat__count">12</span> <!-- TODO: Replace with real count -->
+                                </span>
+                            </div>
+                            <div class="project-card__links">
+                                <a href="#" class="project-card__link" target="_blank" rel="noopener noreferrer">
+                                    <svg class="project-card__link-icon" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                                    </svg>
+                                    GitHub
+                                </a> <!-- TODO: Add real GitHub link -->
+                                <a href="#" class="project-card__link project-card__link--primary" target="_blank" rel="noopener noreferrer">
+                                    <svg class="project-card__link-icon" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm7-3.25v2.992l2.028.812a.75.75 0 0 1-.557 1.392l-2.5-1A.75.75 0 0 1 7 8.25v-3.5a.75.75 0 0 1 1.5 0Z"/>
+                                    </svg>
+                                    Live Demo
+                                </a> <!-- TODO: Add real demo link -->
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Featured Project 2 -->
+                <article class="project-card project-card--featured reveal-on-scroll" data-delay="1">
+                    <div class="project-card__badges">
+                        <span class="project-badge project-badge--featured">Featured</span>
+                        <span class="project-badge project-badge--status project-badge--active">Active</span>
+                    </div>
+                    
+                    <div class="project-card__thumbnail">
+                        <div class="project-card__thumbnail-placeholder">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 11l3 3L22 4"/>
+                                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+                            </svg>
+                        </div>
+                        <div class="project-card__thumbnail-overlay">
+                            <span class="project-card__view-hint">View Project →</span>
+                        </div>
+                    </div>
+                    
+                    <div class="project-card__content">
+                        <div class="project-card__header">
+                            <div class="project-card__language">
+                                <span class="language-dot language-dot--typescript"></span>
+                                <span class="language-name">TypeScript</span>
+                            </div>
+                            <time class="project-card__updated">Updated last week</time> <!-- TODO: Replace with real date -->
+                        </div>
+                        
+                        <h3 class="project-card__title">Task Management App</h3> <!-- TODO: Replace with real project -->
+                        <p class="project-card__description">
+                            A collaborative task management tool with real-time updates, drag-and-drop functionality,
+                            and team collaboration features. Designed for productivity and ease of use.
+                            <!-- TODO: Replace with real description -->
+                        </p>
+                        
+                        <ul class="project-card__tech">
+                            <li class="tech-badge">TypeScript</li>
+                            <li class="tech-badge">Vue.js</li>
+                            <li class="tech-badge">Firebase</li>
+                            <!-- TODO: Replace with real tech stack -->
+                        </ul>
+                        
+                        <div class="project-card__footer">
+                            <div class="project-stats">
+                                <span class="project-stat">
+                                    <svg class="project-stat__icon" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M8 .25a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L8 12.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.194L.818 6.374a.75.75 0 01.416-1.28l4.21-.611L7.327.668A.75.75 0 018 .25z"/>
+                                    </svg>
+                                    <span class="project-stat__count">28</span> <!-- TODO: Replace with real count -->
+                                </span>
+                                <span class="project-stat">
+                                    <svg class="project-stat__icon" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75v-.878a2.25 2.25 0 111.5 0v.878a2.25 2.25 0 01-2.25 2.25h-1.5v2.128a2.251 2.251 0 11-1.5 0V8.5h-1.5A2.25 2.25 0 013 6.25v-.878a2.25 2.25 0 111.5 0zM5 3.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm6.75.75a.75.75 0 100-1.5.75.75 0 000 1.5zm-3 8.75a.75.75 0 100-1.5.75.75 0 000 1.5z"/>
+                                    </svg>
+                                    <span class="project-stat__count">7</span> <!-- TODO: Replace with real count -->
+                                </span>
+                            </div>
+                            <div class="project-card__links">
+                                <a href="#" class="project-card__link" target="_blank" rel="noopener noreferrer">
+                                    <svg class="project-card__link-icon" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                                    </svg>
+                                    GitHub
+                                </a> <!-- TODO: Add real GitHub link -->
+                                <a href="#" class="project-card__link project-card__link--primary" target="_blank" rel="noopener noreferrer">
+                                    <svg class="project-card__link-icon" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm7-3.25v2.992l2.028.812a.75.75 0 0 1-.557 1.392l-2.5-1A.75.75 0 0 1 7 8.25v-3.5a.75.75 0 0 1 1.5 0Z"/>
+                                    </svg>
+                                    Live Demo
+                                </a> <!-- TODO: Add real demo link -->
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Regular Project 1 -->
+                <article class="project-card reveal-on-scroll" data-delay="2">
+                    <div class="project-card__badges">
+                        <span class="project-badge project-badge--status project-badge--maintained">Maintained</span>
+                    </div>
+                    
+                    <div class="project-card__thumbnail">
+                        <div class="project-card__thumbnail-placeholder">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 15v4c0 1.1.9 2 2 2h14a2 2 0 002-2v-4M17 9l-5 5-5-5M12 12.8V2.5"/>
+                            </svg>
+                        </div>
+                        <div class="project-card__thumbnail-overlay">
+                            <span class="project-card__view-hint">View Project →</span>
+                        </div>
+                    </div>
+                    
+                    <div class="project-card__content">
+                        <div class="project-card__header">
+                            <div class="project-card__language">
+                                <span class="language-dot language-dot--javascript"></span>
+                                <span class="language-name">JavaScript</span>
+                            </div>
+                            <time class="project-card__updated">Updated 2 weeks ago</time> <!-- TODO: Replace with real date -->
+                        </div>
+                        
+                        <h3 class="project-card__title">Weather Dashboard</h3> <!-- TODO: Replace with real project -->
+                        <p class="project-card__description">
+                            A beautiful weather application that provides detailed forecasts, interactive maps,
+                            and location-based alerts. Features a clean, responsive design.
+                            <!-- TODO: Replace with real description -->
+                        </p>
+                        
+                        <ul class="project-card__tech">
+                            <li class="tech-badge">JavaScript</li>
+                            <li class="tech-badge">API Integration</li>
+                            <li class="tech-badge">Chart.js</li>
+                            <!-- TODO: Replace with real tech stack -->
+                        </ul>
+                        
+                        <div class="project-card__footer">
+                            <div class="project-stats">
+                                <span class="project-stat">
+                                    <svg class="project-stat__icon" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M8 .25a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L8 12.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.194L.818 6.374a.75.75 0 01.416-1.28l4.21-.611L7.327.668A.75.75 0 018 .25z"/>
+                                    </svg>
+                                    <span class="project-stat__count">15</span> <!-- TODO: Replace with real count -->
+                                </span>
+                                <span class="project-stat">
+                                    <svg class="project-stat__icon" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75v-.878a2.25 2.25 0 111.5 0v.878a2.25 2.25 0 01-2.25 2.25h-1.5v2.128a2.251 2.251 0 11-1.5 0V8.5h-1.5A2.25 2.25 0 013 6.25v-.878a2.25 2.25 0 111.5 0zM5 3.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm6.75.75a.75.75 0 100-1.5.75.75 0 000 1.5zm-3 8.75a.75.75 0 100-1.5.75.75 0 000 1.5z"/>
+                                    </svg>
+                                    <span class="project-stat__count">3</span> <!-- TODO: Replace with real count -->
+                                </span>
+                            </div>
+                            <div class="project-card__links">
+                                <a href="#" class="project-card__link" target="_blank" rel="noopener noreferrer">
+                                    <svg class="project-card__link-icon" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                                    </svg>
+                                    GitHub
+                                </a> <!-- TODO: Add real GitHub link -->
+                                <a href="#" class="project-card__link project-card__link--primary" target="_blank" rel="noopener noreferrer">
+                                    <svg class="project-card__link-icon" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm7-3.25v2.992l2.028.812a.75.75 0 0 1-.557 1.392l-2.5-1A.75.75 0 0 1 7 8.25v-3.5a.75.75 0 0 1 1.5 0Z"/>
+                                    </svg>
+                                    Live Demo
+                                </a> <!-- TODO: Add real demo link -->
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Regular Project 2 -->
+                <article class="project-card reveal-on-scroll" data-delay="3">
+                    <div class="project-card__badges">
+                        <span class="project-badge project-badge--status project-badge--maintained">Maintained</span>
+                    </div>
+                    
+                    <div class="project-card__thumbnail">
+                        <div class="project-card__thumbnail-placeholder">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2l2 7h7l-5.5 4.5 2 7L12 17l-5.5 3.5 2-7L3 9h7z"/>
+                            </svg>
+                        </div>
+                        <div class="project-card__thumbnail-overlay">
+                            <span class="project-card__view-hint">View Project →</span>
+                        </div>
+                    </div>
+                    
+                    <div class="project-card__content">
+                        <div class="project-card__header">
+                            <div class="project-card__language">
+                                <span class="language-dot language-dot--typescript"></span>
+                                <span class="language-name">TypeScript</span>
+                            </div>
+                            <time class="project-card__updated">Updated 1 month ago</time> <!-- TODO: Replace with real date -->
+                        </div>
+                        
+                        <h3 class="project-card__title">Portfolio CMS</h3> <!-- TODO: Replace with real project -->
+                        <p class="project-card__description">
+                            A headless CMS for managing portfolio content with a custom admin dashboard.
+                            Includes image optimization, markdown support, and SEO features.
+                            <!-- TODO: Replace with real description -->
+                    </p>
+                    <ul class="project-card__tech">
+                        <li class="tech-badge">Next.js</li>
+                        <li class="tech-badge">Sanity</li>
+                        <li class="tech-badge">Vercel</li>
+                        <!-- TODO: Replace with real tech stack -->
+                    </ul>
+                    <div class="project-card__links">
+                        <a href="#" class="project-card__link">GitHub</a> <!-- TODO: Add real GitHub link -->
+                        <a href="#" class="project-card__link">Live Demo</a> <!-- TODO: Add real demo link -->
+                    </div>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section class="contact" id="contact">
+        <div class="container">
+            <h2 class="section-heading">
+                <span class="section-heading__number">04.</span>
+                <span class="section-heading__text">Get In Touch</span>
+            </h2>
+
+            <div class="contact__content">
+                <p class="contact__text">
+                    I'm always interested in discussing cloud security, infrastructure automation, and emerging technologies. Whether you have a question, want to collaborate on a project, or just want to connect, feel free to reach out!
+                </p>
+
+                <!-- Contact Form -->
+                <form class="contact-form" id="contactForm">
+                    <div class="contact-form__group">
+                        <label for="name" class="contact-form__label">Name</label>
+                        <input 
+                            type="text" 
+                            id="name" 
+                            name="name" 
+                            class="contact-form__input" 
+                            required
+                        >
+                    </div>
+
+                    <div class="contact-form__group">
+                        <label for="email" class="contact-form__label">Email</label>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            name="email" 
+                            class="contact-form__input" 
+                            required
+                        >
+                    </div>
+
+                    <div class="contact-form__group">
+                        <label for="message" class="contact-form__label">Message</label>
+                        <textarea 
+                            id="message" 
+                            name="message" 
+                            class="contact-form__textarea" 
+                            rows="5" 
+                            required
+                        ></textarea>
+                    </div>
+
+                    <button type="submit" class="contact-form__submit">Send Message</button>
+                </form>
+
+                <!-- Direct Contact Links -->
+                <div class="contact__links">
+                    <a href="mailto:josiah.hunter.it@gmail.com" class="contact__link">
+                        <svg class="contact__link-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                        </svg>
+                        <span>Email Me</span>
+                    </a>
+                    <a href="https://github.com/josiahH-cf" class="contact__link" target="_blank" rel="noopener noreferrer">
+                        <!-- TODO: Replace with your real GitHub -->
+                        <svg class="contact__link-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        </svg>
+                        <span>GitHub</span>
+                    </a>
+                    <a href="https://www.linkedin.com/in/josiahhunter/" class="contact__link" target="_blank" rel="noopener noreferrer">
+                        <svg class="contact__link-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                        </svg>
+                        <span>LinkedIn</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer__content">
+                <div class="footer__info">
+                    <p class="footer__text">
+                        &copy; 2025 Josiah Hunter. Built with HTML, CSS, and JavaScript.
+                    </p>
+                    <a href="#hero" class="footer__back-to-top">Back to Top ↑</a>
+                </div>
+                <div class="footer__social">
+                    <a href="https://github.com/josiahH-cf" class="footer__social-link" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                        <!-- TODO: Replace with your real GitHub -->
+                        <svg class="social-icon social-icon--large" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        </svg>
+                    </a>
+                    <a href="https://www.linkedin.com/in/josiahhunter/" class="footer__social-link" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                        <svg class="social-icon social-icon--large" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                        </svg>
+                    </a>
+                    <a href="https://twitter.com/yourusername" class="footer__social-link" target="_blank" rel="noopener noreferrer" aria-label="Twitter / X">
+                        <!-- TODO: Replace with your real Twitter/X -->
+                        <svg class="social-icon social-icon--large" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                        </svg>
+                    </a>
+                    <a href="https://bsky.app/profile/yourusername.bsky.social" class="footer__social-link" target="_blank" rel="noopener noreferrer" aria-label="BlueSky">
+                        <!-- TODO: Replace with your real BlueSky -->
+                        <svg class="social-icon social-icon--large" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 10.8c-1.087-2.114-4.046-6.053-6.798-7.995C2.566.944 1.561 1.266.902 1.565.139 1.908 0 3.08 0 3.768c0 .69.378 5.65.624 6.479.815 2.736 3.713 3.66 6.383 3.364.136-.02.275-.039.415-.056-.138.022-.276.04-.415.056-3.912.58-7.387 2.005-2.83 7.078 5.013 5.19 6.87-1.113 7.823-4.308.953 3.195 2.05 9.271 7.733 4.308 4.267-4.308 1.172-6.498-2.74-7.078a8.741 8.741 0 0 1-.415-.056c.14.017.279.036.415.056 2.67.297 5.568-.628 6.383-3.364.246-.828.624-5.79.624-6.478 0-.69-.139-1.861-.902-2.206-.659-.298-1.664-.62-4.3 1.24C16.046 4.748 13.087 8.687 12 10.8z"/>
+                        </svg>
+                    </a>
+                    <a href="mailto:your.email@example.com" class="footer__social-link" aria-label="Email">
+                        <!-- TODO: Replace with your real email -->
+                        <svg class="social-icon social-icon--large" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Success Message (hidden by default) -->
+    <div class="success-message" id="successMessage">
+        <p>Thanks for reaching out! I'll get back to you soon.</p>
+    </div>
+</body>
+</html>
