@@ -318,10 +318,10 @@ You still have to do the work. The plan simply gives that work a shape.
 
 All four prompts follow the same underlying pattern, the **CRIT Framework**:
 
-* **C – Context:** What background information does the model need in order to reason about your situation?
-* **R – Role:** What kind of expertise, perspective, or voice should it adopt?
-* **I – Instruction (Task):** What exactly are you asking it to do?
-* **T – Format:** How should the answer be structured so that it is immediately useful?
+* **C - Context:** What background information does the model need in order to reason about your situation?
+* **R - Role:** What kind of expertise, perspective, or voice should it adopt?
+* **I - Instruction (Task):** What exactly are you asking it to do?
+* **T - Format:** How should the answer be structured so that it is immediately useful?
 
 Whenever you get a vague or unhelpful response, you can usually trace the problem back to one of these pieces:
 
