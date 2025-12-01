@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="31 Days of AI - A daily challenge to build, write, or automate something with AI every day for a month.">
+    <title>🎄 31 Days of AI | Josiah Hunter</title>
+    <link rel="stylesheet" href="../styles.css">
+    <style>
+        .days-page {
+            padding-top: 100px;
+            min-height: 100vh;
+        }
+
+        .days-page__header {
+            text-align: center;
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .days-page__emoji {
+            font-size: 4rem;
+            display: block;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .days-page__title {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            color: var(--color-heading);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .days-page__subtitle {
+            font-size: 1.2rem;
+            color: var(--color-text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.7;
+        }
+
+        .days-page__counter {
+            font-family: var(--font-mono);
+            color: var(--color-accent);
+            font-size: 1.1rem;
+            margin-top: var(--spacing-md);
+        }
+
+        .days-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-lg);
+        }
+
+        .day-card {
+            background-color: var(--color-bg-card);
+            border: 1px solid rgba(100, 255, 218, 0.1);
+            border-radius: var(--border-radius-lg);
+            padding: var(--spacing-md);
+            transition: all var(--transition-base);
+            text-decoration: none;
+            display: block;
+        }
+
+        .day-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--color-accent);
+            box-shadow: 0 10px 40px rgba(100, 255, 218, 0.15);
+        }
+
+        .day-card--locked {
+            opacity: 0.4;
+            pointer-events: none;
+            filter: grayscale(50%);
+        }
+
+        .day-card__number {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            color: var(--color-accent);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .day-card__title {
+            font-size: 1.25rem;
+            color: var(--color-heading);
+            margin-bottom: var(--spacing-xs);
+            line-height: 1.3;
+        }
+
+        .day-card__summary {
+            font-size: 0.95rem;
+            color: var(--color-text-secondary);
+            line-height: 1.6;
+        }
+
+        .day-card__badge {
+            display: inline-block;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--border-radius);
+            margin-top: var(--spacing-sm);
+            text-transform: uppercase;
+        }
+
+        .day-card__badge--live {
+            background-color: rgba(100, 255, 218, 0.2);
+            color: var(--color-accent);
+            border: 1px solid var(--color-accent);
+        }
+
+        .day-card__badge--coming {
+            background-color: rgba(139, 147, 175, 0.2);
+            color: var(--color-text-secondary);
+            border: 1px solid var(--color-text-secondary);
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            color: var(--color-accent);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav" id="nav">
+        <div class="nav__container">
+            <a href="../index.html#hero" class="nav__logo">JH</a>
+            <ul class="nav__menu" id="navMenu">
+                <li class="nav__item">
+                    <a href="../index.html#31-days-of-ai" class="nav__link">
+                        <span class="nav__number">01.</span> 31 Days of AI 🎄
+                    </a>
+                </li>
+                <li class="nav__item">
+                    <a href="../index.html#projects" class="nav__link">
+                        <span class="nav__number">02.</span> Projects
+                    </a>
+                </li>
+                <li class="nav__item">
+                    <a href="../index.html#about" class="nav__link">
+                        <span class="nav__number">03.</span> About
+                    </a>
+                </li>
+                <li class="nav__item">
+                    <a href="../index.html#contact" class="nav__link">
+                        <span class="nav__number">04.</span> Contact
+                    </a>
+                </li>
+            </ul>
+            <button class="nav__toggle" id="navToggle" aria-label="Toggle navigation">
+                <span class="nav__toggle-line"></span>
+                <span class="nav__toggle-line"></span>
+                <span class="nav__toggle-line"></span>
+            </button>
+        </div>
+    </nav>
+
+    <section class="days-page">
+        <div class="container">
+            <a href="../index.html" class="back-link">← Back to Home</a>
+
+            <div class="days-page__header">
+                <span class="days-page__emoji">🎄</span>
+                <h1 class="days-page__title">31 Days of AI</h1>
+                <p class="days-page__subtitle">
+                    I'm challenging myself to build, write, or automate something with AI every single day for a month. Follow along to see the results.
+                </p>
+                <p class="days-page__counter">Day 01 of 31</p>
+            </div>
+
+            <div class="days-grid">
+                <!-- Day 01 - Live -->
+                <a href="article.html?post=31-days-ai-day-01.md" class="day-card">
+                    <span class="day-card__number">Day 01</span>
+                    <h3 class="day-card__title">Automating the Editor</h3>
+                    <p class="day-card__summary">Introducing the article-spec-pack pipeline that powers this entire campaign.</p>
+                    <span class="day-card__badge day-card__badge--live">Live</span>
+                </a>
+
+                <!-- Day 02 - Coming Soon (Hidden) -->
+                <div class="day-card day-card--locked">
+                    <span class="day-card__number">Day 02</span>
+                    <h3 class="day-card__title">Coming Soon</h3>
+                    <p class="day-card__summary">Check back tomorrow for the next entry.</p>
+                    <span class="day-card__badge day-card__badge--coming">Coming Soon</span>
+                </div>
+
+                <!-- Day 03 - Coming Soon (Hidden) -->
+                <div class="day-card day-card--locked">
+                    <span class="day-card__number">Day 03</span>
+                    <h3 class="day-card__title">Coming Soon</h3>
+                    <p class="day-card__summary">Check back soon for the next entry.</p>
+                    <span class="day-card__badge day-card__badge--coming">Coming Soon</span>
+                </div>
+
+                <!-- Day 04 - Coming Soon (Hidden) -->
+                <div class="day-card day-card--locked">
+                    <span class="day-card__number">Day 04</span>
+                    <h3 class="day-card__title">Coming Soon</h3>
+                    <p class="day-card__summary">Check back soon for the next entry.</p>
+                    <span class="day-card__badge day-card__badge--coming">Coming Soon</span>
+                </div>
+
+                <!-- Days 05-31 - Placeholder Locked Cards -->
+                <div class="day-card day-card--locked">
+                    <span class="day-card__number">Day 05</span>
+                    <h3 class="day-card__title">Coming Soon</h3>
+                    <p class="day-card__summary">Check back soon for the next entry.</p>
+                    <span class="day-card__badge day-card__badge--coming">Coming Soon</span>
+                </div>
+
+                <div class="day-card day-card--locked">
+                    <span class="day-card__number">Day 06</span>
+                    <h3 class="day-card__title">Coming Soon</h3>
+                    <p class="day-card__summary">Check back soon for the next entry.</p>
+                    <span class="day-card__badge day-card__badge--coming">Coming Soon</span>
+                </div>
+
+                <div class="day-card day-card--locked">
+                    <span class="day-card__number">Day 07</span>
+                    <h3 class="day-card__title">Coming Soon</h3>
+                    <p class="day-card__summary">Check back soon for the next entry.</p>
+                    <span class="day-card__badge day-card__badge--coming">Coming Soon</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="../script.js"></script>
+</body>
+</html>
