@@ -237,4 +237,10 @@ In the meantime, pay attention to where you are still using a command mindset wi
 
 Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., Kaiser, L., & Polosukhin, I. (2017). Attention is all you need. *Advances in Neural Information Processing Systems*, *30*. [https://arxiv.org/abs/1706.03762](https://arxiv.org/abs/1706.03762)
 
+---
+
+(created with AI)
+
+View the source code on GitHub: [ProductivePrompter.com Repository](https://github.com/josiahH-cf/theproductiveprompter)
+
 

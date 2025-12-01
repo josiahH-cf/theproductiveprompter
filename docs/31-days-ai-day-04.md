@@ -377,3 +377,9 @@ For now, you have four practical patterns you can start using today. Treat them 
 ---
 
 **Educational Disclaimer:** All templates are educational examples. Outputs must be reviewed by qualified professionals before use in production environments, especially for code, project management, and strategic work.
+
+---
+
+(created with AI)
+
+View the source code on GitHub: [ProductivePrompter.com Repository](https://github.com/josiahH-cf/theproductiveprompter)

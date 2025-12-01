@@ -1,0 +1,319 @@
+{
+  "_meta": {
+    "version": "1.2",
+    "created": "2025-11-03",
+    "last_updated": "2025-11-13",
+    "purpose": "Integrity manifest for Article-Spec-Pack-v1. Verify file checksums before execution to prevent degradation."
+  },
+  "normative_documents": {
+    "1-Master/Article-Master-Spec.md": {
+      "md5": "02476ed359c4cc55082836a58910ff4c",
+      "history": [
+        {
+          "md5": "4fe529c9ba766d55da4f25252aeb2c6a",
+          "timestamp": "2025-11-03"
+        },
+        {
+          "md5": "02476ed359c4cc55082836a58910ff4c",
+          "timestamp": "2025-11-13"
+        }
+      ],
+      "status": "locked",
+      "precedence": 0,
+      "description": "Single source of truth for article production"
+    },
+    "1-Master/Article-Process-Map.md": {
+      "md5": "c6ec0cdce8add3a4783aaeb2ffd71d63",
+      "history": [
+        {
+          "md5": "2eeac096296e7f28ad44b185817af54e",
+          "timestamp": "2025-11-03"
+        },
+        {
+          "md5": "c6ec0cdce8add3a4783aaeb2ffd71d63",
+          "timestamp": "2025-11-13"
+        }
+      ],
+      "status": "locked",
+      "precedence": 0,
+      "description": "Workflow sequence for single-pass articles"
+    },
+    "1-Master/Critic-Loop-(Single-Pass-Self-Check).md": {
+      "md5": "e437e1df94580321dcf67e900f1a4942",
+      "history": [
+        {
+          "md5": "2bf214efe5a0be85437a94a131d6a70c",
+          "timestamp": "2025-11-03"
+        },
+        {
+          "md5": "e437e1df94580321dcf67e900f1a4942",
+          "timestamp": "2025-11-13"
+        }
+      ],
+      "status": "locked",
+      "precedence": 4,
+      "description": "Quality enforcement via Voice/Focus/Evidence checks"
+    },
+    "4-Carryover-Updated/Style-Baseline-(Directive).md": {
+      "md5": "23f2775d9fd9dce4c875c7d5ca742779",
+      "history": [
+        {
+          "md5": "e838f56e1c647d0be399a40c82b5de03",
+          "timestamp": "2025-11-03"
+        },
+        {
+          "md5": "23f2775d9fd9dce4c875c7d5ca742779",
+          "timestamp": "2025-11-13"
+        }
+      ],
+      "status": "locked",
+      "precedence": 1,
+      "description": "Highest-precedence voice and structural requirements"
+    },
+    "4-Carryover-Updated/Brand-Pack-(Author-Compass).md": {
+      "md5": "4489bf224c3eb53bcf5c43e44f36771c",
+      "history": [
+        {
+          "md5": "2c325da67e3b485f3ae1e8c944eef3b8",
+          "timestamp": "2025-11-03"
+        },
+        {
+          "md5": "4489bf224c3eb53bcf5c43e44f36771c",
+          "timestamp": "2025-11-13"
+        }
+      ],
+      "status": "locked",
+      "precedence": 2,
+      "description": "Brand voice, neutrality, device policy"
+    },
+    "3-Annexes/Evidence-and-IP-Annex.md": {
+      "md5": "abd6b0cef999add2c884d2f14c77aea5",
+      "history": [
+        {
+          "md5": "a79dbb6cdade1c77609550c8a3cae786",
+          "timestamp": "2025-11-03"
+        },
+        {
+          "md5": "abd6b0cef999add2c884d2f14c77aea5",
+          "timestamp": "2025-11-13"
+        }
+      ],
+      "status": "locked",
+      "precedence": 5,
+      "description": "APA citations, dynamic freshness, IP attribution"
+    },
+    "3-Annexes/Device-Catalog.md": {
+      "md5": "181c7c3b4a7ee6b841aea44dc9887005",
+      "history": [
+        {
+          "md5": "d31e95cfa7b664c398bffd99be9835e0",
+          "timestamp": "2025-11-03"
+        },
+        {
+          "md5": "181c7c3b4a7ee6b841aea44dc9887005",
+          "timestamp": "2025-11-13"
+        }
+      ],
+      "status": "locked",
+      "precedence": 6,
+      "description": "Narrative device definitions and formatting rules"
+    },
+    "4-Carryover-Updated/Default-Style-Anchor-Card.md": {
+      "md5": "dd99e96aac7df245ab26ca79ba625be5",
+      "history": [
+        {
+          "md5": "51e771e3f3dd2a57e4e978af38830822",
+          "timestamp": "2025-11-03"
+        },
+        {
+          "md5": "dd99e96aac7df245ab26ca79ba625be5",
+          "timestamp": "2025-11-13"
+        }
+      ],
+      "status": "locked",
+      "precedence": 1,
+      "description": "Default 112-word Style Anchor for articles without custom voice"
+    }
+  },
+  "templates": {
+    "2-Templates/Article-Brief-Template.md": {
+      "md5": "cb24b21b5c663df1ce5b374299970984",
+      "history": [
+        {
+          "md5": "06543a4032959f72909a68b4971bd343",
+          "timestamp": "2025-11-03"
+        },
+        {
+          "md5": "cb24b21b5c663df1ce5b374299970984",
+          "timestamp": "2025-11-13"
+        }
+      ],
+      "status": "template",
+      "precedence": 3,
+      "description": "Per-article planning document (device activation authority)"
+    }
+  },
+  "documentation": {
+    "0-README.md": {
+      "md5": "2179a0ef03ab77d1e2ee6b31428b06b9",
+      "history": [
+        {
+          "md5": "7fa8f0e9ccfdaa30368cfa986cb72b4d",
+          "timestamp": "2025-11-03"
+        },
+        {
+          "md5": "c217d5c8004364fc4110c9e4313e0b91",
+          "timestamp": "2025-11-13"
+        },
+        {
+          "md5": "c217d5c8004364fc4110c9e4313e0b91",
+          "timestamp": "2025-11-13"
+        }
+      ],
+      "status": "documentation",
+      "description": "Pack overview and quick start guide"
+    },
+    "CHANGELOG.md": {
+      "md5": "62913768e35a3594d6c22f3726c3eb99",
+      "history": [
+        {
+          "md5": "b60754f3792bfa6702e0b790446a105e",
+          "timestamp": "2025-11-03"
+        },
+        {
+          "md5": "c4ca46289937bd5ebd8aab72075a1a10",
+          "timestamp": "2025-11-13"
+        },
+        {
+          "md5": "f8f03c6ad6f38345089854197442a2a0",
+          "timestamp": "2025-11-13"
+        },
+        {
+          "md5": "62913768e35a3594d6c22f3726c3eb99",
+          "timestamp": "2025-11-13"
+        }
+      ],
+      "status": "documentation",
+      "description": "Complete migration history"
+    },
+    "MIGRATION-COMPLETE.md": {
+      "md5": "fd6d7ab438b793b4993362b5adfaf527",
+      "status": "documentation",
+      "description": "Migration summary and quick reference"
+    },
+    "Article-Execution-Meta-Prompt.md": {
+      "md5": "e94029a7815addbcb38e210893ad139e",
+      "history": [
+        {
+          "md5": "7cbcae4fdec52b501cb03f1fac96e721",
+          "timestamp": "2025-11-03"
+        },
+        {
+          "md5": "e94029a7815addbcb38e210893ad139e",
+          "timestamp": "2025-11-13"
+        }
+      ],
+      "status": "execution-controller",
+      "description": "Defines autonomous execution workflow with anti-degradation controls"
+    },
+    "Sample-Completed-Article-Annotated.md": {
+      "md5": "51e771e3f3dd2a57e4e978af38830822",
+      "status": "documentation",
+      "description": "Annotated example article showing full compliance with all requirements"
+    },
+    "Article-Output-Format-Template.md": {
+      "md5": "c856b188fa31750a18c68dba66744f12",
+      "history": [
+        {
+          "md5": "d04954da3eabe0d6aefbc6b6b511ebd8",
+          "timestamp": "2025-11-03"
+        },
+        {
+          "md5": "c856b188fa31750a18c68dba66744f12",
+          "timestamp": "2025-11-13"
+        }
+      ],
+      "status": "documentation",
+      "description": "Standardized Phase 6 delivery format with 6 sections"
+    },
+    "PDF-Upload-Quick-Start-Guide.md": {
+      "md5": "8e7e52d31a01fdfad866e5394983e9f6",
+      "history": [
+        {
+          "md5": "7ac79636d852bf719d3e4d04f9ed88a7",
+          "timestamp": "2025-11-03"
+        },
+        {
+          "md5": "8e7e52d31a01fdfad866e5394983e9f6",
+          "timestamp": "2025-11-13"
+        }
+      ],
+      "status": "documentation",
+      "description": "Deployment guide for Gemini web GUI (PDF uploads only)"
+    },
+    "Blog-Output-Format-Template.md": {
+      "md5": "ccc344dac6d74bf914563c732f50342b",
+      "status": "documentation",
+      "description": "Added by automation"
+    },
+    "copilot-instructions.md": {
+      "md5": "6df39a7d80f2132aa6ca5057ac231ce8",
+      "status": "documentation",
+      "description": "Added by automation"
+    }
+  },
+  "integrity_rules": {
+    "locked_files": [
+      "1-Master/Article-Master-Spec.md",
+      "1-Master/Article-Process-Map.md",
+      "1-Master/Critic-Loop-(Single-Pass-Self-Check).md",
+      "4-Carryover-Updated/Style-Baseline-(Directive).md",
+      "4-Carryover-Updated/Brand-Pack-(Author-Compass).md",
+      "3-Annexes/Evidence-and-IP-Annex.md",
+      "3-Annexes/Device-Catalog.md"
+    ],
+    "unlock_protocol": "User must issue UNLOCK:<filename> command before modification",
+    "verification_frequency": "Before every execution phase (Phase 0: Integrity Check)",
+    "rollback_policy": "On checksum mismatch or gate failure, restore last verified version",
+    "diff_requirement": "All modifications must show unified diff + one-line reason",
+    "changelog_requirement": "All file changes logged with date, file path, reason, and new checksum"
+  },
+  "precedence_order": [
+    "Style-Baseline-(Directive).md",
+    "Brand-Pack-(Author-Compass).md",
+    "Article-Brief-[topic].md",
+    "Critic-Loop-(Single-Pass-Self-Check).md",
+    "Evidence-and-IP-Annex.md",
+    "Device-Catalog.md"
+  ],
+  "required_gates": [
+    "Gate A: Baseline & Shape Declared",
+    "Gate B: Critic Loop (Voice, Focus, Evidence)",
+    "Gate C: Evidence & Freshness"
+  ],
+  "execution_phases": [
+    "Phase 0: Integrity Check",
+    "Phase 1: Topic Intake (Brief Creation)",
+    "Phase 2: Pack Adaptation",
+    "Phase 3: Approval Loop",
+    "Phase 4: Draft Generation",
+    "Phase 5: Gate Validation",
+    "Phase 6: Archival & Logging"
+  ],
+  "history": [
+    {
+      "date": "2025-11-03",
+      "event": "Initial manifest created",
+      "version": "1.0",
+      "files_tracked": 11,
+      "notes": "All files from Article-Spec-Pack-v1 migration"
+    },
+    {
+      "date": "2025-11-03",
+      "event": "Added one-shot execution components",
+      "version": "1.2",
+      "files_added": 4,
+      "notes": "Added Sample-Completed-Article-Annotated.md, Article-Output-Format-Template.md, PDF-Upload-Quick-Start-Guide.md, Default-Style-Anchor-Card.md"
+    }
+  ]
+}

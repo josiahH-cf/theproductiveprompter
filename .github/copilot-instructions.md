@@ -57,3 +57,31 @@ Copilot should then:
 1.  Check `docs/` for the file.
 2.  Generate the correct HTML link using the `article.html?post=` format.
 3.  Insert it into the appropriate section of `index.html`.
+
+## 31 Days of AI Campaign Workflow
+
+For the "31 Days of AI" campaign, follow this specific workflow:
+
+1.  **Topic & Brief**:
+    *   Start with a topic or tool.
+    *   Generate a brief if needed, or proceed directly to drafting if the concept is clear.
+
+2.  **Drafting with Spec Standards**:
+    *   Use the **Unified Article Spec** structure:
+        *   **Opening Reality Check**: Ground the topic in a real frustration or problem.
+        *   **Mental Models**: 2-3 utility-first concepts.
+        *   **Workflow Blocks**: Concrete "When/Why", "Pattern" (prompt), and "Steps".
+        *   **Caution Section**: What *not* to outsource.
+        *   **Tri-Stage Checklist**: Before, During, After.
+        *   **Closing Activation**: A concrete next step.
+    *   **Methodology Note**: At the end of the article (before the disclosure), mention that the finalized article goes into a web-based AI model (GPT-5.1) using a tone instruction doc for the final polish.
+
+3.  **Meta Requirements**:
+    *   **Filename**: `docs/31-days-ai-day-XX.md` (e.g., `31-days-ai-day-01.md`).
+    *   **AI Disclosure**: Append `(created with AI)` at the very end.
+    *   **GitHub Link**: Append `View the source code on GitHub: [ProductivePrompter.com Repository](https://github.com/josiahH-cf/theproductiveprompter)`.
+
+4.  **Publishing**:
+    *   Save the file in `docs/`.
+    *   Update `index.html` to include the new day in the "31 Days of AI" section.
+    *   Update the progress counter (e.g., "Day 1 of 31").
