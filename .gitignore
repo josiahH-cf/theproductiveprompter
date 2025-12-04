@@ -26,6 +26,7 @@ bower_components/
 # Optional: Draft content
 drafts/
 _drafts/
+table-of-contents.md
 
 # Optional: Local environment files
 .env

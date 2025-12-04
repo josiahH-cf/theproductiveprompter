@@ -28,7 +28,8 @@ Each article has been transformed from its book chapter format into a self-conta
 - 📊 **Word Count:** ~2500-3000
 
 **02 - The Professional's Playbook: 4 Copy-Paste AI Prompts That Actually Work**
-- 📄 **File:** `02-the-professionals-playbook-early-win.md`
+- 📄 **File:** ~~`02-the-professionals-playbook-early-win.md`~~ → **ARCHIVED** (deployed as Day 04)
+- ✅ **31 Days of AI:** Day 04 → `docs/31-days-ai-day-04.md`
 - 🎯 **Topics:** Role-specific prompt templates, CRIT Framework introduction
 - 👥 **Characters:** Alex (debugging), Maya (planning), Leo (creative), Sam (learning)
 - 🔑 **Key Frameworks:** CRIT Framework (Context, Role, Instruction, Task)
