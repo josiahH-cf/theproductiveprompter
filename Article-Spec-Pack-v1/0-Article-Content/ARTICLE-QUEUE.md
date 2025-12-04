@@ -10,9 +10,8 @@
 | Status | Count | Days |
 |--------|-------|------|
 | ✅ Deployed | 4 | Days 01-04 |
-| 📄 Ready (source exists) | 7 | Days 05-11 |
+| 🚀 Ready for Deploy | 9 | Days 05-11, 21-22 |
 | 📝 Gap (needs drafting) | 9 | Days 12-20 |
-| 🔄 Legacy (repurpose) | 2 | Days 21-22 |
 | ⏳ Pending | 9 | Days 23-31 |
 
 ---
@@ -28,19 +27,19 @@
 
 ---
 
-## 📄 Ready to Convert (Days 05-11)
+## 🚀 Ready for Deploy (Days 05-11)
 
-These source articles exist in `0-Article-Content/` and need conversion to `docs/31-days-ai-day-XX.md` format.
+These articles have been converted to `docs/31-days-ai-day-XX.md` and are ready for deployment.
 
-| Day | Date | TOC Chapter | Source File | Title (Proposed) |
-|-----|------|-------------|-------------|------------------|
-| 05 | Dec 5 | Ch 4: How AI Learns | `04-how-ai-learns-training-bias-hallucinations.md` | How AI Learns: Training, Bias & Hallucinations |
-| 06 | Dec 6 | Ch 5/6: Tokens & Context | `05-tokens-and-context-windows.md` | Tokens & Context Windows: How AI Thinks |
-| 07 | Dec 7 | Ch 9: Maya Case Study | `06-from-mess-to-plan-maya-case-study.md` | From Mess to Plan: AI for Project Managers |
-| 08 | Dec 8 | Ch 13: Advanced Patterns | `07-advanced-patterns-cot-rag-react.md` | Advanced Patterns: CoT, RAG & ReAct |
-| 09 | Dec 9 | Ch 8: Tool Selection | `08-choosing-your-ai-tool.md` | Choosing Your AI Tool: A Decision Framework |
-| 10 | Dec 10 | Ch 10: Alex Case Study | `09-critical-thinking-with-alex.md` | Critical Thinking with AI: A Developer's Guide |
-| 11 | Dec 11 | Ch 12: Core Principles | `10-the-professionals-compass-principles.md` | The Professional's Compass: Core AI Principles |
+| Day | Date | TOC Chapter | Source File | Title | Status |
+|-----|------|-------------|-------------|-------|--------|
+| 05 | Dec 5 | Ch 4: How AI Learns | `04-how-ai-learns...` | How AI Learns: Training, Bias & Hallucinations | 🚀 Ready |
+| 06 | Dec 6 | Ch 5/6: Tokens & Context | `05-tokens...` | Tokens & Context Windows: How AI Thinks | 🚀 Ready |
+| 07 | Dec 7 | Ch 9: Maya Case Study | `06-from-mess...` | From Mess to Plan: AI for Project Managers | 🚀 Ready |
+| 08 | Dec 8 | Ch 13: Advanced Patterns | `07-advanced...` | Advanced Patterns: CoT, RAG & ReAct | 🚀 Ready |
+| 09 | Dec 9 | Ch 8: Tool Selection | `08-choosing...` | Choosing Your AI Tool: A Decision Framework | 🚀 Ready |
+| 10 | Dec 10 | Ch 10: Alex Case Study | `09-critical...` | Critical Thinking with AI: A Developer's Guide | 🚀 Ready |
+| 11 | Dec 11 | Ch 12: Core Principles | `10-the-professionals...` | The Professional's Compass: Core AI Principles | 🚀 Ready |
 
 ---
 
@@ -62,14 +61,14 @@ These chapters from the TOC do not have source articles and need to be drafted f
 
 ---
 
-## 🔄 Legacy Articles - Repurpose (Days 21-22)
+## 🔄 Legacy Articles - Repurposed (Days 21-22)
 
-These existing articles can be refreshed and repurposed for the campaign.
+These articles have been refreshed and repurposed for the campaign.
 
-| Day | Date | Source File | Repurpose Strategy |
-|-----|------|-------------|-------------------|
-| 21 | Dec 21 | `20251113-prompt-engineering-7-tips.md` | Refresh as "7 Quick Wins" practical tips post |
-| 22 | Dec 22 | `What Today's AI Really Is...md` | Update and reframe as developer-focused AI primer |
+| Day | Date | Source File | Title | Status |
+|-----|------|-------------|-------|--------|
+| 21 | Dec 21 | `20251113-prompt-engineering-7-tips.md` | 7 Quick Wins: Instant Upgrades for Your Prompts | 🚀 Ready |
+| 22 | Dec 22 | `what-todays-ai-really-is.md` | The Developer's Primer: How AI Actually Works | 🚀 Ready |
 
 ---
 

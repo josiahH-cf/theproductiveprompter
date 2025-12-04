@@ -47,7 +47,8 @@ Each article has been transformed from its book chapter format into a self-conta
 #### Human Learning & AI Training (Chapters 4-5)
 
 **04 - How AI Learns: Understanding Training, Bias, and Hallucinations**
-- 📄 **File:** `04-how-ai-learns-training-bias-hallucinations.md`
+- 📄 **File:** ~~`04-how-ai-learns-training-bias-hallucinations.md`~~ → **ARCHIVED** (deployed as Day 05)
+- ✅ **31 Days of AI:** Day 05 → `docs/31-days-ai-day-05.md`
 - 🎯 **Topics:** Training data, supervised learning, bias, emergent creativity, hallucinations
 - 🔑 **Key Concepts:** Learning Toddler analogy (with limits clearly explained)
 - 🔑 **Key Frameworks:** Pattern recognition as learning model
@@ -55,7 +56,8 @@ Each article has been transformed from its book chapter format into a self-conta
 - 📊 **Word Count:** ~2500-3000
 
 **05 - Tokens and Context Windows: How AI Thinks in Real Time**
-- 📄 **File:** `05-tokens-and-context-windows.md`
+- 📄 **File:** ~~`05-tokens-and-context-windows.md`~~ → **ARCHIVED** (deployed as Day 06)
+- ✅ **31 Days of AI:** Day 06 → `docs/31-days-ai-day-06.md`
 - 🎯 **Topics:** Tokenization, context window constraints, next-word prediction mechanics
 - 🔑 **Key Concepts:** Amnesiac Expert analogy (with limits clearly explained)
 - 🔑 **Key Frameworks:** How AI processes and "remembers" information
@@ -68,7 +70,8 @@ Each article has been transformed from its book chapter format into a self-conta
 **Coming Soon: Chapter 7 - Beyond Words (Multimodal AI)**
 
 **08 - Choosing Your AI Tool: A Framework for Matching Tech to Task**
-- 📄 **File:** `08-choosing-your-ai-tool.md`
+- 📄 **File:** ~~`08-choosing-your-ai-tool.md`~~ → **ARCHIVED** (deployed as Day 09)
+- ✅ **31 Days of AI:** Day 09 → `docs/31-days-ai-day-09.md`
 - 🎯 **Topics:** Model selection framework, architecture tradeoffs, evaluation criteria
 - 🔑 **Key Concepts:** Speed vs depth, generalist vs specialist, four evaluation questions
 - 🔑 **Key Frameworks:** Model selection decision tree, evaluation checklist
@@ -82,7 +85,8 @@ Each article has been transformed from its book chapter format into a self-conta
 #### Case Studies (Chapters 9-12)
 
 **06 - From Mess to Plan: How a Project Manager Tamed AI (A Case Study)**
-- 📄 **File:** `06-from-mess-to-plan-maya-case-study.md`
+- 📄 **File:** ~~`06-from-mess-to-plan-maya-case-study.md`~~ → **ARCHIVED** (deployed as Day 07)
+- ✅ **31 Days of AI:** Day 07 → `docs/31-days-ai-day-07.md`
 - 🎯 **Topics:** CRIT Framework in action, structured prompting, prompt anatomy
 - 👥 **Characters:** Maya (full journey from frustration to success)
 - 🔑 **Key Frameworks:** CRIT Framework deep dive, prompt deconstruction
@@ -90,7 +94,8 @@ Each article has been transformed from its book chapter format into a self-conta
 - 📊 **Word Count:** ~2500-3000
 
 **09 - From Bug to Breakthrough: Using AI as Your Critical Thinking Partner**
-- 📄 **File:** `09-critical-thinking-with-alex.md`
+- 📄 **File:** ~~`09-critical-thinking-with-alex.md`~~ → **ARCHIVED** (deployed as Day 10)
+- ✅ **31 Days of AI:** Day 10 → `docs/31-days-ai-day-10.md`
 - 🎯 **Topics:** Critical thinking techniques, falsification, arguing from opposite, red-teaming
 - 👥 **Characters:** Alex (developer using AI for debugging and diagnosis)
 - 🔑 **Key Frameworks:** Five critical thinking techniques, constraint-based prompting
@@ -100,7 +105,8 @@ Each article has been transformed from its book chapter format into a self-conta
 **Coming Soon: Chapter 11 - Creative Iteration with Leo (Sculptor's Mindset)**
 
 **10 - The Professional's Compass: Core Principles Every AI User Needs**
-- 📄 **File:** `10-the-professionals-compass-principles.md`
+- 📄 **File:** ~~`10-the-professionals-compass-principles.md`~~ → **ARCHIVED** (deployed as Day 11)
+- ✅ **31 Days of AI:** Day 11 → `docs/31-days-ai-day-11.md`
 - 🎯 **Topics:** Amnesiac Expert model, Golden Rule, Proportionality Principle, professional habits
 - 👥 **Characters:** References to Maya, Alex, and Leo's journeys
 - 🔑 **Key Frameworks:** The Golden Rule ("Better context causes better predictions"), risk management
@@ -114,7 +120,8 @@ Each article has been transformed from its book chapter format into a self-conta
 #### Advanced Patterns (Chapter 13)
 
 **07 - Advanced AI Patterns: Chain-of-Thought, RAG, and Multi-Step Reasoning**
-- 📄 **File:** `07-advanced-patterns-cot-rag-react.md`
+- 📄 **File:** ~~`07-advanced-patterns-cot-rag-react.md`~~ → **ARCHIVED** (deployed as Day 08)
+- ✅ **31 Days of AI:** Day 08 → `docs/31-days-ai-day-08.md`
 - 🎯 **Topics:** Chain-of-Thought prompting, Retrieval-Augmented Generation, ReAct framework
 - 👥 **Characters:** Leo (campaign risk assessment), Alex (API documentation), Maya (workflow automation)
 - 🔑 **Key Frameworks:** CoT, RAG, ReAct with copy-pasteable templates
