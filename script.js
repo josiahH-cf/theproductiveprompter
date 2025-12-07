@@ -149,6 +149,33 @@ revealElements.forEach(element => {
 });
 
 // ===================================
+// Clickable Project Cards
+// ===================================
+
+/**
+ * Make entire project card clickable
+ * Cards with data-href attribute will navigate to that URL on click
+ */
+const projectCards = document.querySelectorAll('.project-card[data-href]');
+
+projectCards.forEach(card => {
+    // Add pointer cursor to indicate clickability
+    card.style.cursor = 'pointer';
+    
+    card.addEventListener('click', (e) => {
+        // Don't navigate if clicking on an existing link inside the card
+        if (e.target.closest('a')) {
+            return;
+        }
+        
+        const href = card.getAttribute('data-href');
+        if (href) {
+            window.open(href, '_blank', 'noopener,noreferrer');
+        }
+    });
+});
+
+// ===================================
 // Hide/Show Navigation on Scroll
 // ===================================
 
