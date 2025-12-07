@@ -149,28 +149,34 @@ revealElements.forEach(element => {
 });
 
 // ===================================
-// Clickable Project Cards
+// Clickable Cards (Project Cards, Banners, etc.)
 // ===================================
 
 /**
- * Make entire project card clickable
- * Cards with data-href attribute will navigate to that URL on click
+ * Make any element with data-href fully clickable
+ * Works for project cards, campaign banners, and any other cards
  */
-const projectCards = document.querySelectorAll('.project-card[data-href]');
+const clickableElements = document.querySelectorAll('[data-href]');
 
-projectCards.forEach(card => {
+clickableElements.forEach(element => {
     // Add pointer cursor to indicate clickability
-    card.style.cursor = 'pointer';
+    element.style.cursor = 'pointer';
     
-    card.addEventListener('click', (e) => {
-        // Don't navigate if clicking on an existing link inside the card
+    element.addEventListener('click', (e) => {
+        // Don't navigate if clicking on an existing link inside the element
         if (e.target.closest('a')) {
             return;
         }
         
-        const href = card.getAttribute('data-href');
+        const href = element.getAttribute('data-href');
         if (href) {
-            window.open(href, '_blank', 'noopener,noreferrer');
+            // Check if it's an external link (starts with http)
+            if (href.startsWith('http')) {
+                window.open(href, '_blank', 'noopener,noreferrer');
+            } else {
+                // Internal link - navigate in same tab
+                window.location.href = href;
+            }
         }
     });
 });
