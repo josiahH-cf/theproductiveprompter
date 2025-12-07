@@ -403,7 +403,8 @@ a:focus {
     border-radius: var(--border-radius-lg);
     padding: var(--spacing-md);
     transition: all var(--transition-base);
-    cursor: default;
+    cursor: pointer;
+    text-decoration: none;
 }
 
 .split-card__side:hover {
