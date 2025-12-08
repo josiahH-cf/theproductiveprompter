@@ -161,6 +161,8 @@ const clickableElements = document.querySelectorAll('[data-href]');
 clickableElements.forEach(element => {
     // Add pointer cursor to indicate clickability
     element.style.cursor = 'pointer';
+    element.setAttribute('tabindex', '0');
+    element.setAttribute('role', 'link');
     
     element.addEventListener('click', (e) => {
         // Don't navigate if clicking on an existing link inside the element
@@ -170,11 +172,15 @@ clickableElements.forEach(element => {
         
         const href = element.getAttribute('data-href');
         if (href) {
-            // Check if it's an external link (starts with http)
-            if (href.startsWith('http')) {
-                window.open(href, '_blank', 'noopener,noreferrer');
-            } else {
-                // Internal link - navigate in same tab
+            window.location.href = href;
+        }
+    });
+
+    element.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            const href = element.getAttribute('data-href');
+            if (href) {
                 window.location.href = href;
             }
         }
