@@ -1,15 +1,15 @@
 # Day 08: Advanced Patterns (CoT, RAG, ReAct)
 
-## The Reality Check
+## Why Simple Prompts Break
 
 Simple prompts fall apart on complex work. If you ask an AI to solve a logic puzzle or interpret a 50 page document in one breath, it will usually hallucinate, skip key steps, or latch onto the wrong detail. To handle real complexity, you need to make the AI think before it talks.
 
-## Mental Models
+## Two Mental Models
 
 1. **The Math Student (CoT):** You do not just want the final answer, you want to see the work. If the reasoning is sound, the answer is usually sound.
 2. **The Librarian (RAG):** Do not guess, go to this specific shelf, open this specific book, and use only what is inside.
 
-## The Workflow: Advanced Reasoning Patterns
+## Advanced Reasoning Patterns
 
 ### 1. Chain of Thought (CoT)
 
@@ -85,17 +85,17 @@ Repeat this loop until the goal is met.
 1. Make the ultimate Goal explicit.
 2. Enforce the "Thought → Action → Observation" loop, so the AI does not just plan once and then freewheel to a conclusion.
 
-## Caution: What Not to Hand Off
+## What Not to Hand Off
 
 Do not use CoT for creative writing. Step by step reasoning flattens the rhythm and tone you want for poetry, narrative, or freeform brainstorming. Use structured reasoning for logic and decision making, and let creative work stay loose.
 
-## The Tri Stage Checklist
+## Quick Checklist
 
 * **Before:** Is this a complex logic or trade off decision? Use CoT. Is this about specific, local knowledge in a document? Use RAG.
 * **During:** Did the AI actually show its work, or did it jump straight to an answer and slap a few generic sentences on top?
 * **After:** For RAG style prompts, did the response clearly rely on and cite the provided text, or does it sound like outside guessing?
 
-## Closing Activation
+## Next Step
 
 Pick a real decision you are wrestling with, for example, "Should I refactor this codebase?" Use the Chain of Thought pattern and ask the AI to argue both sides step by step, then synthesize a recommendation at the end.
 

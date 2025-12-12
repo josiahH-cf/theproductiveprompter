@@ -1,10 +1,10 @@
 # Day 05: Evaluating AI Outputs (Bias, Hallucinations, and Facts)
 
-## The Reality Check
+## What You Are Actually Talking To
 
 You are not talking to an expert. You are talking to a statistical prediction engine that has read a lot of text, but does not actually understand any of it. It behaves like a confident toddler that will invent facts, mirror stereotypes, and give you fluent, polished nonsense without hesitation. If you treat its output as truth without checking, you are the one on the hook for whatever happens next.
 
-## Mental Models
+## Two Mental Models That Prevent Mistakes
 
 1. **The Learning Toddler**
    Think of the model like a child learning the word “cat” from pictures. If it only ever sees black cats, it quietly concludes that all cats are black. It does not hold beliefs, it just learns statistical patterns from data and repeats what is most likely to come next.
@@ -12,7 +12,7 @@ You are not talking to an expert. You are talking to a statistical prediction en
 2. **The Confident Hallucinator**
    When the model does not know something, it does not stop and admit confusion. It still predicts the next likely word. Often, that “most likely” continuation is a clean, plausible lie. That is baked into how it works, not an edge case or implementation bug.
 
-## The Workflow: The Trust But Verify Loop
+## The Trust-But-Verify Loop
 
 ### 1. Spotting Hallucinations (The “Show Your Work” Check)
 
@@ -71,17 +71,17 @@ Requirement: For every key point, provide a quote or specific reference that sup
 2. Check that each quote actually supports the claim it is paired with, rather than just sharing some keywords.
 3. Treat the summary as a navigation aid to the real material, not as a replacement for reading the source.
 
-## Caution: What Not to Outsource
+## What Not to Outsource
 
 Do not outsource final judgment on what is true. You can offload pattern matching, cross checking, and draft edits. You cannot offload the actual decision about what is correct. The model is a text generator, not an authoritative knowledge base.
 
-## The Tri Stage Checklist
+## Quick Checklist
 
 * **Before:** Is this a high stakes topic (legal, medical, financial, safety, or compliance)? If yes, you must not rely on AI alone.
 * **During:** Does the output sound extremely polished and confident? Be more skeptical, not less. Confidence ≠ accuracy.
 * **After:** Did you check the key claims against primary, trusted sources, not just another AI pass?
 
-## Closing Activation
+## Next Step
 
 Take a recent output you used, maybe an email draft, a summary, or a code snippet. Pick one factual claim or assumption inside it and spend two minutes verifying it properly. Did the model get it right?
 

@@ -1,15 +1,15 @@
 # Day 07: The CRIT Framework (Structuring Your Prompts)
 
-## The Reality Check
+## Why Structure Matters
 
 "Garbage in, garbage out" is the iron law of computing, and it applies even more with AI. If you ask with a vague, lazy prompt like "Write a blog post," you should expect a vague, lazy response. If you want professional output, you have to prompt like a professional. Structure is not a nice to have, it is the interface.
 
-## Mental Models
+## Two Useful Mental Models
 
 1. **The Detective:** The AI needs evidence, your Context, to solve the case. If you hold back the facts, it is forced to guess.
 2. **The Actor:** The AI needs a character, a Role, to inhabit. If you do not give it a part to play, it defaults to a bland, generic assistant.
 
-## The Workflow: The CRIT Framework
+## The CRIT Framework
 
 CRIT is a simple way to structure almost any serious prompt: **Context, Role, Instruction, Task Format**. Use these four parts when you care about the quality and usability of the output.
 
@@ -85,17 +85,17 @@ Include columns for: [Column A], [Column B].
 1. Picture exactly what you want to copy and paste into your document, tool, or system.
 2. Describe that structure explicitly so the AI can match it.
 
-## Caution: What Not to Outsource
+## What Not to Outsource
 
 Do not outsource the "why." The Context step forces you to define the problem in your own words. If you cannot explain the context, you do not understand the problem well enough to prompt the AI in a reliable way.
 
-## The Tri Stage Checklist
+## Quick Checklist
 
 * **Before:** Did I include the raw data and relevant details in the Context?
 * **During:** Did I define a specific, concrete Role? (Generic AI means generic output.)
 * **After:** Did the output follow the Format I asked for? If not, tell it explicitly to "reformat as X" and run it again.
 
-## Closing Activation
+## Next Step
 
 Grab a recent prompt that produced a mediocre result. Rewrite it using the CRIT headers, **Context**, **Role**, **Task**, and **Format**, then run it again. Compare the two outputs side by side.
 

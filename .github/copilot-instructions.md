@@ -67,21 +67,35 @@ For the "31 Days of AI" campaign, follow this specific workflow:
     *   Generate a brief if needed, or proceed directly to drafting if the concept is clear.
 
 2.  **Drafting with Spec Standards**:
-    *   Use the **Unified Article Spec** structure:
-        *   **Opening Reality Check**: Ground the topic in a real frustration or problem.
-        *   **Mental Models**: 2-3 utility-first concepts.
-        *   **Workflow Blocks**: Concrete "When/Why", "Pattern" (prompt), and "Steps".
-        *   **Caution Section**: What *not* to outsource.
-        *   **Tri-Stage Checklist**: Before, During, After.
-        *   **Closing Activation**: A concrete next step.
+    *   Use the **Unified Article Spec** as an internal guide, but do **not** publish framework-y section titles.
+        - You can still include those ideas (opening problem, mental models, workflows, cautions, checklists, next step), but the visible headings must be topic-forward.
+    *   **Forbidden Public Headings** (do not use these as literal `##` headings in published articles):
+        - Reality Check / The Reality Check
+        - Mental Models
+        - The Workflow / Workflow (including "Workflow 1/2/3")
+        - Caution
+        - Tri-Stage Checklist / Tri Stage Checklist
+        - Closing Activation
+    *   **Rhetorical hygiene**:
+        - Avoid lazy contrast phrasing like "it's not X, it's Y".
+        - Prefer proof artifacts (before/after, tables, scenarios) over slogans.
+    *   **Factual Specificity Gate**:
+        - Do not add precise numbers, dates, token/context limits, or "as of" claims unless the draft already includes a credible source link.
+        - If unsure, use qualitative phrasing and suggest checking vendor docs.
     *   **Methodology Note**: At the end of the article (before the disclosure), mention that the finalized article goes into a web-based AI model (GPT-5.1) using a tone instruction doc for the final polish.
 
-3.  **Meta Requirements**:
+3.  **QA Sweep (Required)**:
+    *   Before publishing, run a quick scan for:
+        - Forbidden public headings (above)
+        - Lazy-contrast triggers ("it's not", "isn't", "aren't")
+        - Unsourced precise numeric claims
+
+4.  **Meta Requirements**:
     *   **Filename**: `docs/31-days-ai-day-XX.md` (e.g., `31-days-ai-day-01.md`).
     *   **AI Disclosure**: Append `(created with AI)` at the very end.
     *   **GitHub Link**: Append `View the source code on GitHub: [ProductivePrompter.com Repository](https://github.com/josiahH-cf/theproductiveprompter)`.
 
-4.  **Publishing**:
+5.  **Publishing**:
     *   Save the file in `docs/`.
     *   Update `index.html` to include the new day in the "31 Days of AI" section.
     *   Update the progress counter (e.g., "Day 1 of 31").

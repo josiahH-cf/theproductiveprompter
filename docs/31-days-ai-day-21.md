@@ -1,14 +1,14 @@
 # Day 21: 7 Quick Wins: Instant Upgrades for Your Prompts
 
-## The Reality Check: Sometimes You Just Need a Quick Fix
+## Sometimes You Just Need a Quick Fix
 
 We’ve covered the deeper work already, from CRIT to token management. That’s the part that builds lasting skill. But every now and then, you just need a fast improvement. You’re short on time, you don’t want to craft a perfect prompt, and you simply want something better than the mediocre answer you just got.
 
-## Mental Models: The Cheat Codes
+## The Cheat Codes
 
-These aren’t full frameworks. They’re cheat codes, quick levers you can pull to immediately upgrade your output with almost no overhead.
+These are not full frameworks. They are cheat codes, quick levers you can pull to immediately upgrade your output with almost no overhead.
 
-## The Workflow: 7 Instant Upgrades
+## 7 Instant Upgrades
 
 ### Win 1: The “Act As” Hack
 
@@ -52,7 +52,7 @@ These aren’t full frameworks. They’re cheat codes, quick levers you can pull
 **The Pattern:** `Think step-by-step.`
 **Example:** “How many tennis balls fit in a bus? Think step-by-step.”
 
-## Caution: The Shortcut Trap
+## The Shortcut Trap
 
 These patterns boost quality fast, but they don’t replace deeper work.
 
@@ -61,7 +61,7 @@ These patterns boost quality fast, but they don’t replace deeper work.
 * **Deep thinking:** These are quick fixes, not substitutes for real design or architecture.
 * **Verification:** Step-by-step reasoning helps, but it doesn’t guarantee correctness.
 
-## The Tri-Stage Checklist
+## Quick Checklist
 
 ### Before
 
@@ -75,7 +75,7 @@ These patterns boost quality fast, but they don’t replace deeper work.
 
 * [ ] **Review:** Did the cheat code meaningfully improve the answer?
 
-## Closing Activation
+## Next Step
 
 **Try three today.**
 Pick any three of these quick wins and use them in your next interactions. You’ll see the difference immediately.

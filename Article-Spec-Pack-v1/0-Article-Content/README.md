@@ -2,6 +2,11 @@
 
 Drop your general content here. The "write the next article" command will read the most recent file and generate an expert blog.
 
+Keep this folder clean
+- Keep the **root** of `0-Article-Content/` for real intake drafts only.
+- Planning docs (queue, indexes) live in `0-Article-Content/_meta/`.
+- Campaign-specific sources and queues should be archived under `9-Archive/` when the campaign is complete.
+
 How it selects content
 - Picks the newest file by last modified timestamp.
 - If files start with a date prefix `YYYYMMDD-`, that is used to break ties and determine recency.

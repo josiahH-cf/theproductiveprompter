@@ -2,6 +2,9 @@
 
 **Purpose:** This folder contains finalized articles and their associated briefs/metadata. Note: Public article text must not include internal scaffolding labels (Device/Gate/Hard Shape/Style Anchor). Any gate/device details here are internal QA metadata.
 
+Status
+- Completed-article packages created during **31 Days of AI (2025)** were archived to `9-Archive/_31-days-of-ai-2025/completed-articles/` to keep this workflow workspace clean for future, non-campaign writing.
+
 ---
 
 ## Folder Structure

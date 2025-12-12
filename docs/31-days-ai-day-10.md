@@ -1,6 +1,6 @@
 # Day 10: From Bug to Breakthrough: Using AI as Your Critical Thinking Partner
 
-## The Reality Check: The "Fix My Code" Trap
+## The "Fix My Code" Trap
 
 Alex, a senior developer, hit a wall. A `NullReferenceException` kept taking down production, but every line of his code looked fine. So he did what most of us do when we’re tired and frustrated. He pasted the snippet into an AI tool and typed, “Fix this.”
 
@@ -10,9 +10,9 @@ The AI apologized and guessed again.
 
 Alex wasn’t using AI as a partner. He was using it like a magic 8 ball, hoping the next shake would reveal the real answer.
 
-**The shift:** AI isn’t only for generating code. Its real value shows up when you use it to sharpen your own thinking, especially when you’re stuck in a loop.
+**The shift:** AI can generate code, but its real value shows up when you use it to sharpen your own thinking, especially when you’re stuck in a loop.
 
-## Mental Models: The Sparring Partner
+## The Sparring Partner
 
 ### 1. Falsification
 
@@ -22,7 +22,7 @@ People naturally look for confirmation that they’re right. AI can flip that sc
 
 Security teams use “Red Teams” to stress test defenses. You can do the same with your logic, designs, and code. Treat the AI as a disciplined attacker whose job is to poke holes before real users do.
 
-## The Workflow: The Critical Thinking Toolkit
+## The Critical Thinking Toolkit
 
 Stop asking for answers. Start asking better questions.
 
@@ -100,14 +100,14 @@ Task: Try to break this. Find 3 security vulnerabilities or edge cases I missed.
 2. Let the AI attack it.
 3. Patch the vulnerabilities it uncovers.
 
-## Caution: The “Technically Correct” Trap
+## The “Technically Correct” Trap
 
 **Do NOT outsource:**
 
 * **Final judgment.** AI suggestions can introduce security or architectural issues. You make the final call.
 * **Contextual understanding.** The model only knows what you give it. Business rules, user behavior, and constraints are on you to supply.
 
-## The Tri Stage Checklist
+## Quick Checklist
 
 ### Before
 
@@ -124,7 +124,7 @@ Task: Try to break this. Find 3 security vulnerabilities or edge cases I missed.
 * [ ] **Verification:** Did the alternative explanation actually solve the issue?
 * [ ] **Learning:** What mental model did I overlook?
 
-## Closing Activation
+## Next Step
 
 Try one of these techniques today.
 The next time you hit a bug, skip “How do I fix this?” and try: **“Assume I’m wrong. What am I missing?”**

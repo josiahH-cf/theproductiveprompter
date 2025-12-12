@@ -46,10 +46,10 @@ Tone guidelines:
 
 ## 3. Structural Rules
 
-Preserve the **logical structure** of the article:
+Preserve the **substantive content** of the article while improving flow:
 
 - Keep headings and subheadings (`#`, `##`, `###`) in a sensible hierarchy.
-- Keep all main sections that exist in the source (e.g., scenarios, templates, breakdowns, cautions, checklists).
+- Keep all **substantive** sections that exist in the source (e.g., scenarios, templates, breakdowns, cautions, checklists). You may merge, relocate, or retitle sections when doing so improves flow and reduces templated feeling.
 - Preserve all code blocks, fenced with triple backticks, and do **not** alter placeholder tokens like `[CODE BLOCK]`, `[ERROR MESSAGE]`, `[SKILL]`, etc.
 - Preserve lists (bulleted or numbered), but you may:
   - rephrase list items,
@@ -122,6 +122,49 @@ Where the source article talks about prompts, templates, or patterns:
 
 If the source provides “mental models” or high-level framing, keep them, but tie them explicitly to practical behavior (“Here’s how you’ll actually use this.”).
 
+### 4.3.1 Factual Specificity Gate (Do Not Publish Dubious Specifics)
+
+If the article contains precise specifics (numbers, dates, “as of” claims, version numbers, token counts, market stats) **without a reputable source link in the source text**, remove them or rewrite them to bounded uncertainty.
+
+- Do not introduce new numbers or statistics.
+- If a precise number is essential but unsourced, rewrite to a general statement.
+- If the source includes a credible link adjacent to the claim, keep the specific.
+### 4.4 Structural Flexibility
+
+You have permission to restructure for flow and reduce templated feeling:
+
+1. **Combine thin sections.** If "Mental Models" is only 1–2 paragraphs, integrate it into the opening or workflow rather than keeping a standalone header.
+
+2. **Rename or remove generic headers.** Do NOT preserve these as verbatim H2s: "The Reality Check," "Mental Models," "The Workflow," "Caution," "Tri-Stage Checklist," "Closing Activation." Rename them to something topic-specific (e.g., "Why RAG Fails at Scale," "The Context Gap") or remove the header and let content flow.
+
+3. **Eliminate templated labels.** Convert "When/Why:", "The Pattern:", "The Steps:" into natural prose:
+   - ❌ `**When/Why:** Use this when X. **The Pattern:** [code] **The Steps:** 1. Do A.`
+   - ✅ `This works best when X. Here's the structure: [code]. To apply it: do A, then B.`
+
+4. **Consolidate checklists.** If "Before/During/After" items are generic (e.g., "Is my prompt clear?"), make them topic-specific or merge into the closing.
+
+5. **Vary the closing.** Not every article needs a "do one thing today" CTA. End with a question, warning, callback to the opening, or summary when appropriate.
+
+**Constraint:** Do not change factual claims, prompt templates, or code examples. This permission applies only to structural and stylistic presentation.
+
+### 4.5 Rhetorical Hygiene
+
+**Forbidden pattern: "Not X, it's Y"**
+
+Identify and rewrite sentences that follow these structures:
+- "The problem isn't X, it's Y."
+- "This isn't X. It's Y."
+- "These aren't X. They're Y."
+- "It's not about X, it's about Y."
+
+**Why:** This pattern *claims* a distinction without *demonstrating* it. It feels like marketing copy.
+
+**Replacement strategies:**
+1. **Show the contrast via example.** Instead of "This isn't a framework, it's a cheat code," write: "Frameworks take 30 minutes to set up. These patterns take 30 seconds. Here's one you can use right now."
+2. **Use a comparison table.** If X and Y are truly different, a 2-column table proves it faster than prose.
+3. **Use a before/after block.** Show what happens without Y, then show what happens with Y.
+
+**Exception:** Keep the sentence if it's immediately followed (within the same paragraph) by a concrete demonstration.
 ---
 
 ## 5. Hyphen and Punctuation Rules
