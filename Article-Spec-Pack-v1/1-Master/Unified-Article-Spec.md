@@ -19,26 +19,35 @@ This spec replaces scattered instructions and removes any tendency to leak inter
 - Anthropomorphism: Avoid it. Refer to models as predictive systems.
 - Rhythm: Short to medium sentences; natural cadence; vary openings.
 
-## Structural Expectations
+## Structural Expectations (Narrative Arc)
 
-Write a natural article (do not expose labels) that implicitly follows:
-1) Opening Reality Check (scene/tension grounded in real work)
-2) Definition and/or 2–3 Mental Models (brief, utility-first)
-3) 3–5 Workflow Blocks (each uses the template below)
-4) Caution: What Not to Outsource to AI (security, architecture, compliance, unreviewed code)
-5) Before/During/After Checklist (tri-stage, practical)
-6) Closing Activation (one concrete next step)
-7) Further Reading (3–6 credible links; optional)
+Write a natural article that moves through a **narrative arc**, not a rigid template. The arc flows from:
+
+**Concrete problem → Conceptual reframing → Practical application → Closure**
+
+Include *most* of these elements, but **vary their order, proportion, and naming** based on content needs. Not every article requires all elements. Combine or omit sections when they would be filler.
+
+**Elements (use as building blocks, not as a fixed sequence):**
+- **Opening hook:** A concrete scene, example, or scenario grounded in real work (e.g., the spam filter arms race, Maya's failed prompt). Never open with an abstract claim.
+- **Conceptual grounding:** 1–3 mental models or definitions, woven into narrative or presented as a comparison table. These can appear in the opening or be integrated throughout.
+- **Practical workflows:** 2–5 workflow patterns with clear triggers, mechanisms, and verification. These can be structured blocks OR narrative case studies.
+- **Guardrails:** What not to outsource (security, architecture, compliance). Can be a standalone section OR integrated into workflows.
+- **Verification:** A checklist, summary, or next step. Can be tri-stage OR a simpler closing.
+- **Further Reading:** 3–6 credible links (optional).
+
+**Gold standard:** Day 03 ("From Logic to Prediction") demonstrates structure emerging from content rather than from a template.
+
+**Forbidden headers:** Do NOT use these as verbatim H2s: "The Reality Check," "Mental Models," "The Workflow," "Caution," "Tri-Stage Checklist," "Closing Activation." Instead, write descriptive headers specific to the topic (e.g., "Why RAG Fails at Scale" instead of "The Reality Check").
 
 Length guidance: 1,500–2,500 words; expand only when adding concrete utility.
 
 ## Rhetorical Patterns & Devices
 
-- Contrast: Bad vs. good prompting or old vs. new workflow.
-- Pattern Blocks: Use “When / Why / Pattern / Steps” for each workflow.
-- Prompt Snippets: Include narrowly scoped prompt patterns (role, objective, constraints, success criteria).
-- Minimal Anecdotes: Use sparingly to set stakes, not to pad.
-- Tables: Markdown, reflowable; use only when they improve scannability.
+- **Contrast:** Bad vs. good prompting or old vs. new workflow. **Demonstrate** contrasts via tables, before/after examples, or scenarios rather than claiming them with "it's not X, it's Y" sentences.
+- **Pattern Blocks:** Each workflow must contain a trigger (when), mechanism (prompt/code), and verification (steps), but these can be woven into a narrative, presented as a case study, or shown in a comparison table. Do NOT use fixed labels like "When/Why:" or "The Pattern:" as visible structure.
+- **Prompt Snippets:** Include narrowly scoped prompt patterns (role, objective, constraints, success criteria).
+- **Minimal Anecdotes:** Use sparingly to set stakes, not to pad. Open with a concrete scene when possible.
+- **Tables:** Markdown, reflowable; use to prove distinctions (e.g., Logic vs. Prediction table in Day 03) rather than claiming them in prose.
 
 ## Depth & Density Guidelines
 
@@ -46,6 +55,15 @@ Length guidance: 1,500–2,500 words; expand only when adding concrete utility.
 - Lists: Prefer bullets for steps, checks, and pitfalls.
 - Examples: Realistic, self-contained; name tools/frameworks when helpful.
 - Evidence: Link to reputable sources; APA only if the brief requires it.
+
+## Factual Specificity Gate (High Priority)
+
+If you cannot cite a source, **do not publish precise specifics**.
+
+- Remove or generalize: exact dates, percentages, counts, “as of” claims, version numbers, token counts, market stats.
+- Prefer bounded language: “commonly,” “in practice,” “providers vary,” “the details change,” “check vendor docs.”
+- If a specific number is essential, include a credible link next to it.
+- Do not add new statistics or numeric claims during polishing.
 
 ## Content Construction Instructions
 
@@ -92,12 +110,28 @@ Also avoid exposing schema labels like PromptSpec, OutputMode, Artifacts, Valida
 ## Quality & Self-Review Checklist (Silent)
 
 - Voice: Second-person developer voice; direct, anti-hype; no anthropomorphism.
-- Structure: Opening reality check → mental models → 3–5 workflows → caution → tri-stage checklist → closing activation → optional further reading.
-- Utility: Each workflow has When/Why/Pattern/Steps and a tight prompt snippet.
+- Structure: Follows a narrative arc (concrete problem → conceptual reframing → practical application → closure). Order and sectioning fit the topic; no filler sections.
+- Headers: Topic-specific headers; does not reuse generic framework headers; avoids internal scaffolding terms.
+- Utility: Each workflow includes trigger, mechanism, and verification, expressed naturally (no fixed labels like “When/Why:” or “The Pattern:”).
 - Workflow Schema: For any detected workflow, confirm PromptSpec present (role/objective/constraints/success criteria), OutputMode stated in natural language, ValidationPlan present (tests/logs/metrics/script), ChangeIsolation and RollbackNotes present in plain prose, and Guardrails stated.
-- Evidence: Link credible sources; APA only if brief requests; keep stats minimal (≤2) and current.
+- Factual specificity gate: Remove unsourced numbers, dates, “as of” claims, and version references; do not publish confident specifics without a link.
+- Rhetorical hygiene: No “not X, it’s Y” lazy-contrast sentences unless immediately demonstrated with an example/table.
+- Evidence: Link credible sources when making factual claims; APA only if brief requests; keep stats minimal and current.
 - Anti-leak: No internal scaffolding terms or placeholders in public text.
 - Readability: Short paragraphs; scannable lists; reflowable tables only when they add value.
+
+## Variation Knobs (Use to Avoid Template Feel)
+
+Deliberately vary 2–3 of these per article:
+
+- Opener type: micro-story, scenario, before/after failure, “here’s the moment it breaks,” or a concrete artifact (log, prompt, diff).
+- Proof style: comparison table, worked example, counterexample, small case study.
+- Workflow presentation: labeled block vs narrative case study vs checklist-driven procedure.
+- Closing type: verification, warning, callback, question, next action (avoid repeating the same closing formula).
+
+Reference feel (do not copy phrases):
+- Day 02 uses scenario + before/after prompts to prove the point.
+- Day 03 uses a concrete analogy + a comparison table to establish the mental model.
 
 ---
 

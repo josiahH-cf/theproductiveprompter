@@ -1,6 +1,6 @@
 # Day 11: The Professional's Compass: Core Principles Every AI User Needs
 
-## The Reality Check: Tactics vs. Principles
+## Tactics vs. Principles
 
 You have learned CRIT, you understand tokens, and you can debug with AI. All of that is useful, but none of it is permanent. Models evolve, interfaces shift, and the specific tricks that work today may not work a year from now.
 
@@ -8,7 +8,7 @@ If you only collect tactics, you are always chasing the next change. If you lear
 
 Think of this as your compass. When the map changes, the compass still points north.
 
-## Mental Models: The Core Compass
+## The Core Compass
 
 ### 1. The Amnesiac Expert
 
@@ -30,7 +30,7 @@ Think of this as your compass. When the map changes, the compass still points no
 * **Low stakes (brainstorming):** Light oversight. Let the AI run.
 * **High stakes (legal, code, compliance):** Heavy oversight. Validate everything carefully.
 
-## The Workflow: Building Professional Habits
+## Building Professional Habits
 
 Principles matter, but habits are what make them practical. These blocks help you operationalize your compass.
 
@@ -81,7 +81,7 @@ Example: "Project X - Marketing Copy - Draft 1"
 2. Give it a descriptive name right away.
 3. Keep working in that same thread rather than creating new chats for the same project.
 
-## Caution: The Limits of the Analogy
+## The Limits of the Analogy
 
 There are things you should never hand off entirely.
 
@@ -90,7 +90,7 @@ There are things you should never hand off entirely.
 * **Common sense:** The amnesiac expert can sound confident even when it is wrong.
 * **Ethics:** The AI has no moral grounding. It reflects whatever you feed it.
 
-## The Tri-Stage Checklist
+## Quick Checklist
 
 ### Before
 
@@ -107,7 +107,7 @@ There are things you should never hand off entirely.
 * [ ] **Oversight:** Did you review the output with rigor that matches the stakes?
 * [ ] **Habit check:** Did you name the conversation?
 
-## Closing Activation
+## Next Step
 
 **Name your conversations.**
 Open your AI tool and scan your recent chats. If they are labeled “New Chat” or “Untitled,” rename the last few to something clear and descriptive. Treat your workspace like an organized archive rather than a digital junk drawer.

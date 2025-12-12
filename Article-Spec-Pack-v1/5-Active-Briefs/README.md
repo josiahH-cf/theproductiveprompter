@@ -2,6 +2,10 @@
 
 **Purpose:** This folder contains Article Briefs currently in development or awaiting approval.
 
+Status
+- Campaign briefs from **31 Days of AI (2025)** were archived to `9-Archive/_31-days-of-ai-2025/briefs/`.
+- This folder is intentionally kept minimal so new, non-campaign article work is easy to find.
+
 ---
 
 ## Workflow

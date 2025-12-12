@@ -52,6 +52,15 @@ Define the non-negotiable voice, tone, and structural requirements for all artic
     > "[Writer to research latest topic]"
   - Add companion-site callouts for evolving data
 
+### 4.1 Factual Specificity Gate (Remove Dubious Specifics)
+
+If you cannot cite a reputable source, do **not** publish precise specifics.
+
+- Remove or generalize: exact dates, percentages, counts, “as of” claims, version numbers, token counts, market stats.
+- Prefer bounded language: “commonly,” “in practice,” “providers vary,” “details change,” “check vendor docs.”
+- If a precise number is essential to the argument, include a credible link adjacent to it.
+- Do not add new statistics during polish. If the draft includes numbers without sources, delete or soften them.
+
 ---
 
 ## 5. Humor & Voice Color
@@ -97,6 +106,46 @@ Avoid unless explicitly requested in Article Brief:
 **Preferred:**
 > "Organizations adopting structured prompting protocols report 30–40% reduction in revision cycles (Smith et al., 2024)."
 
+### 6.4 Lazy Contrast ("Not X, It's Y")
+Avoid sentences that *claim* a distinction without *demonstrating* it:
+- ❌ "The problem isn't X, it's Y."
+- ❌ "This isn't X. It's Y."
+- ❌ "These aren't X. They're Y."
+- ❌ "It's not about X, it's about Y."
+
+**Why this is prohibited:** This pattern tells the reader a distinction exists but doesn't prove it. It feels like marketing copy and signals low-effort contrast.
+
+**Replacement strategies:**
+1. **Show the contrast via example.** Instead of "This isn't a framework, it's a cheat code," write: "Frameworks take 30 minutes to set up. These patterns take 30 seconds. Here's one you can use right now."
+2. **Use a comparison table.** If X and Y are truly different, a 2-column table proves it faster than prose.
+3. **Use a before/after block.** Show what happens without Y, then show what happens with Y.
+
+**Exception:** If the "not X, it's Y" sentence is immediately followed (within the same paragraph) by a concrete demonstration, it may be kept.
+
+### 6.6 Variation (Avoid Template Voice)
+
+Vary the article’s proof style and structure so multiple posts do not feel like the same machine.
+
+- Rotate: scenario, before/after prompt, small case study, comparison table, counterexample.
+- Avoid repeating the same closing formula across consecutive articles.
+- Prefer demonstrated distinctions over declared distinctions.
+
+### 6.5 Forbidden Public Headers
+Never use these as verbatim H2 headers in public articles:
+- "The Reality Check" / "Reality Check"
+- "Mental Models"
+- "The Workflow" / "Workflow"
+- "Caution" / "Caution: What Not to Outsource"
+- "Tri-Stage Checklist" / "The Tri-Stage Checklist"
+- "Closing Activation"
+
+**Why:** These are internal framework terms that telegraph "this is a template fill-in." Senior engineers don't say "Here is my Reality Check"; they say "The Problem with X" or "Why X Fails."
+
+**Replacement guidance:** Write descriptive headers specific to the topic:
+- "The Reality Check" → "Why Prompt Engineering Advice Fails" or "The Context Gap"
+- "Mental Models" → "Two Ways to Think About Tokens" or integrate into opening
+- "Tri-Stage Checklist" → "Sanity Check" or "Deployment Checklist" or merge into closing
+
 ---
 
 ## 7. Structural Requirements
@@ -106,10 +155,16 @@ Avoid unless explicitly requested in Article Brief:
   1) Hook/scenario → 2) Mental models/definitions → 3) 2–4 practical workflows → 4) Risks/pitfalls → 5) What to do next → (optional) Further reading.
 
 ### 7.2 Final-Line Rule
-The last sentence of the article must be:
+The last sentence of the article should provide **closure**, which may be:
 - A **verification** (summarizing key takeaway), OR
-- A **next action** (clear step reader should take)
-- **Never** a maxim, aphorism, or philosophical musing
+- A **next action** (clear step reader should take), OR
+- A **question** that prompts reflection, OR
+- A **warning** about common pitfalls, OR
+- A **callback** to the opening scenario
+
+**Never** end with a maxim, aphorism, or philosophical musing.
+
+**Variety guidance:** Avoid using the same closing formula (e.g., "Try one thing today") across multiple articles. If the last 3 articles ended with a micro-CTA, try a different closing type.
 
 **Examples:**
 
@@ -118,6 +173,12 @@ The last sentence of the article must be:
 
 ✅ **Next action:**
 > "Start with a single workflow; document the before-and-after prompts; measure the improvement."
+
+✅ **Callback:**
+> "Maya's planning loop shrank from two days to under an hour. The model didn't get smarter—she gave it something it could actually imitate."
+
+✅ **Warning:**
+> "The model will confidently generate plausible nonsense if you skip verification. You're the one on the hook for whatever happens next."
 
 ❌ **Prohibited (maxim):**
 > "In the end, the journey of AI mastery is the destination itself."

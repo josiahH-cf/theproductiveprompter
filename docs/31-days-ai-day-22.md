@@ -1,12 +1,12 @@
 # Day 22: The Developer’s Primer: How AI Actually Works Under the Hood
 
-## The Reality Check: It’s Not Magic, It’s Math
+## A Useful Frame: Math Over Mind-Reading
 
 To most people, AI feels like magic. To sci fi fans, it’s a character with intent. As a developer, you need a different frame. You’re not talking to a person or a black box; you’re working with **a system**.
 
 If you treat AI like a human, you’ll get annoyed when it “lies” or “forgets.” If you treat it like a normal function, you’ll stumble when it gives different answers to identical inputs. The right approach sits between those extremes. You need a mental model that matches how the machine actually behaves.
 
-## Mental Models: The Prediction Engine
+## The Prediction Engine
 
 ### 1. Probabilistic vs. Deterministic Systems
 
@@ -22,7 +22,7 @@ Think of the model’s internal representation as a vast, multidimensional map o
 
 Your prompt drops a pin in that space. The model then navigates through those conceptual neighborhoods to assemble a response. Good prompting is essentially good navigation.
 
-## The Workflow: Thinking Like an AI Engineer
+## Thinking Like an AI Engineer
 
 ### Block 1: Managing Temperature, or How Much Randomness You Allow
 
@@ -69,7 +69,7 @@ If you’re integrating a model into software, you want structured, parseable ou
 2. Include that schema in the system prompt or request metadata.
 3. Parse and validate the output in your code.
 
-## Caution: Avoid Anthropomorphism
+## Avoid Anthropomorphism
 
 It’s tempting to talk about what the model “thinks” or “believes,” but that framing will mislead you.
 
@@ -80,7 +80,7 @@ It’s tempting to talk about what the model “thinks” or “believes,” but
 
 Clear mental boundaries lead to clearer engineering decisions.
 
-## The Tri Stage Checklist
+## Quick Checklist
 
 ### Before the Call
 
@@ -95,7 +95,7 @@ Clear mental boundaries lead to clearer engineering decisions.
 
 * [ ] **Validation:** Did I verify the JSON or structured output?
 
-## Closing Activation
+## Next Step
 
 **Call the API.**
 Don’t limit yourself to the chat interface. Pull an API key from OpenAI, Anthropic, or a local model like Ollama. Write a small script. Hit the API. Print the raw JSON. Inspect the tokens. See the probabilities yourself. Once you do that, the system stops feeling mystical and starts feeling like software again.

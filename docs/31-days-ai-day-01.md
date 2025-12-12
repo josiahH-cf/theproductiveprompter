@@ -1,6 +1,6 @@
 # Day 01: Automating the Editor
 
-## The Reality Check: Why AI Writing Usually Feels "Off"
+## Why AI Writing Usually Feels "Off"
 
 You have seen it. The "delve," the "tapestry," the "landscape." You ask an AI to write an article and it hands you a grammatically correct, absolutely lifeless slab of text.
 
@@ -10,7 +10,7 @@ For the next 31 days, I am running a campaign, **31 Days of AI**. Every day, I w
 
 It is not a single prompt. It is a pipeline.
 
-## Mental Models: Treating Content Like Code
+## Treating Content Like Code
 
 If you want consistent, high quality output, you need to stop treating AI like a chat buddy and start treating it like a function in your codebase.
 
@@ -28,7 +28,7 @@ Input (Topic) → Process (Spec + Templates) → Output (Draft).
 
 If the output is weak, you do not blame the AI, you debug the spec, the brief, or the pipeline. The system is what you tune.
 
-## The Workflow: Inside `article-spec-pack-v1`
+## Inside `article-spec-pack-v1`
 
 This project, `article-spec-pack-v1`, is a set of templates and instructions that turns a vague idea into a structured article. Here is how it works end to end.
 
@@ -85,13 +85,13 @@ You are not asking it to "write an article," you are asking it to complete a str
 
 This last step strips out the generic AI voice and pushes the draft closer to how you actually talk to peers and colleagues.
 
-## Caution: What Not to Automate
+## What Not to Automate
 
 **The Idea.** You cannot outsource the core insight. If you do not have a real perspective or lived experience to anchor the piece, the spec will happily produce a well structured hallucination.
 
 The AI can be the editor and the drafter, but you are still the author. You supply the judgment, the filter, and the stories that make the article worth reading.
 
-## The Tri Stage Checklist
+## Quick Checklist
 
 ### Before
 
@@ -108,15 +108,13 @@ The AI can be the editor and the drafter, but you are still the author. You supp
 * [ ] Did the final polish remove the obvious "AI accent" (delve, unlock, unleash, tapestry)?
 * [ ] Is the GitHub link correct?
 
-## Closing Activation
+## Next Step
 
 This whole campaign is a live test of this pipeline. If you want to see how it evolves, check back tomorrow.
 
 If you want to build your own version, start by defining your Spec. Describe what a *perfect* article looks like for you, section by section. Then make the AI follow that, instead of the average of the internet.
 
 ---
-Match rating: 2/5
-
 *Methodology Note: This article was drafted using the `article-spec-pack-v1` pipeline and then polished with a custom tone instruction document in a web based AI model (GPT-5.1).*
 
 (created with AI)

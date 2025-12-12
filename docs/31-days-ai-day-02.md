@@ -18,9 +18,9 @@ All three walked away annoyed. None of them proved that AI is overhyped. What th
 
 Once you do define it, the tools become predictable. You stop asking for magic and start asking for work that a narrow prediction engine can actually do.
 
-## Quick Q&A: Isn’t This Where Skynet Starts?
+## Quick Q&A: Is This Where Skynet Starts?
 
-**“Isn’t this just the opening act of an evil robot movie?”** No.
+**“Is this just the opening act of an evil robot movie?”** No.
 
 Alan Turing’s 1950 paper did not propose building a conscious machine. It described a test for **imitation**: if a human judge could not reliably tell whether a response came from a human or a machine, the machine would count as intelligent for that narrow exchange. That is all.
 
