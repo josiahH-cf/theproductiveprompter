@@ -39,20 +39,25 @@ navLinks.forEach(link => {
  */
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
-        e.preventDefault();
         const targetId = this.getAttribute('href');
+        if (!targetId) {
+            return;
+        }
         
         // Handle edge case for links to top
         if (targetId === '#' || targetId === '#hero') {
+            e.preventDefault();
             window.scrollTo({
                 top: 0,
                 behavior: 'smooth'
             });
             return;
         }
-        
-        const targetElement = document.querySelector(targetId);
+
+        const elementId = targetId.startsWith('#') ? targetId.slice(1) : targetId;
+        const targetElement = document.getElementById(elementId);
         if (targetElement) {
+            e.preventDefault();
             const navHeight = nav.offsetHeight;
             const targetPosition = targetElement.offsetTop - navHeight;
             
@@ -63,6 +68,85 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         }
     });
 });
+
+// ===================================
+// 31 Days of AI: CST 6am Auto-Reveal
+// ===================================
+
+function get31DaysAutoDay() {
+    // Fixed CST is UTC-6 year-round.
+    // Campaign start: Dec 1, 2025 @ 6:00am CST = Dec 1, 2025 @ 12:00 UTC.
+    const startUtcMs = Date.UTC(2025, 11, 1, 12, 0, 0);
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const nowUtcMs = Date.now();
+
+    const rawDay = Math.floor((nowUtcMs - startUtcMs) / msPerDay) + 1;
+    const autoDay = Math.min(Math.max(rawDay, 1), 30); // Stop auto-releasing after Day 30
+
+    return { rawDay, autoDay };
+}
+
+function pad2(n) {
+    return String(n).padStart(2, '0');
+}
+
+function apply31DaysUpdates() {
+    const { autoDay } = get31DaysAutoDay();
+    const dayText = `Day ${autoDay} of 31`;
+    const post = `31-days-ai-day-${pad2(autoDay)}.md`;
+
+    // Homepage banner updates (index.html)
+    const bannerCounter = document.getElementById('campaignBannerCounter');
+    if (bannerCounter) {
+        bannerCounter.textContent = dayText;
+    }
+
+    const bannerLatestLink = document.getElementById('campaignBannerLatestLink');
+    if (bannerLatestLink) {
+        bannerLatestLink.href = `docs/article.html?post=${post}`;
+        bannerLatestLink.textContent = `Day ${autoDay}`;
+    }
+
+    const bannerReadLink = document.getElementById('campaignBannerReadLink');
+    if (bannerReadLink) {
+        bannerReadLink.href = `docs/article.html?post=${post}`;
+    }
+
+    // Campaign page updates (docs/31-days-of-ai.html)
+    const daysPageCounter = document.getElementById('daysPageCounter');
+    if (daysPageCounter) {
+        daysPageCounter.textContent = dayText;
+    }
+
+    const dayCards = document.querySelectorAll('.day-card[data-day]');
+    dayCards.forEach(card => {
+        const day = parseInt(card.getAttribute('data-day') || '', 10);
+        if (!Number.isFinite(day)) {
+            return;
+        }
+
+        // Keep Day 31 manual/locked; auto-reveal only Days 1-30.
+        const shouldUnlock = day <= autoDay && day <= 30;
+        if (!shouldUnlock) {
+            return;
+        }
+
+        card.classList.remove('day-card--locked');
+
+        const badge = card.querySelector('.day-card__badge');
+        if (badge) {
+            badge.textContent = 'Live';
+            badge.classList.remove('day-card__badge--coming');
+            badge.classList.add('day-card__badge--live');
+        }
+    });
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', apply31DaysUpdates);
+} else {
+    apply31DaysUpdates();
+}
 
 // ===================================
 // Active Section Highlighting
