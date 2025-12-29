@@ -81,7 +81,7 @@ function get31DaysAutoDay() {
     const nowUtcMs = Date.now();
 
     const rawDay = Math.floor((nowUtcMs - startUtcMs) / msPerDay) + 1;
-    const autoDay = Math.min(Math.max(rawDay, 1), 30); // Stop auto-releasing after Day 30
+    const autoDay = Math.min(Math.max(rawDay, 1), 31); // Auto-reveal all 31 days
 
     return { rawDay, autoDay };
 }
