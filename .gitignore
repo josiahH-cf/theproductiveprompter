@@ -23,6 +23,9 @@ bower_components/
 *.bak
 *.backup
 
+# Git bundles (local snapshots, not needed in repo)
+*.bundle
+
 # Optional: Draft content
 drafts/
 _drafts/
