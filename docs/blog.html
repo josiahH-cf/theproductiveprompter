@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Blog hub for Josiah Hunter, including completed series projects and new posts.">
+    <title>📝 Blog | Josiah Hunter</title>
+    <link rel="stylesheet" href="../styles.css">
+    <style>
+        .blog-page {
+            padding-top: 100px;
+            min-height: 100vh;
+        }
+
+        .blog-page__header {
+            text-align: center;
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .blog-page__emoji {
+            font-size: 4rem;
+            display: block;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .blog-page__title {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            color: var(--color-heading);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .blog-page__subtitle {
+            font-size: 1.15rem;
+            color: var(--color-text-secondary);
+            max-width: 760px;
+            margin: 0 auto;
+            line-height: 1.7;
+        }
+
+        .blog-section-title {
+            font-size: 1.25rem;
+            color: var(--color-heading);
+            margin: var(--spacing-lg) 0 var(--spacing-md);
+            font-family: var(--font-mono);
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            color: var(--color-accent);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .article-card__placeholder {
+            color: var(--color-text-secondary);
+            line-height: 1.7;
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav" id="nav">
+        <div class="nav__container">
+            <a href="../index.html#hero" class="nav__logo">JH</a>
+            <ul class="nav__menu" id="navMenu">
+                <li class="nav__item">
+                    <a href="../index.html#blog" class="nav__link">
+                        <span class="nav__number">01.</span> Blog
+                    </a>
+                </li>
+                <li class="nav__item">
+                    <a href="../index.html#projects" class="nav__link">
+                        <span class="nav__number">02.</span> Projects
+                    </a>
+                </li>
+                <li class="nav__item">
+                    <a href="../index.html#about" class="nav__link">
+                        <span class="nav__number">03.</span> About
+                    </a>
+                </li>
+                <li class="nav__item">
+                    <a href="../index.html#contact" class="nav__link">
+                        <span class="nav__number">04.</span> Contact
+                    </a>
+                </li>
+            </ul>
+            <button class="nav__toggle" id="navToggle" aria-label="Toggle navigation">
+                <span class="nav__toggle-line"></span>
+                <span class="nav__toggle-line"></span>
+                <span class="nav__toggle-line"></span>
+            </button>
+        </div>
+    </nav>
+
+    <section class="blog-page">
+        <div class="container">
+            <a href="../index.html#blog" class="back-link">← Back to Home</a>
+
+            <div class="blog-page__header">
+                <span class="blog-page__emoji">📝</span>
+                <h1 class="blog-page__title">Blog</h1>
+                <p class="blog-page__subtitle">
+                    Writing projects, completed series, and new standalone entries. The 31 Days of AI campaign is preserved as a completed December 2025 project.
+                </p>
+            </div>
+
+            <h2 class="blog-section-title">Featured Series Project</h2>
+            <div class="articles__list">
+                <article class="article-card article-card--featured">
+                    <span class="article-card__badge">Completed</span>
+                    <div class="article-card__thumbnail">
+                        <div class="article-card__thumbnail-placeholder">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 19l7-7 3 3-7 7-3-3z"/>
+                                <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
+                                <path d="M2 2l7.586 7.586"/>
+                                <circle cx="11" cy="11" r="2"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="article-card__content">
+                        <div class="article-card__meta">
+                            <time class="article-card__date">December 2025</time>
+                            <span class="article-card__separator">•</span>
+                            <span class="article-card__reading-time">31 entries</span>
+                        </div>
+                        <h3 class="article-card__title">
+                            <a href="31-days-of-ai.html" class="article-card__link">31 Days of AI</a>
+                        </h3>
+                        <p class="article-card__summary">
+                            A completed month-long writing project on practical AI workflows, prompting, evaluation, and system design.
+                        </p>
+                    </div>
+                </article>
+            </div>
+
+            <h2 class="blog-section-title">More Blog Posts</h2>
+            <div class="articles__list">
+                <article class="article-card">
+                    <div class="article-card__content">
+                        <div class="article-card__meta">
+                            <time class="article-card__date">Ongoing</time>
+                            <span class="article-card__separator">•</span>
+                            <span class="article-card__reading-time">New entries soon</span>
+                        </div>
+                        <h3 class="article-card__title">Standalone Posts</h3>
+                        <p class="article-card__placeholder">
+                            This space is reserved for future non-series blog posts and new projects.
+                        </p>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <script src="../script.js"></script>
+</body>
+</html>
