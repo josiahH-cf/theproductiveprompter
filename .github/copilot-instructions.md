@@ -58,6 +58,27 @@ Copilot should then:
 2.  Generate the correct HTML link using the `article.html?post=` format.
 3.  Insert it into the appropriate section of `index.html`.
 
+## Webpage-Level Sanity Check (Required)
+
+Use this only for webpage-level edits (`.html` structure/UI copy), not article/body writing (`.md` content).
+
+Before finishing webpage changes, run this quick pass:
+
+1.  **Remove redundant hero/subtitle copy**
+    *   Avoid explaining what is already obvious from nearby labels/cards.
+    *   Prefer one short sentence over two explanatory sentences.
+
+2.  **Verify links and anchors**
+    *   Confirm all updated `href` values and section anchors exist.
+    *   Keep links in `docs/article.html?post=...` format for Markdown posts.
+
+3.  **Check state consistency**
+    *   If a page/card says "Live" or "Completed," ensure related badge/counter/link text is aligned.
+    *   Remove stale placeholders like "Coming Soon" when content is already published.
+
+4.  **Final minimalist pass**
+    *   Re-read the top visible copy (title/subtitle/banner) and trim anything that sounds over-explained.
+
 ## 31 Days of AI Campaign Workflow
 
 For the "31 Days of AI" campaign, follow this specific workflow:
@@ -200,6 +221,6 @@ The campaign runs December 1-31, 2025. Use this mapping for planning:
 | Source articles | `Article-Spec-Pack-v1/0-Article-Content/` |
 | Deployed articles | `docs/31-days-ai-day-XX.md` |
 | Campaign index page | `docs/31-days-of-ai.html` |
-| Homepage banner | `index.html` (section `#31-days-of-ai`) |
+| Homepage blog section | `index.html` (section `#blog`) |
 | Article viewer | `docs/article.html?post=filename.md` |
 | Article spec templates | `Article-Spec-Pack-v1/1-Master/` |
