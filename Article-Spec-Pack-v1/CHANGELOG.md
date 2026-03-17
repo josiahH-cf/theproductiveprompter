@@ -603,3 +603,20 @@ Sets the end-state as a finalized, CMS-ready blog folder and provides a repeatab
 ### Notes
 - Gates A–C passed on draft; no APA references required (no quantitative claims). Word count recorded at 1,753.
 
+
+---
+
+## [Article Completion] - 2026-03-17 (AI First Principles: Right Tool)
+
+### Added
+- 6-Completed-Articles/Article-20260317-ai-first-principles-right-tool/article.md - Clean public article text following the consolidated article spec.
+- 6-Completed-Articles/Article-20260317-ai-first-principles-right-tool/briefs/brief.md - Approved brief used for the article.
+- 6-Completed-Articles/Article-20260317-ai-first-principles-right-tool/reports/Article-20260317-ai-first-principles-right-tool-v1.0.md - Versioned draft/report copy.
+- 6-Completed-Articles/Article-20260317-ai-first-principles-right-tool/references/references.md - Link-based supporting references.
+
+### Moved
+- Source intake moved from 0-Article-Content/20260317-ai-first-principles-right-tool.md to 6-Completed-Articles/Article-20260317-ai-first-principles-right-tool/sources/20260317-ai-first-principles-right-tool.md via scripts/package_article.py.
+
+### Notes
+- Public article kept the consolidated spec constraints: developer-facing voice, no internal scaffolding terms, practical workflow guidance, and link-based references.
+- Article generated from vault intake source AI first principles and deciding when AI is the right tool.md and packaged into the completed-articles structure.
