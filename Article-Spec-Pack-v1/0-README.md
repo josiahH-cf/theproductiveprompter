@@ -7,12 +7,10 @@ This directory contains the provider-neutral article system for The Productive P
 From any shell-capable host:
 
 ```text
-article-flow start
+article-flow
 ```
 
-In a fresh Codex session, invoke `$start-article`. In Claude Code, invoke `/start-article`. Gemini CLI uses the shared Agent Skills adapter when installed. These are thin launchers; they do not contain workflow logic.
-
-ChatGPT account/Work skills and Claude account/Cowork skills are separate from local filesystem skills. Upload the same standard `start-article` Agent Skills ZIP once to each account surface. That uploaded skill contains only a pointer to `0-START-ARTICLE.md`, so later workflow or command-sequence changes do not require rebuilding or re-uploading the skill.
+This is the complete host-neutral entrypoint. With no arguments, the globally installed command returns the seed question, exact start command, continuation protocol, human-decision boundary, and local-capability requirement as machine-readable JSON. Its Windows and WSL launchers point directly to this one local Git checkout, so there is no copied runtime to update. In a fresh Codex, ChatGPT Work, Claude Code/Cowork, Gemini, or other local-capable session, ask the agent to run `article-flow` and follow the returned protocol. No skill, uploaded prompt, provider-specific adapter, repository working directory, or copied command sequence is required.
 
 The first prompt is intentionally small:
 
@@ -41,7 +39,7 @@ This distinction is deliberate. Narrative person, article length, opening, endin
 - complete provider-neutral task packets;
 - hard gates, artifact hashes, claim/evidence checks, and locked-field preservation;
 - package generation, a publication dry run, scoped approval, exact deployment, and live-revision verification;
-- host adapter installation and drift checks;
+- global Windows/WSL command installation and drift checks;
 - evaluation-backed routing when calibrated results exist, with an honest active-host fallback while they do not.
 
 Models work only inside the task packet they receive. They do not advance their own state, certify deterministic checks, choose publication targets, or infer operator-owned decisions.
@@ -59,11 +57,10 @@ article-flow doctor --scope launcher
 article-flow doctor --scope authoring
 article-flow doctor --scope release
 article-flow manifest check --against-worktree
-article-flow adapters verify
 article-flow conformance
 ```
 
-Launcher health proves only that the command and canonical root resolve. Authoring health also requires specification integrity and an eligible execution route. Release health additionally requires a clean approved commit, current adapters, tests, and publication prerequisites.
+Launcher health proves only that the command and canonical root resolve. Authoring health also requires specification integrity and an eligible execution route. Release health additionally requires a clean approved commit, current global commands, tests, and publication prerequisites.
 
 ## Voice and evidence
 
@@ -73,6 +70,6 @@ Every material factual claim must be traceable and fresh enough for its use. Mod
 
 ## Capability boundary
 
-A model can participate when its host can execute `article-flow`, call the optional local MCP tool, or when the controller can invoke it through a configured provider adapter. A remote chat page with no shell, connector, API, or MCP access cannot run a local workflow.
+A model can participate when its host can execute the local `article-flow` command, call the optional local MCP tool, or when the controller can invoke it through a configured provider adapter. A remote chat page with no access to this machine cannot invoke the global local command; that is an explicit capability boundary, not a reason to copy the workflow into the remote product.
 
 See `article-flow --help` for the complete command surface.

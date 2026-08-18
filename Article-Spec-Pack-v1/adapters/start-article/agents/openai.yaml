@@ -1,4 +1,0 @@
-interface:
-  display_name: "Start Article"
-  short_description: "Start the canonical article workflow"
-  default_prompt: "Use $start-article to begin an article from my rough idea."

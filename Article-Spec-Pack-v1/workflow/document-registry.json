@@ -116,7 +116,7 @@
     {
       "path": "7-Intake-Mode/Intake-Prompt.md",
       "status": "superseded",
-      "redirect": "0-START-ARTICLE.md",
+      "redirect": "0-README.md",
       "removal_version": "3.0.0"
     },
     {
@@ -128,7 +128,7 @@
     {
       "path": "7-Intake-Mode/README.md",
       "status": "superseded",
-      "redirect": "0-START-ARTICLE.md",
+      "redirect": "0-README.md",
       "removal_version": "3.0.0"
     }
   ]

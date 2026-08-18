@@ -2,10 +2,10 @@
   "adversarial_suite_schema_version": "1.0.0",
   "workflow_version": "2.0.0",
   "cases": [
-    {"id": "shortcut-illusion", "assertion": "Direct article-flow start still works with all skill adapters absent."},
+    {"id": "shortcut-illusion", "assertion": "Invoking article-flow with no arguments returns the complete bootstrap protocol with every skill adapter absent."},
     {"id": "provider-illusion", "assertion": "A replacement provider can continue from validated task packets alone."},
     {"id": "false-health", "assertion": "Changing one protected byte fails integrity and authoring health."},
-    {"id": "home-directory-split", "assertion": "Windows and WSL adapters resolve one controller/workflow version through their own homes."},
+    {"id": "home-directory-split", "assertion": "The Windows and WSL global commands resolve one controller/workflow version through their own managed homes."},
     {"id": "hidden-context", "assertion": "Every stage packet declares inputs, hashes, schema, tools, stop conditions, and escalation."},
     {"id": "self-certification", "assertion": "Model assertions cannot pass deterministic link, hash, package, approval, or revision checks."},
     {"id": "citation-temptation", "assertion": "No-search mode omits, generalizes, uses an approved corpus, or escalates; memory citations fail."},
@@ -19,7 +19,7 @@
     {"id": "indexing-overclaim", "assertion": "The receipt keeps indexing unknown unless separately proved."},
     {"id": "archive-invisibility", "assertion": "Supersession and archival require explicit redirect and surface checks."},
     {"id": "dirty-worktree", "assertion": "Protected drift blocks package and any dirty checkout blocks publication execution."},
-    {"id": "update-drift", "assertion": "A stale adapter reports its exact repair command."},
+    {"id": "update-drift", "assertion": "A stale global command reports its exact repair command."},
     {"id": "run-collision", "assertion": "Similar seeds receive distinct run IDs, directories, locks, and logs."},
     {"id": "metrics-gaming", "assertion": "A model score cannot promote a route when human calibration falls or is absent."}
   ]
