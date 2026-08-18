@@ -1,18 +1,18 @@
 {
   "implementation_receipt_schema_version": "1.0.0",
   "created_at": "2026-08-18T16:46:40Z",
-  "updated_at": "2026-08-18T18:21:32Z",
+  "updated_at": "2026-08-18T19:37:51Z",
   "source_directive_sha256": "4fc111ddaa802002f53c43242a7e173f998f4e301ed71b6b740d0870706585dd",
   "source_base_commit": "d08f2d972bb8bc835973ded5ff93e21e4100af91",
   "implementation_branch": "codex/article-flow-v1",
   "workflow_version": "2.0.0",
-  "controller_version": "2.0.7",
+  "controller_version": "2.0.8",
   "interpretation": "The directive's software and control changes are implementation scope. Acceptance conditions that require author judgment, configured provider credentials, an absent host, a real publication approval, or evidence over future articles remain explicit proof obligations rather than inferred passes.",
   "release_evidence_contract": {
     "authority": "article-flow doctor --scope release --json",
     "wsl_receipt": "~/.local/share/article-flow/conformance/latest.json",
     "native_windows_receipt": "%USERPROFILE%\\.article-flow\\conformance\\latest.json",
-    "rule": "Host status is current only when both receipts pass and match the exact source commit, controller version, workflow version, and post-suite installed-launcher proof. The mutable receipts are intentionally external to this immutable implementation snapshot."
+    "rule": "Host status is current only when both receipts pass and match the exact linked-checkout commit, controller version, workflow version, and post-suite global-command proof. The mutable receipts are intentionally external to this immutable implementation snapshot."
   },
   "live_site_a_priori_check": {
     "receipt": "../../baselines/20260818T151954Z/baseline-receipt.json",
@@ -32,15 +32,15 @@
     {
       "id": 1,
       "name": "one universal local command",
-      "implementation_status": "implemented_exact_release_proof_externalized",
+      "implementation_status": "implemented_linked_checkout_proof_externalized",
       "evidence": ["scripts/article_flow.py", "tests/test_article_flow.py", "schemas/conformance-receipt.schema.json", "runtime:article-flow doctor --scope release --json"]
     },
     {
       "id": 2,
-      "name": "shared skill discovery without duplicated logic",
-      "implementation_status": "implemented_account_upload_proof_pending",
-      "evidence": ["adapters/start-article/SKILL.md", "adapters/start-article/agents/openai.yaml", "adapters/registry.json"],
-      "remaining_proof": ["Upload the same pointer-only Agent Skills ZIP separately to ChatGPT and Claude account skills, then confirm discovery in fresh GPT Work and Claude Cowork sessions.", "Gemini discovery remains unclaimed until Gemini CLI is installed."]
+      "name": "cross-host discovery through the universal local command",
+      "implementation_status": "implemented_fresh_product_invocation_proof_pending",
+      "evidence": ["scripts/article_flow.py", "0-README.md", "evaluations/conformance-matrix.json", "tests/test_article_flow.py"],
+      "remaining_proof": ["Confirm that fresh local ChatGPT Work and Claude Cowork sessions can invoke article-flow from the machine PATH and follow its returned protocol without a skill.", "Gemini invocation remains unclaimed until Gemini CLI is installed."]
     },
     {
       "id": 3,
@@ -95,7 +95,7 @@
     {
       "id": 11,
       "name": "evaluation and conformance suite",
-      "implementation_status": "implemented_exact_release_proof_externalized",
+      "implementation_status": "implemented_linked_checkout_proof_externalized",
       "evidence": ["evaluations/fixtures.json", "evaluations/rubric.json", "evaluations/adversarial-cases.json", "evaluations/conformance-matrix.json", "schemas/conformance-receipt.schema.json", "tests/test_article_flow.py", "runtime:article-flow doctor --scope release --json"],
       "remaining_proof": ["Fresh-host discovery and future human quality ratings are reported separately and cannot be manufactured by the local test suite."]
     },
@@ -108,8 +108,8 @@
     }
   ],
   "unresolved_acceptance_evidence": [
-    "fresh ChatGPT Work and Claude Cowork discovery after their separate one-time account skill uploads",
-    "Gemini discovery after installation",
+    "fresh local ChatGPT Work and Claude Cowork invocation of the global article-flow command",
+    "Gemini global-command invocation after installation",
     "operator-calibrated voice promotion",
     "fixture-backed provider ranking across at least two providers and one local or OpenAI-compatible endpoint",
     "a scoped publication and exact live verification for the next real article"

@@ -71,21 +71,27 @@ class AuthorityTests(unittest.TestCase):
         self.assertTrue(lint["ok"], lint["issues"])
         self.assertEqual(lint["conflicting_normative_statement_count"], 0)
 
-    def test_host_adapters_point_to_one_canonical_entrypoint(self):
-        skill = (SPEC_ROOT / "adapters" / "start-article" / "SKILL.md").read_text(encoding="utf-8")
+    def test_global_command_is_the_only_host_entrypoint(self):
+        stream = io.StringIO()
+        with contextlib.redirect_stdout(stream):
+            code = af.main([])
+        payload = json.loads(stream.getvalue())
+        self.assertEqual(code, af.EXIT_OK)
+        self.assertEqual(payload["interface"], "local-global-command")
+        self.assertEqual(payload["command"], "article-flow")
+        self.assertEqual(payload["start_command"][:2], ["article-flow", "start"])
+        self.assertIn("local command execution", payload["capability_requirement"])
+        self.assertFalse((SPEC_ROOT / "adapters" / "start-article" / "SKILL.md").exists())
+        self.assertFalse((SPEC_ROOT / "adapters" / "registry.json").exists())
+        self.assertFalse((SPEC_ROOT / "0-START-ARTICLE.md").exists())
         repository = af.publication_repo_root() or SPEC_ROOT.parent
-        copilot = (repository / ".github" / "copilot-instructions.md").read_text(encoding="utf-8")
-        entrypoint = (SPEC_ROOT / "0-START-ARTICLE.md").read_text(encoding="utf-8")
-        registry = json.loads((SPEC_ROOT / "adapters" / "registry.json").read_text(encoding="utf-8"))
-        canonical_url = registry["canonical_entrypoint"]["remote_url"]
-        self.assertIn("article-flow entrypoint --json", skill)
-        self.assertIn(canonical_url, skill)
-        self.assertIn("article-flow entrypoint --json", copilot)
-        self.assertIn(canonical_url, entrypoint)
-        for copied_command in ("doctor --scope authoring", "article-flow start", "article-flow next"):
-            self.assertNotIn(copied_command, skill)
-        self.assertIn("chatgpt:personal-skill-upload", registry["adapters"][0]["account_install_targets"])
-        self.assertIn("claude:custom-skill-upload-and-enable", registry["adapters"][0]["account_install_targets"])
+        copilot = repository / ".github" / "copilot-instructions.md"
+        if copilot.is_file():
+            self.assertNotIn("article-flow", copilot.read_text(encoding="utf-8"))
+        help_text = af.build_parser().format_help()
+        self.assertNotIn("entrypoint", help_text)
+        self.assertNotIn("kickoff", help_text)
+        self.assertNotIn("adapters", help_text)
 
     def test_every_legacy_rule_document_has_machine_readable_redirect(self):
         registry = json.loads((SPEC_ROOT / "workflow" / "document-registry.json").read_text())
@@ -366,26 +372,43 @@ class RunAndSmokeTests(TemporaryRuntime):
         self.assertTrue(any("redirect verified" in item for item in payload["lifecycle"]["required_checks"]))
 
 
-class AdapterTests(TemporaryRuntime):
+class GlobalCommandTests(TemporaryRuntime):
     def test_install_is_content_idempotent_and_drift_is_detected(self):
         fake_home = Path(self.temp.name) / "home"
         fake_windows = Path(self.temp.name) / "windows-user"
         python_exe = fake_windows / "AppData" / "Local" / "Programs" / "Python" / "Python312" / "python.exe"
         python_exe.parent.mkdir(parents=True)
         python_exe.write_bytes(b"test")
+        legacy_paths = [
+            fake_home / ".agents" / "skills" / "start-article",
+            fake_windows / ".agents" / "skills" / "start-article",
+        ]
+        for path in legacy_paths:
+            path.mkdir(parents=True)
+            (path / "SKILL.md").write_text("legacy managed pointer", encoding="utf-8")
+            (path / ".article-flow-adapter.json").write_text("{}\n", encoding="utf-8")
+        for runtime in (fake_home / ".local" / "share" / "article-flow", fake_windows / ".article-flow"):
+            legacy_release = runtime / "releases" / "2.0.0" / "Article-Spec-Pack-v1"
+            (legacy_release / "scripts").mkdir(parents=True)
+            (legacy_release / "manifest.json").write_text('{"generator_name_and_version":"article-flow 2.0.0"}\n', encoding="utf-8")
+            (legacy_release / "scripts" / "article_flow.py").write_text('CONTROLLER_VERSION = "2.0.0"\n', encoding="utf-8")
         with (
             mock.patch.object(Path, "home", return_value=fake_home),
             mock.patch.object(af, "windows_user_root", return_value=fake_windows),
             mock.patch.dict(os.environ, {"ARTICLE_FLOW_HOME": ""}),
         ):
             args = namespace(hosts="windows,wsl", providers="auto", user=True, development=True)
-            call(af.command_install, **vars(args))
-            tracked = [fake_home / ".agents" / "skills" / "start-article" / "SKILL.md", fake_windows / ".agents" / "skills" / "start-article" / "SKILL.md", fake_windows / "AppData" / "Local" / "Microsoft" / "WindowsApps" / "article-flow.cmd"]
+            _, first_install = call(af.command_install, **vars(args))
+            self.assertEqual(sum(len(item["retired_skill_adapters"]) for item in first_install["installed"]), 2)
+            self.assertTrue(all(not path.exists() for path in legacy_paths))
+            tracked = [fake_home / ".local" / "bin" / "article-flow", fake_windows / "AppData" / "Local" / "Microsoft" / "WindowsApps" / "article-flow.cmd"]
             hashes = {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in tracked}
             call(af.command_install, **vars(args))
             self.assertEqual(hashes, {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in tracked})
-            self.assertIn("article-flow managed launcher", tracked[-1].read_text())
-            installed_script = fake_home / ".local" / "share" / "article-flow" / "releases" / af.CONTROLLER_VERSION / "Article-Spec-Pack-v1" / "scripts" / "article_flow.py"
+            self.assertTrue(all("article-flow managed launcher" in path.read_text() for path in tracked))
+            self.assertFalse((fake_home / ".local" / "share" / "article-flow" / "releases").exists())
+            self.assertFalse((fake_windows / ".article-flow" / "releases").exists())
+            installed_script = af.SCRIPT_PATH
             unrelated = Path(self.temp.name) / "unrelated"
             unrelated.mkdir()
             result = subprocess.run([sys.executable, str(installed_script), "--version"], cwd=unrelated, capture_output=True, text=True)
@@ -413,10 +436,11 @@ class AdapterTests(TemporaryRuntime):
             self.assertTrue(nested_record["source_commit"])
             self.assertEqual(primary_wrapper_hash, hashlib.sha256(primary_wrapper.read_bytes()).hexdigest())
             self.assertTrue((nested_user_home / ".local" / "bin" / "article-flow").is_file())
-            verification = af.verify_adapters()
+            verification = af.global_command_health()
             self.assertTrue(verification["ok"], verification)
-            tracked[0].write_text("drift", encoding="utf-8")
-            verification = af.verify_adapters()
+            active_host_command = tracked[-1] if os.name == "nt" else tracked[0]
+            active_host_command.write_text("drift", encoding="utf-8")
+            verification = af.global_command_health()
             failed = [item for item in verification["checks"] if not item["ok"]]
             self.assertEqual(len(failed), 1)
             self.assertIn("install", failed[0]["repair_command"])
@@ -434,6 +458,7 @@ class AdapterTests(TemporaryRuntime):
                 "workflow_version": af.workflow()["workflow_version"],
                 "spec_root_match": True,
                 "runtime_home_match": True,
+                "bootstrap_ok": True,
                 "unrelated_cwd": True,
                 "error": "",
             }),

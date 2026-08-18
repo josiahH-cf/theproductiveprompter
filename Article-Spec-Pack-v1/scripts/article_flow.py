@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any, Iterable, Iterator, Sequence
 
 
-CONTROLLER_VERSION = "2.0.7"
+CONTROLLER_VERSION = "2.0.8"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -38,12 +38,32 @@ MANIFEST_PATH = SPEC_ROOT / "manifest.json"
 WORKFLOW_PATH = SPEC_ROOT / "workflow" / "workflow.json"
 POLICY_PATH = SPEC_ROOT / "workflow" / "house-policy.json"
 PROTECTED_PATHS_PATH = SPEC_ROOT / "workflow" / "protected-paths.json"
-ADAPTER_REGISTRY_PATH = SPEC_ROOT / "adapters" / "registry.json"
-ENTRYPOINT = SPEC_ROOT / "0-START-ARTICLE.md"
 SEED_QUESTION = (
     "In one paragraph or less, what feels like it could be a good article? "
     "Write it naturally; you do not need to structure or polish it."
 )
+
+
+def bootstrap_payload() -> dict[str, Any]:
+    """Return the complete host-neutral contract for a fresh local session."""
+    return {
+        "ok": True,
+        "interface": "local-global-command",
+        "command": "article-flow",
+        "controller_version": CONTROLLER_VERSION,
+        "workflow_version": workflow()["workflow_version"],
+        "action": "request_seed",
+        "question": SEED_QUESTION,
+        "start_command": ["article-flow", "start", "--seed", "<verbatim operator seed>", "--json"],
+        "protocol": [
+            "Preserve the operator's seed verbatim when replacing the placeholder in start_command.",
+            "Run only exact command arrays returned by the controller in next_command, command, submission_command, or approval_command fields.",
+            "For perform_task, read only task_packet, create only expected_output, then run submission_command.",
+            "For human_decision, show the controller's question and wait; never run approval_command without the operator's confirmed answer.",
+            "Stop on complete, terminal, or an unresolved capability or decision.",
+        ],
+        "capability_requirement": "This interface requires local command execution. A cloud-only chat without access to this machine cannot run it.",
+    }
 REVIEW_STATES = {"INTENT_REVIEW", "ARTICLE_RECIPE", "VOICE_PROBE", "EDITORIAL_QA"}
 DETERMINISTIC_STATES = {"PACKAGE", "PUBLISH_APPROVAL", "PUBLISH", "LIVE_VERIFICATION", "COMPLETE"}
 MODEL_STATES = {
@@ -420,7 +440,7 @@ def release_source_commit() -> str:
     repository = publication_repo_root()
     if repository and (repository / ".git").exists():
         return str(git(["rev-parse", "HEAD"], cwd=repository)).strip()
-    raise FlowError("Cannot determine the immutable source commit for this controller release", EXIT_INTEGRITY)
+    raise FlowError("Cannot determine the source commit for this controller", EXIT_INTEGRITY)
 
 
 def publication_repo_root(*, required: bool = False) -> Path | None:
@@ -1662,7 +1682,7 @@ def command_start(args: argparse.Namespace) -> int:
     if args.seed_file:
         seed = Path(args.seed_file).read_text(encoding="utf-8")
     if seed is None:
-        payload = {"action": "request_seed", "question": SEED_QUESTION}
+        payload = bootstrap_payload()
         emit(payload, args.json)
         return EXIT_WAITING
     if not seed.strip():
@@ -2523,80 +2543,113 @@ def windows_path(path: Path) -> str:
     return value
 
 
-def install_release(home: Path, *, development: bool, publication_repository: str) -> Path:
+def record_linked_checkout(home: Path, *, host: str, development: bool, publication_repository: str) -> None:
     if not development:
         integrity = check_manifest("worktree")
         if not integrity["ok"]:
             raise FlowError("Cannot install an unmanifested workflow", EXIT_INTEGRITY, integrity)
-    release_spec = home / "releases" / CONTROLLER_VERSION / "Article-Spec-Pack-v1"
-    paths = {item["path"] for item in protected_entries("worktree") if item["scope"] == "spec"}
-    paths.add("manifest.json")
-    release_spec.mkdir(parents=True, exist_ok=True)
-    for rel in sorted(paths):
-        source = SPEC_ROOT / rel
-        if not source.is_file():
-            if development and rel == "manifest.json":
-                continue
-            raise FlowError(f"Install source missing: {rel}")
-        destination = release_spec / rel
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        if destination.is_file() and destination.read_bytes() != source.read_bytes() and not development:
-            raise FlowError(f"Installed release {CONTROLLER_VERSION} is immutable but differs at {rel}; publish a new controller version instead of overwriting it", EXIT_INTEGRITY)
-        if not destination.is_file() or destination.read_bytes() != source.read_bytes():
-            shutil.copy2(source, destination)
     source_commit = release_source_commit()
-    release_metadata_path = release_spec / ".article-flow-release.json"
-    release_metadata = {
-        "release_metadata_schema_version": "1.0.0",
-        "controller_version": CONTROLLER_VERSION,
-        "workflow_version": workflow()["workflow_version"],
-        "source_commit": source_commit,
-    }
-    if release_metadata_path.is_file() and load_json(release_metadata_path) != release_metadata and not development:
-        raise FlowError(f"Installed release {CONTROLLER_VERSION} has conflicting provenance metadata", EXIT_INTEGRITY)
-    if not release_metadata_path.is_file() or load_json(release_metadata_path) != release_metadata:
-        write_json(release_metadata_path, release_metadata)
+    spec_root_value = windows_path(SPEC_ROOT) if host == "windows" else str(SPEC_ROOT.resolve())
+    source_checkout_value = windows_path(REPO_ROOT) if host == "windows" else str(REPO_ROOT.resolve())
     current_path = home / "current.json"
     current = load_json(current_path) if current_path.is_file() else {}
     current_value = {
         "controller_version": CONTROLLER_VERSION,
         "workflow_version": workflow()["workflow_version"],
-        "spec_root": str(release_spec),
+        "spec_root": spec_root_value,
+        "source_checkout": source_checkout_value,
         "installed_at": current.get("installed_at") or utc_now(),
         "development": development,
+        "linked_checkout": True,
         "publication_repo_root": publication_repository,
         "source_commit": source_commit,
     }
     if current != current_value:
         write_json(current_path, current_value)
-    return release_spec
 
 
-def copy_adapter(source: Path, destination: Path, invocation: str) -> bool:
-    source_hash = sha256_path(source / "SKILL.md")
-    sentinel = destination / ".article-flow-adapter.json"
-    if destination.joinpath("SKILL.md").is_file() and sentinel.is_file():
-        try:
-            metadata = load_json(sentinel)
-        except FlowError:
-            metadata = {}
-        if sha256_path(destination / "SKILL.md") == source_hash and metadata.get("controller_min_version") == CONTROLLER_VERSION and metadata.get("workflow_version") == workflow()["workflow_version"] and metadata.get("invocation") == invocation:
-            return False
-    if destination.exists() or destination.is_symlink():
-        if destination.is_symlink() or destination.is_file():
-            destination.unlink()
-        else:
-            shutil.rmtree(destination)
-    shutil.copytree(source, destination)
-    write_json(destination / ".article-flow-adapter.json", {
-        "adapter_schema_version": "1.0.0",
-        "adapter_version": "1.0.0",
-        "controller_min_version": CONTROLLER_VERSION,
-        "workflow_version": workflow()["workflow_version"],
-        "source_skill_sha256": source_hash,
-        "invocation": invocation,
-        "installed_at": utc_now(),
-    })
+def remove_managed_release_copies(home: Path) -> str | None:
+    releases = home / "releases"
+    if not releases.is_dir():
+        return None
+    for candidate in releases.iterdir():
+        if not candidate.is_dir():
+            raise FlowError(f"Refusing to remove an unexpected file from managed releases: {candidate}")
+        spec = candidate / "Article-Spec-Pack-v1"
+        metadata = spec / ".article-flow-release.json"
+        recognized = metadata.is_file()
+        if not recognized and re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", candidate.name):
+            manifest_path = spec / "manifest.json"
+            script_path = spec / "scripts" / "article_flow.py"
+            if manifest_path.is_file() and script_path.is_file():
+                manifest = load_json(manifest_path)
+                version_match = re.search(r'^CONTROLLER_VERSION\s*=\s*"([^"]+)"', script_path.read_text(encoding="utf-8", errors="ignore"), re.MULTILINE)
+                recognized = bool(
+                    manifest.get("generator_name_and_version") == f"article-flow {candidate.name}"
+                    and version_match
+                    and version_match.group(1) == candidate.name
+                )
+        if not recognized:
+            raise FlowError(f"Refusing to remove an unrecognized release directory: {candidate}")
+    shutil.rmtree(releases)
+    return str(releases)
+
+
+def wsl_legacy_skill_targets() -> list[tuple[str, Path]]:
+    return [
+        ("wsl-agents", Path.home() / ".agents" / "skills" / "start-article"),
+        ("wsl-claude", Path.home() / ".claude" / "skills" / "start-article"),
+    ]
+
+
+def windows_legacy_skill_targets(user_root: Path) -> list[tuple[str, Path]]:
+    return [
+        ("windows-agents", user_root / ".agents" / "skills" / "start-article"),
+        ("windows-codex", user_root / ".codex" / "skills" / "start-article"),
+        ("windows-claude", user_root / ".claude" / "skills" / "start-article"),
+    ]
+
+
+def require_managed_legacy_skill_adapters(targets: Sequence[tuple[str, Path]]) -> None:
+    for _, target in targets:
+        if not (target.exists() or target.is_symlink()):
+            continue
+        if not target.is_dir() or not (target / ".article-flow-adapter.json").is_file():
+            raise FlowError(f"Refusing to remove an unmanaged legacy skill path: {target}")
+
+
+def retire_managed_skill_adapters(targets: Sequence[tuple[str, Path]], home: Path) -> list[dict[str, str]]:
+    """Move controller-owned legacy skills out of host discovery paths.
+
+    The sentinel proves that Article Flow created the directory. An unmarked
+    directory is preserved and blocks installation rather than being deleted.
+    """
+    retired: list[dict[str, str]] = []
+    stamp = slugify(utc_now(), 40)
+    retirement_root = home / "retired-skill-adapters"
+    for label, target in targets:
+        if not (target.exists() or target.is_symlink()):
+            continue
+        sentinel = target / ".article-flow-adapter.json"
+        if not target.is_dir() or not sentinel.is_file():
+            raise FlowError(f"Refusing to remove an unmanaged legacy skill path: {target}")
+        retirement_root.mkdir(parents=True, exist_ok=True)
+        destination = retirement_root / f"{stamp}-{label}"
+        suffix = 2
+        while destination.exists():
+            destination = retirement_root / f"{stamp}-{label}-{suffix}"
+            suffix += 1
+        shutil.move(str(target), str(destination))
+        retired.append({"from": str(target), "to": str(destination)})
+    return retired
+
+
+def remove_managed_launcher(path: Path) -> bool:
+    if not path.is_file():
+        return False
+    if "article-flow managed launcher" not in path.read_text(encoding="utf-8", errors="ignore"):
+        raise FlowError(f"Refusing to remove an unmanaged launcher: {path}")
+    path.unlink()
     return True
 
 
@@ -2606,29 +2659,33 @@ def command_install(args: argparse.Namespace) -> int:
     if invalid:
         raise FlowError(f"Unsupported hosts: {', '.join(sorted(invalid))}", EXIT_USAGE)
     installed: list[dict[str, Any]] = []
-    canonical_adapter = SPEC_ROOT / "adapters" / "start-article"
     if "wsl" in hosts:
+        require_managed_legacy_skill_adapters(wsl_legacy_skill_targets())
         home = runtime_home() if os.environ.get("ARTICLE_FLOW_HOME") else Path.home() / ".local" / "share" / "article-flow"
-        release = install_release(home.resolve(), development=args.development, publication_repository=str(publication_repo_root() or REPO_ROOT))
+        record_linked_checkout(home.resolve(), host="wsl", development=args.development, publication_repository=str(publication_repo_root() or REPO_ROOT))
         wrapper = Path.home() / ".local" / "bin" / "article-flow"
         wrapper.parent.mkdir(parents=True, exist_ok=True)
-        script = release / "scripts" / "article_flow.py"
-        wrapper_text = f"#!/usr/bin/env sh\n# article-flow managed launcher {CONTROLLER_VERSION}\nexport ARTICLE_FLOW_HOME='{home.resolve()}'\nexec python3 '{script}' \"$@\"\n"
+        wrapper_text = f"#!/usr/bin/env sh\n# article-flow managed launcher {CONTROLLER_VERSION}\nexport ARTICLE_FLOW_HOME='{home.resolve()}'\nexport ARTICLE_FLOW_REPO_ROOT='{REPO_ROOT.resolve()}'\nexec python3 '{SCRIPT_PATH.resolve()}' \"$@\"\n"
         write_if_changed(wrapper, wrapper_text.encode("utf-8"), mode=0o755)
-        targets = [
-            (Path.home() / ".agents" / "skills" / "start-article", "$start-article (Codex) or /start-article (Gemini)"),
-            (Path.home() / ".claude" / "skills" / "start-article", "/start-article"),
-        ]
-        for target, invocation in targets:
-            target.parent.mkdir(parents=True, exist_ok=True)
-            copy_adapter(canonical_adapter, target, invocation)
-        installed.append({"host": "wsl", "home": str(home.resolve()), "command": str(wrapper), "adapters": [str(item[0]) for item in targets]})
+        retired = retire_managed_skill_adapters(wsl_legacy_skill_targets(), home.resolve())
+        removed_releases = remove_managed_release_copies(home.resolve())
+        installed.append({"host": "wsl", "home": str(home.resolve()), "command": str(wrapper), "source_checkout": str(REPO_ROOT.resolve()), "retired_skill_adapters": retired, "removed_release_copies": removed_releases})
     if "windows" in hosts:
         user_root = windows_user_root()
         if not user_root:
             raise FlowError("Cannot resolve the Windows user profile; set ARTICLE_FLOW_WINDOWS_USER_ROOT")
+        require_managed_legacy_skill_adapters(windows_legacy_skill_targets(user_root))
+        bin_dir = user_root / "AppData" / "Local" / "Microsoft" / "WindowsApps"
+        legacy_launchers = (
+            user_root / ".local" / "bin" / "article-flow.cmd",
+            user_root / ".local" / "bin" / "article-flow.ps1",
+            bin_dir / "article-flow.ps1",
+        )
+        for legacy in legacy_launchers:
+            if legacy.is_file() and "article-flow managed launcher" not in legacy.read_text(encoding="utf-8", errors="ignore"):
+                raise FlowError(f"Refusing to remove an unmanaged launcher: {legacy}")
         home = user_root / ".article-flow"
-        release = install_release(home, development=args.development, publication_repository=windows_path(publication_repo_root() or REPO_ROOT))
+        record_linked_checkout(home, host="windows", development=args.development, publication_repository=windows_path(publication_repo_root() or REPO_ROOT))
         python_candidates = [
             user_root / "AppData" / "Local" / "Programs" / "Python" / "Python312" / "python.exe",
             user_root / "AppData" / "Local" / "Microsoft" / "WindowsApps" / "python.exe",
@@ -2636,78 +2693,55 @@ def command_install(args: argparse.Namespace) -> int:
         python_exe = next((item for item in python_candidates if item.exists()), None)
         if not python_exe:
             raise FlowError("Native Windows Python was not found")
-        bin_dirs = [user_root / ".local" / "bin", user_root / "AppData" / "Local" / "Microsoft" / "WindowsApps"]
-        for item in bin_dirs:
-            item.mkdir(parents=True, exist_ok=True)
-        script = release / "scripts" / "article_flow.py"
-        commands = []
-        cmd_text = f"@echo off\r\nrem article-flow managed launcher {CONTROLLER_VERSION}\r\nset \"ARTICLE_FLOW_HOME={windows_path(home)}\"\r\n\"{windows_path(python_exe)}\" \"{windows_path(script)}\" %*\r\n"
-        ps1_text = f"# article-flow managed launcher {CONTROLLER_VERSION}\n$env:ARTICLE_FLOW_HOME = '{windows_path(home)}'\n& '{windows_path(python_exe)}' '{windows_path(script)}' @args\nexit $LASTEXITCODE\n"
-        for bin_dir in bin_dirs:
-            cmd = bin_dir / "article-flow.cmd"
-            ps1 = bin_dir / "article-flow.ps1"
-            for target, content in ((cmd, cmd_text), (ps1, ps1_text)):
-                if target.is_file() and "article-flow managed launcher" not in target.read_text(encoding="utf-8", errors="ignore"):
-                    raise FlowError(f"Refusing to overwrite an unmanaged launcher: {target}")
-                write_if_changed(target, content.encode("utf-8"))
-                commands.append(str(target))
-        targets = [
-            (user_root / ".agents" / "skills" / "start-article", "$start-article (Codex) or /start-article (Gemini)"),
-            (user_root / ".codex" / "skills" / "start-article", "$start-article"),
-            (user_root / ".claude" / "skills" / "start-article", "/start-article"),
-        ]
-        for target, invocation in targets:
-            target.parent.mkdir(parents=True, exist_ok=True)
-            copy_adapter(canonical_adapter, target, invocation)
-        installed.append({"host": "windows", "home": str(home), "commands": commands, "adapters": [str(item[0]) for item in targets], "python": str(python_exe)})
+        bin_dir.mkdir(parents=True, exist_ok=True)
+        cmd_text = f"@echo off\r\nrem article-flow managed launcher {CONTROLLER_VERSION}\r\nset \"ARTICLE_FLOW_HOME={windows_path(home)}\"\r\nset \"ARTICLE_FLOW_REPO_ROOT={windows_path(REPO_ROOT)}\"\r\n\"{windows_path(python_exe)}\" \"{windows_path(SCRIPT_PATH)}\" %*\r\n"
+        command = bin_dir / "article-flow.cmd"
+        if command.is_file() and "article-flow managed launcher" not in command.read_text(encoding="utf-8", errors="ignore"):
+            raise FlowError(f"Refusing to overwrite an unmanaged launcher: {command}")
+        write_if_changed(command, cmd_text.encode("utf-8"))
+        retired_launchers = []
+        for legacy in legacy_launchers:
+            if remove_managed_launcher(legacy):
+                retired_launchers.append(str(legacy))
+        retired = retire_managed_skill_adapters(windows_legacy_skill_targets(user_root), home)
+        removed_releases = remove_managed_release_copies(home)
+        installed.append({"host": "windows", "home": str(home), "command": str(command), "source_checkout": windows_path(REPO_ROOT), "retired_launchers": retired_launchers, "retired_skill_adapters": retired, "removed_release_copies": removed_releases, "python": str(python_exe)})
     emit({"ok": True, "controller_version": CONTROLLER_VERSION, "workflow_version": workflow()["workflow_version"], "installed": installed, "idempotent": True}, args.json)
     return EXIT_OK
 
 
-def adapter_targets() -> list[tuple[str, Path, str]]:
-    result: list[tuple[str, Path, str]] = []
-    result += [
-        ("wsl-agents", Path.home() / ".agents" / "skills" / "start-article", "$start-article (Codex) or /start-article (Gemini)"),
-        ("wsl-claude", Path.home() / ".claude" / "skills" / "start-article", "/start-article"),
-    ]
+def global_command_targets() -> list[tuple[str, Path]]:
+    targets: list[tuple[str, Path]] = []
+    if os.name != "nt":
+        targets.append(("wsl", Path.home() / ".local" / "bin" / "article-flow"))
     user_root = windows_user_root()
     if user_root:
-        result += [
-            ("windows-agents", user_root / ".agents" / "skills" / "start-article", "$start-article (Codex) or /start-article (Gemini)"),
-            ("windows-codex-legacy", user_root / ".codex" / "skills" / "start-article", "$start-article"),
-            ("windows-claude", user_root / ".claude" / "skills" / "start-article", "/start-article"),
-        ]
-    return result
+        targets.append(("windows", user_root / "AppData" / "Local" / "Microsoft" / "WindowsApps" / "article-flow.cmd"))
+    return targets
 
 
-def verify_adapters() -> dict[str, Any]:
-    source_hash = sha256_path(SPEC_ROOT / "adapters" / "start-article" / "SKILL.md")
+def global_command_health() -> dict[str, Any]:
     checks = []
-    for name, target, invocation in adapter_targets():
-        sentinel = target / ".article-flow-adapter.json"
-        ok = target.joinpath("SKILL.md").is_file() and sentinel.is_file()
-        actual_hash = None
-        version = None
-        workflow_version = None
-        actual_invocation = None
-        if ok:
-            actual_hash = sha256_path(target / "SKILL.md")
-            try:
-                metadata = load_json(sentinel)
-                version = metadata.get("controller_min_version")
-                workflow_version = metadata.get("workflow_version")
-                actual_invocation = metadata.get("invocation")
-            except FlowError:
-                ok = False
-        ok = ok and actual_hash == source_hash and version == CONTROLLER_VERSION and workflow_version == workflow()["workflow_version"] and actual_invocation == invocation
-        checks.append({"adapter": name, "path": str(target), "invocation": invocation, "actual_invocation": actual_invocation, "ok": ok, "expected_skill_sha256": source_hash, "actual_skill_sha256": actual_hash, "controller_version": version, "workflow_version": workflow_version, "repair_command": "article-flow install --user --providers auto --hosts windows,wsl" if not ok else None})
-    return {"ok": all(item["ok"] for item in checks), "checks": checks}
-
-
-def command_adapters_verify(args: argparse.Namespace) -> int:
-    payload = verify_adapters()
-    emit(payload, args.json)
-    return EXIT_OK if payload["ok"] else EXIT_FAILED
+    for host, path in global_command_targets():
+        content = path.read_text(encoding="utf-8", errors="ignore") if path.is_file() else ""
+        ok = path.is_file() and f"article-flow managed launcher {CONTROLLER_VERSION}" in content
+        checks.append({
+            "host": host,
+            "path": str(path),
+            "ok": ok,
+            "controller_version": CONTROLLER_VERSION if ok else None,
+            "repair_command": None if ok else "article-flow install --hosts windows,wsl",
+        })
+    legacy = []
+    if os.name != "nt":
+        legacy.extend(wsl_legacy_skill_targets())
+    user_root = windows_user_root()
+    if user_root:
+        legacy.extend(windows_legacy_skill_targets(user_root))
+    for label, path in legacy:
+        absent = not (path.exists() or path.is_symlink())
+        checks.append({"host": label, "path": str(path), "kind": "retired_skill_path", "ok": absent, "repair_command": None if absent else "article-flow install --hosts windows,wsl"})
+    return {"ok": bool(checks) and all(item["ok"] for item in checks), "checks": checks}
 
 
 def command_providers_list(args: argparse.Namespace) -> int:
@@ -2966,8 +3000,14 @@ def installation_health() -> dict[str, Any]:
         candidates.append(("windows", windows_root / ".article-flow" / "current.json"))
     for host, path in candidates:
         record = load_json(path) if path.is_file() else {}
-        ok = record.get("controller_version") == CONTROLLER_VERSION and record.get("workflow_version") == workflow()["workflow_version"] and record.get("development") is False
-        checks.append({"host": host, "path": str(path), "ok": ok, "controller_version": record.get("controller_version"), "workflow_version": record.get("workflow_version"), "development": record.get("development")})
+        ok = bool(
+            record.get("controller_version") == CONTROLLER_VERSION
+            and record.get("workflow_version") == workflow()["workflow_version"]
+            and record.get("development") is False
+            and record.get("linked_checkout") is True
+            and record.get("source_commit") == release_source_commit()
+        )
+        checks.append({"host": host, "path": str(path), "ok": ok, "controller_version": record.get("controller_version"), "workflow_version": record.get("workflow_version"), "development": record.get("development"), "linked_checkout": record.get("linked_checkout"), "source_commit": record.get("source_commit")})
     return {"ok": bool(checks) and all(item["ok"] for item in checks), "checks": checks}
 
 
@@ -2981,7 +3021,7 @@ def doctor_payload(scope: str) -> dict[str, Any]:
     manifest_integrity = check_manifest("worktree", allow_unavailable_repository=True)
     schemas = schema_health()
     integrity = {"ok": manifest_integrity["ok"] and schemas["ok"], "manifest": manifest_integrity, "schemas_and_documents": schemas}
-    adapters = verify_adapters()
+    commands = global_command_health()
     routes = route_candidates("RESEARCH_PLAN")
     dirty = dirty_classification()
     authoring = {
@@ -2995,16 +3035,16 @@ def doctor_payload(scope: str) -> dict[str, Any]:
     installations = installation_health()
     conformance = host_conformance_health()
     release = {
-        "ok": launcher["ok"] and head_integrity["ok"] and schemas["ok"] and dirty["clean"] and adapters["ok"] and installations["ok"] and conformance["ok"],
+        "ok": launcher["ok"] and head_integrity["ok"] and schemas["ok"] and dirty["clean"] and commands["ok"] and installations["ok"] and conformance["ok"],
         "head_integrity": head_integrity,
         "schemas_and_documents": schemas,
         "clean_checkout": dirty["clean"],
-        "adapter_discovery": adapters,
+        "global_command_discovery": commands,
         "installations": installations,
         "host_conformance": conformance,
         "publication_target_present": (SPEC_ROOT / "publication" / "theproductiveprompter.json").is_file(),
     }
-    scopes = {"launcher_access": launcher, "spec_integrity": integrity, "adapter_discovery": adapters, "authoring_ready": authoring, "release_ready": release}
+    scopes = {"launcher_access": launcher, "spec_integrity": integrity, "global_command_discovery": commands, "authoring_ready": authoring, "release_ready": release}
     requested = {
         "launcher": launcher["ok"],
         "authoring": authoring["ok"],
@@ -3114,12 +3154,15 @@ def installed_launcher_smoke() -> dict[str, Any]:
         user_root = windows_user_root()
         launcher = user_root / "AppData" / "Local" / "Microsoft" / "WindowsApps" / "article-flow.cmd" if user_root else Path("article-flow.cmd")
         command = [os.environ.get("COMSPEC", "cmd.exe"), "/d", "/c", str(launcher), "context", "--json"]
+        bootstrap_command = [os.environ.get("COMSPEC", "cmd.exe"), "/d", "/c", str(launcher)]
     else:
         launcher = Path.home() / ".local" / "bin" / "article-flow"
         command = [str(launcher), "context", "--json"]
+        bootstrap_command = [str(launcher)]
     with tempfile.TemporaryDirectory() as unrelated:
         try:
             result = subprocess.run(command, cwd=unrelated, capture_output=True, text=True, timeout=30)
+            bootstrap_result = subprocess.run(bootstrap_command, cwd=unrelated, capture_output=True, text=True, timeout=30)
         except (OSError, subprocess.SubprocessError) as exc:
             return {
                 "ok": False,
@@ -3129,6 +3172,7 @@ def installed_launcher_smoke() -> dict[str, Any]:
                 "workflow_version": "",
                 "spec_root_match": False,
                 "runtime_home_match": False,
+                "bootstrap_ok": False,
                 "unrelated_cwd": True,
                 "error": str(exc),
             }
@@ -3136,6 +3180,10 @@ def installed_launcher_smoke() -> dict[str, Any]:
         context = json.loads(result.stdout)
     except (json.JSONDecodeError, TypeError):
         context = {}
+    try:
+        bootstrap = json.loads(bootstrap_result.stdout)
+    except (json.JSONDecodeError, TypeError):
+        bootstrap = {}
     try:
         spec_root_match = Path(str(context.get("spec_root", ""))).resolve() == SPEC_ROOT.resolve()
         runtime_home_match = Path(str(context.get("runtime_home", ""))).resolve() == runtime_home().resolve()
@@ -3148,6 +3196,10 @@ def installed_launcher_smoke() -> dict[str, Any]:
         and context.get("workflow_version") == workflow()["workflow_version"]
         and spec_root_match
         and runtime_home_match
+        and bootstrap_result.returncode == 0
+        and bootstrap.get("interface") == "local-global-command"
+        and bootstrap.get("command") == "article-flow"
+        and bootstrap.get("start_command", [])[:2] == ["article-flow", "start"]
     )
     return {
         "ok": ok,
@@ -3157,8 +3209,9 @@ def installed_launcher_smoke() -> dict[str, Any]:
         "workflow_version": str(context.get("workflow_version", "")),
         "spec_root_match": spec_root_match,
         "runtime_home_match": runtime_home_match,
+        "bootstrap_ok": bool(bootstrap_result.returncode == 0 and bootstrap.get("interface") == "local-global-command" and bootstrap.get("command") == "article-flow"),
         "unrelated_cwd": True,
-        "error": "" if ok else (result.stderr.strip() or "launcher context did not match the installed controller"),
+        "error": "" if ok else (result.stderr.strip() or bootstrap_result.stderr.strip() or "launcher context or bootstrap did not match the installed controller"),
     }
 
 
@@ -3299,25 +3352,21 @@ def add_json(parser: argparse.ArgumentParser) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="article-flow", description="Provider-neutral, resumable article workflow controller.")
     parser.add_argument("--version", action="version", version=f"article-flow {CONTROLLER_VERSION}")
-    sub = parser.add_subparsers(dest="command", required=True)
+    sub = parser.add_subparsers(dest="command", required=False)
 
     where = sub.add_parser("where", help="Print the canonical specification root.")
     add_json(where)
-    entrypoint = sub.add_parser("entrypoint", help="Print the human-readable entrypoint path.")
-    add_json(entrypoint)
-    kickoff = sub.add_parser("kickoff", help="Print the seed question or legacy entrypoint.")
-    add_json(kickoff)
     context = sub.add_parser("context", help="Show controller, workflow, and runtime paths.")
     add_json(context)
 
-    install = sub.add_parser("install", help="Install versioned WSL/Windows commands and thin host adapters.")
+    install = sub.add_parser("install", help="Link the global WSL and Windows commands to this checkout.")
     install.add_argument("--user", action="store_true", default=True)
     install.add_argument("--providers", default="auto")
     install.add_argument("--hosts", default="windows,wsl")
     install.add_argument("--development", action="store_true", help="Install unmanifested development bytes; never release from this mode.")
     add_json(install)
 
-    doctor = sub.add_parser("doctor", help="Report launcher, integrity, adapter, authoring, and release health separately.")
+    doctor = sub.add_parser("doctor", help="Report launcher, integrity, global-command, authoring, and release health separately.")
     doctor.add_argument("--scope", choices=["launcher", "authoring", "release", "all"], default="launcher")
     doctor.add_argument("--all", action="store_true")
     add_json(doctor)
@@ -3380,11 +3429,6 @@ def build_parser() -> argparse.ArgumentParser:
     verify.add_argument("run_id")
     add_json(verify)
 
-    adapters = sub.add_parser("adapters", help="Manage thin host adapters.")
-    adapters_sub = adapters.add_subparsers(dest="adapter_command", required=True)
-    adapters_verify = adapters_sub.add_parser("verify")
-    add_json(adapters_verify)
-
     providers = sub.add_parser("providers", help="Inspect private provider configuration without exposing credentials.")
     providers_sub = providers.add_subparsers(dest="provider_command", required=True)
     providers_list = providers_sub.add_parser("list")
@@ -3433,17 +3477,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     try:
+        if args.command is None:
+            print(json.dumps(bootstrap_payload(), indent=2, ensure_ascii=False))
+            return EXIT_OK
         if args.command == "where":
             emit({"spec_root": str(SPEC_ROOT)} if args.json else str(SPEC_ROOT), args.json)
             return EXIT_OK
-        if args.command == "entrypoint":
-            emit({"entrypoint": str(ENTRYPOINT)} if args.json else str(ENTRYPOINT), args.json)
-            return EXIT_OK
-        if args.command == "kickoff":
-            emit({"action": "request_seed", "question": SEED_QUESTION} if args.json else SEED_QUESTION, args.json)
-            return EXIT_OK
         if args.command == "context":
-            emit({"controller_version": CONTROLLER_VERSION, "workflow_version": workflow()["workflow_version"], "spec_root": str(SPEC_ROOT), "source_tree_root": str(REPO_ROOT), "publication_repo_root": str(publication_repo_root()) if publication_repo_root() else None, "runtime_home": str(runtime_home()), "entrypoint": str(ENTRYPOINT), "precedence": workflow()["precedence"]}, args.json)
+            emit({"controller_version": CONTROLLER_VERSION, "workflow_version": workflow()["workflow_version"], "interface": "local-global-command", "command": "article-flow", "spec_root": str(SPEC_ROOT), "source_tree_root": str(REPO_ROOT), "publication_repo_root": str(publication_repo_root()) if publication_repo_root() else None, "runtime_home": str(runtime_home()), "precedence": workflow()["precedence"]}, args.json)
             return EXIT_OK
         if args.command == "install":
             return command_install(args)
@@ -3475,8 +3516,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             return command_publish_execute(args)
         if args.command == "verify-live":
             return command_verify_live(args)
-        if args.command == "adapters" and args.adapter_command == "verify":
-            return command_adapters_verify(args)
         if args.command == "providers" and args.provider_command == "list":
             return command_providers_list(args)
         if args.command == "route":

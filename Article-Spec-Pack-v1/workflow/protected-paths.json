@@ -7,7 +7,6 @@
     "profiles",
     "evaluations",
     "publication",
-    "adapters",
     "scripts",
     "tests"
   ],
@@ -25,22 +24,10 @@
       "rule_set": "integrity"
     },
     {
-      "path": ".github/copilot-instructions.md",
-      "scope": "repository",
-      "role": "runtime",
-      "rule_set": "adapters"
-    },
-    {
       "path": "0-README.md",
       "scope": "spec",
       "role": "documentation",
       "rule_set": "overview"
-    },
-    {
-      "path": "0-START-ARTICLE.md",
-      "scope": "spec",
-      "role": "documentation",
-      "rule_set": "entrypoint"
     },
     {
       "path": "1-Master/Article-Master-Spec.md",
@@ -169,24 +156,6 @@
       "rule_set": "superseded"
     },
     {
-      "path": "adapters/registry.json",
-      "scope": "spec",
-      "role": "runtime",
-      "rule_set": "adapters"
-    },
-    {
-      "path": "adapters/start-article/agents/openai.yaml",
-      "scope": "spec",
-      "role": "runtime",
-      "rule_set": "adapters"
-    },
-    {
-      "path": "adapters/start-article/SKILL.md",
-      "scope": "spec",
-      "role": "runtime",
-      "rule_set": "adapters"
-    },
-    {
       "path": "evaluations/adversarial-cases.json",
       "scope": "spec",
       "role": "runtime",
@@ -245,12 +214,6 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "publication"
-    },
-    {
-      "path": "schemas/adapter.schema.json",
-      "scope": "spec",
-      "role": "runtime",
-      "rule_set": "schemas"
     },
     {
       "path": "schemas/article-recipe.schema.json",

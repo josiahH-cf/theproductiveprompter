@@ -1,7 +1,7 @@
 ---
 article_flow_document_status: superseded
 article_flow_authority: false
-article_flow_redirect: ../0-START-ARTICLE.md
+article_flow_redirect: ../0-README.md
 article_flow_removal_version: "3.0.0"
 ---
 

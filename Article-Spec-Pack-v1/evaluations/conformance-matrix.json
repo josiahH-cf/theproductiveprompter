@@ -2,11 +2,12 @@
   "conformance_matrix_schema_version": "1.0.0",
   "workflow_version": "2.0.0",
   "hosts": [
-    {"host": "wsl-command", "scenarios": ["unrelated-cwd", "installed-release", "interrupted-run", "no-web"]},
-    {"host": "native-windows-command", "scenarios": ["unrelated-cwd", "path-with-spaces", "restart", "update"]},
-    {"host": "codex", "scenarios": ["shared-skill-discovery", "explicit-invocation", "natural-language-trigger"]},
-    {"host": "claude-code", "scenarios": ["windows-discovery", "wsl-discovery", "slash-invocation"]},
-    {"host": "gemini-cli", "scenarios": ["shared-skill-discovery-after-install", "reload"]},
+    {"host": "wsl-command", "scenarios": ["unrelated-cwd", "linked-canonical-checkout", "interrupted-run", "no-web"]},
+    {"host": "native-windows-command", "scenarios": ["unrelated-cwd", "linked-canonical-checkout", "path-with-spaces", "restart", "update"]},
+    {"host": "codex-local", "scenarios": ["global-command", "no-argument-bootstrap", "returned-command-protocol"]},
+    {"host": "chatgpt-work-local", "scenarios": ["global-command", "returned-command-protocol", "capability-stop"]},
+    {"host": "claude-code-cowork-local", "scenarios": ["global-command", "returned-command-protocol", "capability-stop"]},
+    {"host": "gemini-cli-local", "scenarios": ["global-command", "no-provider-specific-install"]},
     {"host": "arbitrary-shell-agent", "scenarios": ["direct-command", "json-protocol", "self-contained-packet"]},
     {"host": "mcp-client", "scenarios": ["tool-discovery", "schema-validation", "resume"]},
     {"host": "publication-adapter", "scenarios": ["dry-run", "scoped-approval", "idempotent-retry", "exact-live-revision"]}
