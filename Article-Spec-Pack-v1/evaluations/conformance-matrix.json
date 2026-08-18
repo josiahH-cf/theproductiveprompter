@@ -1,0 +1,15 @@
+{
+  "conformance_matrix_schema_version": "1.0.0",
+  "workflow_version": "2.0.0",
+  "hosts": [
+    {"host": "wsl-command", "scenarios": ["unrelated-cwd", "installed-release", "interrupted-run", "no-web"]},
+    {"host": "native-windows-command", "scenarios": ["unrelated-cwd", "path-with-spaces", "restart", "update"]},
+    {"host": "codex", "scenarios": ["shared-skill-discovery", "explicit-invocation", "natural-language-trigger"]},
+    {"host": "claude-code", "scenarios": ["windows-discovery", "wsl-discovery", "slash-invocation"]},
+    {"host": "gemini-cli", "scenarios": ["shared-skill-discovery-after-install", "reload"]},
+    {"host": "arbitrary-shell-agent", "scenarios": ["direct-command", "json-protocol", "self-contained-packet"]},
+    {"host": "mcp-client", "scenarios": ["tool-discovery", "schema-validation", "resume"]},
+    {"host": "publication-adapter", "scenarios": ["dry-run", "scoped-approval", "idempotent-retry", "exact-live-revision"]}
+  ],
+  "policy": {"smoke_tests_publish": false, "real_publication_requires_disposable_target_or_scoped_approval": true}
+}

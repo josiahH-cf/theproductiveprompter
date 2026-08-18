@@ -1,0 +1,75 @@
+{
+  "policy_schema_version": "2.0.0",
+  "workflow_version": "2.0.0",
+  "status": "operator-configurable defaults; subordinate to run overrides and an approved article recipe",
+  "intake": {
+    "preserve_seed_verbatim": true,
+    "first_trial_max_paragraphs": 1,
+    "intent_approval": "required_until_operator_changes_policy",
+    "ask_one_material_question_at_a_time": true
+  },
+  "research": {
+    "prefer_primary_sources": true,
+    "model_memory_citations_allowed": false,
+    "no_search_behavior": [
+      "use_approved_local_corpus",
+      "generalize_or_remove_unsupported_claim",
+      "escalate"
+    ],
+    "reverify_after_draft": true,
+    "reverify_after_material_edit": true
+  },
+  "editorial_defaults": {
+    "narrative_person": "second",
+    "length": {
+      "mode": "auto",
+      "target_words": null,
+      "stop_when": "The approved reader job is complete with proportionate evidence and no padding."
+    },
+    "citation_mode": "links",
+    "summary_policy": "auto",
+    "activation_header": "off",
+    "components": {
+      "diagram": "auto",
+      "checklist": "auto",
+      "mental_models": "optional",
+      "workflow_count": null
+    },
+    "recent_post_window": 5,
+    "variation_macro_dimensions": 2
+  },
+  "voice": {
+    "profile": "profiles/voice-profile.v1.json",
+    "profile_status": "provisional_trial_derived",
+    "require_voice_probe": true,
+    "pairwise_order_reversal": true,
+    "naturalization_directive": "10-Final-Prose-Naturalization/Final-Prose-Naturalization-Directive.md",
+    "repair_scope": "affected_passage"
+  },
+  "repairs": {
+    "default_max_attempts": 2,
+    "transient_retry_backoff_seconds": [1, 3, 10],
+    "attempt_exhaustion": "ESCALATE"
+  },
+  "routing": {
+    "require_reachability": true,
+    "require_stage_capability": true,
+    "primary_rank": "task_specific_evaluation_score",
+    "secondary_rank": [
+      "operator_privacy",
+      "operator_locality",
+      "operator_cost",
+      "operator_latency"
+    ],
+    "uncalibrated_default": "active_capable_host",
+    "deterministic_tasks_use_models": false
+  },
+  "publication": {
+    "target": "publication/theproductiveprompter.json",
+    "approval": "required_until_operator_defines_automatic_boundary",
+    "approval_ttl_minutes": 30,
+    "require_clean_approved_checkout": true,
+    "require_exact_revision_live_check": true,
+    "claim_search_indexing": false
+  }
+}

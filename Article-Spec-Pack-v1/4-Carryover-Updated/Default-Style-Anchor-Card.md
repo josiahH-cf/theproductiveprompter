@@ -1,4 +1,13 @@
+---
+article_flow_document_status: voice-reference
+article_flow_authority: false
+article_flow_redirect: ../profiles/voice-profile.v1.json
+article_flow_removal_version: "3.0.0"
+---
+
 # Default Style Anchor Card
+
+> Provisional voice evidence only. It cannot promote a global trait without author calibration.
 
 **Purpose:** Provide a default 100–150 word Style Anchor when article-specific anchor is not provided.
 

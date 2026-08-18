@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://theproductiveprompter.com/schemas/brief.schema.json",
+  "title": "Article Brief",
+  "type": "object",
+  "required": ["brief_schema_version", "run_id", "title", "slug", "description", "reader_job", "scope", "exclusions", "claims_to_support", "acceptance_criteria"],
+  "properties": {
+    "brief_schema_version": {"const": "1.0.0"},
+    "run_id": {"type": "string"},
+    "title": {"type": "string", "minLength": 1},
+    "slug": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+    "description": {"type": "string", "minLength": 1},
+    "date": {"type": "string", "format": "date"},
+    "tags": {"type": "array", "items": {"type": "string"}},
+    "reader_job": {"type": "string", "minLength": 1},
+    "scope": {"type": "string", "minLength": 1},
+    "exclusions": {"type": "array", "items": {"type": "string"}},
+    "claims_to_support": {"type": "array", "items": {"type": "string"}},
+    "acceptance_criteria": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+  },
+  "additionalProperties": true
+}

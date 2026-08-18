@@ -1,0 +1,135 @@
+{
+  "document_registry_schema_version": "1.0.0",
+  "workflow_version": "2.0.0",
+  "authoritative_controls": [
+    "workflow/workflow.json",
+    "workflow/house-policy.json",
+    "workflow/article-recipe.defaults.json",
+    "profiles/voice-profile.v1.json",
+    "publication/theproductiveprompter.json",
+    "10-Final-Prose-Naturalization/Final-Prose-Naturalization-Directive.md"
+  ],
+  "generated_documents": [
+    {
+      "path": "1-Master/Article-Workflow-v2.md",
+      "source": "workflow/workflow.json",
+      "generator": "scripts/render_workflow_docs.py"
+    }
+  ],
+  "non_authoritative_documents": [
+    {
+      "path": "1-Master/Article-Master-Spec.md",
+      "status": "legacy-reference",
+      "redirect": "workflow/workflow.json",
+      "removal_version": "3.0.0"
+    },
+    {
+      "path": "1-Master/Article-Process-Map.md",
+      "status": "legacy-reference",
+      "redirect": "workflow/workflow.json",
+      "removal_version": "3.0.0"
+    },
+    {
+      "path": "1-Master/Article-Spec-Consolidated.md",
+      "status": "legacy-reference",
+      "redirect": "workflow/workflow.json",
+      "removal_version": "3.0.0"
+    },
+    {
+      "path": "1-Master/Critic-Loop-(Single-Pass-Self-Check).md",
+      "status": "legacy-reference",
+      "redirect": "workflow/workflow.json",
+      "removal_version": "3.0.0"
+    },
+    {
+      "path": "1-Master/Spec-Conformance-Checklist.md",
+      "status": "legacy-reference",
+      "redirect": "workflow/workflow.json",
+      "removal_version": "3.0.0"
+    },
+    {
+      "path": "1-Master/Spec-Quick-Reference.md",
+      "status": "legacy-reference",
+      "redirect": "workflow/workflow.json",
+      "removal_version": "3.0.0"
+    },
+    {
+      "path": "1-Master/Unified-Article-Spec.md",
+      "status": "legacy-reference",
+      "redirect": "workflow/workflow.json",
+      "removal_version": "3.0.0"
+    },
+    {
+      "path": "2-Templates/Article-Brief-Template.md",
+      "status": "legacy-template",
+      "redirect": "schemas/task-packet.schema.json",
+      "removal_version": "3.0.0"
+    },
+    {
+      "path": "2-Templates/Article-Output-Format-Template.md",
+      "status": "legacy-template",
+      "redirect": "publication/theproductiveprompter.json",
+      "removal_version": "3.0.0"
+    },
+    {
+      "path": "2-Templates/Blocks-Workflow-and-Mental-Model.md",
+      "status": "optional-reference",
+      "redirect": "workflow/article-recipe.defaults.json",
+      "removal_version": "3.0.0"
+    },
+    {
+      "path": "3-Annexes/Device-Catalog.md",
+      "status": "optional-reference",
+      "redirect": "workflow/article-recipe.defaults.json",
+      "removal_version": "3.0.0"
+    },
+    {
+      "path": "3-Annexes/Evidence-and-IP-Annex.md",
+      "status": "legacy-reference",
+      "redirect": "workflow/workflow.json",
+      "removal_version": "3.0.0"
+    },
+    {
+      "path": "4-Carryover-Updated/Brand-Pack-(Author-Compass).md",
+      "status": "voice-reference",
+      "redirect": "profiles/voice-profile.v1.json",
+      "removal_version": "3.0.0"
+    },
+    {
+      "path": "4-Carryover-Updated/Default-Style-Anchor-Card.md",
+      "status": "voice-reference",
+      "redirect": "profiles/voice-profile.v1.json",
+      "removal_version": "3.0.0"
+    },
+    {
+      "path": "4-Carryover-Updated/Style-Baseline-(Directive).md",
+      "status": "voice-reference",
+      "redirect": "profiles/voice-profile.v1.json",
+      "removal_version": "3.0.0"
+    },
+    {
+      "path": "7-Intake-Mode/Intake-Brief-Autofill-Template.md",
+      "status": "legacy-template",
+      "redirect": "workflow/workflow.json",
+      "removal_version": "3.0.0"
+    },
+    {
+      "path": "7-Intake-Mode/Intake-Prompt.md",
+      "status": "superseded",
+      "redirect": "0-START-ARTICLE.md",
+      "removal_version": "3.0.0"
+    },
+    {
+      "path": "7-Intake-Mode/Intake-Workflow.md",
+      "status": "superseded",
+      "redirect": "workflow/workflow.json",
+      "removal_version": "3.0.0"
+    },
+    {
+      "path": "7-Intake-Mode/README.md",
+      "status": "superseded",
+      "redirect": "0-START-ARTICLE.md",
+      "removal_version": "3.0.0"
+    }
+  ]
+}

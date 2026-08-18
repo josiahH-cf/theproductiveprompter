@@ -1,4 +1,13 @@
+---
+article_flow_document_status: optional-reference
+article_flow_authority: false
+article_flow_redirect: ../workflow/article-recipe.defaults.json
+article_flow_removal_version: "3.0.0"
+---
+
 # Reusable Blocks — Workflow and Mental Model
+
+> Optional editorial reference. A recipe may select these components; no article is universally required to use them.
 
 Purpose: Provide slot-based templates for the two core block types used in developer-grade articles. Treat these as internal scaffolding only. Do not print the labels “Workflow Block” or “Mental Model Block” in public text.
 

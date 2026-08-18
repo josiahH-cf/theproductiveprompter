@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://theproductiveprompter.com/schemas/voice-profile.schema.json",
+  "title": "Versioned Author Voice Profile",
+  "type": "object",
+  "required": ["voice_profile_schema_version", "profile_id", "version", "status", "author_voice", "article_register_dimensions", "form_contracts", "positive_examples", "negative_examples", "accepted_rejected_pairs", "held_out_tests", "change_history"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "voice_profile_schema_version": {"const": "1.0.0"},
+    "profile_id": {"type": "string"},
+    "version": {"type": "string"},
+    "status": {"enum": ["provisional", "operator_confirmed", "superseded"]},
+    "author_voice": {"type": "object"},
+    "article_register_dimensions": {"type": "array", "items": {"type": "string"}},
+    "form_contracts": {"type": "object"},
+    "positive_examples": {"type": "array", "items": {"type": "object"}},
+    "negative_examples": {"type": "array", "items": {"type": "object"}},
+    "accepted_rejected_pairs": {"type": "array", "items": {"type": "object"}},
+    "held_out_tests": {"type": "array", "items": {"type": "object"}},
+    "change_history": {"type": "array", "items": {"type": "object"}},
+    "provenance_note": {"type": "string"}
+  },
+  "additionalProperties": false
+}

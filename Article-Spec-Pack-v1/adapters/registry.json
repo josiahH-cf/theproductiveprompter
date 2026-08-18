@@ -1,0 +1,22 @@
+{
+  "adapter_registry_schema_version": "1.0.0",
+  "controller_min_version": "2.0.6",
+  "adapters": [
+    {
+      "adapter_id": "shared-agent-skill",
+      "source": "adapters/start-article",
+      "install_targets": [
+        "windows:.agents/skills/start-article",
+        "windows:.codex/skills/start-article",
+        "windows:.claude/skills/start-article",
+        "wsl:.agents/skills/start-article",
+        "wsl:.claude/skills/start-article"
+      ],
+      "invocations": {
+        "codex": "$start-article",
+        "claude": "/start-article",
+        "gemini": "/start-article or natural-language trigger"
+      }
+    }
+  ]
+}

@@ -1,4 +1,13 @@
+---
+article_flow_document_status: legacy-template
+article_flow_authority: false
+article_flow_redirect: ../workflow/workflow.json
+article_flow_removal_version: "3.0.0"
+---
+
 # Intake → Article Brief Autofill Template
+
+> Historical intake aid. The v2 controller preserves a seed and produces validated stage artifacts instead of autofilling hidden intent.
 
 Paste the intake content below each field. Keep answers concise and actionable.
 

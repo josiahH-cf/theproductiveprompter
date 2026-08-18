@@ -1,4 +1,13 @@
+---
+article_flow_document_status: legacy-template
+article_flow_authority: false
+article_flow_redirect: ../publication/theproductiveprompter.json
+article_flow_removal_version: "3.0.0"
+---
+
 # Article Output Format Template
+
+> Historical output aid. The v2 package schema and configured publication renderer own file names and public output.
 
 **Purpose:** Standardized delivery format for Phase 6 (Archival & Logging) of the Article-Execution-Meta-Prompt workflow. Public-facing article text must not expose internal scaffolding (devices, gates, shapes, style anchors).
 

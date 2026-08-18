@@ -1,0 +1,13 @@
+{
+  "registry_schema_version": "1.0.0",
+  "workflow_version": "2.0.0",
+  "promotion_policy": {
+    "require_human_calibration": true,
+    "require_order_reversal": true,
+    "require_provider_version_canary": true,
+    "minimum_fixture_count_per_stage": 3
+  },
+  "stage_scores": [],
+  "routing_status": "uncalibrated_active_host_default",
+  "note": "No model is labeled best until stage-specific fixture results and author calibration exist."
+}

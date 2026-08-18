@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://theproductiveprompter.com/schemas/locked-fields.schema.json",
+  "title": "Naturalization Locked Fields",
+  "type": "object",
+  "required": ["locked_fields_schema_version", "run_id", "source_sha256", "tokens", "claims"],
+  "properties": {
+    "locked_fields_schema_version": {"const": "1.0.0"},
+    "run_id": {"type": "string"},
+    "source_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "tokens": {"type": "object", "additionalProperties": {"type": "array", "items": {"type": "string"}}},
+    "claims": {"type": "array", "items": {"type": "object"}}
+  },
+  "additionalProperties": false
+}

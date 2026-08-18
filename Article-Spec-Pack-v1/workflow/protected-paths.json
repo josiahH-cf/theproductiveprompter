@@ -1,0 +1,454 @@
+{
+  "protected_set_schema_version": "1.1.0",
+  "workflow_version": "2.0.0",
+  "watched_roots": [
+    "workflow",
+    "schemas",
+    "profiles",
+    "evaluations",
+    "publication",
+    "adapters",
+    "scripts",
+    "tests"
+  ],
+  "excluded_prefixes": [
+    "records/",
+    "6-Completed-Articles/",
+    "9-Archive/",
+    "0-Article-Content/"
+  ],
+  "entries": [
+    {
+      "path": ".gitattributes",
+      "scope": "repository",
+      "role": "runtime",
+      "rule_set": "integrity"
+    },
+    {
+      "path": ".github/copilot-instructions.md",
+      "scope": "repository",
+      "role": "runtime",
+      "rule_set": "adapters"
+    },
+    {
+      "path": "0-README.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "overview"
+    },
+    {
+      "path": "0-START-ARTICLE.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "entrypoint"
+    },
+    {
+      "path": "1-Master/Article-Master-Spec.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "legacy-reference"
+    },
+    {
+      "path": "1-Master/Article-Process-Map.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "legacy-reference"
+    },
+    {
+      "path": "1-Master/Article-Spec-Consolidated.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "legacy-reference"
+    },
+    {
+      "path": "1-Master/Article-Workflow-v2.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "generated-workflow"
+    },
+    {
+      "path": "1-Master/Critic-Loop-(Single-Pass-Self-Check).md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "legacy-reference"
+    },
+    {
+      "path": "1-Master/Spec-Conformance-Checklist.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "legacy-reference"
+    },
+    {
+      "path": "1-Master/Spec-Quick-Reference.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "legacy-reference"
+    },
+    {
+      "path": "1-Master/Unified-Article-Spec.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "legacy-reference"
+    },
+    {
+      "path": "10-Final-Prose-Naturalization/Final-Prose-Naturalization-Directive.md",
+      "scope": "spec",
+      "role": "normative",
+      "rule_set": "authority"
+    },
+    {
+      "path": "2-Templates/Article-Brief-Template.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "legacy-template"
+    },
+    {
+      "path": "2-Templates/Article-Output-Format-Template.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "legacy-template"
+    },
+    {
+      "path": "2-Templates/Blocks-Workflow-and-Mental-Model.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "optional-reference"
+    },
+    {
+      "path": "3-Annexes/Device-Catalog.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "optional-reference"
+    },
+    {
+      "path": "3-Annexes/Evidence-and-IP-Annex.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "legacy-reference"
+    },
+    {
+      "path": "4-Carryover-Updated/Brand-Pack-(Author-Compass).md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "voice-reference"
+    },
+    {
+      "path": "4-Carryover-Updated/Default-Style-Anchor-Card.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "voice-reference"
+    },
+    {
+      "path": "4-Carryover-Updated/Style-Baseline-(Directive).md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "voice-reference"
+    },
+    {
+      "path": "7-Intake-Mode/Intake-Brief-Autofill-Template.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "legacy-template"
+    },
+    {
+      "path": "7-Intake-Mode/Intake-Prompt.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "superseded"
+    },
+    {
+      "path": "7-Intake-Mode/Intake-Workflow.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "superseded"
+    },
+    {
+      "path": "7-Intake-Mode/README.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "superseded"
+    },
+    {
+      "path": "adapters/registry.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "adapters"
+    },
+    {
+      "path": "adapters/start-article/agents/openai.yaml",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "adapters"
+    },
+    {
+      "path": "adapters/start-article/SKILL.md",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "adapters"
+    },
+    {
+      "path": "evaluations/adversarial-cases.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "evaluation"
+    },
+    {
+      "path": "evaluations/capability-registry.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "evaluation"
+    },
+    {
+      "path": "evaluations/conformance-matrix.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "evaluation"
+    },
+    {
+      "path": "evaluations/evaluation-registry.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "evaluation"
+    },
+    {
+      "path": "evaluations/fixtures.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "evaluation"
+    },
+    {
+      "path": "evaluations/provider-config.example.json",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "evaluation"
+    },
+    {
+      "path": "evaluations/rubric.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "evaluation"
+    },
+    {
+      "path": "profiles/voice-profile.v1.json",
+      "scope": "spec",
+      "role": "normative",
+      "rule_set": "voice-profile"
+    },
+    {
+      "path": "publication/templates/article.html",
+      "scope": "spec",
+      "role": "template",
+      "rule_set": "publication"
+    },
+    {
+      "path": "publication/theproductiveprompter.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "publication"
+    },
+    {
+      "path": "schemas/adapter.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/article-recipe.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/artifact.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/brief.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/claim-ledger.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/conformance-receipt.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/document-registry.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/editorial-assessment.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/evaluation.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/event.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/gate-receipt.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/house-policy.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/intent.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/locked-fields.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/manifest.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/package.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/protected-paths.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/provider-config.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/publication-receipt.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/research-plan.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/run.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/task-packet.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/voice-probe.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/voice-profile.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/workflow.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "scripts/article_flow.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "controller"
+    },
+    {
+      "path": "scripts/package_article.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "controller"
+    },
+    {
+      "path": "scripts/render_workflow_docs.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "controller"
+    },
+    {
+      "path": "tests/test_article_flow.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "conformance"
+    },
+    {
+      "path": "workflow/article-recipe.defaults.json",
+      "scope": "spec",
+      "role": "template",
+      "rule_set": "article-recipe"
+    },
+    {
+      "path": "workflow/document-registry.json",
+      "scope": "spec",
+      "role": "normative",
+      "rule_set": "document-registry"
+    },
+    {
+      "path": "workflow/house-policy.json",
+      "scope": "spec",
+      "role": "normative",
+      "rule_set": "house-policy"
+    },
+    {
+      "path": "workflow/protected-paths.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "integrity"
+    },
+    {
+      "path": "workflow/workflow.json",
+      "scope": "spec",
+      "role": "normative",
+      "rule_set": "workflow"
+    }
+  ]
+}

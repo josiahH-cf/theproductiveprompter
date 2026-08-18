@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://theproductiveprompter.com/schemas/protected-paths.schema.json",
+  "title": "Protected Path Registry",
+  "type": "object",
+  "required": ["protected_set_schema_version", "workflow_version", "watched_roots", "excluded_prefixes", "entries"],
+  "properties": {
+    "protected_set_schema_version": {"type": "string"},
+    "workflow_version": {"type": "string"},
+    "watched_roots": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "excluded_prefixes": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "scope", "role", "rule_set"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "scope": {"enum": ["spec", "repository"]},
+          "role": {"enum": ["normative", "template", "runtime", "documentation", "archived"]},
+          "rule_set": {"type": "string", "minLength": 1}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

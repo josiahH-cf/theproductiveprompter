@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://theproductiveprompter.com/schemas/intent.schema.json",
+  "title": "Candidate Article Intent",
+  "type": "object",
+  "required": ["intent_schema_version", "run_id", "reader", "reader_job", "purpose", "scope", "position", "explicit_seed_content", "assumptions", "remaining_unknowns"],
+  "properties": {
+    "intent_schema_version": {"const": "1.0.0"},
+    "run_id": {"type": "string"},
+    "reader": {"type": "string", "minLength": 1},
+    "reader_job": {"type": "string", "minLength": 1},
+    "purpose": {"type": "string", "minLength": 1},
+    "scope": {"type": "string", "minLength": 1},
+    "position": {"type": ["string", "null"]},
+    "explicit_seed_content": {"type": "array", "items": {"type": "string"}},
+    "assumptions": {"type": "array", "items": {"type": "string"}},
+    "remaining_unknowns": {"type": "array", "items": {"type": "string"}},
+    "research_that_shaped_candidate": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": false
+}

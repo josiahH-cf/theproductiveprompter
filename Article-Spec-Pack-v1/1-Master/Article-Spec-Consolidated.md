@@ -1,4 +1,13 @@
+---
+article_flow_document_status: legacy-reference
+article_flow_authority: false
+article_flow_redirect: ../workflow/workflow.json
+article_flow_removal_version: "3.0.0"
+---
+
 # Article Spec — Developer-Facing, Workflow-First (Consolidated)
+
+> Historical editorial reference. Conflicts resolve through the v2 precedence chain, not this document.
 
 Purpose: Replace scattered, device-heavy specs with a single, pragmatic article specification optimized for developer and AI power-user readership. This spec directs the writing model to produce natural, public-facing articles without exposing internal scaffolding (devices, gates, shapes).
 

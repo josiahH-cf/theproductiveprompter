@@ -1,4 +1,13 @@
+---
+article_flow_document_status: voice-reference
+article_flow_authority: false
+article_flow_redirect: ../profiles/voice-profile.v1.json
+article_flow_removal_version: "3.0.0"
+---
+
 # Style Baseline (Directive)
+
+> Historical voice reference. It no longer has precedence over an approved recipe or the v2 workflow.
 
 **Purpose**  
 Define the non-negotiable voice, tone, and structural requirements for all articles. This document is **first in precedence** and overrides all other directives when conflicts arise.
@@ -19,7 +28,7 @@ Define the non-negotiable voice, tone, and structural requirements for all artic
 - **Sentence variety** — natural rhythm with a mix of short punchy statements and medium-length explanations
   - Approximate average: 16–22 words per sentence
   - No mechanical counting; prioritize natural flow
-- **Natural voicing** — feels like a human wrote it; avoid formulaic structures; vary openings and transitions
+- **Natural voicing** — direct, specific prose that preserves the author's meaning and passes the [Final Prose Naturalization Directive](../10-Final-Prose-Naturalization/Final-Prose-Naturalization-Directive.md)
 - **Paragraphs** — self-contained ideas, typically 80–110 words
   - Natural-sounding sentences that build arguments throughout the article
   - Each paragraph contributes unique information to the whole
@@ -122,6 +131,18 @@ Avoid sentences that *claim* a distinction without *demonstrating* it:
 
 **Exception:** If the "not X, it's Y" sentence is immediately followed (within the same paragraph) by a concrete demonstration, it may be kept.
 
+### 6.5 Final Prose Naturalization (Mandatory)
+
+After content, evidence, and structure are settled, apply the [Final Prose Naturalization Directive](../10-Final-Prose-Naturalization/Final-Prose-Naturalization-Directive.md) to the complete publication candidate.
+
+- Preserve meaning, facts, uncertainty, commitments, audience, useful detail, Markdown, links, citations, code, and quotations.
+- Remove formulaic AI-style clichés, canned transitions, inflated or vague wording, repetitive rhetoric, generic corporate language, unnecessary polish, and generated-looking structure.
+- Use the directive's pattern inventory diagnostically, not as a blind blacklist. Keep language that is deliberate, quoted, technically necessary, legally required, or most accurate in context.
+- Do not add facts, examples, claims, opinions, humor, or personal experience during this pass.
+- Return only the revised article and re-run the publication checks after any change.
+
+This requirement is part of the Voice Check and Gate B. A publication candidate that has not passed it is not final.
+
 ### 6.6 Variation (Avoid Template Voice)
 
 Vary the article’s proof style and structure so multiple posts do not feel like the same machine.
@@ -201,6 +222,7 @@ At the end of each article draft, the model must **silently apply this checklist
 - [ ] **Devices:** If used, rendered as natural content; no internal labels or activation headers appear in public text
 - [ ] **Redundancy:** No sentences duplicate earlier content (>5 identical words)
 - [ ] **Flowability:** Entire article flows naturally; each part unique and necessary
+- [ ] **Naturalization:** Final prose pass preserves the article while removing unsupported formulaic AI-style language and generated-looking structure
 
 **Output:** Only the revised text is returned (never the checklist itself).
 
@@ -307,6 +329,7 @@ Every article must exhibit:
 - [x] No anthropomorphism of AI
 - [x] No over-explaining to professional audience
 - [x] No rhetorical excess or forced metaphors
+- [x] Final Prose Naturalization Directive applied without meaning, fact, citation, code, quotation, or formatting drift
 - [x] Final sentence = verification or next action (not maxim)
 - [x] No redundant sentences (>5 identical words)
 

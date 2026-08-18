@@ -1,0 +1,25 @@
+{
+  "rubric_schema_version": "1.0.0",
+  "workflow_version": "2.0.0",
+  "dimensions": {
+    "intent_fidelity": {"owner": "human_or_calibrated_evaluator", "scale": [0, 1], "independent": true},
+    "evidence_coverage": {"owner": "code_and_independent_verifier", "scale": [0, 1], "independent": true},
+    "citation_accuracy": {"owner": "code_and_independent_verifier", "scale": [0, 1], "independent": true},
+    "meaning_preservation": {"owner": "human_or_calibrated_evaluator", "scale": [0, 1], "independent": true},
+    "voice_fit": {"owner": "author", "scale": [0, 1], "independent": true},
+    "naturalness": {"owner": "author_or_calibrated_evaluator", "scale": [0, 1], "independent": true},
+    "structural_diversity": {"owner": "code_and_editor", "scale": [0, 1], "batch_metric": true},
+    "package_correctness": {"owner": "code", "scale": [0, 1], "hard_gate": true},
+    "live_publication_correctness": {"owner": "code", "scale": [0, 1], "hard_gate": true},
+    "human_intervention_count": {"owner": "code", "unit": "count"},
+    "repair_count": {"owner": "code", "unit": "count"},
+    "cost": {"owner": "controller", "unit": "provider_reported"},
+    "latency": {"owner": "controller", "unit": "milliseconds"}
+  },
+  "comparison_controls": {
+    "pairwise_both_orders": true,
+    "passage_specific_reasons": true,
+    "verbosity_bias_probe": true,
+    "human_calibration_required_for_promotion": true
+  }
+}

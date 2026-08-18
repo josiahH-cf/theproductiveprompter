@@ -1,0 +1,61 @@
+{
+  "disposition_schema_version": "1.0.0",
+  "baseline_receipt": "baseline-receipt.json",
+  "reviewed_at": "2026-08-18T15:19:54Z",
+  "owner_reviewer": "operator request: implement the 2026-08-18 Article Workflow Improvement Directive",
+  "entries": [
+    {
+      "paths": [
+        ".github/copilot-instructions.md",
+        "Article-Spec-Pack-v1/0-README.md",
+        "Article-Spec-Pack-v1/0-START-ARTICLE.md",
+        "Article-Spec-Pack-v1/1-Master/Article-Master-Spec.md",
+        "Article-Spec-Pack-v1/1-Master/Article-Process-Map.md",
+        "Article-Spec-Pack-v1/1-Master/Critic-Loop-(Single-Pass-Self-Check).md",
+        "Article-Spec-Pack-v1/1-Master/Spec-Conformance-Checklist.md",
+        "Article-Spec-Pack-v1/3-Annexes/Device-Catalog.md",
+        "Article-Spec-Pack-v1/4-Carryover-Updated/Style-Baseline-(Directive).md",
+        "Article-Spec-Pack-v1/7-Intake-Mode/Intake-Prompt.md",
+        "Article-Spec-Pack-v1/7-Intake-Mode/Intake-Workflow.md",
+        "Article-Spec-Pack-v1/7-Intake-Mode/README.md",
+        "Article-Spec-Pack-v1/10-Final-Prose-Naturalization/Final-Prose-Naturalization-Directive.md",
+        "Article-Spec-Pack-v1/CHANGELOG.md",
+        "Article-Spec-Pack-v1/manifest.json",
+        "Article-Spec-Pack-v1/scripts/article_flow.py"
+      ],
+      "disposition": "KEEP-IN-WORKFLOW",
+      "reason": "These are the operator-requested specification, naturalization, intake, launcher, and integrity changes that form the workflow release."
+    },
+    {
+      "old_path": "Article-Spec-Pack-v1/1-Master/Documentation/PDF-Upload-Quick-Start-Guide.md",
+      "new_path": "Article-Spec-Pack-v1/9-Archive/_Superseded/Legacy-Gemini-GUI/PDF-Upload-Quick-Start-Guide.md",
+      "disposition": "ARCHIVE-OR-RENAME",
+      "reason": "The GUI/PDF-upload guide is provider-specific historical material, preserved outside the active control set."
+    },
+    {
+      "old_path": "Article-Spec-Pack-v1/1-Master/Documentation/QUICK-START-1PAGER.md",
+      "new_path": "Article-Spec-Pack-v1/9-Archive/_Superseded/Legacy-Gemini-GUI/QUICK-START-1PAGER.md",
+      "disposition": "ARCHIVE-OR-RENAME",
+      "reason": "The GUI-oriented quick start is provider-specific historical material, preserved outside the active control set."
+    },
+    {
+      "old_path": "Article-Spec-Pack-v1/10-Meta-Prompt-For-Article-Re-write/meta-prompt-for-gpt-5.1.md",
+      "new_path": "Article-Spec-Pack-v1/9-Archive/_Superseded/Legacy-Provider-Prompts/meta-prompt-for-gpt-5.1.md",
+      "disposition": "ARCHIVE-OR-RENAME",
+      "reason": "The deleted provider-bound rewrite prompt lacked an archive replacement; preserve it as history while the model-neutral naturalization gate becomes active."
+    },
+    {
+      "path": "NUL",
+      "disposition": "REMOVE-ARTIFACT",
+      "reason": "The exact 46-byte file contains only a captured shell error from a failed cmd.exe probe. Its bytes and hash are retained in the baseline receipt."
+    }
+  ],
+  "summary": {
+    "observed_entries": 22,
+    "keep_in_workflow": 16,
+    "archive_or_rename_pairs": 3,
+    "keep_unrelated": 0,
+    "remove_artifact": 1,
+    "escalate": 0
+  }
+}

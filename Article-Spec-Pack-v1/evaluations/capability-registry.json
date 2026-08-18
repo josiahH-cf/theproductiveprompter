@@ -1,0 +1,62 @@
+{
+  "registry_schema_version": "1.0.0",
+  "workflow_version": "2.0.0",
+  "providers": [
+    {
+      "provider_id": "active-host",
+      "kind": "agent-hosted",
+      "enabled": true,
+      "reachability": "supplied_by_current_host",
+      "models": [
+        {
+          "model_id": "active-capable-host",
+          "version": null,
+          "capabilities": ["files", "structured-output", "research-if-host-provides", "tools-if-host-provides"],
+          "privacy": "inherits-host",
+          "locality": "inherits-host",
+          "cost_class": "unknown",
+          "latency_class": "unknown"
+        }
+      ]
+    },
+    {
+      "provider_id": "openai",
+      "kind": "openai-responses",
+      "enabled": false,
+      "credential_environment_variable": "OPENAI_API_KEY",
+      "base_url": "https://api.openai.com/v1/responses",
+      "models": []
+    },
+    {
+      "provider_id": "anthropic",
+      "kind": "anthropic-messages",
+      "enabled": false,
+      "credential_environment_variable": "ANTHROPIC_API_KEY",
+      "base_url": "https://api.anthropic.com/v1/messages",
+      "models": []
+    },
+    {
+      "provider_id": "google",
+      "kind": "google-generative-language",
+      "enabled": false,
+      "credential_environment_variable": "GEMINI_API_KEY",
+      "base_url": "https://generativelanguage.googleapis.com/v1beta",
+      "models": []
+    },
+    {
+      "provider_id": "openai-compatible",
+      "kind": "openai-compatible",
+      "enabled": false,
+      "credential_environment_variable": "ARTICLE_FLOW_COMPAT_API_KEY",
+      "base_url_environment_variable": "ARTICLE_FLOW_COMPAT_BASE_URL",
+      "models": []
+    },
+    {
+      "provider_id": "local-command",
+      "kind": "command",
+      "enabled": false,
+      "command": [],
+      "models": []
+    }
+  ]
+}

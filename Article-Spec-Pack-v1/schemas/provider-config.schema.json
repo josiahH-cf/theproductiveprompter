@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://theproductiveprompter.com/schemas/provider-config.schema.json",
+  "title": "Private Provider Configuration",
+  "type": "object",
+  "required": ["provider_config_schema_version", "providers"],
+  "properties": {
+    "provider_config_schema_version": {"const": "1.0.0"},
+    "providers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["provider_id", "kind", "enabled", "models"],
+        "properties": {
+          "provider_id": {"type": "string"},
+          "kind": {"enum": ["agent-hosted", "openai-responses", "anthropic-messages", "google-generative-language", "openai-compatible", "command"]},
+          "enabled": {"type": "boolean"},
+          "credential_environment_variable": {"type": "string"},
+          "base_url": {"type": "string"},
+          "base_url_environment_variable": {"type": "string"},
+          "command": {"type": "array", "items": {"type": "string"}},
+          "models": {"type": "array", "items": {"type": "object"}}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": false
+}

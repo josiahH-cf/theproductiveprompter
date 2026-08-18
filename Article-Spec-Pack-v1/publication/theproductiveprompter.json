@@ -1,0 +1,33 @@
+{
+  "target_schema_version": "1.0.0",
+  "target_id": "theproductiveprompter",
+  "repository_relative_to_spec": "..",
+  "repository_path_environment_variable": "ARTICLE_FLOW_REPO_ROOT",
+  "publication_branch": "main",
+  "public_directory": "docs",
+  "canonical_article_file": "docs/{slug}.html",
+  "canonical_url": "https://theproductiveprompter.com/docs/{slug}.html",
+  "blog_file": "docs/blog.html",
+  "blog_url": "https://theproductiveprompter.com/docs/blog.html",
+  "homepage_file": "index.html",
+  "homepage_url": "https://theproductiveprompter.com/",
+  "feed_file": "feed.xml",
+  "feed_url": "https://theproductiveprompter.com/feed.xml",
+  "sitemap_file": "sitemap.xml",
+  "sitemap_url": "https://theproductiveprompter.com/sitemap.xml",
+  "required_public_surfaces": [
+    "article",
+    "blog",
+    "homepage",
+    "feed",
+    "sitemap"
+  ],
+  "article_template": "publication/templates/article.html",
+  "latest_card_start_marker": "<!-- ARTICLE_FLOW_LATEST_START -->",
+  "latest_card_end_marker": "<!-- ARTICLE_FLOW_LATEST_END -->",
+  "deployment": {
+    "type": "git_push_github_pages",
+    "remote": "origin",
+    "push_requires_explicit_flag": true
+  }
+}

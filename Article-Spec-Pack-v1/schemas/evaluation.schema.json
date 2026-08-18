@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://theproductiveprompter.com/schemas/evaluation.schema.json",
+  "title": "Stage Evaluation",
+  "type": "object",
+  "required": ["evaluation_schema_version", "evaluation_id", "fixture_id", "workflow_version", "stage", "provider", "model", "model_version", "grader", "candidate_order", "metrics", "human_calibration", "created_at"],
+  "properties": {
+    "evaluation_schema_version": {"const": "1.0.0"},
+    "evaluation_id": {"type": "string"},
+    "fixture_id": {"type": "string"},
+    "workflow_version": {"type": "string"},
+    "stage": {"type": "string"},
+    "provider": {"type": "string"},
+    "model": {"type": "string"},
+    "model_version": {"type": ["string", "null"]},
+    "grader": {"type": "object"},
+    "candidate_order": {"type": "array", "items": {"type": "string"}},
+    "metrics": {"type": "object", "additionalProperties": {"type": "number"}},
+    "human_calibration": {"type": ["object", "null"]},
+    "promotion_status": {"enum": ["candidate", "promoted", "rejected"]},
+    "canary": {"type": ["object", "null"]},
+    "created_at": {"type": "string", "format": "date-time"}
+  },
+  "additionalProperties": false
+}

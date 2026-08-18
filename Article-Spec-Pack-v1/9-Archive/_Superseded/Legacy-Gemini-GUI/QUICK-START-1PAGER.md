@@ -1,4 +1,6 @@
-# Article-Spec-Pack-v1 Quick Start (1 Pager)
+# Historical: Article-Spec-Pack-v1 Gemini GUI Quick Start
+
+> Superseded on August 18, 2026. Retained as historical evidence of the earlier provider-specific PDF-upload workflow; it is not part of the canonical model-agnostic CLI runtime.
 
 **Time Required:** ~15 minutes first execution | ~10 minutes subsequent executions
 

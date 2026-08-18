@@ -1,4 +1,13 @@
+---
+article_flow_document_status: legacy-reference
+article_flow_authority: false
+article_flow_redirect: ../workflow/workflow.json
+article_flow_removal_version: "3.0.0"
+---
+
 # Spec Quick Reference (31 Days of AI)
+
+> Historical quick reference. Use `Article-Workflow-v2.md` for the generated current view.
 
 Use this as the lightweight drafting checklist. It is derived from:
 - Article Spec Pack: Unified Article Spec (Narrative Arc)

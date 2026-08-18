@@ -1,0 +1,117 @@
+{
+  "implementation_receipt_schema_version": "1.0.0",
+  "created_at": "2026-08-18T16:46:40Z",
+  "updated_at": "2026-08-18T17:43:17Z",
+  "source_directive_sha256": "4fc111ddaa802002f53c43242a7e173f998f4e301ed71b6b740d0870706585dd",
+  "source_base_commit": "d08f2d972bb8bc835973ded5ff93e21e4100af91",
+  "implementation_branch": "codex/article-flow-v1",
+  "workflow_version": "2.0.0",
+  "controller_version": "2.0.6",
+  "interpretation": "The directive's software and control changes are implementation scope. Acceptance conditions that require author judgment, configured provider credentials, an absent host, a real publication approval, or evidence over future articles remain explicit proof obligations rather than inferred passes.",
+  "release_evidence_contract": {
+    "authority": "article-flow doctor --scope release --json",
+    "wsl_receipt": "~/.local/share/article-flow/conformance/latest.json",
+    "native_windows_receipt": "%USERPROFILE%\\.article-flow\\conformance\\latest.json",
+    "rule": "Host status is current only when both receipts pass and match the exact source commit, controller version, workflow version, and post-suite installed-launcher proof. The mutable receipts are intentionally external to this immutable implementation snapshot."
+  },
+  "live_site_a_priori_check": {
+    "receipt": "../../baselines/20260818T151954Z/baseline-receipt.json",
+    "article_url": "https://theproductiveprompter.com/docs/from-idea-to-verified-url.html",
+    "article_exact_bytes_matched": true,
+    "blog_exact_bytes_matched": true,
+    "homepage_feed_and_sitemap_linked_article": true,
+    "indexing_claimed": false
+  },
+  "end_states": [
+    {
+      "id": 0,
+      "name": "trustworthy current baseline",
+      "implementation_status": "implemented_and_locally_verified",
+      "evidence": ["records/baselines/20260818T151954Z/baseline-receipt.json", "records/baselines/20260818T151954Z/change-dispositions.json", "schemas/manifest.schema.json", "workflow/protected-paths.json"]
+    },
+    {
+      "id": 1,
+      "name": "one universal local command",
+      "implementation_status": "implemented_exact_release_proof_externalized",
+      "evidence": ["scripts/article_flow.py", "tests/test_article_flow.py", "schemas/conformance-receipt.schema.json", "runtime:article-flow doctor --scope release --json"]
+    },
+    {
+      "id": 2,
+      "name": "shared skill discovery without duplicated logic",
+      "implementation_status": "implemented_host_reload_proof_pending",
+      "evidence": ["adapters/start-article/SKILL.md", "adapters/start-article/agents/openai.yaml", "adapters/registry.json"],
+      "remaining_proof": ["Confirm discovery in a fresh Codex task and Claude session.", "Gemini discovery remains unclaimed until Gemini CLI is installed."]
+    },
+    {
+      "id": 3,
+      "name": "one source of truth with enforceable precedence",
+      "implementation_status": "implemented_and_locally_verified",
+      "evidence": ["workflow/workflow.json", "workflow/document-registry.json", "1-Master/Article-Workflow-v2.md", "scripts/render_workflow_docs.py"]
+    },
+    {
+      "id": 4,
+      "name": "executable state machine",
+      "implementation_status": "implemented_and_locally_verified",
+      "evidence": ["workflow/workflow.json", "schemas/run.schema.json", "schemas/event.schema.json", "tests/test_article_flow.py"]
+    },
+    {
+      "id": 5,
+      "name": "complete task packets",
+      "implementation_status": "implemented_and_locally_verified",
+      "evidence": ["schemas/task-packet.schema.json", "tests/test_article_flow.py"]
+    },
+    {
+      "id": 6,
+      "name": "evidence that survives drafting and editing",
+      "implementation_status": "implemented_and_locally_verified",
+      "evidence": ["schemas/claim-ledger.schema.json", "schemas/locked-fields.schema.json", "workflow/house-policy.json", "tests/test_article_flow.py"]
+    },
+    {
+      "id": 7,
+      "name": "voice as a learned versioned system",
+      "implementation_status": "implemented_author_calibration_pending",
+      "evidence": ["profiles/voice-profile.v1.json", "schemas/voice-profile.schema.json", "schemas/voice-probe.schema.json"],
+      "remaining_proof": ["The operator must rank probes, explain mismatches, and confirm held-out improvements before profile promotion."]
+    },
+    {
+      "id": 8,
+      "name": "designed variability through an article recipe",
+      "implementation_status": "implemented_and_locally_verified",
+      "evidence": ["workflow/article-recipe.defaults.json", "schemas/article-recipe.schema.json", "evaluations/fixtures.json", "tests/test_article_flow.py"]
+    },
+    {
+      "id": 9,
+      "name": "hard gates soft judgments and targeted repair",
+      "implementation_status": "implemented_and_locally_verified",
+      "evidence": ["workflow/workflow.json", "schemas/gate-receipt.schema.json", "tests/test_article_flow.py"]
+    },
+    {
+      "id": 10,
+      "name": "evaluation-backed model routing",
+      "implementation_status": "implemented_empirical_ranking_pending",
+      "evidence": ["evaluations/capability-registry.json", "evaluations/evaluation-registry.json", "evaluations/provider-config.example.json", "scripts/article_flow.py"],
+      "remaining_proof": ["Configure reachable providers and collect human-calibrated, order-reversed, canary-passed fixture evidence before any best-model claim."]
+    },
+    {
+      "id": 11,
+      "name": "evaluation and conformance suite",
+      "implementation_status": "implemented_exact_release_proof_externalized",
+      "evidence": ["evaluations/fixtures.json", "evaluations/rubric.json", "evaluations/adversarial-cases.json", "evaluations/conformance-matrix.json", "schemas/conformance-receipt.schema.json", "tests/test_article_flow.py", "runtime:article-flow doctor --scope release --json"],
+      "remaining_proof": ["Fresh-host discovery and future human quality ratings are reported separately and cannot be manufactured by the local test suite."]
+    },
+    {
+      "id": 12,
+      "name": "safe packaging publication and lifecycle",
+      "implementation_status": "implemented_new_publication_not_authorized",
+      "evidence": ["publication/theproductiveprompter.json", "publication/templates/article.html", "schemas/package.schema.json", "schemas/publication-receipt.schema.json", "tests/test_article_flow.py"],
+      "remaining_proof": ["A future real article must receive its own scoped publication approval and exact live-revision receipt."]
+    }
+  ],
+  "unresolved_acceptance_evidence": [
+    "fresh Codex and Claude discovery confirmation",
+    "Gemini discovery after installation",
+    "operator-calibrated voice promotion",
+    "fixture-backed provider ranking across at least two providers and one local or OpenAI-compatible endpoint",
+    "a scoped publication and exact live verification for the next real article"
+  ]
+}

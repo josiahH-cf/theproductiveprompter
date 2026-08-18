@@ -1,0 +1,156 @@
+{
+  "fixture_corpus_schema_version": "1.0.0",
+  "workflow_version": "2.0.0",
+  "fixtures": [
+    {
+      "fixture_id": "real-sparse-seed-20260818",
+      "kind": "real",
+      "seed_path": "6-Completed-Articles/Article-20260818-from-idea-to-verified-url/sources/seed.md",
+      "target_artifacts": [
+        "intent",
+        "research",
+        "recipe",
+        "draft",
+        "claim-verification",
+        "voice",
+        "package",
+        "live-verification"
+      ],
+      "expected_behaviors": [
+        "seed remains verbatim",
+        "live receipt proves exact revision",
+        "trial output is not auto-promoted to voice corpus"
+      ]
+    },
+    {
+      "fixture_id": "ambiguous-seed",
+      "kind": "synthetic-adversarial",
+      "seed": "I keep noticing that the tools I use change how I think. This could be an article.",
+      "risks": [
+        "ambiguous reader job",
+        "multiple plausible theses",
+        "personal observation boundary"
+      ],
+      "expected_behaviors": [
+        "multiple candidate intents stay visible",
+        "operator chooses narrowing"
+      ]
+    },
+    {
+      "fixture_id": "contradictory-seed",
+      "kind": "synthetic-adversarial",
+      "seed": "Write a short deep guide that proves my hunch without taking a side.",
+      "risks": [
+        "contradictory constraints",
+        "confirmation bias",
+        "length ambiguity"
+      ],
+      "expected_behaviors": [
+        "contradiction is surfaced",
+        "no draft begins from an invented resolution"
+      ]
+    },
+    {
+      "fixture_id": "current-technical-no-search",
+      "kind": "synthetic-adversarial",
+      "seed": "Explain the newest model limits and cite exact current numbers, but do not use the web.",
+      "risks": [
+        "freshness",
+        "no-search citation temptation",
+        "unsupported precision"
+      ],
+      "expected_behaviors": [
+        "no model-memory citation",
+        "unsupported precision is omitted, generalized, or escalated"
+      ]
+    },
+    {
+      "fixture_id": "short-field-note",
+      "kind": "synthetic",
+      "seed": "A field note about one small automation failure and the check that caught it.",
+      "risks": [
+        "padding",
+        "universal-shape pressure"
+      ],
+      "expected_behaviors": [
+        "no padding to a house word band",
+        "no universal skeleton"
+      ]
+    },
+    {
+      "fixture_id": "deep-reference",
+      "kind": "synthetic",
+      "seed": "A durable reference for designing repairable model workflows.",
+      "risks": [
+        "evidence coverage",
+        "scanability",
+        "structural convergence"
+      ],
+      "expected_behaviors": [
+        "length stops at reader-job completion",
+        "summary policy is explicit"
+      ]
+    },
+    {
+      "fixture_id": "publish-retry",
+      "kind": "technical",
+      "seed": "smoke",
+      "risks": [
+        "network timeout",
+        "duplicate publication",
+        "wrong live revision"
+      ],
+      "expected_behaviors": [
+        "dry run performs no publication",
+        "same revision is idempotent",
+        "wrong live bytes fail"
+      ]
+    },
+    {
+      "fixture_id": "personal-observation-boundary",
+      "kind": "synthetic-adversarial",
+      "seed": "I noticed my team asks better questions after we write down what would change our mind.",
+      "risks": [
+        "first-person evidence boundary",
+        "unsupported universalization"
+      ],
+      "expected_behaviors": [
+        "personal observation remains attributed",
+        "general claims require evidence"
+      ]
+    },
+    {
+      "fixture_id": "form-and-ending-variation",
+      "kind": "batch",
+      "seeds": [
+        "A tutorial about one verification check.",
+        "A field note about a failed check.",
+        "An argument for explicit approval boundaries."
+      ],
+      "risks": [
+        "structural convergence",
+        "repeated closing formula"
+      ],
+      "expected_behaviors": [
+        "recipes justify different forms",
+        "endings serve different reader jobs",
+        "fixed seed reproduces each recipe"
+      ]
+    }
+  ],
+  "metrics": [
+    "intent_fidelity",
+    "evidence_coverage",
+    "citation_accuracy",
+    "meaning_preservation",
+    "voice_fit",
+    "naturalness",
+    "structural_diversity",
+    "package_correctness",
+    "live_publication_correctness",
+    "human_intervention_count",
+    "repair_count",
+    "cost",
+    "latency"
+  ]
+}

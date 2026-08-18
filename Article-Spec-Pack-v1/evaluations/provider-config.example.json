@@ -1,0 +1,164 @@
+{
+  "provider_config_schema_version": "1.0.0",
+  "providers": [
+    {
+      "provider_id": "openai",
+      "kind": "openai-responses",
+      "enabled": false,
+      "credential_environment_variable": "OPENAI_API_KEY",
+      "base_url": "https://api.openai.com/v1/responses",
+      "models": [
+        {
+          "model_id": "set-current-model-id",
+          "version": null,
+          "capabilities": [
+            "structured-output",
+            "long-form"
+          ],
+          "stages": [
+            "RESEARCH_PLAN",
+            "INTENT_REVIEW",
+            "ARTICLE_RECIPE",
+            "BRIEF",
+            "VOICE_PROBE",
+            "DRAFT",
+            "EDIT",
+            "EDITORIAL_QA"
+          ],
+          "locality": "remote",
+          "privacy": "operator-reviewed",
+          "canary_status": "required"
+        }
+      ]
+    },
+    {
+      "provider_id": "anthropic",
+      "kind": "anthropic-messages",
+      "enabled": false,
+      "credential_environment_variable": "ANTHROPIC_API_KEY",
+      "base_url": "https://api.anthropic.com/v1/messages",
+      "models": [
+        {
+          "model_id": "set-current-model-id",
+          "version": null,
+          "capabilities": [
+            "structured-output",
+            "long-form"
+          ],
+          "stages": [
+            "RESEARCH_PLAN",
+            "INTENT_REVIEW",
+            "ARTICLE_RECIPE",
+            "BRIEF",
+            "VOICE_PROBE",
+            "DRAFT",
+            "EDIT",
+            "EDITORIAL_QA"
+          ],
+          "locality": "remote",
+          "privacy": "operator-reviewed",
+          "canary_status": "required"
+        }
+      ]
+    },
+    {
+      "provider_id": "google",
+      "kind": "google-generative-language",
+      "enabled": false,
+      "credential_environment_variable": "GEMINI_API_KEY",
+      "base_url": "https://generativelanguage.googleapis.com/v1beta",
+      "models": [
+        {
+          "model_id": "set-current-model-id",
+          "version": null,
+          "capabilities": [
+            "structured-output",
+            "long-form"
+          ],
+          "stages": [
+            "RESEARCH_PLAN",
+            "INTENT_REVIEW",
+            "ARTICLE_RECIPE",
+            "BRIEF",
+            "VOICE_PROBE",
+            "DRAFT",
+            "EDIT",
+            "EDITORIAL_QA"
+          ],
+          "locality": "remote",
+          "privacy": "operator-reviewed",
+          "canary_status": "required"
+        }
+      ]
+    },
+    {
+      "provider_id": "openai-compatible",
+      "kind": "openai-compatible",
+      "enabled": false,
+      "credential_environment_variable": "ARTICLE_FLOW_COMPAT_API_KEY",
+      "base_url_environment_variable": "ARTICLE_FLOW_COMPAT_BASE_URL",
+      "models": [
+        {
+          "model_id": "set-current-model-id",
+          "version": null,
+          "capabilities": [
+            "structured-output",
+            "long-form"
+          ],
+          "stages": [
+            "RESEARCH_PLAN",
+            "INTENT_REVIEW",
+            "ARTICLE_RECIPE",
+            "BRIEF",
+            "VOICE_PROBE",
+            "DRAFT",
+            "EDIT",
+            "EDITORIAL_QA"
+          ],
+          "locality": "operator-configured",
+          "privacy": "operator-reviewed",
+          "canary_status": "required"
+        }
+      ]
+    },
+    {
+      "provider_id": "example-command",
+      "kind": "command",
+      "enabled": false,
+      "command": [
+        "your-model-runner",
+        "--packet",
+        "{packet}",
+        "--output",
+        "{output}"
+      ],
+      "models": [
+        {
+          "model_id": "configured-by-operator",
+          "version": null,
+          "capabilities": [
+            "structured-output",
+            "long-form",
+            "research"
+          ],
+          "stages": [
+            "RESEARCH_PLAN",
+            "RESEARCH",
+            "INTENT_REVIEW",
+            "ARTICLE_RECIPE",
+            "BRIEF",
+            "VOICE_PROBE",
+            "DRAFT",
+            "CLAIM_VERIFICATION",
+            "EDIT",
+            "POST_EDIT_CLAIM_VERIFICATION",
+            "EDITORIAL_QA"
+          ],
+          "locality": "local",
+          "privacy": "operator-configured",
+          "canary_status": "required"
+        }
+      ]
+    }
+  ]
+}

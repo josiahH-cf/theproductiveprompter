@@ -1,4 +1,13 @@
+---
+article_flow_document_status: legacy-reference
+article_flow_authority: false
+article_flow_redirect: ../workflow/workflow.json
+article_flow_removal_version: "3.0.0"
+---
+
 # Evidence & IP Annex (APA + IP)
+
+> Historical evidence reference. Current evidence rules, claim schema, and recipe-selected citation mode control v2 runs.
 
 **Purpose**  
 Guarantee that every factual claim, quotation, and intellectual property reference is accurate, current, legally compliant, and professionally formatted. This annex provides the **citation and rights framework** enforced during article production.

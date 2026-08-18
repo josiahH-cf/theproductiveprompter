@@ -1,4 +1,13 @@
+---
+article_flow_document_status: legacy-reference
+article_flow_authority: false
+article_flow_redirect: ../workflow/workflow.json
+article_flow_removal_version: "3.0.0"
+---
+
 # Critic Loop (Single-Pass Self-Check)
+
+> Historical editorial reference. Current hard and soft gates, bounded repairs, and evaluator ownership come from `workflow/workflow.json`.
 
 **Purpose**  
 Guarantee that every drafted article meets the book's style, evidence, and argument requirements **before** it reaches the human author. The Critic Loop enforces compliance through a **single self-review and revision cycle** embedded in the article production process.
@@ -53,6 +62,13 @@ Ensure the draft fully aligns with the **Style Baseline (Directive)**:
 - Verify 100–150 word Style Anchor Card is present
 - Confirm cadence and lexicon match the Style Anchor
 - If Style Anchor is missing, halt and request it
+
+#### Final Prose Naturalization
+- Apply the [Final Prose Naturalization Directive](../10-Final-Prose-Naturalization/Final-Prose-Naturalization-Directive.md) to the complete draft
+- Preserve meaning, facts, uncertainty, Markdown, links, citations, code, quotations, and required wording
+- Remove formulaic AI-style clichés, canned transitions, inflated wording, repetitive rhetoric, generic corporate language, and generated-looking structure
+- Treat the directive's phrase inventory as a diagnostic aid, not a blind blacklist
+- Do not add facts, examples, claims, opinions, humor, or personal experience during the edit
 
 **Action if Voice Check fails:**  
 Revise sentences/paragraphs to align with Style Baseline requirements.
@@ -184,6 +200,7 @@ The Critic Loop enforces **Gate B** in the article quality system:
 
 ### Gate B — Critic Loop
 - [ ] Single silent pass completed (Voice, Focus, Evidence)
+- [ ] Final Prose Naturalization Directive applied; preservation contract passed
 - [ ] Final-line rule satisfied
 - [ ] Device activations validated (headers present if used)
 - [ ] Anti-redundancy check passed
@@ -226,6 +243,7 @@ The Critic Loop enforces **Gate B** in the article quality system:
 - [ ] Confident, plain-spoken, instructive tone
 - [ ] Style Anchor Card bound (cadence and lexicon match; internal only)
 - [ ] Sentence variety and paragraph structure per Style Baseline
+- [ ] Final prose naturalized without meaning, fact, citation, code, quotation, or formatting drift
 
 **Focus Check:**
 - [ ] Every sentence advances, evidences, or transitions

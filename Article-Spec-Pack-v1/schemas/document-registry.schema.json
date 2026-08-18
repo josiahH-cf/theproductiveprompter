@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://theproductiveprompter.com/schemas/document-registry.schema.json",
+  "title": "Workflow Document Registry",
+  "type": "object",
+  "required": ["document_registry_schema_version", "workflow_version", "authoritative_controls", "generated_documents", "non_authoritative_documents"],
+  "properties": {
+    "document_registry_schema_version": {"const": "1.0.0"},
+    "workflow_version": {"type": "string"},
+    "authoritative_controls": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "generated_documents": {"type": "array", "items": {"type": "object"}},
+    "non_authoritative_documents": {"type": "array", "items": {"type": "object"}}
+  },
+  "additionalProperties": false
+}

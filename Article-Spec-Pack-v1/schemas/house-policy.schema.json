@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://theproductiveprompter.com/schemas/house-policy.schema.json",
+  "title": "Article House Policy",
+  "type": "object",
+  "required": ["policy_schema_version", "workflow_version", "intake", "research", "editorial_defaults", "voice", "repairs", "routing", "publication"],
+  "properties": {
+    "policy_schema_version": {"type": "string"},
+    "workflow_version": {"type": "string"},
+    "intake": {"type": "object"},
+    "research": {"type": "object"},
+    "editorial_defaults": {"type": "object"},
+    "voice": {"type": "object"},
+    "repairs": {"type": "object"},
+    "routing": {"type": "object"},
+    "publication": {"type": "object"}
+  },
+  "additionalProperties": true
+}
