@@ -2,8 +2,8 @@
   "manifest_schema_version": "2.0.0",
   "workflow_version": "2.0.0",
   "hash_algorithm": "sha256",
-  "generator_name_and_version": "article-flow 2.0.6",
-  "generated_at": "2026-08-18T17:44:14Z",
+  "generator_name_and_version": "article-flow 2.0.7",
+  "generated_at": "2026-08-18T18:28:42Z",
   "generated_from": "index",
   "files": [
     {
@@ -19,24 +19,24 @@
       "scope": "repository",
       "role": "runtime",
       "rule_set": "adapters",
-      "sha256": "a5854aabd9a5167af8208d6b4291ccb861d9b8cf5d78009105cb1a26cdefc37e",
-      "byte_size": 1036
+      "sha256": "a41585538e1fe52e223444422731d2877be3c276b5f8a51aa25473eee72025d7",
+      "byte_size": 903
     },
     {
       "path": "0-README.md",
       "scope": "spec",
       "role": "documentation",
       "rule_set": "overview",
-      "sha256": "c11294a0ea5fb35996e171172f7d41fc24ca22f389f10e6ec5fd04367c8d09d5",
-      "byte_size": 4205
+      "sha256": "5383fe2af3ef1db6685ed5c952905f75db01b2590fc7289d309fc3d9474cfb9b",
+      "byte_size": 4566
     },
     {
       "path": "0-START-ARTICLE.md",
       "scope": "spec",
       "role": "documentation",
       "rule_set": "entrypoint",
-      "sha256": "6040b9f0d0ab0e4ecf2c32e5ea0382a48d589833ecd428ab2c3dd93eed4f0073",
-      "byte_size": 1787
+      "sha256": "81d3abf8906e58220c0535a47b52444a72c92d7d1073370a2adffeae2898c6de",
+      "byte_size": 3411
     },
     {
       "path": "1-Master/Article-Master-Spec.md",
@@ -211,16 +211,16 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "adapters",
-      "sha256": "564d34f3d757e45483bba98aa05b271055f8aa008bdef0f6539f805ed1c464bb",
-      "byte_size": 634
+      "sha256": "06f4031f9d985cde085af78675eed2b92d2adbb7db488b1fc05bfb6f6004cfd4",
+      "byte_size": 1283
     },
     {
       "path": "adapters/start-article/SKILL.md",
       "scope": "spec",
       "role": "runtime",
       "rule_set": "adapters",
-      "sha256": "706c6d958a13e8fc36325e12390ac68d91c4dab8c0fd5533053668380e6af555",
-      "byte_size": 1483
+      "sha256": "b2a102917afaf3a0a041574389219317e6ab2e8ce1bc7e8a440de0ab0dd241c6",
+      "byte_size": 1006
     },
     {
       "path": "adapters/start-article/agents/openai.yaml",
@@ -515,7 +515,7 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "521811492634b67d688175a557dcacdb96978b0f4aa17f05748fd4bd9c7cc72b",
+      "sha256": "0298870622d83a86e78c87b8652adf424a222af6ec625d29fdb2f1939c2260f8",
       "byte_size": 190333
     },
     {
@@ -539,8 +539,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "conformance",
-      "sha256": "678ddb971ff78f39fd3fef8ac89eb778c8c0163bbf23dd5b71d846eea45128ca",
-      "byte_size": 33491
+      "sha256": "6957898ee689036a5eab6a256d83f5e5b0ac42c66e3af70bd1720883c3bfe11b",
+      "byte_size": 34682
     },
     {
       "path": "workflow/article-recipe.defaults.json",

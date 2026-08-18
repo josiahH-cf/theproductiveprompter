@@ -12,6 +12,8 @@ article-flow start
 
 In a fresh Codex session, invoke `$start-article`. In Claude Code, invoke `/start-article`. Gemini CLI uses the shared Agent Skills adapter when installed. These are thin launchers; they do not contain workflow logic.
 
+ChatGPT account/Work skills and Claude account/Cowork skills are separate from local filesystem skills. Upload the same standard `start-article` Agent Skills ZIP once to each account surface. That uploaded skill contains only a pointer to `0-START-ARTICLE.md`, so later workflow or command-sequence changes do not require rebuilding or re-uploading the skill.
+
 The first prompt is intentionally small:
 
 > In one paragraph or less, what feels like it could be a good article? Write it naturally; you do not need to structure or polish it.

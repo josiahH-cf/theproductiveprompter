@@ -71,6 +71,22 @@ class AuthorityTests(unittest.TestCase):
         self.assertTrue(lint["ok"], lint["issues"])
         self.assertEqual(lint["conflicting_normative_statement_count"], 0)
 
+    def test_host_adapters_point_to_one_canonical_entrypoint(self):
+        skill = (SPEC_ROOT / "adapters" / "start-article" / "SKILL.md").read_text(encoding="utf-8")
+        repository = af.publication_repo_root() or SPEC_ROOT.parent
+        copilot = (repository / ".github" / "copilot-instructions.md").read_text(encoding="utf-8")
+        entrypoint = (SPEC_ROOT / "0-START-ARTICLE.md").read_text(encoding="utf-8")
+        registry = json.loads((SPEC_ROOT / "adapters" / "registry.json").read_text(encoding="utf-8"))
+        canonical_url = registry["canonical_entrypoint"]["remote_url"]
+        self.assertIn("article-flow entrypoint --json", skill)
+        self.assertIn(canonical_url, skill)
+        self.assertIn("article-flow entrypoint --json", copilot)
+        self.assertIn(canonical_url, entrypoint)
+        for copied_command in ("doctor --scope authoring", "article-flow start", "article-flow next"):
+            self.assertNotIn(copied_command, skill)
+        self.assertIn("chatgpt:personal-skill-upload", registry["adapters"][0]["account_install_targets"])
+        self.assertIn("claude:custom-skill-upload-and-enable", registry["adapters"][0]["account_install_targets"])
+
     def test_every_legacy_rule_document_has_machine_readable_redirect(self):
         registry = json.loads((SPEC_ROOT / "workflow" / "document-registry.json").read_text())
         for item in registry["non_authoritative_documents"]:
