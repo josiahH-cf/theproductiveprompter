@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any, Iterable, Iterator, Sequence
 
 
-CONTROLLER_VERSION = "2.0.2"
+CONTROLLER_VERSION = "2.0.3"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -641,19 +641,129 @@ def schema_bundle(root_value: str) -> tuple[dict[str, dict[str, Any]], dict[str,
     return schemas_by_name, store
 
 
+def json_type_matches(value: Any, expected: str) -> bool:
+    return {
+        "null": value is None,
+        "boolean": isinstance(value, bool),
+        "integer": isinstance(value, int) and not isinstance(value, bool),
+        "number": isinstance(value, (int, float)) and not isinstance(value, bool),
+        "string": isinstance(value, str),
+        "array": isinstance(value, list),
+        "object": isinstance(value, dict),
+    }.get(expected, False)
+
+
+def validate_schema_value(value: Any, schema: dict[str, Any], schemas: dict[str, dict[str, Any]], path: str = "$") -> list[str]:
+    if "$ref" in schema:
+        reference = str(schema["$ref"]).rsplit("/", 1)[-1]
+        target = schemas.get(reference)
+        if target is None:
+            return [f"{path}: unresolved schema reference {schema['$ref']}"]
+        return validate_schema_value(value, target, schemas, path)
+    if "oneOf" in schema:
+        results = [validate_schema_value(value, candidate, schemas, path) for candidate in schema["oneOf"]]
+        passing = sum(not errors for errors in results)
+        if passing != 1:
+            return [f"{path}: expected exactly one oneOf branch to match; matched {passing}"]
+    if "const" in schema and canonical_json(value) != canonical_json(schema["const"]):
+        return [f"{path}: value does not equal required constant {schema['const']!r}"]
+    if "enum" in schema and not any(canonical_json(value) == canonical_json(candidate) for candidate in schema["enum"]):
+        return [f"{path}: value {value!r} is not in the allowed enum"]
+
+    declared_type = schema.get("type")
+    expected_types = [declared_type] if isinstance(declared_type, str) else list(declared_type or [])
+    if expected_types and not any(json_type_matches(value, item) for item in expected_types):
+        return [f"{path}: expected type {' | '.join(expected_types)}, got {type(value).__name__}"]
+
+    errors: list[str] = []
+    if isinstance(value, str):
+        if len(value) < int(schema.get("minLength", 0)):
+            errors.append(f"{path}: string is shorter than minLength {schema['minLength']}")
+        if schema.get("pattern") and re.search(str(schema["pattern"]), value) is None:
+            errors.append(f"{path}: string does not match pattern {schema['pattern']}")
+        if schema.get("format") == "date-time":
+            try:
+                parse_time(value)
+            except (TypeError, ValueError):
+                errors.append(f"{path}: value is not a valid date-time")
+        elif schema.get("format") == "date":
+            try:
+                dt.date.fromisoformat(value)
+            except ValueError:
+                errors.append(f"{path}: value is not a valid date")
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        if "minimum" in schema and value < schema["minimum"]:
+            errors.append(f"{path}: value is below minimum {schema['minimum']}")
+        if "maximum" in schema and value > schema["maximum"]:
+            errors.append(f"{path}: value is above maximum {schema['maximum']}")
+    if isinstance(value, list):
+        if len(value) < int(schema.get("minItems", 0)):
+            errors.append(f"{path}: array has fewer than {schema['minItems']} items")
+        if "maxItems" in schema and len(value) > int(schema["maxItems"]):
+            errors.append(f"{path}: array has more than {schema['maxItems']} items")
+        if schema.get("uniqueItems"):
+            encoded = [canonical_json(item) for item in value]
+            if len(encoded) != len(set(encoded)):
+                errors.append(f"{path}: array items are not unique")
+        if isinstance(schema.get("items"), dict):
+            for index, item in enumerate(value):
+                errors.extend(validate_schema_value(item, schema["items"], schemas, f"{path}[{index}]"))
+    if isinstance(value, dict):
+        required = schema.get("required", [])
+        for name in required:
+            if name not in value:
+                errors.append(f"{path}: required property {name!r} is missing")
+        properties = schema.get("properties", {})
+        for name, item in value.items():
+            if name in properties:
+                errors.extend(validate_schema_value(item, properties[name], schemas, f"{path}.{name}"))
+            elif schema.get("additionalProperties") is False:
+                errors.append(f"{path}: additional property {name!r} is not allowed")
+            elif isinstance(schema.get("additionalProperties"), dict):
+                errors.extend(validate_schema_value(item, schema["additionalProperties"], schemas, f"{path}.{name}"))
+    return errors
+
+
+def schema_definition_errors(schema: Any, schemas: dict[str, dict[str, Any]], path: str = "$") -> list[str]:
+    if not isinstance(schema, dict):
+        return [f"{path}: schema must be an object"]
+    errors: list[str] = []
+    allowed_types = {"null", "boolean", "integer", "number", "string", "array", "object"}
+    declared = schema.get("type")
+    declared_types = [declared] if isinstance(declared, str) else declared if isinstance(declared, list) else []
+    if declared is not None and (not declared_types or any(item not in allowed_types for item in declared_types)):
+        errors.append(f"{path}: unsupported type declaration {declared!r}")
+    if "$ref" in schema and str(schema["$ref"]).rsplit("/", 1)[-1] not in schemas:
+        errors.append(f"{path}: unresolved schema reference {schema['$ref']}")
+    if "required" in schema and (not isinstance(schema["required"], list) or any(not isinstance(item, str) for item in schema["required"])):
+        errors.append(f"{path}: required must be an array of strings")
+    if "properties" in schema:
+        if not isinstance(schema["properties"], dict):
+            errors.append(f"{path}: properties must be an object")
+        else:
+            for name, child in schema["properties"].items():
+                errors.extend(schema_definition_errors(child, schemas, f"{path}.properties.{name}"))
+    if "items" in schema:
+        errors.extend(schema_definition_errors(schema["items"], schemas, f"{path}.items"))
+    if isinstance(schema.get("additionalProperties"), dict):
+        errors.extend(schema_definition_errors(schema["additionalProperties"], schemas, f"{path}.additionalProperties"))
+    if "oneOf" in schema:
+        if not isinstance(schema["oneOf"], list) or not schema["oneOf"]:
+            errors.append(f"{path}: oneOf must contain at least one schema")
+        else:
+            for index, child in enumerate(schema["oneOf"]):
+                errors.extend(schema_definition_errors(child, schemas, f"{path}.oneOf[{index}]"))
+    if schema.get("format") not in {None, "date", "date-time"}:
+        errors.append(f"{path}: unsupported format {schema['format']!r}")
+    return errors
+
+
 def validate_instance_schema(instance: Any, schema_name: str) -> list[str]:
-    try:
-        import jsonschema  # type: ignore
-    except ImportError:
-        return ["jsonschema is not installed"]
-    try:
-        schemas, store = schema_bundle(str(SPEC_ROOT))
-        schema = schemas[schema_name]
-        resolver = jsonschema.RefResolver(base_uri=(SPEC_ROOT / "schemas").as_uri() + "/", referrer=schema, store=store)
-        jsonschema.validate(instance, schema, resolver=resolver, format_checker=jsonschema.FormatChecker())
-    except Exception as exc:  # jsonschema exposes several implementation-specific subclasses
-        return [str(exc)]
-    return []
+    schemas, _ = schema_bundle(str(SPEC_ROOT))
+    schema = schemas.get(schema_name)
+    if schema is None:
+        return [f"Schema does not exist: {schema_name}"]
+    return validate_schema_value(instance, schema, schemas)
 
 
 def validate_json_schema(instance_path: Path, schema_name: str) -> list[str]:
@@ -2798,16 +2908,13 @@ def schema_health() -> dict[str, Any]:
     for instance, schema in instances:
         errors = validate_json_schema(instance, schema)
         checks.append({"instance": instance.relative_to(SPEC_ROOT).as_posix(), "schema": schema, "ok": not errors, "errors": errors})
-    try:
-        import jsonschema  # type: ignore
-        for path in sorted((SPEC_ROOT / "schemas").glob("*.json")):
-            try:
-                jsonschema.Draft202012Validator.check_schema(load_json(path))
-                checks.append({"schema": path.name, "ok": True, "errors": []})
-            except Exception as exc:
-                checks.append({"schema": path.name, "ok": False, "errors": [str(exc)]})
-    except ImportError:
-        checks.append({"schema_validator": "jsonschema", "ok": False, "errors": ["jsonschema is required for release validation"]})
+    schemas, _ = schema_bundle(str(SPEC_ROOT))
+    for path in sorted((SPEC_ROOT / "schemas").glob("*.json")):
+        schema = schemas[path.name]
+        errors = schema_definition_errors(schema, schemas, path.name)
+        if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+            errors.append(f"{path.name}: $schema must declare JSON Schema Draft 2020-12")
+        checks.append({"schema": path.name, "ok": not errors, "errors": errors})
     docs = subprocess.run([sys.executable, str(SPEC_ROOT / "scripts" / "render_workflow_docs.py"), "--check"], cwd=SPEC_ROOT, capture_output=True, text=True)
     checks.append({"generated_docs": "1-Master/Article-Workflow-v2.md", "ok": docs.returncode == 0, "errors": [docs.stderr.strip()] if docs.returncode else []})
     lint = normative_lint()
