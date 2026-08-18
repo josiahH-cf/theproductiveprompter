@@ -9,7 +9,7 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
-## August 18, 2026 — Article Flow 2.0 (controller 2.0.5)
+## August 18, 2026 — Article Flow 2.0 (controller 2.0.6)
 
 - Replaced the model-specific final rewrite prompt with `10-Final-Prose-Naturalization/Final-Prose-Naturalization-Directive.md`. Naturalization is now a conservative, model-neutral, fact-locked stage rather than the owner of the article's voice or structure.
 - Made `workflow/workflow.json` the sole machine authority, generated `1-Master/Article-Workflow-v2.md` from it, declared one precedence chain, and marked superseded prose specifications as non-authoritative with machine-readable redirects.
@@ -23,7 +23,7 @@ Complete record of all changes made during migration from chapter-oriented docum
 - Added correction, refresh, supersession, and archival request states that preserve the current revision and require an explicit redirect/surface plan before any public change.
 - Recorded the pre-implementation working tree byte-for-byte, classified all 22 observed entries, preserved three archival moves, and removed only the confirmed 46-byte `NUL` shell-error artifact.
 - Independently verified the existing live article and discovery surfaces before changing publication templates; the live article and blog bytes matched the approved local revision at the time of the receipt.
-- Controllers 2.0.1–2.0.5 make installed-release provenance self-contained, forward the configured publication checkout into installed conformance tests, remove source-tree and Unix-home assumptions, retain failed and successful conformance receipts in history, replace the undeclared third-party JSON Schema runtime dependency with the controller's bounded validator for the pack's declared Draft 2020-12 subset, disable cross-host line-ending conversion for protected bytes, isolate nested installer tests from real user launchers, and require conformance to exercise the installed launcher from an unrelated directory after the test suite. These portability fixes came from immutable Windows/WSL and installed-entrypoint tests rather than source-tree-only assumptions.
+- Controllers 2.0.1–2.0.6 make installed-release provenance self-contained, forward the configured publication checkout into installed conformance tests, remove source-tree and Unix-home assumptions, retain failed and successful conformance receipts in history, replace the undeclared third-party JSON Schema runtime dependency with the controller's bounded validator for the pack's declared Draft 2020-12 subset, disable cross-host line-ending conversion for protected bytes, isolate nested installer tests from real user launchers, require conformance to exercise the installed launcher from an unrelated directory after the test suite, and keep mutable exact-release host status in the host receipts checked by `doctor` rather than freezing it into the implementation snapshot. These portability fixes came from immutable Windows/WSL and installed-entrypoint tests rather than source-tree-only assumptions.
 
 **Maturity note:** The controller and local conformance suite are implemented, but empirical claims remain evidence-bound. Provider ranking is not promoted until the operator calibrates frozen fixtures across configured providers; the voice profile remains provisional until author judgments pass held-out checks; Gemini discovery cannot be claimed until Gemini is installed; and each native host is reported separately until its launcher is actually exercised.
 

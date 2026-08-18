@@ -2,8 +2,8 @@
   "manifest_schema_version": "2.0.0",
   "workflow_version": "2.0.0",
   "hash_algorithm": "sha256",
-  "generator_name_and_version": "article-flow 2.0.5",
-  "generated_at": "2026-08-18T17:37:07Z",
+  "generator_name_and_version": "article-flow 2.0.6",
+  "generated_at": "2026-08-18T17:44:14Z",
   "generated_from": "index",
   "files": [
     {
@@ -211,7 +211,7 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "adapters",
-      "sha256": "2192e172f175d3040484d565a682b5fbc3ebce162a9424759100bfdc313d90f5",
+      "sha256": "564d34f3d757e45483bba98aa05b271055f8aa008bdef0f6539f805ed1c464bb",
       "byte_size": 634
     },
     {
@@ -515,7 +515,7 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "3994930201a21516948a3f547b8a43ef98a3e1ce17f89e8dcc9180089908069f",
+      "sha256": "521811492634b67d688175a557dcacdb96978b0f4aa17f05748fd4bd9c7cc72b",
       "byte_size": 190333
     },
     {
