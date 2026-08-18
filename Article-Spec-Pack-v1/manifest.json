@@ -2,10 +2,18 @@
   "manifest_schema_version": "2.0.0",
   "workflow_version": "2.0.0",
   "hash_algorithm": "sha256",
-  "generator_name_and_version": "article-flow 2.0.3",
-  "generated_at": "2026-08-18T17:16:38Z",
+  "generator_name_and_version": "article-flow 2.0.4",
+  "generated_at": "2026-08-18T17:21:57Z",
   "generated_from": "index",
   "files": [
+    {
+      "path": ".gitattributes",
+      "scope": "repository",
+      "role": "runtime",
+      "rule_set": "integrity",
+      "sha256": "85f434611b0d96996e94804ef7200e4a7d5e8feeac539f66474121caeccc1b37",
+      "byte_size": 89
+    },
     {
       "path": ".github/copilot-instructions.md",
       "scope": "repository",
@@ -203,7 +211,7 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "adapters",
-      "sha256": "17b397b72fae4d609e5a66aaf7c47884b21c0338f04cebfa9f4352405856cf46",
+      "sha256": "3505b08eca1c031da942809374237133dc67d2883451a9192d1d2ea57ccae335",
       "byte_size": 634
     },
     {
@@ -507,7 +515,7 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "144340c7e49166e183fd29318e0ece1dd91af41263f4e36ea08379c30d1f59c5",
+      "sha256": "71a010652a7bc8d2b3aadffe65bd1b651545732b38b5647cefdc259da473c16e",
       "byte_size": 187670
     },
     {
@@ -531,7 +539,7 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "conformance",
-      "sha256": "d944b33b53c34c42bdeeb64257a06df85167f910f7e0ce91ac5b3b9c0c98b1cc",
+      "sha256": "a1ff654611235081203370c2f6f631c26d384f1c20a0d103af1930206055ddfc",
       "byte_size": 32392
     },
     {
@@ -563,8 +571,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "integrity",
-      "sha256": "41f863f15c289f0b34b95bbbceaf713e5e895e2b6265082be942a76883258108",
-      "byte_size": 10703
+      "sha256": "57291b051804f2b11c57583d0de031325c19fbebdbb215c6a2ca049b23d9356d",
+      "byte_size": 10832
     },
     {
       "path": "workflow/workflow.json",

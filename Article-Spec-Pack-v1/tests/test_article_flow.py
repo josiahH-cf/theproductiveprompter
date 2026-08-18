@@ -112,6 +112,7 @@ class ManifestTests(unittest.TestCase):
         subprocess.run(["git", "init", "-q", str(self.repo)], check=True)
         subprocess.run(["git", "-C", str(self.repo), "config", "user.email", "test@example.com"], check=True)
         subprocess.run(["git", "-C", str(self.repo), "config", "user.name", "Test"], check=True)
+        subprocess.run(["git", "-C", str(self.repo), "config", "core.autocrlf", "false"], check=True)
         subprocess.run(["git", "-C", str(self.repo), "add", "Article-Spec-Pack-v1/workflow"], check=True)
         self.patches = [
             mock.patch.object(af, "SPEC_ROOT", self.spec),
@@ -374,11 +375,9 @@ class AdapterTests(TemporaryRuntime):
             result = subprocess.run([sys.executable, str(installed_script), "--version"], cwd=unrelated, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn(af.CONTROLLER_VERSION, result.stdout)
-            nested_home = Path(self.temp.name) / "nested-home"
-            nested_home.mkdir()
+            nested_runtime = Path(self.temp.name) / "nested-runtime"
             nested_environment = os.environ.copy()
-            nested_environment["HOME"] = str(nested_home)
-            nested_environment["ARTICLE_FLOW_HOME"] = ""
+            nested_environment["ARTICLE_FLOW_HOME"] = str(nested_runtime)
             nested_environment["ARTICLE_FLOW_REPO_ROOT"] = str(af.REPO_ROOT)
             nested = subprocess.run(
                 [sys.executable, str(installed_script), "install", "--hosts", "wsl", "--development", "--json"],
@@ -388,7 +387,7 @@ class AdapterTests(TemporaryRuntime):
                 text=True,
             )
             self.assertEqual(nested.returncode, 0, nested.stderr)
-            nested_record = json.loads((nested_home / ".local" / "share" / "article-flow" / "current.json").read_text())
+            nested_record = json.loads((nested_runtime / "current.json").read_text())
             self.assertTrue(nested_record["source_commit"])
             verification = af.verify_adapters()
             self.assertTrue(verification["ok"], verification)

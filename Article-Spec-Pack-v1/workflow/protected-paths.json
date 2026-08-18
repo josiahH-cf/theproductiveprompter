@@ -19,6 +19,12 @@
   ],
   "entries": [
     {
+      "path": ".gitattributes",
+      "scope": "repository",
+      "role": "runtime",
+      "rule_set": "integrity"
+    },
+    {
       "path": ".github/copilot-instructions.md",
       "scope": "repository",
       "role": "runtime",
