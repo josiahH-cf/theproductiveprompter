@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any, Iterable, Iterator, Sequence
 
 
-CONTROLLER_VERSION = "2.0.0"
+CONTROLLER_VERSION = "2.0.1"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -404,6 +404,23 @@ def runtime_home() -> Path:
 def installation_record() -> dict[str, Any]:
     path = runtime_home() / "current.json"
     return load_json(path) if path.is_file() else {}
+
+
+def release_source_commit() -> str:
+    if (REPO_ROOT / ".git").exists():
+        return str(git(["rev-parse", "HEAD"], cwd=REPO_ROOT)).strip()
+    metadata_path = SPEC_ROOT / ".article-flow-release.json"
+    if metadata_path.is_file():
+        metadata = load_json(metadata_path)
+        if metadata.get("source_commit"):
+            return str(metadata["source_commit"])
+    installed = installation_record()
+    if installed.get("source_commit"):
+        return str(installed["source_commit"])
+    repository = publication_repo_root()
+    if repository and (repository / ".git").exists():
+        return str(git(["rev-parse", "HEAD"], cwd=repository)).strip()
+    raise FlowError("Cannot determine the immutable source commit for this controller release", EXIT_INTEGRITY)
 
 
 def publication_repo_root(*, required: bool = False) -> Path | None:
@@ -1456,7 +1473,7 @@ def record_static_controls(directory: Path, run: dict[str, Any]) -> None:
         "workflow_version": run["workflow_version"],
         "platform": platform.platform(),
         "python": sys.version.split()[0],
-        "repository_commit": installation_record().get("source_commit") or (str(git(["rev-parse", "HEAD"], cwd=publication_repo_root(required=True))).strip() if publication_repo_root() else None),
+        "repository_commit": release_source_commit(),
         "provider_configuration": str(provider_config_path()),
         "provider_configuration_present": provider_config_path().is_file(),
     }
@@ -2417,6 +2434,18 @@ def install_release(home: Path, *, development: bool, publication_repository: st
             raise FlowError(f"Installed release {CONTROLLER_VERSION} is immutable but differs at {rel}; publish a new controller version instead of overwriting it", EXIT_INTEGRITY)
         if not destination.is_file() or destination.read_bytes() != source.read_bytes():
             shutil.copy2(source, destination)
+    source_commit = release_source_commit()
+    release_metadata_path = release_spec / ".article-flow-release.json"
+    release_metadata = {
+        "release_metadata_schema_version": "1.0.0",
+        "controller_version": CONTROLLER_VERSION,
+        "workflow_version": workflow()["workflow_version"],
+        "source_commit": source_commit,
+    }
+    if release_metadata_path.is_file() and load_json(release_metadata_path) != release_metadata and not development:
+        raise FlowError(f"Installed release {CONTROLLER_VERSION} has conflicting provenance metadata", EXIT_INTEGRITY)
+    if not release_metadata_path.is_file() or load_json(release_metadata_path) != release_metadata:
+        write_json(release_metadata_path, release_metadata)
     current_path = home / "current.json"
     current = load_json(current_path) if current_path.is_file() else {}
     current_value = {
@@ -2426,7 +2455,7 @@ def install_release(home: Path, *, development: bool, publication_repository: st
         "installed_at": current.get("installed_at") or utc_now(),
         "development": development,
         "publication_repo_root": publication_repository,
-        "source_commit": str(git(["rev-parse", "HEAD"], cwd=REPO_ROOT)).strip(),
+        "source_commit": source_commit,
     }
     if current != current_value:
         write_json(current_path, current_value)
@@ -2925,6 +2954,9 @@ def command_conformance(args: argparse.Namespace) -> int:
     command = [sys.executable, "-m", "unittest", "discover", "-s", str(tests_root), "-p", "test_*.py", "-v"]
     environment = os.environ.copy()
     environment["ARTICLE_FLOW_TEST_NO_PUBLISH"] = "1"
+    repository = publication_repo_root()
+    if repository:
+        environment["ARTICLE_FLOW_REPO_ROOT"] = str(repository)
     result = subprocess.run(command, cwd=SPEC_ROOT, capture_output=True, text=True, env=environment)
     test_files = sorted(path for path in tests_root.rglob("test_*.py") if path.is_file())
     receipt = {
@@ -2935,7 +2967,7 @@ def command_conformance(args: argparse.Namespace) -> int:
         "python_executable": sys.executable,
         "controller_version": CONTROLLER_VERSION,
         "workflow_version": workflow()["workflow_version"],
-        "commit": installation_record().get("source_commit") or str(git(["rev-parse", "HEAD"], cwd=REPO_ROOT)).strip(),
+        "commit": release_source_commit(),
         "test_suite_revision": package_revision([SCRIPT_PATH, *test_files], SPEC_ROOT),
         "test_count_files": len(test_files),
         "smoke_tests_publish": False,
@@ -2944,7 +2976,19 @@ def command_conformance(args: argparse.Namespace) -> int:
     errors = validate_instance_schema(receipt, "conformance-receipt.schema.json")
     if errors:
         raise FlowError("Controller generated an invalid conformance receipt", EXIT_INTEGRITY, errors)
-    receipt_path = runtime_home() / "conformance" / "latest.json"
+    conformance_root = runtime_home() / "conformance"
+    receipt_path = conformance_root / "latest.json"
+    history_root = conformance_root / "history"
+    history_root.mkdir(parents=True, exist_ok=True)
+    if receipt_path.is_file():
+        prior = load_json(receipt_path)
+        prior_stamp = slugify(str(prior.get("created_at", "unknown")), 40)
+        prior_path = history_root / f"{prior_stamp}-{prior.get('controller_version', 'unknown')}-{prior.get('host_kind', 'unknown')}.json"
+        if not prior_path.is_file():
+            write_json(prior_path, prior)
+    stamp = slugify(receipt["created_at"], 40)
+    history_path = history_root / f"{stamp}-{CONTROLLER_VERSION}-{receipt['host_kind']}.json"
+    write_json(history_path, receipt)
     write_json(receipt_path, receipt)
     payload = {**receipt, "receipt": str(receipt_path), "command": command, "stdout": result.stdout, "stderr": result.stderr}
     emit(payload, args.json)

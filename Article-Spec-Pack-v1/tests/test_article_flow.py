@@ -373,6 +373,22 @@ class AdapterTests(TemporaryRuntime):
             result = subprocess.run([sys.executable, str(installed_script), "--version"], cwd=unrelated, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn(af.CONTROLLER_VERSION, result.stdout)
+            nested_home = Path(self.temp.name) / "nested-home"
+            nested_home.mkdir()
+            nested_environment = os.environ.copy()
+            nested_environment["HOME"] = str(nested_home)
+            nested_environment["ARTICLE_FLOW_HOME"] = ""
+            nested_environment["ARTICLE_FLOW_REPO_ROOT"] = str(af.REPO_ROOT)
+            nested = subprocess.run(
+                [sys.executable, str(installed_script), "install", "--hosts", "wsl", "--development", "--json"],
+                cwd=unrelated,
+                env=nested_environment,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(nested.returncode, 0, nested.stderr)
+            nested_record = json.loads((nested_home / ".local" / "share" / "article-flow" / "current.json").read_text())
+            self.assertTrue(nested_record["source_commit"])
             verification = af.verify_adapters()
             self.assertTrue(verification["ok"], verification)
             tracked[0].write_text("drift", encoding="utf-8")
@@ -380,6 +396,21 @@ class AdapterTests(TemporaryRuntime):
             failed = [item for item in verification["checks"] if not item["ok"]]
             self.assertEqual(len(failed), 1)
             self.assertIn("install", failed[0]["repair_command"])
+
+    def test_conformance_forwards_the_publication_checkout_and_retains_history(self):
+        completed = subprocess.CompletedProcess(args=[], returncode=0, stdout="tests passed", stderr="")
+        with (
+            mock.patch.object(af, "release_source_commit", return_value="a" * 40),
+            mock.patch.object(af, "publication_repo_root", return_value=af.REPO_ROOT),
+            mock.patch.object(af.subprocess, "run", return_value=completed) as executed,
+        ):
+            code, first = call(af.command_conformance)
+            self.assertEqual(code, af.EXIT_OK)
+            self.assertEqual(executed.call_args.kwargs["env"]["ARTICLE_FLOW_REPO_ROOT"], str(af.REPO_ROOT))
+            code, second = call(af.command_conformance)
+            self.assertEqual(code, af.EXIT_OK)
+        self.assertEqual(first["commit"], second["commit"])
+        self.assertTrue(list((self.runtime / "conformance" / "history").glob("*.json")))
 
 
 class MCPTests(TemporaryRuntime):

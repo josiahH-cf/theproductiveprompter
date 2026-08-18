@@ -1,6 +1,6 @@
 {
   "adapter_registry_schema_version": "1.0.0",
-  "controller_min_version": "2.0.0",
+  "controller_min_version": "2.0.1",
   "adapters": [
     {
       "adapter_id": "shared-agent-skill",

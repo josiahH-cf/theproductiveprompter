@@ -9,7 +9,7 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
-## August 18, 2026 — Article Flow 2.0
+## August 18, 2026 — Article Flow 2.0 (controller 2.0.1)
 
 - Replaced the model-specific final rewrite prompt with `10-Final-Prose-Naturalization/Final-Prose-Naturalization-Directive.md`. Naturalization is now a conservative, model-neutral, fact-locked stage rather than the owner of the article's voice or structure.
 - Made `workflow/workflow.json` the sole machine authority, generated `1-Master/Article-Workflow-v2.md` from it, declared one precedence chain, and marked superseded prose specifications as non-authoritative with machine-readable redirects.
@@ -23,6 +23,7 @@ Complete record of all changes made during migration from chapter-oriented docum
 - Added correction, refresh, supersession, and archival request states that preserve the current revision and require an explicit redirect/surface plan before any public change.
 - Recorded the pre-implementation working tree byte-for-byte, classified all 22 observed entries, preserved three archival moves, and removed only the confirmed 46-byte `NUL` shell-error artifact.
 - Independently verified the existing live article and discovery surfaces before changing publication templates; the live article and blog bytes matched the approved local revision at the time of the receipt.
+- Controller 2.0.1 makes installed-release provenance self-contained, forwards the configured publication checkout into installed conformance tests, and retains failed and successful conformance receipts in history. These portability fixes came from the first immutable-install test rather than a source-tree-only assumption.
 
 **Maturity note:** The controller and local conformance suite are implemented, but empirical claims remain evidence-bound. Provider ranking is not promoted until the operator calibrates frozen fixtures across configured providers; the voice profile remains provisional until author judgments pass held-out checks; Gemini discovery cannot be claimed until Gemini is installed; and each native host is reported separately until its launcher is actually exercised.
 
