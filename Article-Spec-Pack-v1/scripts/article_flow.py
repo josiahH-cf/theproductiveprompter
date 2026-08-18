@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any, Iterable, Iterator, Sequence
 
 
-CONTROLLER_VERSION = "2.0.4"
+CONTROLLER_VERSION = "2.0.5"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -3065,10 +3065,11 @@ def command_conformance(args: argparse.Namespace) -> int:
     if repository:
         environment["ARTICLE_FLOW_REPO_ROOT"] = str(repository)
     result = subprocess.run(command, cwd=SPEC_ROOT, capture_output=True, text=True, env=environment)
+    launcher_smoke = installed_launcher_smoke()
     test_files = sorted(path for path in tests_root.rglob("test_*.py") if path.is_file())
     receipt = {
-        "conformance_receipt_schema_version": "1.0.0",
-        "ok": result.returncode == 0,
+        "conformance_receipt_schema_version": "1.1.0",
+        "ok": result.returncode == 0 and launcher_smoke["ok"],
         "host_kind": "native-windows" if os.name == "nt" else "wsl",
         "platform": sys.platform,
         "python_executable": sys.executable,
@@ -3078,6 +3079,7 @@ def command_conformance(args: argparse.Namespace) -> int:
         "test_suite_revision": package_revision([SCRIPT_PATH, *test_files], SPEC_ROOT),
         "test_count_files": len(test_files),
         "smoke_tests_publish": False,
+        "launcher_smoke": launcher_smoke,
         "created_at": utc_now(),
     }
     errors = validate_instance_schema(receipt, "conformance-receipt.schema.json")
@@ -3099,7 +3101,65 @@ def command_conformance(args: argparse.Namespace) -> int:
     write_json(receipt_path, receipt)
     payload = {**receipt, "receipt": str(receipt_path), "command": command, "stdout": result.stdout, "stderr": result.stderr}
     emit(payload, args.json)
-    return result.returncode
+    return EXIT_OK if receipt["ok"] else EXIT_FAILED
+
+
+def installed_launcher_smoke() -> dict[str, Any]:
+    """Exercise the user-facing launcher from an unrelated directory.
+
+    This runs after the suite so a test that accidentally rewrites the launcher
+    cannot leave behind a green conformance receipt.
+    """
+    if os.name == "nt":
+        user_root = windows_user_root()
+        launcher = user_root / "AppData" / "Local" / "Microsoft" / "WindowsApps" / "article-flow.cmd" if user_root else Path("article-flow.cmd")
+        command = [os.environ.get("COMSPEC", "cmd.exe"), "/d", "/c", str(launcher), "context", "--json"]
+    else:
+        launcher = Path.home() / ".local" / "bin" / "article-flow"
+        command = [str(launcher), "context", "--json"]
+    with tempfile.TemporaryDirectory() as unrelated:
+        try:
+            result = subprocess.run(command, cwd=unrelated, capture_output=True, text=True, timeout=30)
+        except (OSError, subprocess.SubprocessError) as exc:
+            return {
+                "ok": False,
+                "launcher": str(launcher),
+                "return_code": -1,
+                "controller_version": "",
+                "workflow_version": "",
+                "spec_root_match": False,
+                "runtime_home_match": False,
+                "unrelated_cwd": True,
+                "error": str(exc),
+            }
+    try:
+        context = json.loads(result.stdout)
+    except (json.JSONDecodeError, TypeError):
+        context = {}
+    try:
+        spec_root_match = Path(str(context.get("spec_root", ""))).resolve() == SPEC_ROOT.resolve()
+        runtime_home_match = Path(str(context.get("runtime_home", ""))).resolve() == runtime_home().resolve()
+    except (OSError, RuntimeError):
+        spec_root_match = False
+        runtime_home_match = False
+    ok = bool(
+        result.returncode == 0
+        and context.get("controller_version") == CONTROLLER_VERSION
+        and context.get("workflow_version") == workflow()["workflow_version"]
+        and spec_root_match
+        and runtime_home_match
+    )
+    return {
+        "ok": ok,
+        "launcher": str(launcher),
+        "return_code": result.returncode,
+        "controller_version": str(context.get("controller_version", "")),
+        "workflow_version": str(context.get("workflow_version", "")),
+        "spec_root_match": spec_root_match,
+        "runtime_home_match": runtime_home_match,
+        "unrelated_cwd": True,
+        "error": "" if ok else (result.stderr.strip() or "launcher context did not match the installed controller"),
+    }
 
 
 def command_lifecycle(args: argparse.Namespace) -> int:

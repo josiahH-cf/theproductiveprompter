@@ -2,8 +2,8 @@
   "manifest_schema_version": "2.0.0",
   "workflow_version": "2.0.0",
   "hash_algorithm": "sha256",
-  "generator_name_and_version": "article-flow 2.0.4",
-  "generated_at": "2026-08-18T17:21:57Z",
+  "generator_name_and_version": "article-flow 2.0.5",
+  "generated_at": "2026-08-18T17:37:07Z",
   "generated_from": "index",
   "files": [
     {
@@ -211,7 +211,7 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "adapters",
-      "sha256": "3505b08eca1c031da942809374237133dc67d2883451a9192d1d2ea57ccae335",
+      "sha256": "2192e172f175d3040484d565a682b5fbc3ebce162a9424759100bfdc313d90f5",
       "byte_size": 634
     },
     {
@@ -355,8 +355,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "schemas",
-      "sha256": "526b562e7a9d42b0a21231f59dff0e01d583311de0e4f90039f7f5a20ed9abb0",
-      "byte_size": 1235
+      "sha256": "e30204f25784cd9bb89ada4831a6923e6e6bd21d7b6a6aca831aad89cba0a8a6",
+      "byte_size": 1951
     },
     {
       "path": "schemas/document-registry.schema.json",
@@ -515,8 +515,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "71a010652a7bc8d2b3aadffe65bd1b651545732b38b5647cefdc259da473c16e",
-      "byte_size": 187670
+      "sha256": "3994930201a21516948a3f547b8a43ef98a3e1ce17f89e8dcc9180089908069f",
+      "byte_size": 190333
     },
     {
       "path": "scripts/package_article.py",
@@ -539,8 +539,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "conformance",
-      "sha256": "a1ff654611235081203370c2f6f631c26d384f1c20a0d103af1930206055ddfc",
-      "byte_size": 32392
+      "sha256": "678ddb971ff78f39fd3fef8ac89eb778c8c0163bbf23dd5b71d846eea45128ca",
+      "byte_size": 33491
     },
     {
       "path": "workflow/article-recipe.defaults.json",

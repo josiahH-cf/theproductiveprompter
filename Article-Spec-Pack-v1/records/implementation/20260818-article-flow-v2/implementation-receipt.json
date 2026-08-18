@@ -5,7 +5,7 @@
   "source_base_commit": "d08f2d972bb8bc835973ded5ff93e21e4100af91",
   "implementation_branch": "codex/article-flow-v1",
   "workflow_version": "2.0.0",
-  "controller_version": "2.0.4",
+  "controller_version": "2.0.5",
   "interpretation": "The directive's software and control changes are implementation scope. Acceptance conditions that require author judgment, configured provider credentials, an absent host, a real publication approval, or evidence over future articles remain explicit proof obligations rather than inferred passes.",
   "live_site_a_priori_check": {
     "receipt": "../../baselines/20260818T151954Z/baseline-receipt.json",

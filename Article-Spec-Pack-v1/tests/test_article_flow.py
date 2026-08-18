@@ -375,10 +375,16 @@ class AdapterTests(TemporaryRuntime):
             result = subprocess.run([sys.executable, str(installed_script), "--version"], cwd=unrelated, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn(af.CONTROLLER_VERSION, result.stdout)
+            primary_wrapper = fake_home / ".local" / "bin" / "article-flow"
+            primary_wrapper_hash = hashlib.sha256(primary_wrapper.read_bytes()).hexdigest()
             nested_runtime = Path(self.temp.name) / "nested-runtime"
+            nested_user_home = Path(self.temp.name) / "nested-user-home"
+            nested_user_home.mkdir()
             nested_environment = os.environ.copy()
             nested_environment["ARTICLE_FLOW_HOME"] = str(nested_runtime)
             nested_environment["ARTICLE_FLOW_REPO_ROOT"] = str(af.REPO_ROOT)
+            nested_environment["HOME"] = str(nested_user_home)
+            nested_environment["USERPROFILE"] = str(nested_user_home)
             nested = subprocess.run(
                 [sys.executable, str(installed_script), "install", "--hosts", "wsl", "--development", "--json"],
                 cwd=unrelated,
@@ -389,6 +395,8 @@ class AdapterTests(TemporaryRuntime):
             self.assertEqual(nested.returncode, 0, nested.stderr)
             nested_record = json.loads((nested_runtime / "current.json").read_text())
             self.assertTrue(nested_record["source_commit"])
+            self.assertEqual(primary_wrapper_hash, hashlib.sha256(primary_wrapper.read_bytes()).hexdigest())
+            self.assertTrue((nested_user_home / ".local" / "bin" / "article-flow").is_file())
             verification = af.verify_adapters()
             self.assertTrue(verification["ok"], verification)
             tracked[0].write_text("drift", encoding="utf-8")
@@ -402,6 +410,17 @@ class AdapterTests(TemporaryRuntime):
         with (
             mock.patch.object(af, "release_source_commit", return_value="a" * 40),
             mock.patch.object(af, "publication_repo_root", return_value=af.REPO_ROOT),
+            mock.patch.object(af, "installed_launcher_smoke", return_value={
+                "ok": True,
+                "launcher": "test-launcher",
+                "return_code": 0,
+                "controller_version": af.CONTROLLER_VERSION,
+                "workflow_version": af.workflow()["workflow_version"],
+                "spec_root_match": True,
+                "runtime_home_match": True,
+                "unrelated_cwd": True,
+                "error": "",
+            }),
             mock.patch.object(af.subprocess, "run", return_value=completed) as executed,
         ):
             code, first = call(af.command_conformance)
