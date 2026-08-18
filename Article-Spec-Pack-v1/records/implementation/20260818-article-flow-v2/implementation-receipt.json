@@ -1,12 +1,12 @@
 {
   "implementation_receipt_schema_version": "1.0.0",
   "created_at": "2026-08-18T16:46:40Z",
-  "updated_at": "2026-08-18T17:43:17Z",
+  "updated_at": "2026-08-18T18:21:32Z",
   "source_directive_sha256": "4fc111ddaa802002f53c43242a7e173f998f4e301ed71b6b740d0870706585dd",
   "source_base_commit": "d08f2d972bb8bc835973ded5ff93e21e4100af91",
   "implementation_branch": "codex/article-flow-v1",
   "workflow_version": "2.0.0",
-  "controller_version": "2.0.6",
+  "controller_version": "2.0.7",
   "interpretation": "The directive's software and control changes are implementation scope. Acceptance conditions that require author judgment, configured provider credentials, an absent host, a real publication approval, or evidence over future articles remain explicit proof obligations rather than inferred passes.",
   "release_evidence_contract": {
     "authority": "article-flow doctor --scope release --json",
@@ -38,9 +38,9 @@
     {
       "id": 2,
       "name": "shared skill discovery without duplicated logic",
-      "implementation_status": "implemented_host_reload_proof_pending",
+      "implementation_status": "implemented_account_upload_proof_pending",
       "evidence": ["adapters/start-article/SKILL.md", "adapters/start-article/agents/openai.yaml", "adapters/registry.json"],
-      "remaining_proof": ["Confirm discovery in a fresh Codex task and Claude session.", "Gemini discovery remains unclaimed until Gemini CLI is installed."]
+      "remaining_proof": ["Upload the same pointer-only Agent Skills ZIP separately to ChatGPT and Claude account skills, then confirm discovery in fresh GPT Work and Claude Cowork sessions.", "Gemini discovery remains unclaimed until Gemini CLI is installed."]
     },
     {
       "id": 3,
@@ -108,7 +108,7 @@
     }
   ],
   "unresolved_acceptance_evidence": [
-    "fresh Codex and Claude discovery confirmation",
+    "fresh ChatGPT Work and Claude Cowork discovery after their separate one-time account skill uploads",
     "Gemini discovery after installation",
     "operator-calibrated voice promotion",
     "fixture-backed provider ranking across at least two providers and one local or OpenAI-compatible endpoint",
