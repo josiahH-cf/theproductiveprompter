@@ -284,7 +284,8 @@ class RunAndSmokeTests(TemporaryRuntime):
             text = surface.read_text(encoding="utf-8")
             self.assertIn("a-test-article.html", text)
             self.assertIn("from-idea-to-verified-url.html", text)
-        before = {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in [af.REPO_ROOT / "index.html", af.REPO_ROOT / "docs" / "blog.html", af.REPO_ROOT / "feed.xml", af.REPO_ROOT / "sitemap.xml"]}
+        repository = af.publication_repo_root(required=True)
+        before = {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in [repository / "index.html", repository / "docs" / "blog.html", repository / "feed.xml", repository / "sitemap.xml"]}
         _, first = call(af.command_publish_plan, run_id=run_id)
         _, second = call(af.command_publish_plan, run_id=run_id)
         self.assertTrue(second["idempotent"])

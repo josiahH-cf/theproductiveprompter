@@ -2,8 +2,8 @@
   "manifest_schema_version": "2.0.0",
   "workflow_version": "2.0.0",
   "hash_algorithm": "sha256",
-  "generator_name_and_version": "article-flow 2.0.1",
-  "generated_at": "2026-08-18T17:01:10Z",
+  "generator_name_and_version": "article-flow 2.0.2",
+  "generated_at": "2026-08-18T17:06:58Z",
   "generated_from": "index",
   "files": [
     {
@@ -203,7 +203,7 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "adapters",
-      "sha256": "5ad1be141909636f2ec74e6ad1dea4b8e0a60ef06db2d8646b9d7594d31f9fd0",
+      "sha256": "c0a8cd53b4eaf3d9f9c217136b2527473a49a88e2dd3bbda8f6ca79d0f199a67",
       "byte_size": 634
     },
     {
@@ -507,7 +507,7 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "9407ca98ef34fd27120c46ffbab47171e81231544a968108e151537b81489443",
+      "sha256": "8cbb92a530c52e4e302451ea81ae204a0aff45e55457f2f6e561efd0900b04b9",
       "byte_size": 181348
     },
     {
@@ -531,8 +531,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "conformance",
-      "sha256": "c67036aa455b5746a50868498fe691d6f302a2ebac914a35e4783838c8046e08",
-      "byte_size": 32339
+      "sha256": "d944b33b53c34c42bdeeb64257a06df85167f910f7e0ce91ac5b3b9c0c98b1cc",
+      "byte_size": 32392
     },
     {
       "path": "workflow/article-recipe.defaults.json",
