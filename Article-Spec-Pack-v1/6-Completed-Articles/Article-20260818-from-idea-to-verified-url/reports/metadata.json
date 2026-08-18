@@ -1,0 +1,29 @@
+{
+  "title": "From Idea to Verified URL: Build a Blog Workflow That Still Sounds Like You",
+  "topic": "blog-publication-workflow",
+  "created_date": "2026-08-18",
+  "completion_date": "2026-08-18",
+  "word_count": 2578,
+  "revision": "v1.0",
+  "gates_passed": {
+    "gate_a": true,
+    "gate_b": true,
+    "gate_c": true
+  },
+  "devices_used": [
+    "Two-loop plaintext diagram",
+    "Stage and gate checklist",
+    "Iterative voice calibration loop",
+    "Before-During-After build checklist",
+    "Project case study"
+  ],
+  "hard_shape": "Finish line to stages and gates to voice loop to project evidence to build checklist",
+  "research_pass_executed": true,
+  "critic_loop_runs": 1,
+  "brief_checksum": "45dffefe9b0018969539c22c040e0cbe",
+  "article_checksum": "c5a661ed279491e2b1a2b6bccdeea5e4",
+  "article_sha256": "af36af583921ae872924defc1509caf8dd71775bfbfe2c5455b777f8d1098b78",
+  "public_page_sha256": "df823f1054081106a2abc02063a8c654f6b0402b2d75e8b6745e90f2e6b81eba",
+  "public_url": "https://theproductiveprompter.com/docs/from-idea-to-verified-url.html",
+  "execution_run_id": "20260818-start-article-workflow-schema"
+}
