@@ -1,0 +1,108 @@
+{
+  "receipt_schema_version": "1.0.0",
+  "captured_at": "2026-08-18T15:19:54Z",
+  "controller_version": "pre-v1 locator launcher (unversioned)",
+  "repository_root": "/mnt/c/Users/josia/Documents/github-windows/theproductiveprompter",
+  "branch": "main",
+  "head_commit": "d08f2d972bb8bc835973ded5ff93e21e4100af91",
+  "remote_url": "https://github.com/josiahH-cf/theproductiveprompter.git",
+  "working_tree_entry_count": 22,
+  "status_porcelain_v1": [
+    " M .github/copilot-instructions.md",
+    " M Article-Spec-Pack-v1/0-README.md",
+    " M Article-Spec-Pack-v1/1-Master/Article-Master-Spec.md",
+    " M Article-Spec-Pack-v1/1-Master/Article-Process-Map.md",
+    " M Article-Spec-Pack-v1/1-Master/Critic-Loop-(Single-Pass-Self-Check).md",
+    " D Article-Spec-Pack-v1/1-Master/Documentation/PDF-Upload-Quick-Start-Guide.md",
+    " D Article-Spec-Pack-v1/1-Master/Documentation/QUICK-START-1PAGER.md",
+    " M Article-Spec-Pack-v1/1-Master/Spec-Conformance-Checklist.md",
+    " D Article-Spec-Pack-v1/10-Meta-Prompt-For-Article-Re-write/meta-prompt-for-gpt-5.1.md",
+    " M Article-Spec-Pack-v1/3-Annexes/Device-Catalog.md",
+    " M Article-Spec-Pack-v1/4-Carryover-Updated/Style-Baseline-(Directive).md",
+    " M Article-Spec-Pack-v1/7-Intake-Mode/Intake-Prompt.md",
+    " M Article-Spec-Pack-v1/7-Intake-Mode/Intake-Workflow.md",
+    " M Article-Spec-Pack-v1/7-Intake-Mode/README.md",
+    " M Article-Spec-Pack-v1/CHANGELOG.md",
+    " M Article-Spec-Pack-v1/manifest.json",
+    "?? Article-Spec-Pack-v1/0-START-ARTICLE.md",
+    "?? Article-Spec-Pack-v1/10-Final-Prose-Naturalization/Final-Prose-Naturalization-Directive.md",
+    "?? Article-Spec-Pack-v1/9-Archive/_Superseded/Legacy-Gemini-GUI/PDF-Upload-Quick-Start-Guide.md",
+    "?? Article-Spec-Pack-v1/9-Archive/_Superseded/Legacy-Gemini-GUI/QUICK-START-1PAGER.md",
+    "?? Article-Spec-Pack-v1/scripts/article_flow.py",
+    "?? NUL"
+  ],
+  "diff_name_status": [
+    "M\t.github/copilot-instructions.md",
+    "M\tArticle-Spec-Pack-v1/0-README.md",
+    "M\tArticle-Spec-Pack-v1/1-Master/Article-Master-Spec.md",
+    "M\tArticle-Spec-Pack-v1/1-Master/Article-Process-Map.md",
+    "M\tArticle-Spec-Pack-v1/1-Master/Critic-Loop-(Single-Pass-Self-Check).md",
+    "D\tArticle-Spec-Pack-v1/1-Master/Documentation/PDF-Upload-Quick-Start-Guide.md",
+    "D\tArticle-Spec-Pack-v1/1-Master/Documentation/QUICK-START-1PAGER.md",
+    "M\tArticle-Spec-Pack-v1/1-Master/Spec-Conformance-Checklist.md",
+    "D\tArticle-Spec-Pack-v1/10-Meta-Prompt-For-Article-Re-write/meta-prompt-for-gpt-5.1.md",
+    "M\tArticle-Spec-Pack-v1/3-Annexes/Device-Catalog.md",
+    "M\tArticle-Spec-Pack-v1/4-Carryover-Updated/Style-Baseline-(Directive).md",
+    "M\tArticle-Spec-Pack-v1/7-Intake-Mode/Intake-Prompt.md",
+    "M\tArticle-Spec-Pack-v1/7-Intake-Mode/Intake-Workflow.md",
+    "M\tArticle-Spec-Pack-v1/7-Intake-Mode/README.md",
+    "M\tArticle-Spec-Pack-v1/CHANGELOG.md",
+    "M\tArticle-Spec-Pack-v1/manifest.json"
+  ],
+  "diff_stat": {
+    "tracked_files_changed": 16,
+    "insertions": 271,
+    "deletions": 1026
+  },
+  "untracked": [
+    {
+      "path": "Article-Spec-Pack-v1/0-START-ARTICLE.md",
+      "byte_size": 6213,
+      "sha256": "4ea9c0e893c15c3484477cf840a5ce49d9f8e0033411931462c157fcd9da5f06"
+    },
+    {
+      "path": "Article-Spec-Pack-v1/10-Final-Prose-Naturalization/Final-Prose-Naturalization-Directive.md",
+      "byte_size": 10278,
+      "sha256": "404c63017f76dacf93535ba658056fdf55aa1d10d24e93d95d518753f6d0dbec"
+    },
+    {
+      "path": "Article-Spec-Pack-v1/9-Archive/_Superseded/Legacy-Gemini-GUI/PDF-Upload-Quick-Start-Guide.md",
+      "byte_size": 17971,
+      "sha256": "1c1f3c6b3f2954c792c0a42dfd1d9ef97b8585117dd8cde19767656d0d90609f"
+    },
+    {
+      "path": "Article-Spec-Pack-v1/9-Archive/_Superseded/Legacy-Gemini-GUI/QUICK-START-1PAGER.md",
+      "byte_size": 6943,
+      "sha256": "890cdf647543d3158c6d9b7d9b5b117e9af616eba67975f14b028920b4382828"
+    },
+    {
+      "path": "Article-Spec-Pack-v1/scripts/article_flow.py",
+      "byte_size": 5368,
+      "sha256": "6def0b8cbff6ea131c3320f1b4f4357f6bae5881a1d86af4e216f47f85db38bb"
+    },
+    {
+      "path": "NUL",
+      "byte_size": 46,
+      "sha256": "908a384dc32ed5eb1c4d8cc09eb7353460140be59ed83cf154b3930806be2c92",
+      "content_utf8": "/bin/bash: line 1: cmd.exe: command not found\n"
+    }
+  ],
+  "live_trial_verification": {
+    "checked_at": "2026-08-18T15:19:02Z",
+    "deployed_commit": "d08f2d972bb8bc835973ded5ff93e21e4100af91",
+    "article_url": "https://theproductiveprompter.com/docs/from-idea-to-verified-url.html",
+    "article_http_status": 200,
+    "article_local_sha256": "df823f1054081106a2abc02063a8c654f6b0402b2d75e8b6745e90f2e6b81eba",
+    "article_live_sha256": "df823f1054081106a2abc02063a8c654f6b0402b2d75e8b6745e90f2e6b81eba",
+    "blog_url": "https://theproductiveprompter.com/docs/blog.html",
+    "blog_http_status": 200,
+    "blog_local_sha256": "8bd758d9cd4898bac9edd35b53cd06e172a370ead4be9fffa96688fbeef1b4c1",
+    "blog_live_sha256": "8bd758d9cd4898bac9edd35b53cd06e172a370ead4be9fffa96688fbeef1b4c1",
+    "homepage_links_article": true,
+    "feed_links_article": true,
+    "sitemap_links_article": true,
+    "root_level_article_status": 404,
+    "root_level_blog_status": 404,
+    "note": "The canonical publication surface is under /docs; root-level article and blog paths are not valid publication URLs."
+  }
+}

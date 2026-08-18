@@ -1,4 +1,13 @@
+---
+article_flow_document_status: legacy-template
+article_flow_authority: false
+article_flow_redirect: ../schemas/task-packet.schema.json
+article_flow_removal_version: "3.0.0"
+---
+
 # Article Brief Template
+
+> Historical drafting aid. The controller’s validated brief task packet and approved article recipe control a v2 run.
 
 **Purpose**  
 This template provides the minimal, article-scale brief used to guide public-facing, developer-oriented articles. It defines objectives, scope, audience, and freshness expectations. Devices are planning aids only; do not expose device labels in public text.

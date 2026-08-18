@@ -1,11 +1,32 @@
 # Article-Spec-Pack-v1 Changelog
 
-**Purpose**  
+**Purpose**
 Complete record of all changes made during migration from chapter-oriented documentation to article-oriented documentation pack.
 
-**Migration Date:** November 3, 2025  
-**Migration Source:** `9 Planning Docs - Chapter by Chapter Experiment/`  
+**Migration Date:** November 3, 2025
+**Migration Source:** `9 Planning Docs - Chapter by Chapter Experiment/`
 **Meta-Prompt:** `meta-prompt-plan v2.md`
+
+---
+
+## August 18, 2026 — Article Flow 2.0
+
+- Replaced the model-specific final rewrite prompt with `10-Final-Prose-Naturalization/Final-Prose-Naturalization-Directive.md`. Naturalization is now a conservative, model-neutral, fact-locked stage rather than the owner of the article's voice or structure.
+- Made `workflow/workflow.json` the sole machine authority, generated `1-Master/Article-Workflow-v2.md` from it, declared one precedence chain, and marked superseded prose specifications as non-authoritative with machine-readable redirects.
+- Rebuilt `scripts/article_flow.py` as a provider-neutral, resumable controller with JSON schemas, append-only event hashes, run locking, bounded repairs, complete task packets, hard and soft gates, and stable exit behavior.
+- Added a paragraph-or-less seed entrypoint that preserves the seed verbatim, plans research before narrowing, and requires operator confirmation for intent, recipe, voice-probe, editorial, and publication decisions.
+- Promoted the claim ledger, independent post-draft and post-edit verification, locked fields, article recipe, recent-post comparison, short voice probes, held-out voice testing, and public/private provenance boundary into reusable contracts.
+- Added controller-hosted OpenAI, Anthropic, Google, OpenAI-compatible, and local-command adapters; a capability registry; fixture-backed evaluation records; canary controls; failure-aware fallback; and an honest active-host default until human-calibrated evaluations exist.
+- Added versioned Windows and WSL installation, native launchers, thin Codex/Claude/shared Agent Skills adapters, adapter drift checks, and an optional local stdio MCP surface. Installed releases do not depend on the caller's working directory or the development repository's location.
+- Added deterministic SHA-256 manifest build/check/explain commands and split health reporting into launcher, authoring, and release scopes. Protected drift blocks packaging, and release/publication require an approved clean checkout.
+- Defined one package contract with `public/article.md` as the private-to-public source, rendered `docs/{slug}.html` as the public page, preserved prior article history across the home page, blog, feed, and sitemap, and separated package, publication plan, scoped approval, execution, and exact live verification.
+- Added correction, refresh, supersession, and archival request states that preserve the current revision and require an explicit redirect/surface plan before any public change.
+- Recorded the pre-implementation working tree byte-for-byte, classified all 22 observed entries, preserved three archival moves, and removed only the confirmed 46-byte `NUL` shell-error artifact.
+- Independently verified the existing live article and discovery surfaces before changing publication templates; the live article and blog bytes matched the approved local revision at the time of the receipt.
+
+**Maturity note:** The controller and local conformance suite are implemented, but empirical claims remain evidence-bound. Provider ranking is not promoted until the operator calibrates frozen fixtures across configured providers; the voice profile remains provisional until author judgments pass held-out checks; Gemini discovery cannot be claimed until Gemini is installed; and each native host is reported separately until its launcher is actually exercised.
+
+Entries below this point are historical migration records. They may describe superseded rules and do not override `workflow/workflow.json`, the current house policy, or an approved article recipe.
 
 ---
 
@@ -182,7 +203,7 @@ Unmodified copies of all source documents for historical reference:
 
 ### Device-Catalog.md (Merged)
 
-**Sources:** 
+**Sources:**
 - Device Toggle Guidance.md
 - Narrative Device Guidance and Formatting.md
 
@@ -307,7 +328,7 @@ Unmodified copies of all source documents for historical reference:
 
 ### Critic-Loop-(Single-Pass-Self-Check).md (Updated & Relocated)
 
-**Source:** Critic Loop (Single-Pass Self-Check).md  
+**Source:** Critic Loop (Single-Pass Self-Check).md
 **New Location:** `1-Master/` (was in general planning docs folder)
 
 **Changes:**
@@ -461,8 +482,8 @@ All gates apply to complete article as single unit.
 
 ## Version Control
 
-**Pack Version:** 1.0  
-**Migration Date:** November 3, 2025  
+**Pack Version:** 1.0
+**Migration Date:** November 3, 2025
 **Status:** Production-ready
 
 All documents in `1-Master/`, `2-Templates/`, `3-Annexes/`, and `4-Carryover-Updated/` are normative and binding for article production as of this date.

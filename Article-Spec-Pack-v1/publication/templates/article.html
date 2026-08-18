@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="{{DESCRIPTION}}">
+    <meta name="author" content="Josiah Hunter">
+    <meta name="robots" content="index, follow">
+    <title>{{TITLE}} | Josiah Hunter</title>
+    <link rel="canonical" href="{{CANONICAL_URL}}">
+    <link rel="alternate" type="application/rss+xml" title="The Productive Prompter" href="https://theproductiveprompter.com/feed.xml">
+    <link rel="stylesheet" href="../styles.css">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="The Productive Prompter">
+    <meta property="og:title" content="{{TITLE}}">
+    <meta property="og:description" content="{{DESCRIPTION}}">
+    <meta property="og:url" content="{{CANONICAL_URL}}">
+    <meta property="article:published_time" content="{{DATE_ISO}}">
+    <meta property="article:modified_time" content="{{DATE_ISO}}">
+    <meta property="article:author" content="Josiah Hunter">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{{TITLE}}">
+    <meta name="twitter:description" content="{{DESCRIPTION}}">
+    <meta name="article-flow-revision" content="{{ARTICLE_REVISION}}">
+    <meta name="article-flow-recipe" content="{{RECIPE_JSON}}">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        "headline": "{{TITLE}}",
+        "description": "{{DESCRIPTION}}",
+        "url": "{{CANONICAL_URL}}",
+        "mainEntityOfPage": "{{CANONICAL_URL}}",
+        "datePublished": "{{DATE_ISO}}",
+        "dateModified": "{{DATE_ISO}}",
+        "inLanguage": "en-US",
+        "wordCount": {{WORD_COUNT}},
+        "keywords": {{TAGS_JSON}},
+        "author": {"@type": "Person", "name": "Josiah Hunter", "url": "https://theproductiveprompter.com/"},
+        "publisher": {"@type": "Person", "name": "Josiah Hunter", "url": "https://theproductiveprompter.com/"},
+        "isPartOf": {"@type": "Blog", "name": "The Productive Prompter", "url": "https://theproductiveprompter.com/docs/blog.html"}
+    }
+    </script>
+    <script src="../script.js" defer></script>
+</head>
+<body>
+    <nav class="nav" id="nav">
+        <div class="nav__container">
+            <a href="../index.html#hero" class="nav__logo" aria-label="Josiah Hunter home">JH</a>
+            <ul class="nav__menu" id="navMenu">
+                <li class="nav__item"><a href="blog.html" class="nav__link" aria-current="page"><span class="nav__number">01.</span> Blog</a></li>
+                <li class="nav__item"><a href="../index.html#projects" class="nav__link"><span class="nav__number">02.</span> Projects</a></li>
+                <li class="nav__item"><a href="../index.html#about" class="nav__link"><span class="nav__number">03.</span> About</a></li>
+                <li class="nav__item"><a href="../index.html#contact" class="nav__link"><span class="nav__number">04.</span> Contact</a></li>
+            </ul>
+            <button class="nav__toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false"><span class="nav__toggle-line"></span><span class="nav__toggle-line"></span><span class="nav__toggle-line"></span></button>
+        </div>
+    </nav>
+    <main class="article-page" id="main-content">
+        <div class="container">
+            <nav class="article-navigation" aria-label="Article breadcrumb"><a href="blog.html" class="back-link">← All writing</a></nav>
+            <article class="article-content">
+                <header class="article-header">
+                    <h1>{{TITLE}}</h1>
+                    <div class="article-header__meta" aria-label="Article details"><span>By Josiah Hunter</span><span aria-hidden="true">•</span><time datetime="{{DATE_ISO}}">{{DATE_DISPLAY}}</time><span aria-hidden="true">•</span><span>{{READING_MINUTES}} min read</span></div>
+                </header>
+                <!-- GENERATED_ARTICLE_START -->
+{{ARTICLE_BODY}}
+                <!-- GENERATED_ARTICLE_END -->
+            </article>
+        </div>
+    </main>
+</body>
+</html>

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://theproductiveprompter.com/schemas/voice-probe.schema.json",
+  "title": "Voice Probe",
+  "type": "object",
+  "required": ["voice_probe_schema_version", "run_id", "article_register", "candidates", "comparison_orders", "held_out_plan", "operator_selection"],
+  "properties": {
+    "voice_probe_schema_version": {"const": "1.0.0"},
+    "run_id": {"type": "string"},
+    "article_register": {"type": "object"},
+    "candidates": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["candidate_id", "passage", "intended_dimensions"],
+        "properties": {
+          "candidate_id": {"type": "string"},
+          "passage": {"type": "string", "minLength": 1},
+          "intended_dimensions": {"type": "array", "items": {"type": "string"}}
+        },
+        "additionalProperties": false
+      }
+    },
+    "comparison_orders": {
+      "type": "array",
+      "minItems": 2,
+      "items": {"type": "array", "minItems": 2, "items": {"type": "string"}}
+    },
+    "held_out_plan": {"type": "string", "minLength": 1},
+    "operator_selection": {"type": ["object", "null"]}
+  },
+  "additionalProperties": false
+}

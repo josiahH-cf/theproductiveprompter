@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://theproductiveprompter.com/schemas/editorial-assessment.schema.json",
+  "title": "Editorial Assessment",
+  "type": "object",
+  "required": ["editorial_assessment_schema_version", "run_id", "outcome", "dimensions", "findings", "calibration_status"],
+  "properties": {
+    "editorial_assessment_schema_version": {"const": "1.0.0"},
+    "run_id": {"type": "string"},
+    "outcome": {"enum": ["PASS", "REPAIR", "ESCALATE"]},
+    "dimensions": {
+      "type": "object",
+      "required": ["intent_fidelity", "clarity_utility", "voice_fit", "naturalness", "structural_interest", "proportional_length"],
+      "additionalProperties": {"type": "object"}
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["criterion", "artifact", "location", "finding", "repair_instruction", "repair_state"],
+        "properties": {
+          "criterion": {"type": "string"},
+          "artifact": {"type": "string"},
+          "location": {"type": ["string", "null"]},
+          "finding": {"type": "string"},
+          "repair_instruction": {"type": "string"},
+          "repair_state": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "calibration_status": {"enum": ["human", "calibrated-evaluator", "uncalibrated-advisory"]}
+  },
+  "additionalProperties": false
+}

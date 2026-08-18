@@ -1,4 +1,13 @@
+---
+article_flow_document_status: legacy-reference
+article_flow_authority: false
+article_flow_redirect: ../workflow/workflow.json
+article_flow_removal_version: "3.0.0"
+---
+
 # Spec Conformance Checklist (Author QA)
+
+> Historical checklist. Executable conformance is owned by `article-flow conformance`.
 
 Purpose: Ensure each article conforms to the Unified Article Spec, Style Baseline, Brand Pack alignment, and Evidence/IP policies—without leaking internal scaffolding.
 
@@ -41,6 +50,8 @@ Purpose: Ensure each article conforms to the Unified Article Spec, Style Baselin
 - [ ] No internal scaffolding terms (Device, Gate, Shape, Style Anchor, Critic Loop, Research Pass)
 - [ ] No activation headers or file paths in public text
 - [ ] Short paragraphs; scannable bullets; no redundant sentences (>5 identical words)
+- [ ] Final Prose Naturalization Directive applied; no formulaic AI-style clichés, canned transitions, inflated wording, repetitive rhetoric, generic corporate language, or generated-looking structure remain
+- [ ] Naturalization preserved meaning, facts, uncertainty, links, citations, code, quotations, and Markdown structure; it introduced no new claims
 - [ ] Final line is a verification or next action (not a maxim)
 
 ---

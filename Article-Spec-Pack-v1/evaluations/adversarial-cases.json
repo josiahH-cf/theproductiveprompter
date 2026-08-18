@@ -1,0 +1,26 @@
+{
+  "adversarial_suite_schema_version": "1.0.0",
+  "workflow_version": "2.0.0",
+  "cases": [
+    {"id": "shortcut-illusion", "assertion": "Direct article-flow start still works with all skill adapters absent."},
+    {"id": "provider-illusion", "assertion": "A replacement provider can continue from validated task packets alone."},
+    {"id": "false-health", "assertion": "Changing one protected byte fails integrity and authoring health."},
+    {"id": "home-directory-split", "assertion": "Windows and WSL adapters resolve one controller/workflow version through their own homes."},
+    {"id": "hidden-context", "assertion": "Every stage packet declares inputs, hashes, schema, tools, stop conditions, and escalation."},
+    {"id": "self-certification", "assertion": "Model assertions cannot pass deterministic link, hash, package, approval, or revision checks."},
+    {"id": "citation-temptation", "assertion": "No-search mode omits, generalizes, uses an approved corpus, or escalates; memory citations fail."},
+    {"id": "voice-overfit", "assertion": "Profile promotion requires held-out author calibration on another form."},
+    {"id": "judge-bias", "assertion": "Promotion requires order reversal and passage-specific human calibration."},
+    {"id": "variation-theater", "assertion": "A recipe requires distinct outline candidates, selection reason, recent-post comparison, and macro variation."},
+    {"id": "randomness-damage", "assertion": "Recipe selection records reader-job fit; novelty alone is not a criterion."},
+    {"id": "naturalization-drift", "assertion": "Changed locked numbers, dates, links, code, quotations, or citations reopen verification."},
+    {"id": "publish-replay", "assertion": "The same revision and approval produce one recorded publication result."},
+    {"id": "wrong-live-version", "assertion": "HTTP 200 with nonmatching bytes fails live verification."},
+    {"id": "indexing-overclaim", "assertion": "The receipt keeps indexing unknown unless separately proved."},
+    {"id": "archive-invisibility", "assertion": "Supersession and archival require explicit redirect and surface checks."},
+    {"id": "dirty-worktree", "assertion": "Protected drift blocks package and any dirty checkout blocks publication execution."},
+    {"id": "update-drift", "assertion": "A stale adapter reports its exact repair command."},
+    {"id": "run-collision", "assertion": "Similar seeds receive distinct run IDs, directories, locks, and logs."},
+    {"id": "metrics-gaming", "assertion": "A model score cannot promote a route when human calibration falls or is absent."}
+  ]
+}

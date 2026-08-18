@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://theproductiveprompter.com/schemas/publication-receipt.schema.json",
+  "title": "Publication Approval or Verification Receipt",
+  "type": "object",
+  "required": ["publication_receipt_schema_version", "run_id", "target", "package_revision", "status", "created_at"],
+  "properties": {
+    "publication_receipt_schema_version": {"const": "1.0.0"},
+    "run_id": {"type": "string"},
+    "target": {"type": "string"},
+    "package_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "approval_id": {"type": ["string", "null"]},
+    "expires_at": {"type": ["string", "null"], "format": "date-time"},
+    "status": {"enum": ["PLANNED", "APPROVED", "APPLIED", "PUSHED", "ACCESSIBLE", "REPRESENTED_FOR_DISCOVERY", "INDEXED_UNKNOWN", "VERIFIED", "FAILED"]},
+    "commit": {"type": ["string", "null"]},
+    "url": {"type": ["string", "null"]},
+    "checks": {"type": "array", "items": {"type": "object"}},
+    "created_at": {"type": "string", "format": "date-time"}
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://theproductiveprompter.com/schemas/adapter.schema.json",
+  "title": "Host or Provider Adapter",
+  "type": "object",
+  "required": ["adapter_schema_version", "adapter_id", "adapter_version", "controller_min_version", "kind", "host_or_provider", "invocation", "capabilities", "health"],
+  "properties": {
+    "adapter_schema_version": {"const": "1.0.0"},
+    "adapter_id": {"type": "string"},
+    "adapter_version": {"type": "string"},
+    "controller_min_version": {"type": "string"},
+    "kind": {"enum": ["host-skill", "provider-api", "provider-command", "mcp", "publication"]},
+    "host_or_provider": {"type": "string"},
+    "invocation": {"type": "object"},
+    "capabilities": {"type": "array", "items": {"type": "string"}},
+    "health": {"type": "object"}
+  },
+  "additionalProperties": false
+}

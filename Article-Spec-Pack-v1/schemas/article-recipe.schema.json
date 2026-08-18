@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://theproductiveprompter.com/schemas/article-recipe.schema.json",
+  "title": "Article Recipe",
+  "type": "object",
+  "required": ["recipe_version", "archetype", "reader_job", "scope_boundary", "length", "opening", "ending", "summary", "narrative_person", "evidence_posture", "citation_mode", "components", "outline_candidates", "selection_reason", "recent_post_comparison", "variation_budget"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "recipe_version": {"type": "string"},
+    "status": {"type": "string"},
+    "archetype": {"type": ["string", "null"], "enum": [null, "tutorial", "case-study", "field-note", "argument", "teardown", "reference-guide", "research-synthesis", "retrospective", "q-and-a"]},
+    "reader_job": {"type": ["string", "null"]},
+    "scope_boundary": {"type": ["string", "null"]},
+    "length": {
+      "type": "object",
+      "required": ["mode", "target_words", "stop_when"],
+      "properties": {
+        "mode": {"enum": ["brief", "standard", "deep", "auto"]},
+        "target_words": {
+          "oneOf": [
+            {"type": "integer", "minimum": 1},
+            {"type": "object", "required": ["minimum", "maximum"], "properties": {"minimum": {"type": "integer", "minimum": 1}, "maximum": {"type": "integer", "minimum": 1}}, "additionalProperties": false},
+            {"type": "null"}
+          ]
+        },
+        "stop_when": {"type": ["string", "null"]}
+      }
+    },
+    "opening": {"type": "object", "required": ["strategy", "reason"], "properties": {"strategy": {"enum": [null, "result-first", "scene", "failure", "artifact", "question", "claim", "data"]}, "reason": {"type": ["string", "null"]}}, "additionalProperties": false},
+    "ending": {"type": "object", "required": ["strategy", "reason"], "properties": {"strategy": {"enum": [null, "next-action", "decision-rule", "callback", "warning", "open-question", "quiet-synthesis", "checklist"]}, "reason": {"type": ["string", "null"]}}, "additionalProperties": false},
+    "summary": {"type": "object", "required": ["policy", "form"], "properties": {"policy": {"enum": ["always", "never", "auto"]}, "form": {"enum": [null, "one-sentence-dek", "bullets", "key-takeaways", "decision-table"]}}, "additionalProperties": false},
+    "narrative_person": {"enum": ["first", "second", "third", "mixed"]},
+    "evidence_posture": {"enum": ["practical", "exploratory", "argumentative", "documentary", "comparative"]},
+    "citation_mode": {"enum": ["links", "footnotes", "apa", "venue-defined"]},
+    "components": {
+      "type": "object",
+      "required": ["diagram", "checklist", "mental_models", "workflow_count", "activation_header"],
+      "properties": {
+        "diagram": {"enum": ["required", "optional", "off", "auto"]},
+        "checklist": {"enum": ["required", "optional", "off", "auto"]},
+        "mental_models": {"enum": ["required", "optional", "off", "auto"]},
+        "workflow_count": {"type": ["integer", "null"], "minimum": 1},
+        "activation_header": {"enum": ["on", "off", "auto"]}
+      },
+      "additionalProperties": false
+    },
+    "outline_candidates": {"type": "array", "items": {"type": "object"}},
+    "selection_reason": {"type": ["string", "null"]},
+    "recent_post_comparison": {"type": ["object", "null"]},
+    "variation_budget": {
+      "type": "object",
+      "required": ["macro_dimensions", "recent_post_comparison", "experiment_seed"],
+      "properties": {
+        "macro_dimensions": {"oneOf": [{"type": "integer", "minimum": 0, "maximum": 3}, {"type": "array", "maxItems": 3, "uniqueItems": true, "items": {"enum": ["archetype", "opening", "ending", "summary", "narrative_person", "components"]}}]},
+        "recent_post_comparison": {"type": "boolean"},
+        "experiment_seed": {"type": ["string", "integer", "null"]}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

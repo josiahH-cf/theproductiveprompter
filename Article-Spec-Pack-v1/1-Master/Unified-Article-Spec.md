@@ -1,4 +1,13 @@
+---
+article_flow_document_status: legacy-reference
+article_flow_authority: false
+article_flow_redirect: ../workflow/workflow.json
+article_flow_removal_version: "3.0.0"
+---
+
 # Unified Article Spec — Developer-Grade, Workflow-First
+
+> Historical editorial reference. It is not the v2 source of truth.
 
 Purpose: Provide a single, authoritative specification that consistently produces practical, developer-facing articles matching the reference style: direct, anti-hype, mental-models → workflows → caution → checklist, with concrete prompt patterns and minimal scaffolding.
 

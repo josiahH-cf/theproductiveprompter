@@ -1,4 +1,13 @@
+---
+article_flow_document_status: optional-reference
+article_flow_authority: false
+article_flow_redirect: ../workflow/article-recipe.defaults.json
+article_flow_removal_version: "3.0.0"
+---
+
 # Device Catalog (Annex)
+
+> Optional editorial reference. Component selection belongs to the approved article recipe.
 
 **Purpose**  
 Define all approved narrative devices, their purposes, structural rules, and formatting requirements. This catalog is the authoritative reference for device mechanics; the **Article Brief** is the sole activation authority.
@@ -173,18 +182,16 @@ Code block with language identifier for syntax highlighting
 **Typical Structure:**
 
 ````
-```python
-# Example: API call with structured prompt
-import openai
-
-response = openai.ChatCompletion.create(
-    model="gpt-4",
-    messages=[
-        {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": "Explain quantum computing in simple terms."}
-    ]
+```text
+# Conceptual provider-neutral pseudocode
+requirements = task_requirements("draft-article")
+model = runtime.select_best_available(requirements)
+response = runtime.generate(
+    model=model,
+    instructions=article_controls,
+    input=approved_brief
 )
-print(response.choices[0].message.content)
+validate(response, article_gates)
 ```
 ````
 
@@ -192,7 +199,7 @@ print(response.choices[0].message.content)
 - Include brief lead-in explaining what the code demonstrates
 - Add inline comments for clarity
 - Specify language/framework version if relevant
-- Test code before inclusion (or label as "conceptual example")
+- Test code before inclusion, or label provider-neutral pseudocode as conceptual
 - Provide context about where/how readers would use this code
 
 Do not include activation headers in public output.

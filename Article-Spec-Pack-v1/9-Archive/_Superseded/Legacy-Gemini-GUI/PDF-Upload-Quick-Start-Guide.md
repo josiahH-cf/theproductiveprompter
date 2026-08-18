@@ -1,4 +1,6 @@
-# PDF-Upload Quick-Start Guide (Gemini 2.5 Pro Web GUI)
+# Historical: PDF-Upload Quick-Start Guide (Gemini 2.5 Pro Web GUI)
+
+> Superseded on August 18, 2026. Retained as historical evidence of the earlier provider-specific PDF-upload workflow; it is not part of the canonical model-agnostic CLI runtime.
 
 **Purpose:** Enable one-shot article generation using Article-Spec-Pack-v1 in Gemini 2.5 Pro web interface with PDF uploads only (no folder access, no file system, no real-time web search).
 

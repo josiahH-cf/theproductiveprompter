@@ -1,4 +1,13 @@
+---
+article_flow_document_status: legacy-reference
+article_flow_authority: false
+article_flow_redirect: ../workflow/workflow.json
+article_flow_removal_version: "3.0.0"
+---
+
 # Article Process Map
+
+> Historical process reference. The executable state sequence is generated from `workflow/workflow.json`.
 
 **Purpose**  
 Define the single-pass workflow for producing complete, publication-ready articles without multi-section stop-points or chapter architecture mechanics.
@@ -11,13 +20,38 @@ Article production follows a **streamlined, single-pass flow** designed for stan
 
 **Key principle:** Write the complete article in one continuous draft cycle, then apply quality controls silently before delivering final text.
 
+**Runtime:** The canonical entrypoint is a CLI. Before each task, it discovers the models configured and reachable in the current environment, selects the best eligible model for that task under the operator's runtime constraints, records the choice internally, and falls back to the next eligible model when the selected one cannot pass its gates. No workflow step is bound to a provider, named model, GUI, or manual upload process.
+
 ---
 
 ## Process Flow
 
+### 0. Understand (Raw Seed → Candidate Intent)
+
+**Input:** The operator's raw article seed. For the standalone MVP proof, it must be one paragraph or less and written as naturally as the operator would submit a real good-post idea.
+
+**Execution:** CLI-selected model best suited to intent analysis and subject discovery; research may be routed separately to a model with the required tools.
+
+**Actions:**
+- Store the raw seed verbatim as the input fixture.
+- Separate what the operator explicitly said from assumptions the system might make.
+- Identify material unknowns about purpose, audience, scope, position, evidence, and desired reader outcome.
+- Begin subject-appropriate research to expose relevant prior art, evidence, terminology, and plausible interpretations.
+- Provide sources for the operator to read when research could affect intent, then ask focused follow-up questions rather than deciding the answer.
+- Produce a candidate article intent and list any unresolved assumptions.
+- Apply the configured intent-confirmation policy; do not silently treat the candidate as operator-confirmed.
+
+**Output:** Traceable raw seed, research record, operator responses, candidate article intent, and remaining unknowns sufficient to enter planning.
+
+**Boundary:** No Article Brief or draft begins until the still-to-be-defined intent-confirmation rule is satisfied.
+
+---
+
 ### 1. Plan (Article Brief)
 
-**Input:** Article Brief created using [Article-Brief-Template.md](../2-Templates/Article-Brief-Template.md)
+**Input:** Candidate article intent that satisfied the configured intent-confirmation boundary, used to create an Article Brief with [Article-Brief-Template.md](../2-Templates/Article-Brief-Template.md)
+
+**Execution:** CLI-selected model best suited to intent and planning under the configured runtime policy
 
 **Actions:**
 - Define article objective and scope
@@ -39,6 +73,8 @@ Article production follows a **streamlined, single-pass flow** designed for stan
 
 **Input:** Approved Article Brief + loaded control documents
 
+**Execution:** CLI-selected model best suited to the article's subject, evidence, context, and length requirements
+
 **Actions:**
 - Write complete article to natural completion (content-driven length)
 - Follow the invisible structure: opening reality check → mental models → 3–5 workflows (When/Why/Pattern/Steps) → caution → tri-stage checklist → closing activation → optional further reading
@@ -56,13 +92,17 @@ Article production follows a **streamlined, single-pass flow** designed for stan
 
 **Input:** Complete first-pass draft
 
+**Execution:** CLI-selected model best suited to critical review and constraint-following; it need not be the drafting model
+
 **Actions (performed silently, never exposed to reader):**
 
 #### Voice Check
 - Verify second-person developer voice (direct “you”; occasional “we” for team context)
 - Confirm confident, plain-spoken, instructive tone
 - Validate natural sentence rhythm and paragraph structure
-- Ensure natural voicing (feels human-written)
+- Apply the [Final Prose Naturalization Directive](../10-Final-Prose-Naturalization/Final-Prose-Naturalization-Directive.md)
+- Preserve meaning, facts, uncertainty, Markdown, links, citations, code, quotations, and required wording; add no new claims
+- Remove formulaic AI-style clichés, canned transitions, inflated wording, repetitive rhetoric, generic corporate language, and generated-looking structure
 
 #### Focus Check
 - Validate every sentence advances the idea, provides evidence, or strengthens arguments
@@ -95,6 +135,8 @@ Article production follows a **streamlined, single-pass flow** designed for stan
 
 **Input:** Revised article draft + identified research needs
 
+**Execution:** CLI-selected model with the required research/tool access and evidence-handling capability
+
 **Actions:**
 - Search for current credible sources (prefer DOIs, stable URLs)
 - Update or insert citations per Brief (APA only if required)
@@ -122,6 +164,7 @@ Article production follows a **streamlined, single-pass flow** designed for stan
 
 #### Gate B — Critic Loop
 - [ ] Single silent pass completed (Voice, Focus, Evidence)
+- [ ] Final Prose Naturalization Directive applied; preservation contract passed
 - [ ] Final-line rule satisfied
 - [ ] Anti-redundancy check passed
  - [ ] Workflow Schema fields present in natural language (PromptSpec, OutputMode, Artifacts, ValidationPlan, ChangeIsolation, RollbackNotes, Guardrails)
@@ -197,9 +240,10 @@ First document in list is the tiebreaker.
 
 | **Step** | **Primary Control Documents** |
 |----------|------------------------------|
+| Understand | Raw seed, intake controls, Evidence & IP Annex where research is needed |
 | Plan | Article Brief Template, Brand Pack, Style Baseline |
 | Draft | Article Master Spec, Article Brief, Style Baseline, Brand Pack |
-| Critic Loop | Critic Loop (Single-Pass Self-Check), Article Brief, Style Baseline |
+| Critic Loop | Critic Loop (Single-Pass Self-Check), Final Prose Naturalization Directive, Article Brief, Style Baseline |
 | Research Pass | Evidence & IP Annex, Article Brief |
 | Final QA | Article Master Spec (compliance checklist) |
 | References | Evidence & IP Annex (citation formatting per Brief) |

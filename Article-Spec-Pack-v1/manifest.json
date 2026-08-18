@@ -1,319 +1,578 @@
 {
-  "_meta": {
-    "version": "1.2",
-    "created": "2025-11-03",
-    "last_updated": "2025-11-13",
-    "purpose": "Integrity manifest for Article-Spec-Pack-v1. Verify file checksums before execution to prevent degradation."
-  },
-  "normative_documents": {
-    "1-Master/Article-Master-Spec.md": {
-      "md5": "02476ed359c4cc55082836a58910ff4c",
-      "history": [
-        {
-          "md5": "4fe529c9ba766d55da4f25252aeb2c6a",
-          "timestamp": "2025-11-03"
-        },
-        {
-          "md5": "02476ed359c4cc55082836a58910ff4c",
-          "timestamp": "2025-11-13"
-        }
-      ],
-      "status": "locked",
-      "precedence": 0,
-      "description": "Single source of truth for article production"
-    },
-    "1-Master/Article-Process-Map.md": {
-      "md5": "c6ec0cdce8add3a4783aaeb2ffd71d63",
-      "history": [
-        {
-          "md5": "2eeac096296e7f28ad44b185817af54e",
-          "timestamp": "2025-11-03"
-        },
-        {
-          "md5": "c6ec0cdce8add3a4783aaeb2ffd71d63",
-          "timestamp": "2025-11-13"
-        }
-      ],
-      "status": "locked",
-      "precedence": 0,
-      "description": "Workflow sequence for single-pass articles"
-    },
-    "1-Master/Critic-Loop-(Single-Pass-Self-Check).md": {
-      "md5": "e437e1df94580321dcf67e900f1a4942",
-      "history": [
-        {
-          "md5": "2bf214efe5a0be85437a94a131d6a70c",
-          "timestamp": "2025-11-03"
-        },
-        {
-          "md5": "e437e1df94580321dcf67e900f1a4942",
-          "timestamp": "2025-11-13"
-        }
-      ],
-      "status": "locked",
-      "precedence": 4,
-      "description": "Quality enforcement via Voice/Focus/Evidence checks"
-    },
-    "4-Carryover-Updated/Style-Baseline-(Directive).md": {
-      "md5": "23f2775d9fd9dce4c875c7d5ca742779",
-      "history": [
-        {
-          "md5": "e838f56e1c647d0be399a40c82b5de03",
-          "timestamp": "2025-11-03"
-        },
-        {
-          "md5": "23f2775d9fd9dce4c875c7d5ca742779",
-          "timestamp": "2025-11-13"
-        }
-      ],
-      "status": "locked",
-      "precedence": 1,
-      "description": "Highest-precedence voice and structural requirements"
-    },
-    "4-Carryover-Updated/Brand-Pack-(Author-Compass).md": {
-      "md5": "4489bf224c3eb53bcf5c43e44f36771c",
-      "history": [
-        {
-          "md5": "2c325da67e3b485f3ae1e8c944eef3b8",
-          "timestamp": "2025-11-03"
-        },
-        {
-          "md5": "4489bf224c3eb53bcf5c43e44f36771c",
-          "timestamp": "2025-11-13"
-        }
-      ],
-      "status": "locked",
-      "precedence": 2,
-      "description": "Brand voice, neutrality, device policy"
-    },
-    "3-Annexes/Evidence-and-IP-Annex.md": {
-      "md5": "abd6b0cef999add2c884d2f14c77aea5",
-      "history": [
-        {
-          "md5": "a79dbb6cdade1c77609550c8a3cae786",
-          "timestamp": "2025-11-03"
-        },
-        {
-          "md5": "abd6b0cef999add2c884d2f14c77aea5",
-          "timestamp": "2025-11-13"
-        }
-      ],
-      "status": "locked",
-      "precedence": 5,
-      "description": "APA citations, dynamic freshness, IP attribution"
-    },
-    "3-Annexes/Device-Catalog.md": {
-      "md5": "181c7c3b4a7ee6b841aea44dc9887005",
-      "history": [
-        {
-          "md5": "d31e95cfa7b664c398bffd99be9835e0",
-          "timestamp": "2025-11-03"
-        },
-        {
-          "md5": "181c7c3b4a7ee6b841aea44dc9887005",
-          "timestamp": "2025-11-13"
-        }
-      ],
-      "status": "locked",
-      "precedence": 6,
-      "description": "Narrative device definitions and formatting rules"
-    },
-    "4-Carryover-Updated/Default-Style-Anchor-Card.md": {
-      "md5": "dd99e96aac7df245ab26ca79ba625be5",
-      "history": [
-        {
-          "md5": "51e771e3f3dd2a57e4e978af38830822",
-          "timestamp": "2025-11-03"
-        },
-        {
-          "md5": "dd99e96aac7df245ab26ca79ba625be5",
-          "timestamp": "2025-11-13"
-        }
-      ],
-      "status": "locked",
-      "precedence": 1,
-      "description": "Default 112-word Style Anchor for articles without custom voice"
-    }
-  },
-  "templates": {
-    "2-Templates/Article-Brief-Template.md": {
-      "md5": "cb24b21b5c663df1ce5b374299970984",
-      "history": [
-        {
-          "md5": "06543a4032959f72909a68b4971bd343",
-          "timestamp": "2025-11-03"
-        },
-        {
-          "md5": "cb24b21b5c663df1ce5b374299970984",
-          "timestamp": "2025-11-13"
-        }
-      ],
-      "status": "template",
-      "precedence": 3,
-      "description": "Per-article planning document (device activation authority)"
-    }
-  },
-  "documentation": {
-    "0-README.md": {
-      "md5": "2179a0ef03ab77d1e2ee6b31428b06b9",
-      "history": [
-        {
-          "md5": "7fa8f0e9ccfdaa30368cfa986cb72b4d",
-          "timestamp": "2025-11-03"
-        },
-        {
-          "md5": "c217d5c8004364fc4110c9e4313e0b91",
-          "timestamp": "2025-11-13"
-        },
-        {
-          "md5": "c217d5c8004364fc4110c9e4313e0b91",
-          "timestamp": "2025-11-13"
-        }
-      ],
-      "status": "documentation",
-      "description": "Pack overview and quick start guide"
-    },
-    "CHANGELOG.md": {
-      "md5": "62913768e35a3594d6c22f3726c3eb99",
-      "history": [
-        {
-          "md5": "b60754f3792bfa6702e0b790446a105e",
-          "timestamp": "2025-11-03"
-        },
-        {
-          "md5": "c4ca46289937bd5ebd8aab72075a1a10",
-          "timestamp": "2025-11-13"
-        },
-        {
-          "md5": "f8f03c6ad6f38345089854197442a2a0",
-          "timestamp": "2025-11-13"
-        },
-        {
-          "md5": "62913768e35a3594d6c22f3726c3eb99",
-          "timestamp": "2025-11-13"
-        }
-      ],
-      "status": "documentation",
-      "description": "Complete migration history"
-    },
-    "MIGRATION-COMPLETE.md": {
-      "md5": "fd6d7ab438b793b4993362b5adfaf527",
-      "status": "documentation",
-      "description": "Migration summary and quick reference"
-    },
-    "Article-Execution-Meta-Prompt.md": {
-      "md5": "e94029a7815addbcb38e210893ad139e",
-      "history": [
-        {
-          "md5": "7cbcae4fdec52b501cb03f1fac96e721",
-          "timestamp": "2025-11-03"
-        },
-        {
-          "md5": "e94029a7815addbcb38e210893ad139e",
-          "timestamp": "2025-11-13"
-        }
-      ],
-      "status": "execution-controller",
-      "description": "Defines autonomous execution workflow with anti-degradation controls"
-    },
-    "Sample-Completed-Article-Annotated.md": {
-      "md5": "51e771e3f3dd2a57e4e978af38830822",
-      "status": "documentation",
-      "description": "Annotated example article showing full compliance with all requirements"
-    },
-    "Article-Output-Format-Template.md": {
-      "md5": "c856b188fa31750a18c68dba66744f12",
-      "history": [
-        {
-          "md5": "d04954da3eabe0d6aefbc6b6b511ebd8",
-          "timestamp": "2025-11-03"
-        },
-        {
-          "md5": "c856b188fa31750a18c68dba66744f12",
-          "timestamp": "2025-11-13"
-        }
-      ],
-      "status": "documentation",
-      "description": "Standardized Phase 6 delivery format with 6 sections"
-    },
-    "PDF-Upload-Quick-Start-Guide.md": {
-      "md5": "8e7e52d31a01fdfad866e5394983e9f6",
-      "history": [
-        {
-          "md5": "7ac79636d852bf719d3e4d04f9ed88a7",
-          "timestamp": "2025-11-03"
-        },
-        {
-          "md5": "8e7e52d31a01fdfad866e5394983e9f6",
-          "timestamp": "2025-11-13"
-        }
-      ],
-      "status": "documentation",
-      "description": "Deployment guide for Gemini web GUI (PDF uploads only)"
-    },
-    "Blog-Output-Format-Template.md": {
-      "md5": "ccc344dac6d74bf914563c732f50342b",
-      "status": "documentation",
-      "description": "Added by automation"
-    },
-    "copilot-instructions.md": {
-      "md5": "6df39a7d80f2132aa6ca5057ac231ce8",
-      "status": "documentation",
-      "description": "Added by automation"
-    }
-  },
-  "integrity_rules": {
-    "locked_files": [
-      "1-Master/Article-Master-Spec.md",
-      "1-Master/Article-Process-Map.md",
-      "1-Master/Critic-Loop-(Single-Pass-Self-Check).md",
-      "4-Carryover-Updated/Style-Baseline-(Directive).md",
-      "4-Carryover-Updated/Brand-Pack-(Author-Compass).md",
-      "3-Annexes/Evidence-and-IP-Annex.md",
-      "3-Annexes/Device-Catalog.md"
-    ],
-    "unlock_protocol": "User must issue UNLOCK:<filename> command before modification",
-    "verification_frequency": "Before every execution phase (Phase 0: Integrity Check)",
-    "rollback_policy": "On checksum mismatch or gate failure, restore last verified version",
-    "diff_requirement": "All modifications must show unified diff + one-line reason",
-    "changelog_requirement": "All file changes logged with date, file path, reason, and new checksum"
-  },
-  "precedence_order": [
-    "Style-Baseline-(Directive).md",
-    "Brand-Pack-(Author-Compass).md",
-    "Article-Brief-[topic].md",
-    "Critic-Loop-(Single-Pass-Self-Check).md",
-    "Evidence-and-IP-Annex.md",
-    "Device-Catalog.md"
-  ],
-  "required_gates": [
-    "Gate A: Baseline & Shape Declared",
-    "Gate B: Critic Loop (Voice, Focus, Evidence)",
-    "Gate C: Evidence & Freshness"
-  ],
-  "execution_phases": [
-    "Phase 0: Integrity Check",
-    "Phase 1: Topic Intake (Brief Creation)",
-    "Phase 2: Pack Adaptation",
-    "Phase 3: Approval Loop",
-    "Phase 4: Draft Generation",
-    "Phase 5: Gate Validation",
-    "Phase 6: Archival & Logging"
-  ],
-  "history": [
+  "manifest_schema_version": "2.0.0",
+  "workflow_version": "2.0.0",
+  "hash_algorithm": "sha256",
+  "generator_name_and_version": "article-flow 2.0.0",
+  "generated_at": "2026-08-18T16:50:24Z",
+  "generated_from": "index",
+  "files": [
     {
-      "date": "2025-11-03",
-      "event": "Initial manifest created",
-      "version": "1.0",
-      "files_tracked": 11,
-      "notes": "All files from Article-Spec-Pack-v1 migration"
+      "path": ".github/copilot-instructions.md",
+      "scope": "repository",
+      "role": "runtime",
+      "rule_set": "adapters",
+      "sha256": "a5854aabd9a5167af8208d6b4291ccb861d9b8cf5d78009105cb1a26cdefc37e",
+      "byte_size": 1036
     },
     {
-      "date": "2025-11-03",
-      "event": "Added one-shot execution components",
-      "version": "1.2",
-      "files_added": 4,
-      "notes": "Added Sample-Completed-Article-Annotated.md, Article-Output-Format-Template.md, PDF-Upload-Quick-Start-Guide.md, Default-Style-Anchor-Card.md"
+      "path": "0-README.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "overview",
+      "sha256": "c11294a0ea5fb35996e171172f7d41fc24ca22f389f10e6ec5fd04367c8d09d5",
+      "byte_size": 4205
+    },
+    {
+      "path": "0-START-ARTICLE.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "entrypoint",
+      "sha256": "6040b9f0d0ab0e4ecf2c32e5ea0382a48d589833ecd428ab2c3dd93eed4f0073",
+      "byte_size": 1787
+    },
+    {
+      "path": "1-Master/Article-Master-Spec.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "legacy-reference",
+      "sha256": "d3994fe0a5bc50273f0d07cebebf36603db635565cfa0968c4e4ce5788e6bf7f",
+      "byte_size": 13099
+    },
+    {
+      "path": "1-Master/Article-Process-Map.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "legacy-reference",
+      "sha256": "bf9e60697041636414855dc438acaa7ff0d90d421dead28772a98b6ebd20a0e3",
+      "byte_size": 12464
+    },
+    {
+      "path": "1-Master/Article-Spec-Consolidated.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "legacy-reference",
+      "sha256": "711b78e9b1f9043d0f8faaa1a951bafd372a3261dbadb8f76b5a328cf221ecad",
+      "byte_size": 9819
+    },
+    {
+      "path": "1-Master/Article-Workflow-v2.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "generated-workflow",
+      "sha256": "155e3ef8d1908af13b9ba5e1116ea66be7307266e2c70dc17cf7ba7925474555",
+      "byte_size": 11894
+    },
+    {
+      "path": "1-Master/Critic-Loop-(Single-Pass-Self-Check).md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "legacy-reference",
+      "sha256": "cc1054c33cca9cb7d310fd78079e7fa9dacc006a140616786b26da72af75e630",
+      "byte_size": 10198
+    },
+    {
+      "path": "1-Master/Spec-Conformance-Checklist.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "legacy-reference",
+      "sha256": "955760a4b9832e1e39d2609b5c4c76d3b92bbf1fbc574640a451e43740f923ba",
+      "byte_size": 3084
+    },
+    {
+      "path": "1-Master/Spec-Quick-Reference.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "legacy-reference",
+      "sha256": "67ab823b8bafe90ca86191ffc905db84a154f4854f8690a448c685bea9d42100",
+      "byte_size": 2206
+    },
+    {
+      "path": "1-Master/Unified-Article-Spec.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "legacy-reference",
+      "sha256": "de24972155ad969883b36ccf7a7cb4c963e3f7a187a431002661196e8a9fff8c",
+      "byte_size": 9661
+    },
+    {
+      "path": "10-Final-Prose-Naturalization/Final-Prose-Naturalization-Directive.md",
+      "scope": "spec",
+      "role": "normative",
+      "rule_set": "authority",
+      "sha256": "1b9f35417ad9a83e0b6ad59dfc34984cc9056550474074a72ef929fdb0ce03af",
+      "byte_size": 10374
+    },
+    {
+      "path": "2-Templates/Article-Brief-Template.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "legacy-template",
+      "sha256": "bb931e01631e4be9c8129aff4ed63b104aa06d8a86009c5bcf1403e69bb3e96a",
+      "byte_size": 6144
+    },
+    {
+      "path": "2-Templates/Article-Output-Format-Template.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "legacy-template",
+      "sha256": "f4ac8e55a5fb4838a52d15a3b6f495cf2c18ff259c5c1ffa47c9def70dc0a3a2",
+      "byte_size": 11450
+    },
+    {
+      "path": "2-Templates/Blocks-Workflow-and-Mental-Model.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "optional-reference",
+      "sha256": "6a0df2ac71217c3820aa12ceb484be2c7144f2c0236f90190527810c3dfcb095",
+      "byte_size": 3253
+    },
+    {
+      "path": "3-Annexes/Device-Catalog.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "optional-reference",
+      "sha256": "ac56d894b34d3d4f917734472154ffd4f71b2e76ea054170ec4a2b2f6451ae41",
+      "byte_size": 9036
+    },
+    {
+      "path": "3-Annexes/Evidence-and-IP-Annex.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "legacy-reference",
+      "sha256": "4df045c2c53d72e7805bf36ddc5e36bf85775f34121344e53a8a338956eb45c1",
+      "byte_size": 17038
+    },
+    {
+      "path": "4-Carryover-Updated/Brand-Pack-(Author-Compass).md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "voice-reference",
+      "sha256": "e9eac8045ad69267f4f066ddb0678d35ee4bda5b04de8960e7ac9f4c6ba5bcc0",
+      "byte_size": 8410
+    },
+    {
+      "path": "4-Carryover-Updated/Default-Style-Anchor-Card.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "voice-reference",
+      "sha256": "f0a8588228329060c04ea60a910c350a9281eec0739bc41ea9d9404dcade0c02",
+      "byte_size": 4800
+    },
+    {
+      "path": "4-Carryover-Updated/Style-Baseline-(Directive).md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "voice-reference",
+      "sha256": "52fcbb704eb2f16aa86d51ed508ccc0e95919be18243063969f09d0e8ad0a29c",
+      "byte_size": 18979
+    },
+    {
+      "path": "7-Intake-Mode/Intake-Brief-Autofill-Template.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "legacy-template",
+      "sha256": "0d71ecf38acdd5876550d02dfb5f687d8cb025a72b6aab885dd3177121ad1531",
+      "byte_size": 1561
+    },
+    {
+      "path": "7-Intake-Mode/Intake-Prompt.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "superseded",
+      "sha256": "8ab6900ce21e1321a864dfb807b0d13993618ff1f5dd0d10d60362993836f4e5",
+      "byte_size": 3914
+    },
+    {
+      "path": "7-Intake-Mode/Intake-Workflow.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "superseded",
+      "sha256": "6169975362cf8886a90b7e924219ba610c95b32e0350048adc86eb84a7949acb",
+      "byte_size": 3662
+    },
+    {
+      "path": "7-Intake-Mode/README.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "superseded",
+      "sha256": "369a6598df1c349dab2d76614e9a004668f068fcf51f276ef70685ffc84f8205",
+      "byte_size": 2581
+    },
+    {
+      "path": "adapters/registry.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "adapters",
+      "sha256": "2d4cdcd482f137b71fcba27df39ef9944b6581266314b233496cb45ab3b843c0",
+      "byte_size": 634
+    },
+    {
+      "path": "adapters/start-article/SKILL.md",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "adapters",
+      "sha256": "706c6d958a13e8fc36325e12390ac68d91c4dab8c0fd5533053668380e6af555",
+      "byte_size": 1483
+    },
+    {
+      "path": "adapters/start-article/agents/openai.yaml",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "adapters",
+      "sha256": "95cc75bb8d3ad85a5d8489965043d0422ea40a3471a5233be8bcbc9a720ef9d9",
+      "byte_size": 182
+    },
+    {
+      "path": "evaluations/adversarial-cases.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "evaluation",
+      "sha256": "f157bf46f5a304bf21471471977dd3fb7d7ed91e8807c7a56a6217509368ced8",
+      "byte_size": 2602
+    },
+    {
+      "path": "evaluations/capability-registry.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "evaluation",
+      "sha256": "7adc4ea5da28fac7d8a486f1b602fc8d06f99c0d2f118031fda8d90313f87bae",
+      "byte_size": 1785
+    },
+    {
+      "path": "evaluations/conformance-matrix.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "evaluation",
+      "sha256": "29c4da5c0a4b08466b8b3366bd1154214c0659627a6d1ae17724ffa02c99025d",
+      "byte_size": 1080
+    },
+    {
+      "path": "evaluations/evaluation-registry.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "evaluation",
+      "sha256": "fb477dedf004245d4791822e7406044dee6ce07f33c903dfe163fac534d4043a",
+      "byte_size": 445
+    },
+    {
+      "path": "evaluations/fixtures.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "evaluation",
+      "sha256": "b05871ec829783780d3ac344e3e1d93a343b0351f72a4da3054df19d4f4ad47f",
+      "byte_size": 4450
+    },
+    {
+      "path": "evaluations/provider-config.example.json",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "evaluation",
+      "sha256": "16a20c84dc2df176d717aba5169c2d9f53f18e1a83c41ec9a927cdb52daa1f90",
+      "byte_size": 4233
+    },
+    {
+      "path": "evaluations/rubric.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "evaluation",
+      "sha256": "d78ea9ee03a15dec8ddea695ce3b951692c115953a56a6c6200cda6dd4c5d7f0",
+      "byte_size": 1414
+    },
+    {
+      "path": "profiles/voice-profile.v1.json",
+      "scope": "spec",
+      "role": "normative",
+      "rule_set": "voice-profile",
+      "sha256": "dcf13fa3a8176e4897e3d268f1123bbdd8aed7f7114783ae376d73a6a8a6a5ea",
+      "byte_size": 3286
+    },
+    {
+      "path": "publication/templates/article.html",
+      "scope": "spec",
+      "role": "template",
+      "rule_set": "publication",
+      "sha256": "d5cc77ce9fff216ab0e3d806125e9d5d6cb32ee66300eb03bcc60ca459bdd697",
+      "byte_size": 4165
+    },
+    {
+      "path": "publication/theproductiveprompter.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "publication",
+      "sha256": "b4b262b1b2bca13bb5c2f324028f9ebfb28ed982dc76d74fa6ec30d93dc50175",
+      "byte_size": 1165
+    },
+    {
+      "path": "schemas/adapter.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "7b863561017b7b111ac6c4cf063e90aaa13e36273c6a22792c0425a9f739b02c",
+      "byte_size": 882
+    },
+    {
+      "path": "schemas/article-recipe.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "733c41320cd7eda0cefc0aacbe908ddd9ddbd534682617a4145f077c21624572",
+      "byte_size": 3944
+    },
+    {
+      "path": "schemas/artifact.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "4b2ec59b9e883ba35633c0fc0e406464fe17cff9db9f7987cf7b57ca44ddef3a",
+      "byte_size": 944
+    },
+    {
+      "path": "schemas/brief.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "fafe6b1e3b0cfa0b6eed844843f272904d5d659eeff495cb832093c1d880387d",
+      "byte_size": 1102
+    },
+    {
+      "path": "schemas/claim-ledger.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "63753ffda3d4c81ad606142d7c72d4454eaf8aaefac917a0f75bfc3e85aa10e6",
+      "byte_size": 1852
+    },
+    {
+      "path": "schemas/conformance-receipt.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "526b562e7a9d42b0a21231f59dff0e01d583311de0e4f90039f7f5a20ed9abb0",
+      "byte_size": 1235
+    },
+    {
+      "path": "schemas/document-registry.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "55ed16aff98038289ec59dd72a790e16c3035742256f72dbeeaa6e3486e452b7",
+      "byte_size": 777
+    },
+    {
+      "path": "schemas/editorial-assessment.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "cf20dd801b6a889376619bfb88098029e9853d9285da204f65f1f3cab6585f89",
+      "byte_size": 1422
+    },
+    {
+      "path": "schemas/evaluation.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "cabb5fd29a5a9508bb5b91aa10cda414f3a396d6b49054a8b0ebd6a0efc31d87",
+      "byte_size": 1211
+    },
+    {
+      "path": "schemas/event.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "c9b23782852c6395e245b3f0ac7234c7c9868c15e74b99f33e4c7065e17cdbbc",
+      "byte_size": 1150
+    },
+    {
+      "path": "schemas/gate-receipt.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "2628a1c96fd46525c3e3c3ad7b21f4e2adf049c91ca90610bbe97ff336dd2e8c",
+      "byte_size": 1523
+    },
+    {
+      "path": "schemas/house-policy.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "a6b430d0d3d48f9df5c8dc05ae08ea916888572989affc88a1e37ad6db2c16c4",
+      "byte_size": 754
+    },
+    {
+      "path": "schemas/intent.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "39fed9e9ed9bb5984f53747ae6fe32c011017515426bee5ad54a6b4e5e95d536",
+      "byte_size": 1057
+    },
+    {
+      "path": "schemas/locked-fields.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "65e4d860df18d2fbce6362e2ba01417409448811c18a2eef43f0cbbb4de4cf5d",
+      "byte_size": 685
+    },
+    {
+      "path": "schemas/manifest.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "a8509beb99e4b164d4fc05f8aa98fe6c6c078c4d21e5c61404d8ec9cdd80cef3",
+      "byte_size": 1341
+    },
+    {
+      "path": "schemas/package.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "0c010d40cbe3f6bc15b774516d9513558edf268fa558a52eecbefa8c0b74b024",
+      "byte_size": 845
+    },
+    {
+      "path": "schemas/protected-paths.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "f4a848eae8aede8542609c25e57af8b9e609a2478b26f98599c22911eda29c57",
+      "byte_size": 1149
+    },
+    {
+      "path": "schemas/provider-config.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "f54f8304fa6417de7af338c7689c508f302330e6bd385308a876f53f4cd4dce9",
+      "byte_size": 1168
+    },
+    {
+      "path": "schemas/publication-receipt.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "a4b9c9723f2e7c07fca8cf935bb62224d79a481e15c6a3c932ba4e24e22c66c2",
+      "byte_size": 1086
+    },
+    {
+      "path": "schemas/research-plan.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "dd1d93bf70c1766ac3de9f78f917143a4177b7cf139f4003731a21d727718f44",
+      "byte_size": 1190
+    },
+    {
+      "path": "schemas/run.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "8729b6f6e09d77de932e39dd97a09ca4fb5fab482cf3703a612fc6bf4ce4050f",
+      "byte_size": 1180
+    },
+    {
+      "path": "schemas/task-packet.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "04338a6e5eedff3f764987ec4d57186b0a91a83e544faf035f98ca87273a0966",
+      "byte_size": 1889
+    },
+    {
+      "path": "schemas/voice-probe.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "456d65552ec004df9066db5c375ad9ec065c2aaa97bbb34faa6cface8b9b1fcd",
+      "byte_size": 1264
+    },
+    {
+      "path": "schemas/voice-profile.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "f5c8dd1511726a81f9e5c3886bdd0239b88b57ae17e24464bb972089c2ff693c",
+      "byte_size": 1331
+    },
+    {
+      "path": "schemas/workflow.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "df656308fb97fc8f44705d01510e5ea94d2eb9cf5501754deee3ddee2b047b4c",
+      "byte_size": 2705
+    },
+    {
+      "path": "scripts/article_flow.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "controller",
+      "sha256": "837b0c786fad3cae7d137068ebd778ebaefba24ac5d3fc055ad74835b1d0d8a3",
+      "byte_size": 179280
+    },
+    {
+      "path": "scripts/package_article.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "controller",
+      "sha256": "884dfca0f0de41ca07eff48d890f61d606e0e633e82058994dce1bff4549a046",
+      "byte_size": 923
+    },
+    {
+      "path": "scripts/render_workflow_docs.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "controller",
+      "sha256": "380a7e70722bab8f966371d2ee0a34d9c5c1fac5a7e352c19965bdfc71eec550",
+      "byte_size": 4756
+    },
+    {
+      "path": "tests/test_article_flow.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "conformance",
+      "sha256": "afa099d90bd990157916802f7954d2e2571b8b0ec09c79e4f36658d0d2d50e07",
+      "byte_size": 30516
+    },
+    {
+      "path": "workflow/article-recipe.defaults.json",
+      "scope": "spec",
+      "role": "template",
+      "rule_set": "article-recipe",
+      "sha256": "13b0623e5c304c823f5fe35a18e8067384915d505d6b91c55dda2736e33f633e",
+      "byte_size": 919
+    },
+    {
+      "path": "workflow/document-registry.json",
+      "scope": "spec",
+      "role": "normative",
+      "rule_set": "document-registry",
+      "sha256": "6d15655789787ec0f00a6756fb5f045c1080caabaa2444474a23e1ec0d07273c",
+      "byte_size": 4117
+    },
+    {
+      "path": "workflow/house-policy.json",
+      "scope": "spec",
+      "role": "normative",
+      "rule_set": "house-policy",
+      "sha256": "428644cb862f82c486d3a79e96ba0c55671bae184b88d8407cdafe8b4029f4db",
+      "byte_size": 2386
+    },
+    {
+      "path": "workflow/protected-paths.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "integrity",
+      "sha256": "41f863f15c289f0b34b95bbbceaf713e5e895e2b6265082be942a76883258108",
+      "byte_size": 10703
+    },
+    {
+      "path": "workflow/workflow.json",
+      "scope": "spec",
+      "role": "normative",
+      "rule_set": "workflow",
+      "sha256": "bb9fe063fef8c0a840567df434fbff00504e52a08e75529b10968680879201b7",
+      "byte_size": 20857
     }
   ]
 }

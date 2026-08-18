@@ -1,4 +1,13 @@
+---
+article_flow_document_status: legacy-reference
+article_flow_authority: false
+article_flow_redirect: ../workflow/workflow.json
+article_flow_removal_version: "3.0.0"
+---
+
 # Article Master Spec (Aligned with Developer-Facing Consolidated Spec)
+
+> Historical editorial reference. It does not override the machine-readable workflow, house policy, or an approved article recipe.
 
 **Purpose**  
 This master spec defines internal mechanics (planning, review, and archival) for article production. Public-facing articles must follow the workflow-first, developer-facing behavior defined in `Article-Spec-Consolidated.md` without exposing internal scaffolding (devices, gates, shapes, style anchors).
@@ -8,6 +17,24 @@ This master spec defines internal mechanics (planning, review, and archival) for
 ## 1. Scope & Application
 
 This specification governs the production of **single-pass articles** for _The Productive Prompter_. Articles are standalone pieces written in one continuous draft cycle and delivered as clean, publication-ready manuscripts with no visible internal scaffolding.
+
+### 1.1 CLI Runtime and Model Selection
+
+- The canonical execution path is a repository CLI. GUI-, provider-, agent-, and model-specific flows are not normative dependencies.
+- At each task—intent clarification, research, planning, drafting, criticism, naturalization, verification, packaging, or publication—the CLI discovers the models configured and reachable in the current environment and chooses the best eligible model for that task.
+- Eligibility and ranking come from task requirements, required tools and context, operator-configured quality/privacy/locality/cost/latency constraints, and demonstrated gate performance—not a permanent provider or model preference.
+- If a selected model cannot clear its task gates after allowed repair, the CLI tries the next eligible model. If none pass, the workflow follows the defined hard-gate escalation path.
+- Model/provider/version choices are internal run metadata. Normative requirements and public article text remain model-agnostic.
+- The CLI executable and selection mechanism are implementation work; this section defines the binding runtime behavior they must satisfy.
+
+### 1.2 Minimal Seed and Intent Discovery
+
+- The MVP proof starts from an operator-written article seed of one paragraph or less. This deliberately sparse input is a test fixture, not a permanent maximum for future intake.
+- Preserve the raw seed verbatim as run evidence. Do not silently improve it, add scope, or treat inferred intent as operator-owned fact.
+- Before creating an Article Brief, identify the seed's explicit aim, likely audience, claims, assumptions, ambiguities, and missing context.
+- Start subject-appropriate intent research and ask focused follow-up questions where the answer could materially change the article's purpose, scope, position, evidence needs, or audience.
+- Present a candidate article intent, the research or evidence that shaped it, and the remaining unknowns. The operator reads, defines, and decides wherever the configured intent-confirmation policy requires human judgment.
+- Do not begin drafting until the intent-confirmation boundary has been satisfied. That boundary remains implementation work and must not be silently invented by an executing model.
 
 **Key behavior for public outputs:**
 - No internal labels or scaffolding in article text (no Device/Gate/Shape/Style Anchor/Critic Loop/Research Pass)
@@ -41,6 +68,13 @@ This specification governs the production of **single-pass articles** for _The P
 - Anthropomorphizing AI (e.g., "the model thinks/feels/wants")
 - Over-explaining obvious terms to the intended professional audience
 - Excessive rhetorical questions or forced metaphors unless explicitly requested in the Article Brief
+
+### 2.6 Final Prose Naturalization
+- After intent, facts, evidence, and structure are settled, apply the [Final Prose Naturalization Directive](../10-Final-Prose-Naturalization/Final-Prose-Naturalization-Directive.md) to the complete publication candidate.
+- Have the CLI select the best currently available eligible model for this editing task; do not bind the gate to a named model or provider.
+- Preserve meaning, facts, uncertainty, Markdown, links, citations, code, quotations, and required wording; add no new claims.
+- Remove formulaic AI-style clichés, canned transitions, inflated wording, repetitive rhetoric, generic corporate language, unnecessary polish, and generated-looking structure.
+- Re-run affected publication checks after any revision.
 
 ---
 
@@ -132,6 +166,7 @@ Every article must pass three sequential gates:
 
 ### Gate B — Silent Self-Check
 - Single silent pass completed (Voice, Focus, Evidence)
+- Final Prose Naturalization Directive applied; preservation contract passed
 - Final-line rule satisfied (verification or next action)
 - Natural rendering of planned behaviors (no activation headers)
 - Anti-redundancy check passed
@@ -148,12 +183,13 @@ Every article must pass three sequential gates:
 
 ## 9. Single-Pass Article Workflow
 
+0. **Intent Discovery:** Preserve the raw seed, perform subject-appropriate research, ask necessary follow-ups, and produce a candidate intent without silently deciding for the operator
 1. **Plan:** Create Article Brief defining scope, intent, device activations, and freshness expectations
 2. **Draft:** Write complete article in one pass following this Master Spec
-3. **Critic Loop:** Silently apply Voice, Focus, and Evidence checks; revise once
+3. **Critic Loop:** Silently apply Voice, Focus, Evidence, and final prose naturalization checks; revise failures
 4. **Research Pass (if triggered):** Update citations and verify freshness
-5. **Final QA:** Confirm all gates passed
-6. **References:** Compile consolidated APA references
+5. **Final QA:** Confirm all gates passed, including the Final Prose Naturalization Directive
+6. **References:** Compile consolidated references in the format required by the Brief
 
 **Reference:** See [Article-Process-Map.md](./Article-Process-Map.md) for detailed workflow.
 
@@ -187,6 +223,7 @@ Before finalizing any article, confirm:
 - [ ] Behaviors planned via device concepts rendered naturally; no activation headers
 - [ ] Reflowable formatting used for all tables/callouts
 - [ ] Silent self-check executed (Voice, Focus, Evidence)
+- [ ] Final prose naturalized without meaning, fact, citation, code, quotation, or formatting drift
 - [ ] Quality Gates A–C passed (internal)
 
 ---
@@ -200,6 +237,7 @@ Before finalizing any article, confirm:
 - **Device Catalog:** Defines available devices and formatting rules
 - **Evidence & IP Annex:** Specifies APA standards and dynamic freshness protocols
 - **Critic Loop:** Enforces quality checks silently before output
+- **Final Prose Naturalization Directive:** Defines the mandatory model-agnostic final style edit and preservation contract
 
 ---
 

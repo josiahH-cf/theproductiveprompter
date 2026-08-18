@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://theproductiveprompter.com/schemas/artifact.schema.json",
+  "title": "Article Flow Artifact",
+  "type": "object",
+  "required": ["artifact_schema_version", "artifact_id", "type", "path", "sha256", "byte_size", "producer", "inputs", "visibility", "created_at"],
+  "properties": {
+    "artifact_schema_version": {"const": "1.0.0"},
+    "artifact_id": {"type": "string"},
+    "type": {"type": "string"},
+    "path": {"type": "string"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "byte_size": {"type": "integer", "minimum": 0},
+    "producer": {"type": "object"},
+    "inputs": {"type": "array", "items": {"type": "string"}},
+    "derived_from": {"type": "array", "items": {"type": "string"}},
+    "visibility": {"enum": ["private", "public"]},
+    "created_at": {"type": "string", "format": "date-time"}
+  },
+  "additionalProperties": false
+}

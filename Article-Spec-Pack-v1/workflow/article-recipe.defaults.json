@@ -1,0 +1,43 @@
+{
+  "$schema": "../schemas/article-recipe.schema.json",
+  "recipe_version": "1.0.0",
+  "status": "defaults_only",
+  "archetype": null,
+  "reader_job": null,
+  "scope_boundary": null,
+  "length": {
+    "mode": "auto",
+    "target_words": null,
+    "stop_when": null
+  },
+  "opening": {
+    "strategy": null,
+    "reason": null
+  },
+  "ending": {
+    "strategy": null,
+    "reason": null
+  },
+  "summary": {
+    "policy": "auto",
+    "form": null
+  },
+  "narrative_person": "second",
+  "evidence_posture": "practical",
+  "citation_mode": "links",
+  "components": {
+    "diagram": "auto",
+    "checklist": "auto",
+    "mental_models": "optional",
+    "workflow_count": null,
+    "activation_header": "off"
+  },
+  "outline_candidates": [],
+  "selection_reason": null,
+  "recent_post_comparison": null,
+  "variation_budget": {
+    "macro_dimensions": 2,
+    "recent_post_comparison": true,
+    "experiment_seed": null
+  }
+}

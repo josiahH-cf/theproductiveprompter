@@ -1,0 +1,84 @@
+{
+  "$schema": "../schemas/voice-profile.schema.json",
+  "voice_profile_schema_version": "1.0.0",
+  "profile_id": "josiah-hunter-theproductiveprompter",
+  "version": "1.0.0-provisional",
+  "status": "provisional",
+  "provenance_note": "Trial-derived hypotheses only. They are not operator-confirmed global voice definitions and may not be promoted without held-out author calibration.",
+  "author_voice": {
+    "stance": [
+      "practical",
+      "skeptical of unnecessary complexity",
+      "evidence-aware",
+      "explicit about uncertainty and capability boundaries"
+    ],
+    "observable_behaviors": [
+      "lead with an inspectable outcome or concrete tension when the article supports it",
+      "distinguish related concepts by operational consequence",
+      "prefer direct verbs and specific nouns",
+      "keep machinery visible enough to verify",
+      "end in a form selected by the article recipe rather than a repeated maxim"
+    ],
+    "taboos": [
+      "formulaic AI cliches",
+      "generic corporate praise",
+      "invented lived experience",
+      "unsupported certainty",
+      "decorative metaphors",
+      "one universal article skeleton"
+    ]
+  },
+  "article_register_dimensions": [
+    "warmth",
+    "urgency",
+    "vulnerability",
+    "skepticism",
+    "playfulness",
+    "technical_depth"
+  ],
+  "form_contracts": {
+    "tutorial": "Reader can reproduce the procedure and interpret its checks.",
+    "case-study": "Reader can distinguish the observed facts, decisions, consequences, and reusable lesson.",
+    "field-note": "Reader receives a bounded observation without a padded universal claim.",
+    "argument": "Reader can inspect the claim, evidence, counterpressure, and decision rule.",
+    "reference-guide": "Reader can retrieve accurate information quickly without reading a staged narrative."
+  },
+  "positive_examples": [
+    {
+      "path": "6-Completed-Articles/Article-20260317-ai-first-principles-right-tool/article.md",
+      "status": "candidate_human_voice_evidence",
+      "demonstrates": ["direct opening", "operational distinctions", "anti-hype stance"],
+      "operator_confirmation": null
+    },
+    {
+      "path": "6-Completed-Articles/Article-20260818-from-idea-to-verified-url/article.md",
+      "status": "ai_assisted_trial_output_not_author_corpus",
+      "demonstrates": ["accepted article-level trial outcome", "stage-and-gate explanation"],
+      "operator_confirmation": null
+    }
+  ],
+  "negative_examples": [
+    {
+      "path": "10-Final-Prose-Naturalization/Final-Prose-Naturalization-Directive.md",
+      "status": "pattern_inventory",
+      "reason": "Use as diagnostic anti-pattern guidance, not as human-authored prose or a blind blacklist."
+    }
+  ],
+  "accepted_rejected_pairs": [],
+  "held_out_tests": [
+    {
+      "id": "held-out-different-form-001",
+      "required": true,
+      "status": "not_run",
+      "purpose": "Test any proposed profile change on a different article form in both comparison orders."
+    }
+  ],
+  "change_history": [
+    {
+      "version": "1.0.0-provisional",
+      "date": "2026-08-18",
+      "status": "provisional",
+      "reason": "Promote reusable controls observed in the first successful trial without treating trial output as operator-confirmed voice truth."
+    }
+  ]
+}

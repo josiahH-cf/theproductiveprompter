@@ -1,4 +1,13 @@
+---
+article_flow_document_status: voice-reference
+article_flow_authority: false
+article_flow_redirect: ../profiles/voice-profile.v1.json
+article_flow_removal_version: "3.0.0"
+---
+
 # Brand Pack (Author Compass)
+
+> Voice evidence only. Confirmed profile traits and article-register choices control v2 runs.
 
 **Purpose**  
 Define the brand voice, neutrality standards, and device policy for _The Productive Prompter_. This document establishes the foundational voice and relationship framework that applies to all articles.

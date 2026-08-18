@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://theproductiveprompter.com/schemas/conformance-receipt.schema.json",
+  "title": "Article Flow Conformance Receipt",
+  "type": "object",
+  "required": [
+    "conformance_receipt_schema_version",
+    "ok",
+    "host_kind",
+    "platform",
+    "python_executable",
+    "controller_version",
+    "workflow_version",
+    "commit",
+    "test_suite_revision",
+    "test_count_files",
+    "smoke_tests_publish",
+    "created_at"
+  ],
+  "properties": {
+    "conformance_receipt_schema_version": {"const": "1.0.0"},
+    "ok": {"type": "boolean"},
+    "host_kind": {"enum": ["wsl", "native-windows"]},
+    "platform": {"type": "string", "minLength": 1},
+    "python_executable": {"type": "string", "minLength": 1},
+    "controller_version": {"type": "string", "minLength": 1},
+    "workflow_version": {"type": "string", "minLength": 1},
+    "commit": {"type": "string", "minLength": 1},
+    "test_suite_revision": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "test_count_files": {"type": "integer", "minimum": 1},
+    "smoke_tests_publish": {"const": false},
+    "created_at": {"type": "string", "format": "date-time"}
+  },
+  "additionalProperties": false
+}

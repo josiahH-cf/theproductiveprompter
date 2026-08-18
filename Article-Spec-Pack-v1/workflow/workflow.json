@@ -1,0 +1,533 @@
+{
+  "$schema": "../schemas/workflow.schema.json",
+  "workflow_schema_version": "2.0.0",
+  "workflow_version": "2.0.0",
+  "authority": true,
+  "name": "The Productive Prompter article workflow",
+  "precedence": [
+    "run_overrides",
+    "approved_article_recipe",
+    "workflow_schema",
+    "house_policy",
+    "examples"
+  ],
+  "capability_boundary": "A model can participate only when its host can execute article-flow, call a configured local tool, or be invoked by a configured provider adapter.",
+  "gate_outcomes": [
+    "PASS",
+    "REPAIR",
+    "RETRY",
+    "ESCALATE",
+    "TERMINAL"
+  ],
+  "states": [
+    {
+      "id": "NEW",
+      "actor": "code",
+      "objective": "Create a collision-safe run and lock it to one workflow version.",
+      "required_inputs": [],
+      "output": "run.json",
+      "output_schema": "run.schema.json",
+      "side_effect_class": "local_reversible",
+      "gate": "G-RUN-IDENTITY",
+      "next_on_pass": "INTAKE",
+      "repair_state": "NEW",
+      "max_attempts": 1,
+      "timeout_seconds": 120,
+      "retry_policy": "bounded retry with declared repair state and transient backoff",
+      "escalation_condition": "Escalate after 1 unsuccessful attempt or when a required operator decision/capability is missing."
+    },
+    {
+      "id": "INTAKE",
+      "actor": "code",
+      "objective": "Preserve the operator's seed verbatim and record explicit constraints without interpretation.",
+      "required_inputs": [
+        "seed"
+      ],
+      "output": "artifacts/seed.txt",
+      "output_schema": "artifact.schema.json",
+      "side_effect_class": "local_reversible",
+      "gate": "G-SEED-PRESERVED",
+      "next_on_pass": "RESEARCH_PLAN",
+      "repair_state": "INTAKE",
+      "max_attempts": 1,
+      "timeout_seconds": 120,
+      "retry_policy": "bounded retry with declared repair state and transient backoff",
+      "escalation_condition": "Escalate after 1 unsuccessful attempt or when a required operator decision/capability is missing."
+    },
+    {
+      "id": "RESEARCH_PLAN",
+      "actor": "model",
+      "objective": "Identify intent-changing unknowns, claim risks, and a source strategy before research or drafting.",
+      "required_inputs": [
+        "seed"
+      ],
+      "output": "artifacts/research-plan.json",
+      "output_schema": "research-plan.schema.json",
+      "side_effect_class": "read_only_external",
+      "gate": "G-RESEARCH-PLAN",
+      "next_on_pass": "RESEARCH",
+      "repair_state": "RESEARCH_PLAN",
+      "max_attempts": 2,
+      "timeout_seconds": 900,
+      "retry_policy": "bounded retry with declared repair state and transient backoff",
+      "escalation_condition": "Escalate after 2 unsuccessful attempts or when a required operator decision/capability is missing."
+    },
+    {
+      "id": "RESEARCH",
+      "actor": "model",
+      "objective": "Gather direct, current-enough evidence and create a claim ledger without inventing citations.",
+      "required_inputs": [
+        "seed",
+        "research-plan"
+      ],
+      "output": "artifacts/claim-ledger.json",
+      "output_schema": "claim-ledger.schema.json",
+      "side_effect_class": "read_only_external",
+      "gate": "G-EVIDENCE-COVERAGE",
+      "next_on_pass": "INTENT_REVIEW",
+      "repair_state": "RESEARCH",
+      "max_attempts": 3,
+      "timeout_seconds": 900,
+      "retry_policy": "bounded retry with declared repair state and transient backoff",
+      "escalation_condition": "Escalate after 3 unsuccessful attempts or when a required operator decision/capability is missing."
+    },
+    {
+      "id": "INTENT_REVIEW",
+      "actor": "human_or_policy",
+      "objective": "Confirm or correct the proposed reader, purpose, scope, position, and unresolved assumptions according to the run policy.",
+      "required_inputs": [
+        "seed",
+        "claim-ledger"
+      ],
+      "output": "artifacts/intent.json",
+      "output_schema": "intent.schema.json",
+      "side_effect_class": "none",
+      "gate": "G-INTENT-FIDELITY",
+      "next_on_pass": "ARTICLE_RECIPE",
+      "repair_state": "INTAKE",
+      "max_attempts": 3,
+      "timeout_seconds": 86400,
+      "retry_policy": "bounded retry with declared repair state and transient backoff",
+      "escalation_condition": "Escalate after 3 unsuccessful attempts or when a required operator decision/capability is missing."
+    },
+    {
+      "id": "ARTICLE_RECIPE",
+      "actor": "model_or_human",
+      "objective": "Choose an article form that serves the reader job and differs from recent posts for a recorded reason.",
+      "required_inputs": [
+        "intent",
+        "claim-ledger",
+        "recent-article-history"
+      ],
+      "output": "artifacts/article-recipe.json",
+      "output_schema": "article-recipe.schema.json",
+      "side_effect_class": "none",
+      "gate": "G-RECIPE-FIT",
+      "next_on_pass": "BRIEF",
+      "repair_state": "ARTICLE_RECIPE",
+      "max_attempts": 2,
+      "timeout_seconds": 900,
+      "retry_policy": "bounded retry with declared repair state and transient backoff",
+      "escalation_condition": "Escalate after 2 unsuccessful attempts or when a required operator decision/capability is missing."
+    },
+    {
+      "id": "BRIEF",
+      "actor": "model",
+      "objective": "Bind intent, recipe, evidence, exclusions, and acceptance criteria into one article brief.",
+      "required_inputs": [
+        "intent",
+        "article-recipe",
+        "claim-ledger"
+      ],
+      "output": "artifacts/brief.json",
+      "output_schema": "brief.schema.json",
+      "side_effect_class": "none",
+      "gate": "G-BRIEF-ALIGNMENT",
+      "next_on_pass": "VOICE_PROBE",
+      "repair_state": "BRIEF",
+      "max_attempts": 2,
+      "timeout_seconds": 900,
+      "retry_policy": "bounded retry with declared repair state and transient backoff",
+      "escalation_condition": "Escalate after 2 unsuccessful attempts or when a required operator decision/capability is missing."
+    },
+    {
+      "id": "VOICE_PROBE",
+      "actor": "model_or_human",
+      "objective": "Compare short passages before drafting and record article-register guidance without promoting unconfirmed traits.",
+      "required_inputs": [
+        "brief",
+        "voice-profile",
+        "article-recipe"
+      ],
+      "output": "artifacts/voice-probe.json",
+      "output_schema": "voice-probe.schema.json",
+      "side_effect_class": "none",
+      "gate": "G-VOICE-PROBE",
+      "next_on_pass": "DRAFT",
+      "repair_state": "VOICE_PROBE",
+      "max_attempts": 2,
+      "timeout_seconds": 900,
+      "retry_policy": "bounded retry with declared repair state and transient backoff",
+      "escalation_condition": "Escalate after 2 unsuccessful attempts or when a required operator decision/capability is missing."
+    },
+    {
+      "id": "DRAFT",
+      "actor": "model",
+      "objective": "Write a complete article that follows the approved brief and recipe without adding unsupported claims.",
+      "required_inputs": [
+        "brief",
+        "article-recipe",
+        "claim-ledger",
+        "voice-probe",
+        "voice-profile"
+      ],
+      "output": "artifacts/draft.md",
+      "output_schema": "artifact.schema.json",
+      "side_effect_class": "none",
+      "gate": "G-DRAFT-COVERAGE",
+      "next_on_pass": "CLAIM_VERIFICATION",
+      "repair_state": "DRAFT",
+      "max_attempts": 3,
+      "timeout_seconds": 900,
+      "retry_policy": "bounded retry with declared repair state and transient backoff",
+      "escalation_condition": "Escalate after 3 unsuccessful attempts or when a required operator decision/capability is missing."
+    },
+    {
+      "id": "CLAIM_VERIFICATION",
+      "actor": "independent_model_and_code",
+      "objective": "Re-extract every externally checkable claim, verify it independently, and lock facts, dates, numbers, names, citations, and URLs.",
+      "required_inputs": [
+        "draft",
+        "claim-ledger"
+      ],
+      "output": "artifacts/verified-claim-ledger.json",
+      "output_schema": "claim-ledger.schema.json",
+      "side_effect_class": "read_only_external",
+      "gate": "G-CLAIMS-VERIFIED",
+      "next_on_pass": "EDIT",
+      "repair_state": "RESEARCH",
+      "max_attempts": 3,
+      "timeout_seconds": 900,
+      "retry_policy": "bounded retry with declared repair state and transient backoff",
+      "escalation_condition": "Escalate after 3 unsuccessful attempts or when a required operator decision/capability is missing."
+    },
+    {
+      "id": "EDIT",
+      "actor": "model",
+      "objective": "Edit and naturalize the article conservatively while keeping all locked fields unchanged.",
+      "required_inputs": [
+        "draft",
+        "verified-claim-ledger",
+        "voice-profile",
+        "article-recipe",
+        "naturalization-directive",
+        "locked-fields"
+      ],
+      "output": "artifacts/article.md",
+      "output_schema": "artifact.schema.json",
+      "side_effect_class": "none",
+      "gate": "G-NATURALIZATION",
+      "next_on_pass": "POST_EDIT_CLAIM_VERIFICATION",
+      "repair_state": "EDIT",
+      "max_attempts": 2,
+      "timeout_seconds": 900,
+      "retry_policy": "bounded retry with declared repair state and transient backoff",
+      "escalation_condition": "Escalate after 2 unsuccessful attempts or when a required operator decision/capability is missing."
+    },
+    {
+      "id": "POST_EDIT_CLAIM_VERIFICATION",
+      "actor": "independent_model_and_code",
+      "objective": "Re-extract every externally checkable claim from the edited article and verify that naturalization introduced no unsupported claim or evidence drift.",
+      "required_inputs": [
+        "article",
+        "verified-claim-ledger",
+        "article-recipe"
+      ],
+      "output": "artifacts/post-edit-claim-ledger.json",
+      "output_schema": "claim-ledger.schema.json",
+      "side_effect_class": "read_only_external",
+      "gate": "G-POST-EDIT-CLAIMS",
+      "next_on_pass": "EDITORIAL_QA",
+      "repair_state": "EDIT",
+      "max_attempts": 2,
+      "timeout_seconds": 900,
+      "retry_policy": "bounded retry with declared repair state and transient backoff",
+      "escalation_condition": "Escalate after 2 unsuccessful attempts or when a required operator decision/capability is missing."
+    },
+    {
+      "id": "EDITORIAL_QA",
+      "actor": "code_and_calibrated_evaluator",
+      "objective": "Separate hard integrity checks from soft editorial judgments and return targeted findings.",
+      "required_inputs": [
+        "article",
+        "brief",
+        "article-recipe",
+        "verified-claim-ledger",
+        "post-edit-claim-ledger"
+      ],
+      "output": "receipts/editorial-qa.json",
+      "output_schema": "editorial-assessment.schema.json",
+      "side_effect_class": "none",
+      "gate": "G-EDITORIAL-QA",
+      "next_on_pass": "PACKAGE",
+      "repair_state": "DRAFT",
+      "max_attempts": 3,
+      "timeout_seconds": 900,
+      "retry_policy": "bounded retry with declared repair state and transient backoff",
+      "escalation_condition": "Escalate after 3 unsuccessful attempts or when a required operator decision/capability is missing."
+    },
+    {
+      "id": "PACKAGE",
+      "actor": "code",
+      "objective": "Create one clean public package and one private reproducible archive without leaking internal receipts.",
+      "required_inputs": [
+        "article",
+        "brief",
+        "article-recipe",
+        "verified-claim-ledger",
+        "editorial-qa",
+        "post-edit-claim-ledger"
+      ],
+      "output": "package/package.json",
+      "output_schema": "package.schema.json",
+      "side_effect_class": "local_reversible",
+      "gate": "G-PACKAGE-INTEGRITY",
+      "next_on_pass": "PUBLISH_APPROVAL",
+      "repair_state": "PACKAGE",
+      "max_attempts": 2,
+      "timeout_seconds": 120,
+      "retry_policy": "bounded retry with declared repair state and transient backoff",
+      "escalation_condition": "Escalate after 2 unsuccessful attempts or when a required operator decision/capability is missing."
+    },
+    {
+      "id": "PUBLISH_APPROVAL",
+      "actor": "human_or_policy",
+      "objective": "Approve one target, exact package revision, and expiration immediately before publication.",
+      "required_inputs": [
+        "package",
+        "publish-plan"
+      ],
+      "output": "approvals/publish-approval.json",
+      "output_schema": "publication-receipt.schema.json",
+      "side_effect_class": "none",
+      "gate": "G-PUBLISH-APPROVAL",
+      "next_on_pass": "PUBLISH",
+      "repair_state": "PUBLISH_APPROVAL",
+      "max_attempts": 1,
+      "timeout_seconds": 86400,
+      "retry_policy": "bounded retry with declared repair state and transient backoff",
+      "escalation_condition": "Escalate after 1 unsuccessful attempt or when a required operator decision/capability is missing."
+    },
+    {
+      "id": "PUBLISH",
+      "actor": "code",
+      "objective": "Apply and optionally push only the approved publication plan once.",
+      "required_inputs": [
+        "package",
+        "publish-plan",
+        "publish-approval"
+      ],
+      "output": "receipts/publication.json",
+      "output_schema": "publication-receipt.schema.json",
+      "side_effect_class": "irreversible_external",
+      "gate": "G-PUBLISH-REVISION",
+      "next_on_pass": "LIVE_VERIFICATION",
+      "repair_state": "PUBLISH",
+      "max_attempts": 2,
+      "timeout_seconds": 120,
+      "retry_policy": "retry only after idempotency and target-state checks",
+      "escalation_condition": "Escalate after 2 unsuccessful attempts or when a required operator decision/capability is missing."
+    },
+    {
+      "id": "LIVE_VERIFICATION",
+      "actor": "code",
+      "objective": "Verify the exact rendered revision, metadata, navigation, links, feed, and sitemap without claiming search indexing.",
+      "required_inputs": [
+        "publication",
+        "package"
+      ],
+      "output": "receipts/live-verification.json",
+      "output_schema": "publication-receipt.schema.json",
+      "side_effect_class": "read_only_external",
+      "gate": "G-LIVE-REVISION",
+      "next_on_pass": "COMPLETE",
+      "repair_state": "PUBLISH",
+      "max_attempts": 4,
+      "timeout_seconds": 120,
+      "retry_policy": "bounded retry with declared repair state and transient backoff",
+      "escalation_condition": "Escalate after 4 unsuccessful attempts or when a required operator decision/capability is missing."
+    },
+    {
+      "id": "COMPLETE",
+      "actor": "code",
+      "objective": "Close the run with a verifiable live URL and immutable receipt chain.",
+      "required_inputs": [
+        "live-verification"
+      ],
+      "output": "run.json",
+      "output_schema": "run.schema.json",
+      "side_effect_class": "none",
+      "gate": "G-COMPLETE",
+      "next_on_pass": null,
+      "repair_state": "LIVE_VERIFICATION",
+      "max_attempts": 1,
+      "timeout_seconds": 120,
+      "retry_policy": "bounded retry with declared repair state and transient backoff",
+      "escalation_condition": "Escalate after 1 unsuccessful attempt or when a required operator decision/capability is missing."
+    },
+    {
+      "id": "TERMINAL",
+      "actor": "code",
+      "objective": "End safely without publishing when a non-recoverable condition is reached.",
+      "required_inputs": [],
+      "output": "run.json",
+      "output_schema": "run.schema.json",
+      "side_effect_class": "none",
+      "gate": null,
+      "next_on_pass": null,
+      "repair_state": null,
+      "max_attempts": 1,
+      "timeout_seconds": 120,
+      "retry_policy": "bounded retry with declared repair state and transient backoff",
+      "escalation_condition": "Escalate after 1 unsuccessful attempt or when a required operator decision/capability is missing."
+    }
+  ],
+  "gates": {
+    "hard": [
+      "G-RUN-IDENTITY",
+      "G-SEED-PRESERVED",
+      "G-RESEARCH-PLAN",
+      "G-EVIDENCE-COVERAGE",
+      "G-CLAIMS-VERIFIED",
+      "G-NATURALIZATION",
+      "G-POST-EDIT-CLAIMS",
+      "G-PACKAGE-INTEGRITY",
+      "G-PUBLISH-APPROVAL",
+      "G-PUBLISH-REVISION",
+      "G-LIVE-REVISION",
+      "G-COMPLETE"
+    ],
+    "soft": [
+      "G-INTENT-FIDELITY",
+      "G-RECIPE-FIT",
+      "G-BRIEF-ALIGNMENT",
+      "G-VOICE-PROBE",
+      "G-DRAFT-COVERAGE",
+      "G-EDITORIAL-QA"
+    ]
+  },
+  "rules": [
+    {
+      "id": "AF-PREC-001",
+      "level": "MUST",
+      "text": "Resolve conflicts by the declared precedence chain; examples never override active controls."
+    },
+    {
+      "id": "AF-PERSON-001",
+      "level": "MUST",
+      "text": "Select narrative person in the approved article recipe; no grammatical person is universal."
+    },
+    {
+      "id": "AF-LENGTH-001",
+      "level": "MUST",
+      "text": "Use a recipe target only as guidance and stop when the reader job is complete; house bands are never pass/fail gates."
+    },
+    {
+      "id": "AF-SHAPE-001",
+      "level": "MUST",
+      "text": "Do not require a universal article skeleton, workflow count, mental-model section, caution section, checklist, activation header, summary, or closing formula."
+    },
+    {
+      "id": "AF-CITATION-001",
+      "level": "MUST",
+      "text": "Choose citation mode per recipe and validate that mode; model memory is never a citation source."
+    },
+    {
+      "id": "AF-PACKAGE-001",
+      "level": "MUST",
+      "text": "Use article.md as the canonical private article file and docs/{slug}.html as the canonical public article file for this publication target."
+    },
+    {
+      "id": "AF-REPAIR-001",
+      "level": "MUST",
+      "text": "Use bounded, gate-specific repairs and escalate after attempt exhaustion."
+    },
+    {
+      "id": "AF-END-001",
+      "level": "MUST",
+      "text": "Select and evaluate an ending strategy in the article recipe instead of enforcing one closing formula."
+    },
+    {
+      "id": "AF-MATURITY-001",
+      "level": "MUST",
+      "text": "Compute maturity from conformance evidence; prose may not self-declare production readiness."
+    },
+    {
+      "id": "AF-EVIDENCE-001",
+      "level": "MUST",
+      "text": "Every material factual claim must be traceable, qualified, fresh enough, and rechecked after drafting and material edits."
+    },
+    {
+      "id": "AF-NATURALIZE-001",
+      "level": "MUST",
+      "text": "Naturalization may not alter locked claims, numbers, dates, names, citations, URLs, uncertainty, commitments, code, or quotations without reopening evidence verification."
+    },
+    {
+      "id": "AF-VOICE-001",
+      "level": "MUST",
+      "text": "Keep stable author voice, article register, and form contract separate; profile updates remain provisional until author-calibrated on held-out text."
+    },
+    {
+      "id": "AF-ROUTING-001",
+      "level": "MUST",
+      "text": "Route models by mandatory capability and task-specific evaluation; until calibrated scores exist, report and use the active capable host instead of claiming a best model."
+    },
+    {
+      "id": "AF-PUBLISH-001",
+      "level": "MUST",
+      "text": "Separate package, publication plan, scoped approval, execution, and exact live-revision verification."
+    },
+    {
+      "id": "AF-INDEXING-001",
+      "level": "MUST",
+      "text": "Keep published, accessible, represented for discovery, and indexed as distinct states."
+    },
+    {
+      "id": "AF-EVAL-001",
+      "level": "MUST",
+      "text": "Promote a model route or voice-profile change only from retained fixture results with required human calibration and canary evidence."
+    },
+    {
+      "id": "AF-LIFECYCLE-001",
+      "level": "MUST",
+      "text": "Corrections, refreshes, supersessions, and archival require a new scoped plan and must preserve revision history, intended URLs, redirects, navigation, and discovery surfaces."
+    },
+    {
+      "id": "AF-VERIFY-001",
+      "level": "MUST",
+      "text": "Verify claims in a fresh bounded context whose objective is independent support and correction, not defense of the draft; prefer a different calibrated route when one is eligible."
+    }
+  ],
+  "lifecycle_states": [
+    {
+      "id": "CORRECTION",
+      "objective": "Plan and publish a factual or editorial correction while retaining the prior revision and receipt chain.",
+      "requires_redirect_check": false
+    },
+    {
+      "id": "REFRESH",
+      "objective": "Reverify stale evidence and publish a new revision without silently changing historical receipts.",
+      "requires_redirect_check": false
+    },
+    {
+      "id": "SUPERSESSION",
+      "objective": "Replace the article intentionally, preserving its prior URL or an explicit redirect and visible history.",
+      "requires_redirect_check": true
+    },
+    {
+      "id": "ARCHIVAL",
+      "objective": "Remove an article from active surfaces while preserving the intended URL, redirect, and archive record.",
+      "requires_redirect_check": true
+    }
+  ]
+}
