@@ -892,6 +892,23 @@ a:focus {
     padding: var(--spacing-xl) 0;
 }
 
+.blog-section-intro {
+    max-width: 720px;
+    margin: calc(var(--spacing-md) * -0.5) 0 var(--spacing-lg);
+    color: var(--color-text-secondary);
+    font-size: 1.05rem;
+    line-height: 1.7;
+}
+
+.blog-shelf-heading {
+    margin: 0 0 var(--spacing-md);
+    color: var(--color-heading);
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
 .articles__list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -981,6 +998,13 @@ a:focus {
 .article-card__thumbnail-placeholder svg {
     width: 100%;
     height: 100%;
+}
+
+.article-card__thumbnail-placeholder--workflow {
+    width: min(160px, 55%);
+    height: auto;
+    aspect-ratio: 1;
+    opacity: 0.45;
 }
 
 .article-card:hover .article-card__thumbnail-placeholder {
@@ -1086,6 +1110,21 @@ a:focus {
     font-size: 1rem;
     line-height: 1.6;
     flex-grow: 1;
+}
+
+.article-card__cta {
+    align-self: flex-start;
+    margin-top: var(--spacing-xs);
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-bottom: 1px solid transparent;
+    transition: border-color var(--transition-fast);
+}
+
+.article-card__cta:hover {
+    border-bottom-color: var(--color-accent);
 }
 
 /* Category Filters */
@@ -1354,6 +1393,37 @@ a:focus {
     line-height: 1.8;
 }
 
+.article-header {
+    margin-bottom: 3rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(100, 255, 218, 0.18);
+}
+
+.article-header__eyebrow,
+.article-related__eyebrow {
+    margin-bottom: var(--spacing-xs) !important;
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.article-header h1 {
+    margin-bottom: var(--spacing-md);
+}
+
+.article-header__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
 .article-content h1,
 .article-content h2,
 .article-content h3,
@@ -1396,6 +1466,22 @@ a:focus {
 
 .article-content li {
     margin-bottom: 0.75rem;
+}
+
+.article-content .checklist-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    list-style: none;
+}
+
+.article-content .checklist-box {
+    flex: 0 0 auto;
+    width: 1rem;
+    height: 1rem;
+    margin-top: 0.45rem;
+    border: 1px solid var(--color-accent);
+    border-radius: 2px;
 }
 
 .article-content a {
@@ -1477,6 +1563,30 @@ a:focus {
     background-color: rgba(255, 255, 255, 0.02);
 }
 
+.article-related {
+    margin-top: 4rem;
+    padding: var(--spacing-md);
+    background: linear-gradient(135deg, rgba(100, 255, 218, 0.08), var(--color-bg-card));
+    border: 1px solid rgba(100, 255, 218, 0.28);
+    border-radius: var(--border-radius-lg);
+}
+
+.article-related h2 {
+    margin: 0 0 var(--spacing-sm);
+    padding: 0;
+    font-size: 1.45rem;
+}
+
+.article-related p {
+    margin-bottom: var(--spacing-sm);
+}
+
+.article-related a {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
 .loading-spinner {
     text-align: center;
     padding: 3rem;
@@ -1550,6 +1660,13 @@ a:focus {
 
 .footer__social-link:hover .social-icon {
     filter: drop-shadow(0 0 8px var(--color-accent));
+}
+
+.footer__social-link--text {
+    width: auto;
+    padding: 0 var(--spacing-xs);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
 }
 
 /* ===================================
@@ -1639,10 +1756,19 @@ a:focus {
     
     .article-card--featured {
         grid-template-columns: 1fr;
+        padding: var(--spacing-md);
     }
     
     .article-card--featured .article-card__thumbnail {
         min-height: 200px;
+    }
+
+    .article-card--featured .article-card__content {
+        padding: var(--spacing-sm) 0 0;
+    }
+
+    .article-card--featured .article-card__title {
+        font-size: 1.65rem;
     }
     
     .category-filters {
@@ -1790,6 +1916,7 @@ a:focus {
 .campaign-banner__actions {
     margin-top: var(--spacing-sm);
     display: flex;
+    flex-wrap: wrap;
     gap: var(--spacing-md);
 }
 

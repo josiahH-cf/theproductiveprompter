@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>The Productive Prompter</title>
+    <link>https://theproductiveprompter.com/docs/blog.html</link>
+    <description>Practical writing on AI workflows, prompting systems, evaluation, and publication design.</description>
+    <language>en-us</language>
+    <lastBuildDate>Tue, 18 Aug 2026 09:12:32 -0500</lastBuildDate>
+    <atom:link href="https://theproductiveprompter.com/feed.xml" rel="self" type="application/rss+xml"/>
+
+    <item>
+      <title>From Idea to Verified URL: Build a Blog Workflow That Still Sounds Like You</title>
+      <link>https://theproductiveprompter.com/docs/from-idea-to-verified-url.html</link>
+      <guid isPermaLink="true">https://theproductiveprompter.com/docs/from-idea-to-verified-url.html</guid>
+      <pubDate>Tue, 18 Aug 2026 09:12:32 -0500</pubDate>
+      <description>A practical guide to building an AI-assisted blog workflow with observable stages, decision gates, iterative voice calibration, and live publication verification.</description>
+      <author>josiah.hunter.it@gmail.com (Josiah Hunter)</author>
+      <category>Workflow design</category>
+      <category>Writing systems</category>
+    </item>
+
+    <item>
+      <title>31 Days of AI</title>
+      <link>https://theproductiveprompter.com/docs/31-days-of-ai.html</link>
+      <guid isPermaLink="true">https://theproductiveprompter.com/docs/31-days-of-ai.html</guid>
+      <pubDate>Wed, 31 Dec 2025 06:00:00 -0600</pubDate>
+      <description>The complete December 2025 series: 31 entries about practical AI use, prompting systems, evaluation, and workflow design.</description>
+      <author>josiah.hunter.it@gmail.com (Josiah Hunter)</author>
+      <category>Completed series</category>
+    </item>
+  </channel>
+</rss>
