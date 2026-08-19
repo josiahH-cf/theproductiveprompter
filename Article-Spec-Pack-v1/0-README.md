@@ -70,7 +70,7 @@ article-flow manifest check --against-worktree
 article-flow conformance
 ```
 
-Launcher health proves only that the command and canonical root resolve. Authoring health also requires specification integrity and an eligible execution route. Release health additionally requires a clean approved commit, current global commands, tests, and publication prerequisites.
+Launcher health proves only that the command and canonical root resolve. Authoring health also requires specification integrity and an eligible execution route. Release health additionally requires a clean approved commit, current global commands, the active native host's passing conformance receipt, and publication prerequisites. Run release health from both WSL and native Windows to prove both installations; neither host fabricates the other host's home directory.
 
 ## Voice and evidence
 
