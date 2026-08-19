@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any, Iterable, Iterator, Sequence
 
 
-CONTROLLER_VERSION = "2.1.0"
+CONTROLLER_VERSION = "2.1.1"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -3588,7 +3588,7 @@ def installed_launcher_smoke() -> dict[str, Any]:
         and bootstrap_result.returncode == 0
         and bootstrap.get("interface") == "local-global-command"
         and bootstrap.get("command") == "article-flow"
-        and bootstrap.get("start_command", [])[:2] == ["article-flow", "start"]
+        and bootstrap.get("start_command", [])[:2] == ["article-flow", "capture"]
     )
     return {
         "ok": ok,

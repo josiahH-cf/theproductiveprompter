@@ -535,6 +535,28 @@ class RunAndSmokeTests(TemporaryRuntime):
 
 
 class GlobalCommandTests(TemporaryRuntime):
+    def test_launcher_smoke_accepts_the_capture_bootstrap(self):
+        fake_home = Path(self.temp.name) / "launcher-home"
+        fake_runtime = Path(self.temp.name) / "launcher-runtime"
+        context = subprocess.CompletedProcess(args=[], returncode=0, stdout=json.dumps({
+            "controller_version": af.CONTROLLER_VERSION,
+            "workflow_version": af.workflow()["workflow_version"],
+            "spec_root": str(af.SPEC_ROOT),
+            "runtime_home": str(fake_runtime),
+        }), stderr="")
+        bootstrap = subprocess.CompletedProcess(args=[], returncode=0, stdout=json.dumps(af.bootstrap_payload()), stderr="")
+        patches = [
+            mock.patch.object(af, "runtime_home", return_value=fake_runtime),
+            mock.patch.object(af.subprocess, "run", side_effect=[context, bootstrap]),
+        ]
+        if os.name == "nt":
+            patches.append(mock.patch.object(af, "windows_user_root", return_value=fake_home))
+        else:
+            patches.append(mock.patch.object(Path, "home", return_value=fake_home))
+        with patches[0], patches[1], patches[2]:
+            result = af.installed_launcher_smoke()
+        self.assertTrue(result["ok"], result)
+
     def test_install_is_content_idempotent_and_drift_is_detected(self):
         fake_home = Path(self.temp.name) / "home"
         fake_windows = Path(self.temp.name) / "windows-user"

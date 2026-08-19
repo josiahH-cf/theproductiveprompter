@@ -2,8 +2,8 @@
   "manifest_schema_version": "2.0.0",
   "workflow_version": "2.0.0",
   "hash_algorithm": "sha256",
-  "generator_name_and_version": "article-flow 2.1.0",
-  "generated_at": "2026-08-19T09:43:05Z",
+  "generator_name_and_version": "article-flow 2.1.1",
+  "generated_at": "2026-08-19T09:52:02Z",
   "generated_from": "index",
   "files": [
     {
@@ -467,8 +467,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "a3efc8692aee846c509a195f693d58ba94f3a797c6070129db03ebd75b3c04ac",
-      "byte_size": 212490
+      "sha256": "8de7839715b662b25d988d1d87e216d92dbc328279afcbe58cb6920b3b859265",
+      "byte_size": 212492
     },
     {
       "path": "scripts/package_article.py",
@@ -491,8 +491,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "conformance",
-      "sha256": "a407fefebb8840b95c4b012db4979bba428a1f40b4bfe5063e052206f183affe",
-      "byte_size": 46603
+      "sha256": "13132695302a2ee941b555d5c33f8e1070daf77efa57f47b75963426ffc62c23",
+      "byte_size": 47807
     },
     {
       "path": "workflow/article-recipe.defaults.json",
