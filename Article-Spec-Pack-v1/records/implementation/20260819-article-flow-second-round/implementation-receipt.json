@@ -6,7 +6,7 @@
   "source_base_commit": "5bf45d373b13aa9912adea20ed1e22bc3c478655",
   "implementation_branch": "codex/finalize-article-flow-v1",
   "workflow_version": "2.0.0",
-  "controller_version": "2.1.0",
+  "controller_version": "2.1.1",
   "scope_decision": "Implement the smallest stable reusable article-flow improvements proved useful by the first live trial; preserve operator-owned judgment and defer platform-scale orchestration that is not needed for v1.",
   "implemented": [
     "A raw sentence or paragraph starts a resumable run through the canonical global command and remains visible in a compact run index.",
@@ -33,13 +33,13 @@
   "verification": {
     "wsl_unittest": {
       "command": "python3 -m unittest discover -s Article-Spec-Pack-v1/tests -v",
-      "result": "27 passed",
-      "elapsed_seconds": 162.2
+      "result": "28 passed",
+      "elapsed_seconds": 148.008
     },
     "native_windows_unittest": {
       "command": "python.exe -m unittest discover -s Article-Spec-Pack-v1/tests -v",
-      "result": "27 passed",
-      "elapsed_seconds": 11.89
+      "result": "28 passed",
+      "elapsed_seconds": 12.034
     },
     "workflow_document_check": "passed",
     "python_compile_check": "passed",

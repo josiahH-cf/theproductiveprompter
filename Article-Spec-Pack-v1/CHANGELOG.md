@@ -9,7 +9,7 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
-## August 19, 2026 — Article Flow 2.1 (controller 2.1.0)
+## August 19, 2026 — Article Flow 2.1 (controller 2.1.1)
 
 - Made `capture` the plain-language raw-idea entrypoint and added `list` as a compact index of seeds, resumable runs, canonical locations, and returned live links.
 - Added public-surface voice review for the article title and description, a narrow deterministic check for high-confidence formulaic display text, and `amend` so the operator can repair those fields without replaying completed research or drafting.
@@ -17,6 +17,7 @@ Complete record of all changes made during migration from chapter-oriented docum
 - Made repeated review of an unchanged approved artifact safe and allowed an operator to end a run at a hard gate without pretending the gate passed.
 - Added publish-capability preflight and one resumable human handoff when the active host cannot push. A handoff can advance only after the approved file hashes are present at the current remote publication-branch commit; exact live-site verification remains the final gate.
 - Added regression coverage for raw capture, findability, public metadata repair, targeted repairs, route recovery, inconclusive network transport, credential handoff, remote deployment proof, and continuation into live verification.
+- Controller 2.1.1 aligns the installed-host bootstrap proof with the new `capture` command and adds a cross-platform regression for that exact launcher contract.
 
 **Maturity note:** This release completes the lean reusable controller changes identified by the first real article trial. The author still owns journey scope, passage-level voice judgments, intent, recipe selection, proofreading, and publication approval. Those decisions are not inferred from a passing software suite.
 
