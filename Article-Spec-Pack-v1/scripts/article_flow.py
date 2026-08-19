@@ -1969,6 +1969,18 @@ def markdown_to_html(markdown: str) -> str:
         if in_code:
             code_lines.append(line)
             continue
+        stripped = line.strip()
+        if stripped in {"<details>", "</details>"} or (stripped.startswith("<summary>") and stripped.endswith("</summary>") and "<" not in stripped[len("<summary>"):-len("</summary>")]):
+            # Narrow allowlist: pass native disclosure wrappers through so evidence
+            # dropdowns render; all other raw HTML remains escaped as before.
+            flush_paragraph()
+            close_list()
+            if stripped.startswith("<summary>"):
+                inner = stripped[len("<summary>"):-len("</summary>")]
+                output.append(f"<summary>{markdown_inline(inner)}</summary>")
+            else:
+                output.append(stripped)
+            continue
         heading = re.match(r"^(#{1,6})\s+(.+)$", line)
         if heading:
             flush_paragraph()

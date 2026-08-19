@@ -5,11 +5,18 @@
     <link>https://theproductiveprompter.com/docs/blog.html</link>
     <description>Practical writing on AI workflows, prompting systems, evaluation, and publication design.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 18 Aug 2026 09:12:32 -0500</lastBuildDate>
+    <lastBuildDate>Tue, 18 Aug 2026 12:00:00 -0500</lastBuildDate>
     <atom:link href="https://theproductiveprompter.com/feed.xml" rel="self" type="application/rss+xml"/>
 
     <!-- ARTICLE_FLOW_FEED_START -->
-    <item>
+<item>
+  <title>The Machine Did Exactly What You Asked</title>
+  <link>https://theproductiveprompter.com/docs/the-machine-did-exactly-what-you-asked.html</link>
+  <guid isPermaLink="true">https://theproductiveprompter.com/docs/the-machine-did-exactly-what-you-asked.html</guid>
+  <pubDate>Tue, 18 Aug 2026 12:00:00 -0500</pubDate>
+  <description>A very concrete goal is a contract. Three sandboxed tests - each pre-registered with a way to fail - show what the letter of a goal delivers, and what it overrides.</description>
+</item>
+<item>
       <title>From Idea to Verified URL: Build a Blog Workflow That Still Sounds Like You</title>
       <link>https://theproductiveprompter.com/docs/from-idea-to-verified-url.html</link>
       <guid isPermaLink="true">https://theproductiveprompter.com/docs/from-idea-to-verified-url.html</guid>
@@ -19,7 +26,7 @@
       <category>Workflow design</category>
       <category>Writing systems</category>
     </item>
-    <!-- ARTICLE_FLOW_FEED_END -->
+<!-- ARTICLE_FLOW_FEED_END -->
 
     <item>
       <title>31 Days of AI</title>
