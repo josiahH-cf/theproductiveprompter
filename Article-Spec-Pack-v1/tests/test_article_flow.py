@@ -79,7 +79,7 @@ class AuthorityTests(unittest.TestCase):
         self.assertEqual(code, af.EXIT_OK)
         self.assertEqual(payload["interface"], "local-global-command")
         self.assertEqual(payload["command"], "article-flow")
-        self.assertEqual(payload["start_command"][:2], ["article-flow", "start"])
+        self.assertEqual(payload["start_command"][:2], ["article-flow", "capture"])
         self.assertIn("local command execution", payload["capability_requirement"])
         self.assertFalse((SPEC_ROOT / "adapters" / "start-article" / "SKILL.md").exists())
         self.assertFalse((SPEC_ROOT / "adapters" / "registry.json").exists())
@@ -249,7 +249,7 @@ class RunAndSmokeTests(TemporaryRuntime):
         self.next(run_id)
         self.write_submission(run_id, "POST_EDIT_CLAIM_VERIFICATION", ledger)
         self.next(run_id)
-        dimensions = {key: {} for key in ["intent_fidelity", "clarity_utility", "voice_fit", "naturalness", "structural_interest", "proportional_length"]}
+        dimensions = {key: {} for key in ["intent_fidelity", "clarity_utility", "voice_fit", "naturalness", "public_surface_voice", "structural_interest", "proportional_length"]}
         self.write_submission(run_id, "EDITORIAL_QA", {"editorial_assessment_schema_version": "1.0.0", "run_id": run_id, "outcome": "PASS", "dimensions": dimensions, "findings": [], "calibration_status": "uncalibrated-advisory"})
         self.gate(run_id, "G-EDITORIAL-QA")
         directory, run = af.load_run(run_id)
@@ -264,6 +264,168 @@ class RunAndSmokeTests(TemporaryRuntime):
         code, status = call(af.command_status, run_id=None)
         self.assertEqual(code, af.EXIT_OK)
         self.assertEqual(status["run_id"], second)
+
+    def test_capture_and_list_make_raw_ideas_easy_to_find(self):
+        stream = io.StringIO()
+        with contextlib.redirect_stdout(stream):
+            code = af.main(["capture", "A sentence that could become an article.", "--json"])
+        self.assertEqual(code, af.EXIT_OK)
+        captured = json.loads(stream.getvalue())
+        code, listing = call(af.command_list)
+        self.assertEqual(code, af.EXIT_OK)
+        self.assertEqual(listing["count"], 1)
+        self.assertEqual(listing["runs"][0]["run_id"], captured["run_id"])
+        self.assertEqual(listing["runs"][0]["seed_preview"], "A sentence that could become an article.")
+        self.assertEqual(Path(listing["captured_material_root"]), af.runs_root())
+
+    def test_public_display_text_is_linted_and_can_be_amended_without_rewind(self):
+        run_id = self.walk_to_package()
+        code, amended = call(af.command_amend, run_id=run_id, title=None, description="At its core, this is not a magic spell.")
+        self.assertEqual(code, af.EXIT_OK)
+        self.assertEqual(amended["state"], "PACKAGE")
+        with self.assertRaises(af.FlowError) as caught:
+            call(af.command_package, run_id=run_id)
+        self.assertEqual(caught.exception.code, af.EXIT_INTEGRITY)
+        self.assertIn("public_surface_voice", {item["criterion"] for item in caught.exception.details})
+        call(af.command_amend, run_id=run_id, title=None, description="A bounded test of the article workflow.")
+        code, packaged = call(af.command_package, run_id=run_id)
+        self.assertEqual(code, af.EXIT_OK, packaged)
+
+    def test_review_regate_same_file_terminal_and_targeted_repairs_are_safe(self):
+        run_id = self.start()
+        directory, run = af.load_run(run_id)
+        af.transition(directory, run, "INTENT_REVIEW", "test", "exercise unchanged approval")
+        candidate = directory / "artifacts" / "approved-intent.json"
+        af.write_json(candidate, {"intent_schema_version": "1.0.0", "run_id": run_id})
+        af.record_artifact(directory, run, candidate, "intent-candidate", {"actor": "test"})
+        code, gated = call(af.command_gate, run_id=run_id, gate_id="G-INTENT-FIDELITY", outcome="PASS")
+        self.assertEqual(code, af.EXIT_OK, gated)
+        self.assertEqual(gated["state"], "ARTICLE_RECIPE")
+        directory, run = af.load_run(run_id)
+        af.transition(directory, run, "CLAIM_VERIFICATION", "test", "exercise safe terminal")
+        run["attempts"]["CLAIM_VERIFICATION"] = 3
+        run["route_failures"]["CLAIM_VERIFICATION"] = {"only:route": 2}
+        af.save_run(directory, run)
+        code, repaired = call(af.command_repair, run_id=run_id, gate_id="G-CLAIMS-VERIFIED", finding="Retry only the failed verification.")
+        self.assertEqual(code, af.EXIT_OK, repaired)
+        _, run = af.load_run(run_id)
+        self.assertEqual(run["attempts"]["CLAIM_VERIFICATION"], 0)
+        self.assertNotIn("CLAIM_VERIFICATION", run["route_failures"])
+        code, ended = call(af.command_gate, run_id=run_id, gate_id="G-CLAIMS-VERIFIED", outcome="TERMINAL")
+        self.assertEqual(code, af.EXIT_OK, ended)
+        self.assertEqual(ended["state"], "TERMINAL")
+        self.assertEqual(af.state_definition("CLAIM_VERIFICATION")["repair_state"], "CLAIM_VERIFICATION")
+        self.assertEqual(af.state_definition("EDITORIAL_QA")["repair_state"], "EDIT")
+
+    def test_only_route_verification_discloses_its_independence_limit(self):
+        run_id = self.start()
+        directory, run = af.load_run(run_id)
+        draft = directory / "artifacts" / "draft.md"
+        draft.write_text("# Draft\n", encoding="utf-8")
+        af.record_artifact(directory, run, draft, "draft", {
+            "actor": "model_or_host",
+            "route": {"provider": "only", "model": "route"},
+        })
+        ledger = directory / "artifacts" / "claim-ledger.json"
+        af.write_json(ledger, {"claim_ledger_schema_version": "1.0.0", "run_id": run_id, "generated_at": af.utc_now(), "claims": []})
+        af.record_artifact(directory, run, ledger, "claim-ledger", {"actor": "model_or_host"})
+        af.transition(directory, run, "CLAIM_VERIFICATION", "test", "exercise disclosed same-route fallback")
+        only_route = {
+            "provider": "only", "model": "route", "model_version": "1", "kind": "agent-hosted",
+            "eligible": True, "evaluation_score": None, "exclusions": [],
+        }
+        selection = {
+            "stage": "CLAIM_VERIFICATION", "required_capabilities": ["research"],
+            "candidates": [only_route], "chosen": only_route, "fallbacks": [],
+            "reason": "the only eligible route", "configuration_path": "test",
+        }
+        with mock.patch.object(af, "route_candidates", return_value=selection):
+            _, packet = af.task_packet(directory, run)
+        self.assertTrue(packet["selected_route"]["independence_waiver"]["required"])
+
+    def test_transport_impossible_is_not_misreported_as_a_broken_source(self):
+        run_id = self.start()
+        directory, run = af.load_run(run_id)
+        run["state"] = "CLAIM_VERIFICATION"
+        ledger = self.runtime / "transport-ledger.json"
+        ledger.write_text(json.dumps({
+            "claim_ledger_schema_version": "1.0.0",
+            "run_id": run_id,
+            "generated_at": af.utc_now(),
+            "claims": [{
+                "claim_id": "C1", "exact_claim": "A supported claim.", "class": "fact", "risk": "medium",
+                "source_tier": "primary", "source_url_or_local_id": "https://example.com/source",
+                "source_title_and_publisher": "Example", "exact_locator_or_supporting_excerpt": "Supporting text",
+                "checked_at": af.utc_now(), "freshness_horizon": "one year", "contradiction_status": "none_found",
+                "allowed_wording": "A supported claim.", "confidence": 0.8, "disposition": "use"
+            }],
+        }), encoding="utf-8")
+        with mock.patch.object(af, "fetch_url", return_value=(0, b"", {})):
+            outcome, findings = af.automatic_gate(directory, run, "CLAIM_VERIFICATION", ledger)
+        self.assertEqual(outcome, "PASS", findings)
+        self.assertNotIn("source_resolution", {item["criterion"] for item in findings})
+
+    def test_publish_preflight_creates_one_handoff_and_attestation_resumes(self):
+        run_id = self.start()
+        directory, run = af.load_run(run_id)
+        fake_repo = Path(self.temp.name) / "publication-repo"
+        (fake_repo / "docs").mkdir(parents=True)
+        (fake_repo / "index.html").write_text("index", encoding="utf-8")
+        subprocess.run(["git", "init", "-q", str(fake_repo)], check=True)
+        subprocess.run(["git", "-C", str(fake_repo), "config", "user.email", "test@example.com"], check=True)
+        subprocess.run(["git", "-C", str(fake_repo), "config", "user.name", "Test"], check=True)
+        subprocess.run(["git", "-C", str(fake_repo), "add", "index.html"], check=True)
+        subprocess.run(["git", "-C", str(fake_repo), "commit", "-qm", "base"], check=True)
+        base_commit = subprocess.check_output(["git", "-C", str(fake_repo), "rev-parse", "HEAD"], text=True).strip()
+        fake_remote = Path(self.temp.name) / "publication-remote.git"
+        subprocess.run(["git", "init", "-q", "--bare", str(fake_remote)], check=True)
+        subprocess.run(["git", "-C", str(fake_repo), "remote", "add", "origin", str(fake_remote)], check=True)
+        subprocess.run(["git", "-C", str(fake_repo), "push", "-q", "origin", "HEAD:main"], check=True)
+        revision = "a" * 64
+        af.write_json(directory / "package" / "package.json", {"package_revision": revision, "public_files": []})
+        published_hash = af.sha256_path(fake_repo / "index.html")
+        plan = {
+            "run_id": run_id,
+            "target": "theproductiveprompter",
+            "base_commit": base_commit,
+            "package_revision": revision,
+            "changes": [{"path": "index.html", "current_sha256": published_hash, "planned_sha256": published_hash, "action": "modify"}],
+        }
+        plan_path = directory / "publication" / "plan.json"
+        af.write_json(plan_path, plan)
+        approval_id = "AP-test"
+        approval = {
+            "publication_receipt_schema_version": "1.0.0", "run_id": run_id, "target": "theproductiveprompter",
+            "package_revision": revision, "approval_id": approval_id, "plan_sha256": af.sha256_path(plan_path),
+            "expires_at": "2099-01-01T00:00:00Z", "status": "APPROVED", "commit": None, "url": None,
+            "checks": [], "created_at": af.utc_now(),
+        }
+        approval_path = directory / "approvals" / f"{approval_id}.json"
+        af.write_json(approval_path, approval)
+        af.record_artifact(directory, run, approval_path, "publish-approval", {"actor": "operator"})
+        af.transition(directory, run, "PUBLISH", "test", "exercise capability handoff")
+        with (
+            mock.patch.dict(os.environ, {"ARTICLE_FLOW_TEST_NO_PUBLISH": ""}, clear=False),
+            mock.patch.object(af, "publication_repo_root", return_value=fake_repo),
+            mock.patch.object(af, "publication_push_preflight", return_value={"ok": False, "reason": "no credentials"}),
+        ):
+            code, handoff = call(af.command_publish_execute, run_id=run_id, approval=approval_id, commit=True, push=True)
+            self.assertEqual(code, af.EXIT_WAITING, handoff)
+            self.assertEqual(handoff["action"], "human_action")
+            self.assertTrue(Path(handoff["handoff"]).is_file())
+            _, current = af.load_run(run_id)
+            action = af.next_state_payload(directory, current)
+            self.assertEqual(action["action"], "human_action")
+            (fake_repo / "local-only.txt").write_text("not deployed", encoding="utf-8")
+            subprocess.run(["git", "-C", str(fake_repo), "add", "local-only.txt"], check=True)
+            subprocess.run(["git", "-C", str(fake_repo), "commit", "-qm", "local only"], check=True)
+            local_only_commit = subprocess.check_output(["git", "-C", str(fake_repo), "rev-parse", "HEAD"], text=True).strip()
+            with self.assertRaises(af.FlowError) as caught:
+                call(af.command_deployment_attest, run_id=run_id, remote_rev=local_only_commit)
+            self.assertEqual(caught.exception.code, af.EXIT_INTEGRITY)
+            code, attested = call(af.command_deployment_attest, run_id=run_id, remote_rev=base_commit)
+        self.assertEqual(code, af.EXIT_OK, attested)
+        self.assertEqual(attested["state"], "LIVE_VERIFICATION")
 
     def test_task_packet_is_complete_and_schema_rejects_hidden_context(self):
         run_id = self.start()

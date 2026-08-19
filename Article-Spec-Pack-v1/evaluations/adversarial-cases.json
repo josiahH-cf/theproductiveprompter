@@ -21,6 +21,12 @@
     {"id": "dirty-worktree", "assertion": "Protected drift blocks package and any dirty checkout blocks publication execution."},
     {"id": "update-drift", "assertion": "A stale global command reports its exact repair command."},
     {"id": "run-collision", "assertion": "Similar seeds receive distinct run IDs, directories, locks, and logs."},
-    {"id": "metrics-gaming", "assertion": "A model score cannot promote a route when human calibration falls or is absent."}
+    {"id": "metrics-gaming", "assertion": "A model score cannot promote a route when human calibration falls or is absent."},
+    {"id": "idea-friction", "assertion": "One unstructured sentence or paragraph is preserved verbatim, starts a resumable run, and remains findable without reconstructing context."},
+    {"id": "public-surface-voice", "assertion": "The public title and description receive voice review and can be repaired without replaying completed research or drafting."},
+    {"id": "repair-dead-end", "assertion": "An explicit targeted repair clears exhausted counters for that stage without erasing completed upstream work."},
+    {"id": "single-route-dead-end", "assertion": "When no independent verifier exists, the only eligible route can continue only with an explicit independence limitation."},
+    {"id": "transport-misdiagnosis", "assertion": "A failed verification transport is not reported as evidence that the cited source itself is broken."},
+    {"id": "local-commit-publication-illusion", "assertion": "A local commit cannot satisfy a publication handoff unless it is the current remote publication-branch head and every planned public blob matches."}
   ]
 }

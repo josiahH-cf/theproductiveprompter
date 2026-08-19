@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any, Iterable, Iterator, Sequence
 
 
-CONTROLLER_VERSION = "2.0.8"
+CONTROLLER_VERSION = "2.1.0"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -54,12 +54,13 @@ def bootstrap_payload() -> dict[str, Any]:
         "workflow_version": workflow()["workflow_version"],
         "action": "request_seed",
         "question": SEED_QUESTION,
-        "start_command": ["article-flow", "start", "--seed", "<verbatim operator seed>", "--json"],
+        "start_command": ["article-flow", "capture", "<verbatim operator seed>", "--json"],
         "protocol": [
             "Preserve the operator's seed verbatim when replacing the placeholder in start_command.",
             "Run only exact command arrays returned by the controller in next_command, command, submission_command, or approval_command fields.",
             "For perform_task, read only task_packet, create only expected_output, then run submission_command.",
             "For human_decision, show the controller's question and wait; never run approval_command without the operator's confirmed answer.",
+            "For human_action, show the controller's single handoff and wait for the operator or a credentialed host to complete it.",
             "Stop on complete, terminal, or an unresolved capability or decision.",
         ],
         "capability_requirement": "This interface requires local command execution. A cloud-only chat without access to this machine cannot run it.",
@@ -98,6 +99,33 @@ EXIT_USAGE = 2
 EXIT_WAITING = 10
 EXIT_INTEGRITY = 20
 EXIT_APPROVAL = 30
+
+SURFACE_PROSE_PATTERNS = (
+    "not a magic spell",
+    "at its core",
+    "here's the thing",
+    "the key takeaway",
+    "it's important to note",
+    "it's worth noting",
+    "in today's world",
+    "in an ever-evolving",
+    "let's unpack",
+    "let's explore",
+    "delve into",
+    "dive into",
+    "game-changer",
+    "unlock the power",
+    "harness the power",
+    "seamless",
+    "robust and scalable",
+    "holistic approach",
+    "actionable insights",
+    "now more than ever",
+    "the possibilities are endless",
+    "at the end of the day",
+    "in conclusion",
+    "the bottom line",
+)
 
 
 class FlowError(RuntimeError):
@@ -1088,6 +1116,21 @@ def task_packet(directory: Path, run: dict[str, Any]) -> tuple[Path, dict[str, A
                 route["chosen"] = replacement
                 route["fallbacks"] = [prior_chosen, *[item for item in route.get("fallbacks", []) if (item.get("provider"), item.get("model")) != (replacement.get("provider"), replacement.get("model"))]]
                 route["reason"] += "; selected an eligible route independent from the producer of the artifact being verified"
+            elif not alternatives and (route["chosen"].get("provider"), route["chosen"].get("model")) == prior_key:
+                route["independence_waiver"] = {
+                    "required": True,
+                    "reason": "No second eligible route is available; repeat verification on the only route and disclose that limitation.",
+                }
+                route["reason"] += "; only-route verification is allowed with an explicit independence waiver"
+    if route.get("chosen") is None and excluded and state in {"CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION"}:
+        unrestricted = route_candidates(state)
+        if unrestricted.get("chosen"):
+            route = unrestricted
+            route["independence_waiver"] = {
+                "required": True,
+                "reason": "Every configured route reached the retry threshold; the only available route may retry with the limitation disclosed.",
+            }
+            route["reason"] += "; exhausted-route retry is allowed with an explicit independence waiver"
     if route.get("chosen") is None:
         run["status"] = "BLOCKED"
         append_event(directory, run, "ESCALATION", "controller", {
@@ -1481,7 +1524,7 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
                     source = str(claim.get("source_url_or_local_id") or "")
                     if state in {"CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION"} and source.startswith(("http://", "https://")):
                         status, _, _ = fetch_url(source, timeout=15)
-                        if not (200 <= status < 400 or status in {401, 403, 429, 999}):
+                        if not (200 <= status < 400 or status in {0, 401, 403, 429, 999}):
                             findings.append({"criterion": "source_resolution", "artifact": str(submission), "location": str(claim.get("claim_id")), "finding": f"Source URL did not resolve during independent verification (HTTP {status}).", "repair_instruction": "Repair the source, use another direct source, qualify/omit, or escalate."})
         if state == "VOICE_PROBE":
             candidates = [str(item.get("candidate_id")) for item in value.get("candidates", []) if isinstance(item, dict)]
@@ -1648,6 +1691,20 @@ def next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
         save_run(directory, run)
         return {"action": "human_decision", "run_id": run["run_id"], "state": state, "question": "Approve this exact publication target and package revision before execution?", "plan": str(plan), "approval_command": ["article-flow", "gate", run["run_id"], "G-PUBLISH-APPROVAL", "--outcome", "PASS"]}
     if state == "PUBLISH":
+        handoff = artifact_path(directory, run, "publication-handoff")
+        if handoff and handoff.is_file():
+            handoff_value = load_json(handoff)
+            run["status"] = "WAITING_HUMAN"
+            save_run(directory, run)
+            return {
+                "action": "human_action",
+                "run_id": run["run_id"],
+                "state": state,
+                "question": "Publishing needs a credentialed local host. Complete the one handoff, then run the attestation command.",
+                "handoff": str(handoff),
+                "retry_command": handoff_value["retry_command"],
+                "attestation_command": handoff_value["attestation_command"],
+            }
         return {"action": "run_command", "run_id": run["run_id"], "state": state, "command": ["article-flow", "publish", "--execute", run["run_id"], "--approval", "APPROVAL_ID", "--commit", "--push"]}
     if state == "LIVE_VERIFICATION":
         return {"action": "run_command", "run_id": run["run_id"], "state": state, "command": ["article-flow", "verify-live", run["run_id"]]}
@@ -1736,10 +1793,60 @@ def latest_run_id() -> str:
     return candidates[0].name
 
 
+def run_summary(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
+    seed_path = artifact_path(directory, run, "seed")
+    seed = seed_path.read_text(encoding="utf-8") if seed_path and seed_path.is_file() else ""
+    live = json_artifact(directory, run, "live-verification") or {}
+    return {
+        "run_id": run["run_id"],
+        "created_at": run["created_at"],
+        "updated_at": run["updated_at"],
+        "state": run["state"],
+        "status": run["status"],
+        "seed_preview": re.sub(r"\s+", " ", seed).strip()[:180],
+        "live_url": live.get("url"),
+        "run_directory": str(directory),
+    }
+
+
+def command_list(args: argparse.Namespace) -> int:
+    summaries = []
+    for path in sorted(runs_root().glob("AF-*"), key=lambda item: (item.stat().st_mtime_ns, item.name), reverse=True):
+        if not path.is_dir() or not (path / "run.json").is_file():
+            continue
+        try:
+            directory, run = load_run(path.name)
+        except FlowError:
+            continue
+        summaries.append(run_summary(directory, run))
+    payload = {
+        "ok": True,
+        "count": len(summaries),
+        "process_root": str(SPEC_ROOT),
+        "captured_material_root": str(runs_root()),
+        "published_material_root": str((publication_repo_root() or REPO_ROOT) / "docs"),
+        "runs": summaries,
+    }
+    emit(payload, args.json)
+    return EXIT_OK
+
+
 def command_status(args: argparse.Namespace) -> int:
     selected_run_id = args.run_id or latest_run_id()
     directory, run = load_run(selected_run_id)
-    payload = {**run, "run_directory": str(directory), "event_log_integrity": True, "derived_state": run["state"]}
+    compatibility_warning = None
+    if run.get("controller_version") != CONTROLLER_VERSION:
+        compatibility_warning = (
+            f"Run was created by article-flow {run.get('controller_version')}; "
+            f"the active controller is {CONTROLLER_VERSION}. Continue only through commands returned by the active controller."
+        )
+    payload = {
+        **run,
+        "run_directory": str(directory),
+        "event_log_integrity": True,
+        "derived_state": run["state"],
+        "compatibility_warning": compatibility_warning,
+    }
     emit(payload, args.json)
     return EXIT_OK
 
@@ -1809,6 +1916,16 @@ def command_submit(args: argparse.Namespace) -> int:
             payload = {"ok": False, "outcome": outcome, "state": run["state"], "findings": findings, "repair_command": ["article-flow", "repair", run["run_id"], definition["gate"]]}
             emit(payload, args.json)
             return EXIT_FAILED
+        if packet_route:
+            key = f"{packet_route.get('provider')}:{packet_route.get('model')}"
+            stage_failures = run.setdefault("route_failures", {}).setdefault(args.stage, {})
+            prior_failures = int(stage_failures.pop(key, 0))
+            if prior_failures:
+                append_event(directory, run, "MODEL_ROUTE_RECOVERED", "controller", {
+                    "state": args.stage,
+                    "route": packet_route,
+                    "cleared_failure_count": prior_failures,
+                })
         if args.stage in REVIEW_STATES:
             run["status"] = "WAITING_HUMAN"
             save_run(directory, run)
@@ -1831,7 +1948,7 @@ def command_gate(args: argparse.Namespace) -> int:
         raise FlowError(f"Gate {args.gate_id} does not control current state {run['state']} (expected {expected_gate})")
     if args.outcome not in workflow()["gate_outcomes"]:
         raise FlowError(f"Invalid gate outcome: {args.outcome}")
-    if gate_class(args.gate_id) == "hard" and args.gate_id != "G-PUBLISH-APPROVAL":
+    if gate_class(args.gate_id) == "hard" and args.gate_id != "G-PUBLISH-APPROVAL" and args.outcome != "TERMINAL":
         raise FlowError(f"Hard gate {args.gate_id} is code-owned and cannot be manually passed")
     with run_lock(directory, run):
         findings = []
@@ -1885,13 +2002,23 @@ def command_gate(args: argparse.Namespace) -> int:
                 value["operator_selection"] = {"candidate_id": args.selection, "reason": args.feedback, "confirmed_at": utc_now()}
                 write_json(approved_path, value)
             else:
-                shutil.copy2(candidate_path, approved_path)
+                same_file = candidate_path.resolve() == approved_path.resolve()
+                if not same_file and approved_path.exists():
+                    try:
+                        same_file = candidate_path.samefile(approved_path)
+                    except OSError:
+                        same_file = False
+                if not same_file:
+                    shutil.copy2(candidate_path, approved_path)
             record_artifact(directory, run, approved_path, approved_type, {"actor": "operator", "decision": "confirmed"})
         write_gate_receipt(directory, run, args.gate_id, args.outcome, findings, {"type": "human", "identity": "operator"}, definition.get("repair_state"))
         if args.outcome == "PASS":
             transition(directory, run, definition["next_on_pass"], "operator", f"Operator confirmed {args.gate_id}")
         elif args.outcome == "REPAIR":
-            transition(directory, run, definition["repair_state"], "operator", args.finding or "Operator requested repair")
+            repair_state = definition["repair_state"]
+            run.setdefault("attempts", {})[repair_state] = 0
+            run.setdefault("route_failures", {}).pop(repair_state, None)
+            transition(directory, run, repair_state, "operator", args.finding or "Operator requested repair")
         elif args.outcome == "TERMINAL":
             transition(directory, run, "TERMINAL", "operator", args.finding or "Operator ended run")
         else:
@@ -1915,6 +2042,8 @@ def command_repair(args: argparse.Namespace) -> int:
         raise FlowError(f"No repair state declared for {run['state']}")
     with run_lock(directory, run):
         append_event(directory, run, "REPAIR", "operator_or_controller", {"gate_id": args.gate_id, "finding": args.finding, "repair_state": repair_state})
+        run.setdefault("attempts", {})[repair_state] = 0
+        run.setdefault("route_failures", {}).pop(repair_state, None)
         transition(directory, run, repair_state, "controller", args.finding or f"Repair requested by {args.gate_id}")
     emit({"ok": True, "state": run["state"], "next_command": ["article-flow", "next", run["run_id"]]}, args.json)
     return EXIT_OK
@@ -2171,6 +2300,11 @@ def package_revision(files: Iterable[Path], root: Path) -> str:
     return digest.hexdigest()
 
 
+def surface_prose_hits(value: str) -> list[str]:
+    normalized = re.sub(r"\s+", " ", value).casefold()
+    return [phrase for phrase in SURFACE_PROSE_PATTERNS if phrase.casefold() in normalized]
+
+
 def validate_public_package(package_root: Path, metadata: dict[str, Any]) -> list[dict[str, Any]]:
     findings: list[dict[str, Any]] = []
     public_root = package_root / "public"
@@ -2198,6 +2332,14 @@ def validate_public_package(package_root: Path, metadata: dict[str, Any]) -> lis
             match = re.search(pattern, text, flags=re.IGNORECASE)
             if match:
                 findings.append({"criterion": "public_private_boundary", "path": str(path), "finding": f"Private/internal token leaked: {match.group(0)}"})
+    for field in ("title", "description"):
+        for phrase in surface_prose_hits(str(metadata.get(field) or "")):
+            findings.append({
+                "criterion": "public_surface_voice",
+                "path": f"metadata.{field}",
+                "finding": f"Public-facing {field} still contains the formulaic phrase {phrase!r}.",
+                "repair_instruction": "Rewrite the display text directly, preserving the article's meaning, then package again.",
+            })
     for xml_name in ("feed.xml", "sitemap.xml"):
         path = site_root / xml_name
         if path.is_file():
@@ -2251,6 +2393,44 @@ def copy_private_run_archive(directory: Path, private_root: Path) -> dict[str, A
         "files": [{"path": path.relative_to(private_root).as_posix(), "sha256": sha256_path(path), "byte_size": path.stat().st_size} for path in files],
         "artifact_count": len(files),
     }
+
+
+def command_amend(args: argparse.Namespace) -> int:
+    directory, run = load_run(args.run_id)
+    if run["state"] not in {"PACKAGE", "PUBLISH_APPROVAL"}:
+        raise FlowError(f"Display-text amendment requires PACKAGE or PUBLISH_APPROVAL, current state is {run['state']}")
+    if args.title is None and args.description is None:
+        raise FlowError("Amend requires --title and/or --description", EXIT_USAGE)
+    brief_path = artifact_path(directory, run, "brief")
+    if not brief_path:
+        raise FlowError("Approved brief is missing", EXIT_INTEGRITY)
+    brief = load_json(brief_path)
+    changed = {}
+    if args.title is not None:
+        if not args.title.strip():
+            raise FlowError("Title cannot be empty", EXIT_USAGE)
+        brief["title"] = args.title.strip()
+        changed["title"] = brief["title"]
+    if args.description is not None:
+        if not args.description.strip():
+            raise FlowError("Description cannot be empty", EXIT_USAGE)
+        brief["description"] = args.description.strip()
+        changed["description"] = brief["description"]
+    amended_path = directory / "artifacts" / f"amended-brief-{secrets.token_hex(4)}.json"
+    with run_lock(directory, run):
+        write_json(amended_path, brief)
+        errors = validate_json_schema(amended_path, "brief.schema.json")
+        if errors:
+            amended_path.unlink(missing_ok=True)
+            raise FlowError("Amended brief is invalid", EXIT_INTEGRITY, errors)
+        record_artifact(directory, run, amended_path, "brief", {"actor": "operator", "decision": "display-text-amendment"})
+        append_event(directory, run, "PUBLIC_DISPLAY_TEXT_AMENDED", "operator", {"changed_fields": sorted(changed)})
+        if run["state"] != "PACKAGE":
+            transition(directory, run, "PACKAGE", "operator", "Public display text changed; rebuild the package")
+        else:
+            save_run(directory, run)
+    emit({"ok": True, "changed": changed, "state": run["state"], "next_command": ["article-flow", "package", run["run_id"]]}, args.json)
+    return EXIT_OK
 
 
 def command_package(args: argparse.Namespace) -> int:
@@ -2356,12 +2536,81 @@ def command_publish_plan(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def publication_push_preflight(repository: Path, target: dict[str, Any]) -> dict[str, Any]:
+    command = [
+        "git",
+        "-C",
+        str(repository),
+        "push",
+        "--dry-run",
+        str(target["deployment"]["remote"]),
+        f"HEAD:{target['publication_branch']}",
+    ]
+    try:
+        result = subprocess.run(command, check=False, capture_output=True, text=True, timeout=45)
+    except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
+        return {"ok": False, "reason": str(exc), "command": command}
+    return {
+        "ok": result.returncode == 0,
+        "exit_code": result.returncode,
+        "reason": (result.stderr or result.stdout).strip()[-2000:],
+        "command": command,
+    }
+
+
+def create_publication_handoff(
+    directory: Path,
+    run: dict[str, Any],
+    plan: dict[str, Any],
+    approval_id: str,
+    reason: str,
+    *,
+    commit: str | None = None,
+) -> Path:
+    retry_command = [
+        "article-flow",
+        "publish",
+        "--execute",
+        run["run_id"],
+        "--approval",
+        approval_id,
+        "--commit",
+        "--push",
+    ]
+    attestation_command = ["article-flow", "deployment-attest", run["run_id"], "--remote-rev", "REMOTE_COMMIT"]
+    handoff = {
+        "handoff_schema_version": "1.0.0",
+        "status": "AWAITING_OPERATOR_DEPLOY",
+        "run_id": run["run_id"],
+        "package_revision": plan["package_revision"],
+        "reason": reason,
+        "created_commit": commit,
+        "changed_paths": [item["path"] for item in plan["changes"]],
+        "retry_command": retry_command,
+        "attestation_command": attestation_command,
+        "instructions": [
+            "Run retry_command from a credentialed local host that can access this runtime and repository.",
+            "If the exact planned files were deployed another way, fetch that revision and run attestation_command with its commit.",
+        ],
+        "created_at": utc_now(),
+    }
+    path = directory / "publication" / "handoff.json"
+    write_json(path, handoff)
+    record_artifact(directory, run, path, "publication-handoff", {"actor": "controller", "version": CONTROLLER_VERSION})
+    append_event(directory, run, "PUBLICATION_HANDOFF", "controller", {"reason": reason, "commit": commit, "package_revision": plan["package_revision"]})
+    run["status"] = "WAITING_HUMAN"
+    save_run(directory, run)
+    return path
+
+
 def command_publish_execute(args: argparse.Namespace) -> int:
     if os.environ.get("ARTICLE_FLOW_TEST_NO_PUBLISH") == "1":
         raise FlowError("Publication execution is disabled inside smoke/conformance tests", EXIT_APPROVAL)
     directory, run = load_run(args.run_id)
     if run["state"] != "PUBLISH":
         raise FlowError(f"Publication execution requires PUBLISH, current state is {run['state']}")
+    if args.push and not args.commit:
+        raise FlowError("--push requires --commit", EXIT_USAGE)
     approval_path = directory / "approvals" / f"{args.approval}.json"
     repository = publication_repo_root(required=True)
     if not approval_path.is_file():
@@ -2375,7 +2624,13 @@ def command_publish_execute(args: argparse.Namespace) -> int:
     if parse_time(approval["expires_at"]) <= dt.datetime.now(dt.timezone.utc):
         raise FlowError("Publication approval has expired", EXIT_APPROVAL)
     current_commit = str(git(["rev-parse", "HEAD"], cwd=repository)).strip()
-    if current_commit != plan.get("base_commit"):
+    incomplete_path = directory / "publication" / "incomplete.json"
+    incomplete = load_json(incomplete_path) if incomplete_path.is_file() else {}
+    resumed_own_commit = bool(
+        incomplete.get("package_revision") == plan.get("package_revision")
+        and incomplete.get("commit") == current_commit
+    )
+    if current_commit != plan.get("base_commit") and not resumed_own_commit:
         raise FlowError("Repository HEAD changed after publication planning; create and approve a new plan", EXIT_INTEGRITY, {"planned": plan.get("base_commit"), "actual": current_commit})
     package = load_json(directory / "package" / "package.json")
     if package.get("package_revision") != plan.get("package_revision"):
@@ -2393,29 +2648,85 @@ def command_publish_execute(args: argparse.Namespace) -> int:
     status = str(git(["status", "--porcelain=v1", "-uall"], cwd=repository)).splitlines()
     if status:
         raise FlowError("Publication execution requires a clean approved checkout; use a separate clean worktree", EXIT_INTEGRITY, status)
+    target = load_json(SPEC_ROOT / "publication" / "theproductiveprompter.json")
+    preflight = {"ok": True, "reason": "push not requested"}
+    if args.push:
+        preflight = publication_push_preflight(repository, target)
+        if not preflight["ok"]:
+            with run_lock(directory, run):
+                handoff_path = create_publication_handoff(
+                    directory,
+                    run,
+                    plan,
+                    approval["approval_id"],
+                    f"Push capability preflight failed: {preflight.get('reason') or 'credentialed push unavailable'}",
+                    commit=current_commit if resumed_own_commit else None,
+                )
+            emit({
+                "ok": False,
+                "action": "human_action",
+                "state": run["state"],
+                "handoff": str(handoff_path),
+                "reason": preflight.get("reason"),
+                "retry_command": load_json(handoff_path)["retry_command"],
+                "attestation_command": load_json(handoff_path)["attestation_command"],
+            }, args.json)
+            return EXIT_WAITING
     with run_lock(directory, run):
+        append_event(directory, run, "PUBLISH_ATTEMPT", "controller", {
+            "package_revision": plan["package_revision"],
+            "base_commit": plan["base_commit"],
+            "resuming_commit": current_commit if resumed_own_commit else None,
+            "push_preflight": preflight,
+        })
         site_root = directory / "package" / "site"
-        changed_paths = []
-        for change in plan["changes"]:
-            rel = safe_relative(change["path"])
-            source = site_root / rel
-            destination = repository / rel
-            current_hash = sha256_path(destination) if destination.is_file() else None
-            if current_hash != change["current_sha256"]:
-                raise FlowError(f"Publication target changed after planning: {rel}", EXIT_INTEGRITY)
-            atomic_write(destination, source.read_bytes())
-            changed_paths.append(rel.as_posix())
-        git(["add", "--", *changed_paths], cwd=repository)
-        commit = None
+        changed_paths = [safe_relative(change["path"]).as_posix() for change in plan["changes"]]
+        commit = current_commit if resumed_own_commit else None
+        if not resumed_own_commit:
+            for change in plan["changes"]:
+                rel = safe_relative(change["path"])
+                source = site_root / rel
+                destination = repository / rel
+                current_hash = sha256_path(destination) if destination.is_file() else None
+                if current_hash != change["current_sha256"]:
+                    raise FlowError(f"Publication target changed after planning: {rel}", EXIT_INTEGRITY)
+                atomic_write(destination, source.read_bytes())
+            git(["add", "--", *changed_paths], cwd=repository)
+            if args.commit:
+                git(["commit", "-m", f"Publish {run['run_id']} ({plan['package_revision'][:12]})", "--", *changed_paths], cwd=repository)
+                commit = str(git(["rev-parse", "HEAD"], cwd=repository)).strip()
         pushed = False
-        if args.commit:
-            git(["commit", "-m", f"Publish {run['run_id']} ({plan['package_revision'][:12]})", "--", *changed_paths], cwd=repository)
-            commit = str(git(["rev-parse", "HEAD"], cwd=repository)).strip()
         if args.push:
-            if not args.commit:
-                raise FlowError("--push requires --commit", EXIT_USAGE)
-            target = load_json(SPEC_ROOT / "publication" / "theproductiveprompter.json")
-            git(["push", target["deployment"]["remote"], f"HEAD:{target['publication_branch']}"], cwd=repository)
+            try:
+                git(["push", target["deployment"]["remote"], f"HEAD:{target['publication_branch']}"], cwd=repository)
+            except FlowError as exc:
+                incomplete = {
+                    "publication_receipt_schema_version": "1.0.0",
+                    "run_id": run["run_id"],
+                    "target": plan["target"],
+                    "package_revision": plan["package_revision"],
+                    "approval_id": approval["approval_id"],
+                    "expires_at": approval["expires_at"],
+                    "status": "FAILED",
+                    "commit": commit,
+                    "url": None,
+                    "checks": [{"changed_paths": changed_paths, "push_error": str(exc)}],
+                    "created_at": utc_now(),
+                }
+                write_json(incomplete_path, incomplete)
+                record_artifact(directory, run, incomplete_path, "publication-incomplete", {"actor": "controller", "version": CONTROLLER_VERSION})
+                append_event(directory, run, "PUBLISH_INCOMPLETE", "controller", {"commit": commit, "error": str(exc), "package_revision": plan["package_revision"]})
+                handoff_path = create_publication_handoff(directory, run, plan, approval["approval_id"], str(exc), commit=commit)
+                emit({
+                    "ok": False,
+                    "action": "human_action",
+                    "state": run["state"],
+                    "commit": commit,
+                    "handoff": str(handoff_path),
+                    "retry_command": load_json(handoff_path)["retry_command"],
+                    "attestation_command": load_json(handoff_path)["attestation_command"],
+                }, args.json)
+                return EXIT_WAITING
             pushed = True
         receipt = {
             "publication_receipt_schema_version": "1.0.0",
@@ -2427,7 +2738,7 @@ def command_publish_execute(args: argparse.Namespace) -> int:
             "status": "PUSHED" if pushed else "APPLIED",
             "commit": commit,
             "url": None,
-            "checks": [{"changed_paths": changed_paths}],
+            "checks": [{"changed_paths": changed_paths, "push_preflight": preflight}],
             "created_at": utc_now(),
         }
         write_json(existing, receipt)
@@ -2436,6 +2747,72 @@ def command_publish_execute(args: argparse.Namespace) -> int:
         write_gate_receipt(directory, run, "G-PUBLISH-REVISION", "PASS", [], {"type": "code", "version": CONTROLLER_VERSION})
         transition(directory, run, "LIVE_VERIFICATION", "controller", "Approved publication plan applied once")
     emit({"ok": True, "status": receipt["status"], "commit": commit, "pushed": pushed, "state": run["state"], "next_command": ["article-flow", "verify-live", run["run_id"]]}, args.json)
+    return EXIT_OK
+
+
+def command_deployment_attest(args: argparse.Namespace) -> int:
+    directory, run = load_run(args.run_id)
+    if run["state"] != "PUBLISH":
+        raise FlowError(f"Deployment attestation requires PUBLISH, current state is {run['state']}")
+    repository = publication_repo_root(required=True)
+    plan = load_json(directory / "publication" / "plan.json")
+    package = load_json(directory / "package" / "package.json")
+    approval = json_artifact(directory, run, "publish-approval")
+    if not approval or approval.get("package_revision") != plan.get("package_revision") or approval.get("target") != plan.get("target"):
+        raise FlowError("Deployment attestation requires the matching scoped publication approval", EXIT_APPROVAL)
+    if approval.get("plan_sha256") != sha256_path(directory / "publication" / "plan.json"):
+        raise FlowError("Publication plan changed after approval", EXIT_APPROVAL)
+    if parse_time(approval["expires_at"]) <= dt.datetime.now(dt.timezone.utc):
+        raise FlowError("Publication approval has expired", EXIT_APPROVAL)
+    target = load_json(SPEC_ROOT / "publication" / "theproductiveprompter.json")
+    git(["fetch", target["deployment"]["remote"], target["publication_branch"]], cwd=repository)
+    remote_head = str(git(["rev-parse", "--verify", "FETCH_HEAD^{commit}"], cwd=repository)).strip()
+    resolved = str(git(["rev-parse", "--verify", f"{args.remote_rev}^{{commit}}"], cwd=repository)).strip()
+    if resolved != remote_head:
+        raise FlowError(
+            "Deployment attestation must name the current remote publication-branch commit",
+            EXIT_INTEGRITY,
+            {"requested": resolved, "remote_head": remote_head, "branch": target["publication_branch"]},
+        )
+    checks = []
+    failures = []
+    for change in plan["changes"]:
+        rel = safe_relative(change["path"]).as_posix()
+        try:
+            deployed = git(["show", f"{resolved}:{rel}"], cwd=repository, binary=True)
+            actual_hash = sha256_bytes(deployed if isinstance(deployed, bytes) else deployed.encode("utf-8"))
+        except FlowError:
+            actual_hash = None
+        check = {"path": rel, "expected_sha256": change["planned_sha256"], "actual_sha256": actual_hash, "ok": actual_hash == change["planned_sha256"]}
+        checks.append(check)
+        if not check["ok"]:
+            failures.append(check)
+    if package.get("package_revision") != plan.get("package_revision") or failures:
+        raise FlowError("Remote deployment does not match the approved package", EXIT_INTEGRITY, failures)
+    receipt = {
+        "publication_receipt_schema_version": "1.0.0",
+        "run_id": run["run_id"],
+        "target": plan["target"],
+        "package_revision": plan["package_revision"],
+        "approval_id": approval.get("approval_id"),
+        "expires_at": approval.get("expires_at"),
+        "status": "APPLIED",
+        "commit": resolved,
+        "url": None,
+        "checks": [{"deployment_method": "operator_attested", "remote_revision": resolved, "remote_branch_head": remote_head}, *checks],
+        "created_at": utc_now(),
+    }
+    receipt_path = directory / "receipts" / "publication.json"
+    with run_lock(directory, run):
+        write_json(receipt_path, receipt)
+        errors = validate_json_schema(receipt_path, "publication-receipt.schema.json")
+        if errors:
+            raise FlowError("Controller generated an invalid attested publication receipt", EXIT_INTEGRITY, errors)
+        record_artifact(directory, run, receipt_path, "publication", {"actor": "controller", "version": CONTROLLER_VERSION, "method": "operator-attested"})
+        append_event(directory, run, "DEPLOYMENT_ATTESTED", "controller", {"commit": resolved, "package_revision": plan["package_revision"], "checks": checks})
+        write_gate_receipt(directory, run, "G-PUBLISH-REVISION", "PASS", [], {"type": "code", "version": CONTROLLER_VERSION})
+        transition(directory, run, "LIVE_VERIFICATION", "controller", "Operator-deployed revision matched every approved publication blob")
+    emit({"ok": True, "commit": resolved, "state": run["state"], "next_command": ["article-flow", "verify-live", run["run_id"]]}, args.json)
     return EXIT_OK
 
 
@@ -3390,6 +3767,16 @@ def build_parser() -> argparse.ArgumentParser:
     start.add_argument("--slug")
     add_json(start)
 
+    capture = sub.add_parser("capture", help="Capture one raw article idea verbatim and begin its run.")
+    capture_group = capture.add_mutually_exclusive_group()
+    capture_group.add_argument("seed", nargs="?")
+    capture_group.add_argument("--seed-file")
+    capture.add_argument("--slug")
+    add_json(capture)
+
+    listing = sub.add_parser("list", help="List captured ideas, active runs, and returned live links.")
+    add_json(listing)
+
     for name, help_text in (("status", "Show run state and artifacts."), ("next", "Return the next complete controller action."), ("resume", "Resume from the last valid event.")):
         command = sub.add_parser(name, help=help_text)
         command.add_argument("run_id", nargs="?" if name == "status" else None)
@@ -3427,6 +3814,12 @@ def build_parser() -> argparse.ArgumentParser:
     package.add_argument("run_id")
     add_json(package)
 
+    amend = sub.add_parser("amend", help="Change operator-owned public display text without replaying the article workflow.")
+    amend.add_argument("run_id")
+    amend.add_argument("--title")
+    amend.add_argument("--description")
+    add_json(amend)
+
     publish = sub.add_parser("publish", help="Plan or execute one scoped publication revision.")
     mode = publish.add_mutually_exclusive_group(required=True)
     mode.add_argument("--plan", action="store_true")
@@ -3440,6 +3833,11 @@ def build_parser() -> argparse.ArgumentParser:
     verify = sub.add_parser("verify-live", help="Verify the exact rendered revision and discovery surfaces.")
     verify.add_argument("run_id")
     add_json(verify)
+
+    attest = sub.add_parser("deployment-attest", help="Accept an operator-deployed commit only when every planned publication blob matches.")
+    attest.add_argument("run_id")
+    attest.add_argument("--remote-rev", required=True)
+    add_json(attest)
 
     providers = sub.add_parser("providers", help="Inspect private provider configuration without exposing credentials.")
     providers_sub = providers.add_subparsers(dest="provider_command", required=True)
@@ -3504,6 +3902,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             return command_doctor(args)
         if args.command == "start":
             return command_start(args)
+        if args.command == "capture":
+            return command_start(args)
+        if args.command == "list":
+            return command_list(args)
         if args.command == "status":
             return command_status(args)
         if args.command == "next":
@@ -3520,6 +3922,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return command_repair(args)
         if args.command == "package":
             return command_package(args)
+        if args.command == "amend":
+            return command_amend(args)
         if args.command == "publish":
             if args.plan:
                 return command_publish_plan(args)
@@ -3528,6 +3932,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return command_publish_execute(args)
         if args.command == "verify-live":
             return command_verify_live(args)
+        if args.command == "deployment-attest":
+            return command_deployment_attest(args)
         if args.command == "providers" and args.provider_command == "list":
             return command_providers_list(args)
         if args.command == "route":
