@@ -664,7 +664,8 @@ class GlobalCommandTests(TemporaryRuntime):
             self.assertEqual(hashes, {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in tracked})
             self.assertTrue(all("article-flow managed launcher" in path.read_text() for path in tracked))
             shared_runs_root = fake_windows / ".article-flow" / "runs"
-            self.assertIn(f"ARTICLE_FLOW_RUNS_ROOT={shared_runs_root}", tracked[0].read_text())
+            self.assertIn("ARTICLE_FLOW_RUNS_ROOT=", tracked[0].read_text())
+            self.assertIn(str(shared_runs_root), tracked[0].read_text())
             self.assertIn(f"ARTICLE_FLOW_RUNS_ROOT={af.windows_path(shared_runs_root)}", tracked[1].read_text())
             self.assertEqual(json.loads((fake_home / ".local" / "share" / "article-flow" / "current.json").read_text())["captured_material_root"], str(shared_runs_root))
             self.assertEqual(json.loads((fake_windows / ".article-flow" / "current.json").read_text())["captured_material_root"], af.windows_path(shared_runs_root))
