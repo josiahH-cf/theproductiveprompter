@@ -19,7 +19,7 @@
     "created_at"
   ],
   "properties": {
-    "conformance_receipt_schema_version": {"const": "1.1.0"},
+    "conformance_receipt_schema_version": {"const": "1.2.0"},
     "ok": {"type": "boolean"},
     "host_kind": {"enum": ["wsl", "native-windows"]},
     "platform": {"type": "string", "minLength": 1},
@@ -32,7 +32,7 @@
     "smoke_tests_publish": {"const": false},
     "launcher_smoke": {
       "type": "object",
-      "required": ["ok", "launcher", "return_code", "controller_version", "workflow_version", "spec_root_match", "runtime_home_match", "bootstrap_ok", "unrelated_cwd", "error"],
+      "required": ["ok", "launcher", "return_code", "controller_version", "workflow_version", "spec_root_match", "runtime_home_match", "captured_material_root_match", "bootstrap_ok", "unrelated_cwd", "error"],
       "properties": {
         "ok": {"type": "boolean"},
         "launcher": {"type": "string", "minLength": 1},
@@ -41,6 +41,7 @@
         "workflow_version": {"type": "string"},
         "spec_root_match": {"type": "boolean"},
         "runtime_home_match": {"type": "boolean"},
+        "captured_material_root_match": {"type": "boolean"},
         "bootstrap_ok": {"type": "boolean"},
         "unrelated_cwd": {"const": true},
         "error": {"type": "string"}

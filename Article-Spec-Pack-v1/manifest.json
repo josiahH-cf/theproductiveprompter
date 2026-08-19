@@ -2,8 +2,8 @@
   "manifest_schema_version": "2.0.0",
   "workflow_version": "2.0.0",
   "hash_algorithm": "sha256",
-  "generator_name_and_version": "article-flow 2.1.3",
-  "generated_at": "2026-08-19T10:11:46Z",
+  "generator_name_and_version": "article-flow 2.1.4",
+  "generated_at": "2026-08-19T10:33:29Z",
   "generated_from": "index",
   "files": [
     {
@@ -19,8 +19,8 @@
       "scope": "spec",
       "role": "documentation",
       "rule_set": "overview",
-      "sha256": "560302ffb76f1dc06e20775c125c38ac8c15961a48586cff98ec7ab4bde49ce0",
-      "byte_size": 6901
+      "sha256": "c902446ea3189b387c3280294155222b728cbeff1c5b368b1d18615f75b9fe43",
+      "byte_size": 7101
     },
     {
       "path": "1-Master/Article-Master-Spec.md",
@@ -195,8 +195,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "evaluation",
-      "sha256": "43f727698d5a835bc3a22463b2240aa7e09d92945826789bcc2cb1575bf9d4ae",
-      "byte_size": 3728
+      "sha256": "d87d1270305df29fa941399044370d105525fcd5cadaa482cd8c651df8762175",
+      "byte_size": 3842
     },
     {
       "path": "evaluations/capability-registry.json",
@@ -307,8 +307,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "schemas",
-      "sha256": "1bff481cba93997c7ee33988e8ca6f7b65375165df4e473e461ee69e494b10d4",
-      "byte_size": 2012
+      "sha256": "cca74b65668c52be10281304063a9afc6135017dc1bc8e681396571cad65b60f",
+      "byte_size": 2105
     },
     {
       "path": "schemas/document-registry.schema.json",
@@ -467,8 +467,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "3603cbe43b7002083dc1bf6ab3aeff0ed9c23053c357f3dd9bfac179114d452d",
-      "byte_size": 217220
+      "sha256": "50e6be17abe6758e41614c2ceae383ad7c3ce76a79be0af645256280c3019223",
+      "byte_size": 219476
     },
     {
       "path": "scripts/package_article.py",
@@ -491,8 +491,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "conformance",
-      "sha256": "63a38a73c8e8d0744cf5196726410ccf93fd11bbd9d8c675e939da244ec0c938",
-      "byte_size": 51745
+      "sha256": "f79ce62d2b82df3b039f474c7c891908c5a9b7e8b253f17f7b75adcfd38b3acc",
+      "byte_size": 53284
     },
     {
       "path": "workflow/article-recipe.defaults.json",

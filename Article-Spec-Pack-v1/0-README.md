@@ -25,7 +25,7 @@ The controller preserves that seed verbatim, creates a resumable run, and return
 3. Intervene only when the controller asks you to confirm intent, choose an article recipe or voice probe, proofread the result, approve publication, or complete a credentialed publishing handoff.
 4. Continue until exact live verification returns the `theproductiveprompter.com` article URL.
 
-`article-flow list` is the small operational index. It shows the original idea, current state, run directory, and returned live link for every run. The same response identifies the canonical process directory, private captured-material directory, and public `docs/` directory. A stopped session is resumed with `article-flow resume RUN_ID`; the idea does not need to be entered again.
+`article-flow list` is the small operational index. It shows the original idea, current state, run directory, and returned live link for every run. The same response identifies the canonical process directory, private captured-material directory, and public `docs/` directory. Windows and WSL keep separate installation and health records but use one private captured-material directory, so either command sees and resumes the same runs. A stopped session is resumed with `article-flow resume RUN_ID`; the idea does not need to be entered again.
 
 ## Authority
 
@@ -70,7 +70,7 @@ article-flow manifest check --against-worktree
 article-flow conformance
 ```
 
-Launcher health proves only that the command and canonical root resolve. Authoring health also requires specification integrity and an eligible execution route. Release health additionally requires a clean approved commit, current global commands, the active native host's passing conformance receipt, and publication prerequisites. Run release health from both WSL and native Windows to prove both installations; neither host fabricates the other host's home directory.
+Launcher health proves only that the command, canonical process root, and shared captured-material root resolve. Authoring health also requires specification integrity and an eligible execution route. Release health additionally requires a clean approved commit, current global commands, the active native host's passing conformance receipt, and publication prerequisites. Run release health from both WSL and native Windows to prove both installations; neither host fabricates the other host's health record.
 
 ## Voice and evidence
 

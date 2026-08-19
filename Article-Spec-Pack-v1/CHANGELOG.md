@@ -9,7 +9,7 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
-## August 19, 2026 — Article Flow 2.1 (controller 2.1.3)
+## August 19, 2026 — Article Flow 2.1 (controller 2.1.4)
 
 - Made `capture` the plain-language raw-idea entrypoint and added `list` as a compact index of seeds, resumable runs, canonical locations, and returned live links.
 - Added public-surface voice review for the article title and description, a narrow deterministic check for high-confidence formulaic display text, and `amend` so the operator can repair those fields without replaying completed research or drafting.
@@ -20,8 +20,9 @@ Complete record of all changes made during migration from chapter-oriented docum
 - Controller 2.1.1 aligns the installed-host bootstrap proof with the new `capture` command and adds a cross-platform regression for that exact launcher contract.
 - Controller 2.1.2 makes release health native-host-scoped: WSL and Windows each validate their own installation and conformance receipt instead of inventing a path for the other operating system.
 - Controller 2.1.3 lets the operator renew an expired publication approval only when its target, package revision, and plan hash are unchanged. A renewed credential handoff is versioned rather than overwriting its prior evidence, so a delayed manual deployment can still be attested and live-verified.
+- Controller 2.1.4 keeps native installation and conformance receipts separate while giving Windows and WSL one canonical captured-material directory. Both global commands now list and resume the same article runs, launcher conformance verifies that shared root, and a recent lock from the other host cannot be mistaken for a stale local process and reclaimed.
 
-**Maturity note:** This release completes the lean reusable controller changes identified by the first real article trial. The author still owns journey scope, passage-level voice judgments, intent, recipe selection, proofreading, and publication approval. Those decisions are not inferred from a passing software suite.
+**Maturity note:** This release implements the lean reusable controller changes identified by the first real article trial. A fresh end-to-end article cycle under the corrected controller is still required before the target experience is proved. The author still owns journey scope, passage-level voice judgments, intent, recipe selection, proofreading, and publication approval. Those decisions are not inferred from a passing software suite.
 
 ---
 
