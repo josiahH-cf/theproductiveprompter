@@ -1,0 +1,48 @@
+{
+  "implementation_receipt_schema_version": "1.0.0",
+  "created_at": "2026-08-19T09:42:29Z",
+  "source_feedback": "source-feedback.md",
+  "source_feedback_sha256": "f0044285f5db3f9b7e06eb71dcfa6ba28c7f3a70fd2983ddaf8498daf833221c",
+  "source_base_commit": "5bf45d373b13aa9912adea20ed1e22bc3c478655",
+  "implementation_branch": "codex/finalize-article-flow-v1",
+  "workflow_version": "2.0.0",
+  "controller_version": "2.1.0",
+  "scope_decision": "Implement the smallest stable reusable article-flow improvements proved useful by the first live trial; preserve operator-owned judgment and defer platform-scale orchestration that is not needed for v1.",
+  "implemented": [
+    "A raw sentence or paragraph starts a resumable run through the canonical global command and remains visible in a compact run index.",
+    "The run index exposes the canonical process, captured-material, publication, run-state, and live-link locations without adding another database or dashboard.",
+    "Article, title, and description voice are reviewed together; high-confidence formulaic display text is blocked, and title or description repairs do not replay completed upstream work.",
+    "Repairs return to the smallest responsible stage, clear that stage's exhausted counters, and preserve completed upstream artifacts.",
+    "Same-route verification is allowed only with a disclosed independence limitation when no alternative route exists, and a transport failure is not mislabeled as a broken source.",
+    "Publication checks push capability before mutation, emits one resumable credential handoff when required, and accepts a handoff only when the approved blobs match the current remote publication-branch head.",
+    "Exact live bytes and all required discovery surfaces remain the final completion gate."
+  ],
+  "operator_owned_proof_obligations": [
+    "Define what belongs inside and outside the journey being documented.",
+    "Judge passage-specific voice fit and promote a voice profile only after a held-out comparison.",
+    "Confirm intent, article recipe, proofreading revisions, and each scoped publication.",
+    "Run the finalized command from each agreed fresh AI environment and report any product-specific invocation failure."
+  ],
+  "deferred_from_v1": [
+    "A separate workflow service, queue, database, dashboard, or orchestration platform.",
+    "Provider ranking without operator-calibrated evaluation evidence.",
+    "Automatic voice-profile learning without explicit author confirmation.",
+    "Copied product-specific prompts, skills, or command implementations.",
+    "Approval attestation infrastructure beyond the existing hashed scoped receipts and event chain."
+  ],
+  "verification": {
+    "wsl_unittest": {
+      "command": "python3 -m unittest discover -s Article-Spec-Pack-v1/tests -v",
+      "result": "27 passed",
+      "elapsed_seconds": 162.2
+    },
+    "native_windows_unittest": {
+      "command": "python.exe -m unittest discover -s Article-Spec-Pack-v1/tests -v",
+      "result": "27 passed",
+      "elapsed_seconds": 11.89
+    },
+    "workflow_document_check": "passed",
+    "python_compile_check": "passed",
+    "diff_whitespace_check": "passed"
+  }
+}

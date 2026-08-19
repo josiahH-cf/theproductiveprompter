@@ -16,7 +16,16 @@ The first prompt is intentionally small:
 
 > In one paragraph or less, what feels like it could be a good article? Write it naturally; you do not need to structure or polish it.
 
-The controller preserves that seed verbatim, creates a resumable run, and returns one self-contained task or decision at a time. Use `article-flow status RUN_ID`, `article-flow next RUN_ID`, or `article-flow resume RUN_ID` to continue.
+The controller preserves that seed verbatim, creates a resumable run, and returns one self-contained task or decision at a time. `article-flow capture "YOUR IDEA"` is the direct capture command. Use `article-flow status RUN_ID`, `article-flow next RUN_ID`, or `article-flow resume RUN_ID` to continue.
+
+## Everyday loop
+
+1. Capture one natural sentence or paragraph; it does not need to be a brief.
+2. Let the active local model complete the returned research, intent, recipe, drafting, verification, editing, and packaging tasks.
+3. Intervene only when the controller asks you to confirm intent, choose an article recipe or voice probe, proofread the result, approve publication, or complete a credentialed publishing handoff.
+4. Continue until exact live verification returns the `theproductiveprompter.com` article URL.
+
+`article-flow list` is the small operational index. It shows the original idea, current state, run directory, and returned live link for every run. The same response identifies the canonical process directory, private captured-material directory, and public `docs/` directory. A stopped session is resumed with `article-flow resume RUN_ID`; the idea does not need to be entered again.
 
 ## Authority
 
@@ -39,6 +48,7 @@ This distinction is deliberate. Narrative person, article length, opening, endin
 - complete provider-neutral task packets;
 - hard gates, artifact hashes, claim/evidence checks, and locked-field preservation;
 - package generation, a publication dry run, scoped approval, exact deployment, and live-revision verification;
+- credential preflight, one explicit publication handoff when the active host cannot push, and remote-branch attestation before live verification;
 - global Windows/WSL command installation and drift checks;
 - evaluation-backed routing when calibrated results exist, with an honest active-host fallback while they do not.
 
@@ -48,7 +58,7 @@ Models work only inside the task packet they receive. They do not advance their 
 
 The canonical private article is `article.md`. The website publication target renders it to `docs/{slug}.html`, updates the home page, article index, feed, and sitemap, and verifies the exact live bytes. Internal task packets, receipts, claim ledgers, and run events remain private.
 
-`package`, `publish --plan`, scoped approval, `publish --execute`, and `verify-live` are separate operations. Smoke and conformance tests cannot publish.
+`package`, `publish --plan`, scoped approval, `publish --execute`, and `verify-live` are separate operations. If display text needs a final correction, `amend` changes the approved public title or description and rebuilds from `PACKAGE` without replaying research or drafting. If the active host cannot publish, the controller returns one `human_action`; `deployment-attest` accepts the handoff only when the named commit is the current publication-branch head and every planned public file matches. Smoke and conformance tests cannot publish.
 
 ## Health commands
 
@@ -64,7 +74,7 @@ Launcher health proves only that the command and canonical root resolve. Authori
 
 ## Voice and evidence
 
-The current voice profile is provisional. Trial output is not silently promoted into the author corpus. Profile changes require author judgment and a held-out comparison.
+The current voice profile is provisional. Trial output is not silently promoted into the author corpus. Profile changes require author judgment and a held-out comparison. Editorial assessment covers the article and its public title and description. Packaging also rejects a deliberately narrow set of high-confidence formulaic public-display phrases; contextual voice judgment remains with the operator rather than a blacklist.
 
 Every material factual claim must be traceable and fresh enough for its use. Model memory is not a citation source. The final naturalization pass is conservative and fact-locked; a changed number, date, name, citation, URL, code token, quotation, or qualified claim reopens verification.
 

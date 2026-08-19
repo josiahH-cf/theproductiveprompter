@@ -10,7 +10,7 @@
     "outcome": {"enum": ["PASS", "REPAIR", "ESCALATE"]},
     "dimensions": {
       "type": "object",
-      "required": ["intent_fidelity", "clarity_utility", "voice_fit", "naturalness", "structural_interest", "proportional_length"],
+      "required": ["intent_fidelity", "clarity_utility", "voice_fit", "naturalness", "public_surface_voice", "structural_interest", "proportional_length"],
       "additionalProperties": {"type": "object"}
     },
     "findings": {

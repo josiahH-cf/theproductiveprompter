@@ -2,8 +2,8 @@
   "manifest_schema_version": "2.0.0",
   "workflow_version": "2.0.0",
   "hash_algorithm": "sha256",
-  "generator_name_and_version": "article-flow 2.0.8",
-  "generated_at": "2026-08-18T20:41:41Z",
+  "generator_name_and_version": "article-flow 2.1.0",
+  "generated_at": "2026-08-19T09:43:05Z",
   "generated_from": "index",
   "files": [
     {
@@ -19,8 +19,8 @@
       "scope": "spec",
       "role": "documentation",
       "rule_set": "overview",
-      "sha256": "8f7784b53159a98df492cc58babd2ad1ca99805ffa0ddf985402724403abda97",
-      "byte_size": 4743
+      "sha256": "401afe7373ee9bdb1d192cbba682c722babab610d12439c8b00b5572f2087ecb",
+      "byte_size": 6510
     },
     {
       "path": "1-Master/Article-Master-Spec.md",
@@ -51,8 +51,8 @@
       "scope": "spec",
       "role": "documentation",
       "rule_set": "generated-workflow",
-      "sha256": "155e3ef8d1908af13b9ba5e1116ea66be7307266e2c70dc17cf7ba7925474555",
-      "byte_size": 11894
+      "sha256": "be5d40a40986939314e44625ac37f2b852728bb9f9a4d208511ed848250f32bf",
+      "byte_size": 11942
     },
     {
       "path": "1-Master/Critic-Loop-(Single-Pass-Self-Check).md",
@@ -195,8 +195,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "evaluation",
-      "sha256": "184461929160cabb4ce244fc5a8bff9c579fc8498fea0277dad13597a5f5c1f7",
-      "byte_size": 2671
+      "sha256": "43f727698d5a835bc3a22463b2240aa7e09d92945826789bcc2cb1575bf9d4ae",
+      "byte_size": 3728
     },
     {
       "path": "evaluations/capability-registry.json",
@@ -211,8 +211,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "evaluation",
-      "sha256": "c8c1a57adf3ff1e4703b83092c260217928c8735c49a8d78e090d95e435a22a3",
-      "byte_size": 1262
+      "sha256": "5e89dd43c068b3616c722c1013998b89d84dafb5b4eb90e42347a154f17c918f",
+      "byte_size": 1391
     },
     {
       "path": "evaluations/evaluation-registry.json",
@@ -323,8 +323,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "schemas",
-      "sha256": "cf20dd801b6a889376619bfb88098029e9853d9285da204f65f1f3cab6585f89",
-      "byte_size": 1422
+      "sha256": "50e8f300b4a648a5cb463ab7e2bec954594c9c61dba12e18e5e634f0752b527f",
+      "byte_size": 1446
     },
     {
       "path": "schemas/evaluation.schema.json",
@@ -339,8 +339,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "schemas",
-      "sha256": "c9b23782852c6395e245b3f0ac7234c7c9868c15e74b99f33e4c7065e17cdbbc",
-      "byte_size": 1150
+      "sha256": "e9f91af4858be2ac429fcb5e122bf4dba3eeacffddb09e4dda5822c0801b33c9",
+      "byte_size": 1293
     },
     {
       "path": "schemas/gate-receipt.schema.json",
@@ -467,8 +467,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "4ca6d0a5904ab60535125e9b8713ee5b5ce1228d6d4b50d96be3c23d72af7ad1",
-      "byte_size": 192696
+      "sha256": "a3efc8692aee846c509a195f693d58ba94f3a797c6070129db03ebd75b3c04ac",
+      "byte_size": 212490
     },
     {
       "path": "scripts/package_article.py",
@@ -491,8 +491,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "conformance",
-      "sha256": "4fcee08e53e512a37bcd3354e8168699aeecd3733b3952b4a7fe49b556637cbf",
-      "byte_size": 36011
+      "sha256": "a407fefebb8840b95c4b012db4979bba428a1f40b4bfe5063e052206f183affe",
+      "byte_size": 46603
     },
     {
       "path": "workflow/article-recipe.defaults.json",
@@ -531,8 +531,8 @@
       "scope": "spec",
       "role": "normative",
       "rule_set": "workflow",
-      "sha256": "bb9fe063fef8c0a840567df434fbff00504e52a08e75529b10968680879201b7",
-      "byte_size": 20857
+      "sha256": "9e9ce804bd3087ecd1d7d107afdbd0c333fc997c3ae0c9db5858963a1c8b5d43",
+      "byte_size": 20905
     }
   ]
 }

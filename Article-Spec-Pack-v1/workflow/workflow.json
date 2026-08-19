@@ -205,7 +205,7 @@
       "side_effect_class": "read_only_external",
       "gate": "G-CLAIMS-VERIFIED",
       "next_on_pass": "EDIT",
-      "repair_state": "RESEARCH",
+      "repair_state": "CLAIM_VERIFICATION",
       "max_attempts": 3,
       "timeout_seconds": 900,
       "retry_policy": "bounded retry with declared repair state and transient backoff",
@@ -257,7 +257,7 @@
     {
       "id": "EDITORIAL_QA",
       "actor": "code_and_calibrated_evaluator",
-      "objective": "Separate hard integrity checks from soft editorial judgments and return targeted findings.",
+      "objective": "Assess intent, voice, naturalness, structure, length, and the public-facing title and description, then return targeted findings.",
       "required_inputs": [
         "article",
         "brief",
@@ -270,7 +270,7 @@
       "side_effect_class": "none",
       "gate": "G-EDITORIAL-QA",
       "next_on_pass": "PACKAGE",
-      "repair_state": "DRAFT",
+      "repair_state": "EDIT",
       "max_attempts": 3,
       "timeout_seconds": 900,
       "retry_policy": "bounded retry with declared repair state and transient backoff",

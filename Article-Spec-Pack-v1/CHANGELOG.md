@@ -9,6 +9,19 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## August 19, 2026 — Article Flow 2.1 (controller 2.1.0)
+
+- Made `capture` the plain-language raw-idea entrypoint and added `list` as a compact index of seeds, resumable runs, canonical locations, and returned live links.
+- Added public-surface voice review for the article title and description, a narrow deterministic check for high-confidence formulaic display text, and `amend` so the operator can repair those fields without replaying completed research or drafting.
+- Kept repairs local to the failed stage, reset exhausted route counters after an explicit repair, allowed a disclosed same-route verification fallback when no independent route exists, and stopped treating an unreachable verification network as proof that a cited source is broken.
+- Made repeated review of an unchanged approved artifact safe and allowed an operator to end a run at a hard gate without pretending the gate passed.
+- Added publish-capability preflight and one resumable human handoff when the active host cannot push. A handoff can advance only after the approved file hashes are present at the current remote publication-branch commit; exact live-site verification remains the final gate.
+- Added regression coverage for raw capture, findability, public metadata repair, targeted repairs, route recovery, inconclusive network transport, credential handoff, remote deployment proof, and continuation into live verification.
+
+**Maturity note:** This release completes the lean reusable controller changes identified by the first real article trial. The author still owns journey scope, passage-level voice judgments, intent, recipe selection, proofreading, and publication approval. Those decisions are not inferred from a passing software suite.
+
+---
+
 ## August 18, 2026 — Article Flow 2.0 (controller 2.0.8)
 
 - Replaced the model-specific final rewrite prompt with `10-Final-Prose-Naturalization/Final-Prose-Naturalization-Directive.md`. Naturalization is now a conservative, model-neutral, fact-locked stage rather than the owner of the article's voice or structure.
