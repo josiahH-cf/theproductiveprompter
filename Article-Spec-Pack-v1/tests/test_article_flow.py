@@ -48,7 +48,7 @@ class TemporaryRuntime(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.runtime = Path(self.temp.name) / "runtime"
-        self.environment = mock.patch.dict(os.environ, {"ARTICLE_FLOW_HOME": str(self.runtime), "ARTICLE_FLOW_TEST_NO_PUBLISH": "1"}, clear=False)
+        self.environment = mock.patch.dict(os.environ, {"ARTICLE_FLOW_HOME": str(self.runtime), "ARTICLE_FLOW_RUNS_ROOT": str(self.runtime / "runs"), "ARTICLE_FLOW_TEST_NO_PUBLISH": "1"}, clear=False)
         self.environment.start()
         self.addCleanup(self.environment.stop)
         self.integrity = mock.patch.object(af, "check_manifest", return_value={"ok": True, "source": "test", "failures": []})
@@ -498,8 +498,20 @@ class RunAndSmokeTests(TemporaryRuntime):
         af.write_json(directory / ".lock", {"pid": 99999999, "created_at": "2000-01-01T00:00:00Z"})
         with af.run_lock(directory, run):
             self.assertTrue((directory / ".lock").exists())
+            self.assertEqual(json.loads((directory / ".lock").read_text())["namespace"], af.lock_namespace())
         self.assertTrue(list(directory.glob(".lock.recovered-*")))
         af.load_run(run_id)
+
+    def test_recent_foreign_host_lock_is_not_reclaimed(self):
+        run_id = self.start()
+        directory, run = af.load_run(run_id)
+        af.write_json(directory / ".lock", {"pid": 99999999, "namespace": "foreign-host:test", "created_at": af.utc_now()})
+        with self.assertRaises(af.FlowError) as caught:
+            with af.run_lock(directory, run):
+                pass
+        self.assertIn("already locked", str(caught.exception))
+        self.assertTrue((directory / ".lock").is_file())
+        (directory / ".lock").unlink()
 
     def test_end_to_end_smoke_packages_without_publishing(self):
         run_id = self.walk_to_package()
@@ -602,17 +614,19 @@ class GlobalCommandTests(TemporaryRuntime):
             "workflow_version": af.workflow()["workflow_version"],
             "spec_root": str(af.SPEC_ROOT),
             "runtime_home": str(fake_runtime),
+            "captured_material_root": str(fake_runtime / "runs"),
         }), stderr="")
         bootstrap = subprocess.CompletedProcess(args=[], returncode=0, stdout=json.dumps(af.bootstrap_payload()), stderr="")
         patches = [
             mock.patch.object(af, "runtime_home", return_value=fake_runtime),
+            mock.patch.object(af, "runs_root", return_value=fake_runtime / "runs"),
             mock.patch.object(af.subprocess, "run", side_effect=[context, bootstrap]),
         ]
         if os.name == "nt":
             patches.append(mock.patch.object(af, "windows_user_root", return_value=fake_home))
         else:
             patches.append(mock.patch.object(Path, "home", return_value=fake_home))
-        with patches[0], patches[1], patches[2]:
+        with patches[0], patches[1], patches[2], patches[3]:
             result = af.installed_launcher_smoke()
         self.assertTrue(result["ok"], result)
 
@@ -649,6 +663,11 @@ class GlobalCommandTests(TemporaryRuntime):
             call(af.command_install, **vars(args))
             self.assertEqual(hashes, {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in tracked})
             self.assertTrue(all("article-flow managed launcher" in path.read_text() for path in tracked))
+            shared_runs_root = fake_windows / ".article-flow" / "runs"
+            self.assertIn(f"ARTICLE_FLOW_RUNS_ROOT={shared_runs_root}", tracked[0].read_text())
+            self.assertIn(f"ARTICLE_FLOW_RUNS_ROOT={af.windows_path(shared_runs_root)}", tracked[1].read_text())
+            self.assertEqual(json.loads((fake_home / ".local" / "share" / "article-flow" / "current.json").read_text())["captured_material_root"], str(shared_runs_root))
+            self.assertEqual(json.loads((fake_windows / ".article-flow" / "current.json").read_text())["captured_material_root"], af.windows_path(shared_runs_root))
             self.assertFalse((fake_home / ".local" / "share" / "article-flow" / "releases").exists())
             self.assertFalse((fake_windows / ".article-flow" / "releases").exists())
             installed_script = af.SCRIPT_PATH
@@ -701,6 +720,7 @@ class GlobalCommandTests(TemporaryRuntime):
                 "workflow_version": af.workflow()["workflow_version"],
                 "spec_root_match": True,
                 "runtime_home_match": True,
+                "captured_material_root_match": True,
                 "bootstrap_ok": True,
                 "unrelated_cwd": True,
                 "error": "",

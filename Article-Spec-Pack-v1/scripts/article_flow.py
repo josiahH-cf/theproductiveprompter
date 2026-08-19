@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any, Iterable, Iterator, Sequence
 
 
-CONTROLLER_VERSION = "2.1.3"
+CONTROLLER_VERSION = "2.1.4"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -487,6 +487,12 @@ def publication_repo_root(*, required: bool = False) -> Path | None:
 
 
 def runs_root() -> Path:
+    configured = os.environ.get("ARTICLE_FLOW_RUNS_ROOT")
+    if configured:
+        return Path(configured).expanduser().resolve()
+    recorded = installation_record().get("captured_material_root")
+    if recorded:
+        return Path(str(recorded)).expanduser().resolve()
     return runtime_home() / "runs"
 
 
@@ -589,6 +595,10 @@ def save_run(directory: Path, run: dict[str, Any]) -> None:
     write_json(directory / "run.json", run)
 
 
+def lock_namespace() -> str:
+    return f"{'windows' if os.name == 'nt' else 'posix'}:{platform.node() or 'unknown-host'}"
+
+
 @contextlib.contextmanager
 def run_lock(directory: Path, run: dict[str, Any]) -> Iterator[None]:
     lock_path = directory / ".lock"
@@ -602,22 +612,29 @@ def run_lock(directory: Path, run: dict[str, Any]) -> Iterator[None]:
             lock = {}
         pid = int(lock.get("pid", -1))
         created = lock.get("created_at")
+        prior_namespace = str(lock.get("namespace", ""))
+        current_namespace = lock_namespace()
+        same_namespace = prior_namespace == current_namespace
         alive = False
-        if pid > 0:
+        if same_namespace and pid > 0:
             try:
                 os.kill(pid, 0)
                 alive = True
             except (OSError, ProcessLookupError):
                 alive = False
-        old = bool(created and (dt.datetime.now(dt.timezone.utc) - parse_time(str(created))).total_seconds() > 3600)
-        if alive and not old:
+        try:
+            age_seconds = (dt.datetime.now(dt.timezone.utc) - parse_time(str(created))).total_seconds() if created else (time.time() - lock_path.stat().st_mtime)
+        except (OSError, ValueError):
+            age_seconds = 0
+        old = age_seconds > 3600
+        if alive or (not same_namespace and not old):
             raise FlowError(f"Run is already locked: {run['run_id']}") from exc
         recovered = directory / f".lock.recovered-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
         lock_path.replace(recovered)
         descriptor = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         append_event(directory, run, "LOCK_RECOVERED", "controller", {"stale_lock": recovered.name, "prior": lock})
     try:
-        os.write(descriptor, canonical_json({"pid": os.getpid(), "created_at": utc_now()}))
+        os.write(descriptor, canonical_json({"pid": os.getpid(), "namespace": lock_namespace(), "created_at": utc_now()}))
         os.close(descriptor)
         yield
     finally:
@@ -3018,7 +3035,14 @@ def windows_path(path: Path) -> str:
     return value
 
 
-def record_linked_checkout(home: Path, *, host: str, development: bool, publication_repository: str) -> None:
+def record_linked_checkout(
+    home: Path,
+    *,
+    host: str,
+    development: bool,
+    publication_repository: str,
+    captured_material_root: str,
+) -> None:
     if not development:
         integrity = check_manifest("worktree")
         if not integrity["ok"]:
@@ -3037,6 +3061,7 @@ def record_linked_checkout(home: Path, *, host: str, development: bool, publicat
         "development": development,
         "linked_checkout": True,
         "publication_repo_root": publication_repository,
+        "captured_material_root": captured_material_root,
         "source_commit": source_commit,
     }
     if current != current_value:
@@ -3133,20 +3158,34 @@ def command_install(args: argparse.Namespace) -> int:
     invalid = hosts - {"windows", "wsl"}
     if invalid:
         raise FlowError(f"Unsupported hosts: {', '.join(sorted(invalid))}", EXIT_USAGE)
+    user_root = windows_user_root()
+    shared_runs_root = (user_root / ".article-flow" / "runs").resolve() if user_root else (runtime_home() / "runs").resolve()
+    shared_runs_root.mkdir(parents=True, exist_ok=True)
     installed: list[dict[str, Any]] = []
     if "wsl" in hosts:
         require_managed_legacy_skill_adapters(wsl_legacy_skill_targets())
         home = runtime_home() if os.environ.get("ARTICLE_FLOW_HOME") else Path.home() / ".local" / "share" / "article-flow"
-        record_linked_checkout(home.resolve(), host="wsl", development=args.development, publication_repository=str(publication_repo_root() or REPO_ROOT))
+        record_linked_checkout(
+            home.resolve(),
+            host="wsl",
+            development=args.development,
+            publication_repository=str(publication_repo_root() or REPO_ROOT),
+            captured_material_root=str(shared_runs_root),
+        )
         wrapper = Path.home() / ".local" / "bin" / "article-flow"
         wrapper.parent.mkdir(parents=True, exist_ok=True)
-        wrapper_text = f"#!/usr/bin/env sh\n# article-flow managed launcher {CONTROLLER_VERSION}\nexport ARTICLE_FLOW_HOME='{home.resolve()}'\nexport ARTICLE_FLOW_REPO_ROOT='{REPO_ROOT.resolve()}'\nexec python3 '{SCRIPT_PATH.resolve()}' \"$@\"\n"
+        wrapper_text = (
+            f"#!/usr/bin/env sh\n# article-flow managed launcher {CONTROLLER_VERSION}\n"
+            f"export ARTICLE_FLOW_HOME={shlex.quote(str(home.resolve()))}\n"
+            f"export ARTICLE_FLOW_RUNS_ROOT={shlex.quote(str(shared_runs_root))}\n"
+            f"export ARTICLE_FLOW_REPO_ROOT={shlex.quote(str(REPO_ROOT.resolve()))}\n"
+            f"exec python3 {shlex.quote(str(SCRIPT_PATH.resolve()))} \"$@\"\n"
+        )
         write_if_changed(wrapper, wrapper_text.encode("utf-8"), mode=0o755)
         retired = retire_managed_skill_adapters(wsl_legacy_skill_targets(), home.resolve())
         removed_releases = remove_managed_release_copies(home.resolve())
-        installed.append({"host": "wsl", "home": str(home.resolve()), "command": str(wrapper), "source_checkout": str(REPO_ROOT.resolve()), "retired_skill_adapters": retired, "removed_release_copies": removed_releases})
+        installed.append({"host": "wsl", "home": str(home.resolve()), "captured_material_root": str(shared_runs_root), "command": str(wrapper), "source_checkout": str(REPO_ROOT.resolve()), "retired_skill_adapters": retired, "removed_release_copies": removed_releases})
     if "windows" in hosts:
-        user_root = windows_user_root()
         if not user_root:
             raise FlowError("Cannot resolve the Windows user profile; set ARTICLE_FLOW_WINDOWS_USER_ROOT")
         require_managed_legacy_skill_adapters(windows_legacy_skill_targets(user_root))
@@ -3160,7 +3199,13 @@ def command_install(args: argparse.Namespace) -> int:
             if legacy.is_file() and "article-flow managed launcher" not in legacy.read_text(encoding="utf-8", errors="ignore"):
                 raise FlowError(f"Refusing to remove an unmanaged launcher: {legacy}")
         home = user_root / ".article-flow"
-        record_linked_checkout(home, host="windows", development=args.development, publication_repository=windows_path(publication_repo_root() or REPO_ROOT))
+        record_linked_checkout(
+            home,
+            host="windows",
+            development=args.development,
+            publication_repository=windows_path(publication_repo_root() or REPO_ROOT),
+            captured_material_root=windows_path(shared_runs_root),
+        )
         python_candidates = [
             user_root / "AppData" / "Local" / "Programs" / "Python" / "Python312" / "python.exe",
             user_root / "AppData" / "Local" / "Microsoft" / "WindowsApps" / "python.exe",
@@ -3169,7 +3214,7 @@ def command_install(args: argparse.Namespace) -> int:
         if not python_exe:
             raise FlowError("Native Windows Python was not found")
         bin_dir.mkdir(parents=True, exist_ok=True)
-        cmd_text = f"@echo off\r\nrem article-flow managed launcher {CONTROLLER_VERSION}\r\nset \"ARTICLE_FLOW_HOME={windows_path(home)}\"\r\nset \"ARTICLE_FLOW_REPO_ROOT={windows_path(REPO_ROOT)}\"\r\n\"{windows_path(python_exe)}\" \"{windows_path(SCRIPT_PATH)}\" %*\r\n"
+        cmd_text = f"@echo off\r\nrem article-flow managed launcher {CONTROLLER_VERSION}\r\nset \"ARTICLE_FLOW_HOME={windows_path(home)}\"\r\nset \"ARTICLE_FLOW_RUNS_ROOT={windows_path(shared_runs_root)}\"\r\nset \"ARTICLE_FLOW_REPO_ROOT={windows_path(REPO_ROOT)}\"\r\n\"{windows_path(python_exe)}\" \"{windows_path(SCRIPT_PATH)}\" %*\r\n"
         command = bin_dir / "article-flow.cmd"
         if command.is_file() and "article-flow managed launcher" not in command.read_text(encoding="utf-8", errors="ignore"):
             raise FlowError(f"Refusing to overwrite an unmanaged launcher: {command}")
@@ -3180,7 +3225,7 @@ def command_install(args: argparse.Namespace) -> int:
                 retired_launchers.append(str(legacy))
         retired = retire_managed_skill_adapters(windows_legacy_skill_targets(user_root), home)
         removed_releases = remove_managed_release_copies(home)
-        installed.append({"host": "windows", "home": str(home), "command": str(command), "source_checkout": windows_path(REPO_ROOT), "retired_launchers": retired_launchers, "retired_skill_adapters": retired, "removed_release_copies": removed_releases, "python": str(python_exe)})
+        installed.append({"host": "windows", "home": str(home), "captured_material_root": windows_path(shared_runs_root), "command": str(command), "source_checkout": windows_path(REPO_ROOT), "retired_launchers": retired_launchers, "retired_skill_adapters": retired, "removed_release_copies": removed_releases, "python": str(python_exe)})
     emit({"ok": True, "controller_version": CONTROLLER_VERSION, "workflow_version": workflow()["workflow_version"], "installed": installed, "idempotent": True}, args.json)
     return EXIT_OK
 
@@ -3481,9 +3526,10 @@ def installation_health() -> dict[str, Any]:
             and record.get("workflow_version") == workflow()["workflow_version"]
             and record.get("development") is False
             and record.get("linked_checkout") is True
+            and Path(str(record.get("captured_material_root", ""))).resolve() == runs_root().resolve()
             and record.get("source_commit") == release_source_commit()
         )
-        checks.append({"host": host, "path": str(path), "ok": ok, "controller_version": record.get("controller_version"), "workflow_version": record.get("workflow_version"), "development": record.get("development"), "linked_checkout": record.get("linked_checkout"), "source_commit": record.get("source_commit")})
+        checks.append({"host": host, "path": str(path), "ok": ok, "controller_version": record.get("controller_version"), "workflow_version": record.get("workflow_version"), "development": record.get("development"), "linked_checkout": record.get("linked_checkout"), "captured_material_root": record.get("captured_material_root"), "source_commit": record.get("source_commit")})
     return {"ok": bool(checks) and all(item["ok"] for item in checks), "checks": checks}
 
 
@@ -3584,7 +3630,7 @@ def command_conformance(args: argparse.Namespace) -> int:
     launcher_smoke = installed_launcher_smoke()
     test_files = sorted(path for path in tests_root.rglob("test_*.py") if path.is_file())
     receipt = {
-        "conformance_receipt_schema_version": "1.1.0",
+        "conformance_receipt_schema_version": "1.2.0",
         "ok": result.returncode == 0 and launcher_smoke["ok"],
         "host_kind": "native-windows" if os.name == "nt" else "wsl",
         "platform": sys.platform,
@@ -3648,6 +3694,7 @@ def installed_launcher_smoke() -> dict[str, Any]:
                 "workflow_version": "",
                 "spec_root_match": False,
                 "runtime_home_match": False,
+                "captured_material_root_match": False,
                 "bootstrap_ok": False,
                 "unrelated_cwd": True,
                 "error": str(exc),
@@ -3663,15 +3710,18 @@ def installed_launcher_smoke() -> dict[str, Any]:
     try:
         spec_root_match = Path(str(context.get("spec_root", ""))).resolve() == SPEC_ROOT.resolve()
         runtime_home_match = Path(str(context.get("runtime_home", ""))).resolve() == runtime_home().resolve()
+        captured_material_root_match = Path(str(context.get("captured_material_root", ""))).resolve() == runs_root().resolve()
     except (OSError, RuntimeError):
         spec_root_match = False
         runtime_home_match = False
+        captured_material_root_match = False
     ok = bool(
         result.returncode == 0
         and context.get("controller_version") == CONTROLLER_VERSION
         and context.get("workflow_version") == workflow()["workflow_version"]
         and spec_root_match
         and runtime_home_match
+        and captured_material_root_match
         and bootstrap_result.returncode == 0
         and bootstrap.get("interface") == "local-global-command"
         and bootstrap.get("command") == "article-flow"
@@ -3685,6 +3735,7 @@ def installed_launcher_smoke() -> dict[str, Any]:
         "workflow_version": str(context.get("workflow_version", "")),
         "spec_root_match": spec_root_match,
         "runtime_home_match": runtime_home_match,
+        "captured_material_root_match": captured_material_root_match,
         "bootstrap_ok": bool(bootstrap_result.returncode == 0 and bootstrap.get("interface") == "local-global-command" and bootstrap.get("command") == "article-flow"),
         "unrelated_cwd": True,
         "error": "" if ok else (result.stderr.strip() or bootstrap_result.stderr.strip() or "launcher context or bootstrap did not match the installed controller"),
@@ -3982,7 +4033,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             emit({"spec_root": str(SPEC_ROOT)} if args.json else str(SPEC_ROOT), args.json)
             return EXIT_OK
         if args.command == "context":
-            emit({"controller_version": CONTROLLER_VERSION, "workflow_version": workflow()["workflow_version"], "interface": "local-global-command", "command": "article-flow", "spec_root": str(SPEC_ROOT), "source_tree_root": str(REPO_ROOT), "publication_repo_root": str(publication_repo_root()) if publication_repo_root() else None, "runtime_home": str(runtime_home()), "precedence": workflow()["precedence"]}, args.json)
+            emit({"controller_version": CONTROLLER_VERSION, "workflow_version": workflow()["workflow_version"], "interface": "local-global-command", "command": "article-flow", "spec_root": str(SPEC_ROOT), "source_tree_root": str(REPO_ROOT), "publication_repo_root": str(publication_repo_root()) if publication_repo_root() else None, "runtime_home": str(runtime_home()), "captured_material_root": str(runs_root()), "precedence": workflow()["precedence"]}, args.json)
             return EXIT_OK
         if args.command == "install":
             return command_install(args)
