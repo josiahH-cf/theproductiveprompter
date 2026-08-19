@@ -6,7 +6,7 @@
   "source_base_commit": "5bf45d373b13aa9912adea20ed1e22bc3c478655",
   "implementation_branch": "codex/finalize-article-flow-v1",
   "workflow_version": "2.0.0",
-  "controller_version": "2.1.2",
+  "controller_version": "2.1.3",
   "scope_decision": "Implement the smallest stable reusable article-flow improvements proved useful by the first live trial; preserve operator-owned judgment and defer platform-scale orchestration that is not needed for v1.",
   "implemented": [
     "A raw sentence or paragraph starts a resumable run through the canonical global command and remains visible in a compact run index.",
@@ -14,7 +14,8 @@
     "Article, title, and description voice are reviewed together; high-confidence formulaic display text is blocked, and title or description repairs do not replay completed upstream work.",
     "Repairs return to the smallest responsible stage, clear that stage's exhausted counters, and preserve completed upstream artifacts.",
     "Same-route verification is allowed only with a disclosed independence limitation when no alternative route exists, and a transport failure is not mislabeled as a broken source.",
-    "Publication checks push capability before mutation, emits one resumable credential handoff when required, and accepts a handoff only when the approved blobs match the current remote publication-branch head.",
+    "Publication checks push capability before mutation, emit one resumable credential handoff when required, and accept a handoff only when the approved blobs match the current remote publication-branch head.",
+    "An expired publication approval can be explicitly renewed without replaying the workflow only when its target, package revision, and hashed plan are unchanged.",
     "Exact live bytes and all required discovery surfaces remain the final completion gate."
   ],
   "operator_owned_proof_obligations": [
@@ -33,13 +34,13 @@
   "verification": {
     "wsl_unittest": {
       "command": "python3 -m unittest discover -s Article-Spec-Pack-v1/tests -v",
-      "result": "29 passed",
-      "elapsed_seconds": 145.74
+      "result": "30 passed",
+      "elapsed_seconds": 202.008
     },
     "native_windows_unittest": {
       "command": "python.exe -m unittest discover -s Article-Spec-Pack-v1/tests -v",
-      "result": "29 passed",
-      "elapsed_seconds": 13.206
+      "result": "30 passed",
+      "elapsed_seconds": 16.827
     },
     "workflow_document_check": "passed",
     "python_compile_check": "passed",

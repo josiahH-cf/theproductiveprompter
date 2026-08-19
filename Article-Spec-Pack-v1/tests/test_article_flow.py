@@ -427,6 +427,51 @@ class RunAndSmokeTests(TemporaryRuntime):
         self.assertEqual(code, af.EXIT_OK, attested)
         self.assertEqual(attested["state"], "LIVE_VERIFICATION")
 
+    def test_expired_unchanged_publication_approval_can_be_renewed(self):
+        run_id = self.start()
+        directory, run = af.load_run(run_id)
+        revision = "b" * 64
+        af.write_json(directory / "package" / "package.json", {"package_revision": revision, "public_files": []})
+        plan = {"run_id": run_id, "target": "theproductiveprompter", "base_commit": "c" * 40, "package_revision": revision, "changes": []}
+        plan_path = directory / "publication" / "plan.json"
+        af.write_json(plan_path, plan)
+        expired_id = "AP-expired"
+        expired = {
+            "publication_receipt_schema_version": "1.0.0", "run_id": run_id, "target": "theproductiveprompter",
+            "package_revision": revision, "approval_id": expired_id, "plan_sha256": af.sha256_path(plan_path),
+            "expires_at": "2020-01-01T00:00:00Z", "status": "APPROVED", "commit": None, "url": None,
+            "checks": [], "created_at": af.utc_now(),
+        }
+        expired_path = directory / "approvals" / f"{expired_id}.json"
+        af.write_json(expired_path, expired)
+        af.record_artifact(directory, run, expired_path, "publish-approval", {"actor": "operator"})
+        old_handoff = directory / "publication" / "handoff-ap-expired.json"
+        af.write_json(old_handoff, {
+            "handoff_schema_version": "1.0.0", "status": "AWAITING_OPERATOR_DEPLOY", "run_id": run_id,
+            "package_revision": revision, "reason": "no credentials", "created_commit": None, "changed_paths": [],
+            "retry_command": ["article-flow", "publish", "--execute", run_id, "--approval", expired_id, "--commit", "--push"],
+            "attestation_command": ["article-flow", "deployment-attest", run_id, "--remote-rev", "REMOTE_COMMIT"],
+            "instructions": [], "created_at": af.utc_now(),
+        })
+        af.record_artifact(directory, run, old_handoff, "publication-handoff", {"actor": "controller"})
+        af.transition(directory, run, "PUBLISH", "test", "exercise explicit unchanged-scope renewal")
+        action = af.next_state_payload(directory, run)
+        self.assertEqual(action["action"], "human_decision")
+        self.assertIn("--renew-approval", action["approval_command"])
+        code, renewed = call(af.command_publish_renew_approval, run_id=run_id)
+        self.assertEqual(code, af.EXIT_OK, renewed)
+        self.assertEqual(renewed["renewed_from"], expired_id)
+        self.assertNotEqual(renewed["approval_id"], expired_id)
+        _, current = af.load_run(run_id)
+        latest = af.json_artifact(directory, current, "publish-approval")
+        self.assertEqual(latest["approval_id"], renewed["approval_id"])
+        self.assertEqual(latest["checks"][-1], {"renewed_from": expired_id, "scope_unchanged": True})
+        latest_handoff = af.json_artifact(directory, current, "publication-handoff")
+        self.assertIn(renewed["approval_id"], latest_handoff["retry_command"])
+        self.assertNotEqual(Path(renewed["handoff"]), old_handoff)
+        self.assertTrue(old_handoff.is_file())
+        self.assertEqual(current["state"], "PUBLISH")
+
     def test_task_packet_is_complete_and_schema_rejects_hidden_context(self):
         run_id = self.start()
         _, action = self.next(run_id)
