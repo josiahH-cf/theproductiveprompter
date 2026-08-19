@@ -3,7 +3,7 @@
   "workflow_version": "2.0.0",
   "hash_algorithm": "sha256",
   "generator_name_and_version": "article-flow 2.1.4",
-  "generated_at": "2026-08-19T10:33:29Z",
+  "generated_at": "2026-08-19T10:41:09Z",
   "generated_from": "index",
   "files": [
     {
@@ -491,8 +491,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "conformance",
-      "sha256": "f79ce62d2b82df3b039f474c7c891908c5a9b7e8b253f17f7b75adcfd38b3acc",
-      "byte_size": 53284
+      "sha256": "a32e5507046cedeb4facc80fbd151a4c849c4ed41e78d294ee5b5732e415dba8",
+      "byte_size": 53338
     },
     {
       "path": "workflow/article-recipe.defaults.json",
