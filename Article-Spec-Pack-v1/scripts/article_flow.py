@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any, Iterable, Iterator, Sequence
 
 
-CONTROLLER_VERSION = "2.1.2"
+CONTROLLER_VERSION = "2.1.3"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -1691,6 +1691,19 @@ def next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
         save_run(directory, run)
         return {"action": "human_decision", "run_id": run["run_id"], "state": state, "question": "Approve this exact publication target and package revision before execution?", "plan": str(plan), "approval_command": ["article-flow", "gate", run["run_id"], "G-PUBLISH-APPROVAL", "--outcome", "PASS"]}
     if state == "PUBLISH":
+        approval = json_artifact(directory, run, "publish-approval")
+        if approval and parse_time(approval["expires_at"]) <= dt.datetime.now(dt.timezone.utc):
+            run["status"] = "WAITING_HUMAN"
+            save_run(directory, run)
+            return {
+                "action": "human_decision",
+                "run_id": run["run_id"],
+                "state": state,
+                "question": "The unchanged scoped publication approval expired. Renew this exact target, package revision, and plan before retrying or attesting deployment?",
+                "expired_approval_id": approval.get("approval_id"),
+                "plan": str(directory / "publication" / "plan.json"),
+                "approval_command": ["article-flow", "publish", "--renew-approval", run["run_id"]],
+            }
         handoff = artifact_path(directory, run, "publication-handoff")
         if handoff and handoff.is_file():
             handoff_value = load_json(handoff)
@@ -1937,6 +1950,43 @@ def command_submit(args: argparse.Namespace) -> int:
     return EXIT_WAITING if payload.get("action") == "human_decision" else EXIT_OK
 
 
+def create_publish_approval(directory: Path, run: dict[str, Any], plan: dict[str, Any], *, renewed_from: str | None = None) -> tuple[str, Path]:
+    plan_path = directory / "publication" / "plan.json"
+    ttl = int(policy()["publication"]["approval_ttl_minutes"])
+    expires = dt.datetime.now(dt.timezone.utc) + dt.timedelta(minutes=ttl)
+    approval_id = f"AP-{secrets.token_hex(12)}"
+    checks: list[dict[str, Any]] = [{"plan_sha256": sha256_path(plan_path)}]
+    if renewed_from:
+        checks.append({"renewed_from": renewed_from, "scope_unchanged": True})
+    approval = {
+        "publication_receipt_schema_version": "1.0.0",
+        "run_id": run["run_id"],
+        "target": plan["target"],
+        "package_revision": plan["package_revision"],
+        "approval_id": approval_id,
+        "plan_sha256": sha256_path(plan_path),
+        "expires_at": expires.replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "status": "APPROVED",
+        "commit": None,
+        "url": None,
+        "checks": checks,
+        "created_at": utc_now(),
+    }
+    approval_path = directory / "approvals" / f"{approval_id}.json"
+    write_json(approval_path, approval)
+    errors = validate_json_schema(approval_path, "publication-receipt.schema.json")
+    if errors:
+        raise FlowError("Controller generated an invalid publication approval", EXIT_INTEGRITY, errors)
+    record_artifact(directory, run, approval_path, "publish-approval", {"actor": "operator", "renewed_from": renewed_from})
+    append_event(directory, run, "APPROVAL", "operator", {
+        "approval_id": approval_id,
+        "target": plan["target"],
+        "package_revision": plan["package_revision"],
+        "renewed_from": renewed_from,
+    })
+    return approval_id, approval_path
+
+
 def command_gate(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
     definition = state_definition(run["state"])
@@ -1959,27 +2009,7 @@ def command_gate(args: argparse.Namespace) -> int:
             if not plan_path.is_file():
                 raise FlowError("Publication plan is missing")
             plan = load_json(plan_path)
-            ttl = int(policy()["publication"]["approval_ttl_minutes"])
-            expires = dt.datetime.now(dt.timezone.utc) + dt.timedelta(minutes=ttl)
-            approval_id = f"AP-{secrets.token_hex(12)}"
-            approval = {
-                "publication_receipt_schema_version": "1.0.0",
-                "run_id": run["run_id"],
-                "target": plan["target"],
-                "package_revision": plan["package_revision"],
-                "approval_id": approval_id,
-                "plan_sha256": sha256_path(plan_path),
-                "expires_at": expires.replace(microsecond=0).isoformat().replace("+00:00", "Z"),
-                "status": "APPROVED",
-                "commit": None,
-                "url": None,
-                "checks": [{"plan_sha256": sha256_path(plan_path)}],
-                "created_at": utc_now(),
-            }
-            approval_path = directory / "approvals" / f"{approval_id}.json"
-            write_json(approval_path, approval)
-            record_artifact(directory, run, approval_path, "publish-approval", {"actor": "operator"})
-            append_event(directory, run, "APPROVAL", "operator", {"approval_id": approval_id, "target": plan["target"], "package_revision": plan["package_revision"]})
+            approval_id, _ = create_publish_approval(directory, run, plan)
         elif run["state"] in REVIEW_STATES and args.outcome == "PASS":
             type_map = {
                 "INTENT_REVIEW": ("intent-candidate", "intent"),
@@ -2536,6 +2566,62 @@ def command_publish_plan(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def command_publish_renew_approval(args: argparse.Namespace) -> int:
+    directory, run = load_run(args.run_id)
+    if run["state"] != "PUBLISH":
+        raise FlowError(f"Publication approval renewal requires PUBLISH, current state is {run['state']}")
+    plan_path = directory / "publication" / "plan.json"
+    package_path = directory / "package" / "package.json"
+    if not plan_path.is_file() or not package_path.is_file():
+        raise FlowError("Publication plan or package is missing", EXIT_INTEGRITY)
+    plan = load_json(plan_path)
+    package = load_json(package_path)
+    prior = json_artifact(directory, run, "publish-approval")
+    if not prior:
+        raise FlowError("No prior scoped publication approval is available to renew", EXIT_APPROVAL)
+    if prior.get("target") != plan.get("target") or prior.get("package_revision") != plan.get("package_revision"):
+        raise FlowError("Prior approval does not match the current publication scope", EXIT_APPROVAL)
+    if prior.get("plan_sha256") != sha256_path(plan_path) or package.get("package_revision") != plan.get("package_revision"):
+        raise FlowError("Publication scope changed; return to planning instead of renewing approval", EXIT_APPROVAL)
+    if parse_time(prior["expires_at"]) > dt.datetime.now(dt.timezone.utc):
+        emit({
+            "ok": True,
+            "idempotent": True,
+            "approval_id": prior.get("approval_id"),
+            "expires_at": prior.get("expires_at"),
+            "state": run["state"],
+        }, args.json)
+        return EXIT_OK
+    prior_handoff_path = artifact_path(directory, run, "publication-handoff")
+    prior_handoff = load_json(prior_handoff_path) if prior_handoff_path and prior_handoff_path.is_file() else None
+    with run_lock(directory, run):
+        approval_id, approval_path = create_publish_approval(directory, run, plan, renewed_from=str(prior.get("approval_id")))
+        renewed_handoff_path = None
+        if prior_handoff:
+            renewed_handoff_path = create_publication_handoff(
+                directory,
+                run,
+                plan,
+                approval_id,
+                f"Scoped approval renewed for the existing deployment handoff: {prior_handoff.get('reason', 'credentialed deployment is still required')}",
+                commit=prior_handoff.get("created_commit"),
+            )
+        run["status"] = "WAITING_HUMAN" if renewed_handoff_path else "ACTIVE"
+        save_run(directory, run)
+    renewed = load_json(approval_path)
+    emit({
+        "ok": True,
+        "approval_id": approval_id,
+        "renewed_from": prior.get("approval_id"),
+        "expires_at": renewed["expires_at"],
+        "state": run["state"],
+        "handoff": str(renewed_handoff_path) if renewed_handoff_path else None,
+        "retry_command": ["article-flow", "publish", "--execute", run["run_id"], "--approval", approval_id, "--commit", "--push"],
+        "attestation_command": ["article-flow", "deployment-attest", run["run_id"], "--remote-rev", "REMOTE_COMMIT"],
+    }, args.json)
+    return EXIT_OK
+
+
 def publication_push_preflight(repository: Path, target: dict[str, Any]) -> dict[str, Any]:
     command = [
         "git",
@@ -2594,7 +2680,7 @@ def create_publication_handoff(
         ],
         "created_at": utc_now(),
     }
-    path = directory / "publication" / "handoff.json"
+    path = directory / "publication" / f"handoff-{slugify(approval_id, 80)}.json"
     write_json(path, handoff)
     record_artifact(directory, run, path, "publication-handoff", {"actor": "controller", "version": CONTROLLER_VERSION})
     append_event(directory, run, "PUBLICATION_HANDOFF", "controller", {"reason": reason, "commit": commit, "package_revision": plan["package_revision"]})
@@ -3821,10 +3907,11 @@ def build_parser() -> argparse.ArgumentParser:
     amend.add_argument("--description")
     add_json(amend)
 
-    publish = sub.add_parser("publish", help="Plan or execute one scoped publication revision.")
+    publish = sub.add_parser("publish", help="Plan, renew approval for, or execute one scoped publication revision.")
     mode = publish.add_mutually_exclusive_group(required=True)
     mode.add_argument("--plan", action="store_true")
     mode.add_argument("--execute", action="store_true")
+    mode.add_argument("--renew-approval", action="store_true")
     publish.add_argument("run_id")
     publish.add_argument("--approval")
     publish.add_argument("--commit", action="store_true")
@@ -3928,6 +4015,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "publish":
             if args.plan:
                 return command_publish_plan(args)
+            if args.renew_approval:
+                return command_publish_renew_approval(args)
             if not args.approval:
                 raise FlowError("--execute requires --approval APPROVAL_ID", EXIT_APPROVAL)
             return command_publish_execute(args)
