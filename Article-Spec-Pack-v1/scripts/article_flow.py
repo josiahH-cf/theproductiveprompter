@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any, Iterable, Iterator, Sequence
 
 
-CONTROLLER_VERSION = "2.1.1"
+CONTROLLER_VERSION = "2.1.2"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -3369,24 +3369,25 @@ def conformance_health(home: Path | None = None, expected_host: str | None = Non
 
 
 def host_conformance_health() -> dict[str, Any]:
-    checks = [
-        {"host": "wsl", **conformance_health(Path.home() / ".local" / "share" / "article-flow", "wsl")},
-    ]
-    windows_root = windows_user_root()
-    if windows_root:
-        checks.append({"host": "native-windows", **conformance_health(windows_root / ".article-flow", "native-windows")})
+    if os.name == "nt":
+        windows_root = windows_user_root()
+        checks = [
+            {"host": "native-windows", **conformance_health(windows_root / ".article-flow", "native-windows")}
+            if windows_root
+            else {"host": "native-windows", "ok": False, "receipt": None, "reason": "Windows user root is unresolved"}
+        ]
     else:
-        checks.append({"host": "native-windows", "ok": False, "receipt": None, "reason": "Windows user root is unresolved"})
+        checks = [{"host": "wsl", **conformance_health(Path.home() / ".local" / "share" / "article-flow", "wsl")}]
     return {"ok": all(item["ok"] for item in checks), "checks": checks}
 
 
 def installation_health() -> dict[str, Any]:
     checks = []
-    wsl_current = (Path.home() / ".local" / "share" / "article-flow" / "current.json")
-    windows_root = windows_user_root()
-    candidates = [("wsl", wsl_current)]
-    if windows_root:
-        candidates.append(("windows", windows_root / ".article-flow" / "current.json"))
+    if os.name == "nt":
+        windows_root = windows_user_root()
+        candidates = [("windows", windows_root / ".article-flow" / "current.json")] if windows_root else []
+    else:
+        candidates = [("wsl", Path.home() / ".local" / "share" / "article-flow" / "current.json")]
     for host, path in candidates:
         record = load_json(path) if path.is_file() else {}
         ok = bool(

@@ -535,6 +535,20 @@ class RunAndSmokeTests(TemporaryRuntime):
 
 
 class GlobalCommandTests(TemporaryRuntime):
+    def test_release_health_reads_only_the_current_native_hosts_receipts(self):
+        fake_home = Path(self.temp.name) / "release-home"
+        fake_windows = Path(self.temp.name) / "windows-home"
+        with (
+            mock.patch.object(Path, "home", return_value=fake_home),
+            mock.patch.object(af, "windows_user_root", return_value=fake_windows),
+        ):
+            installations = af.installation_health()
+            conformance = af.host_conformance_health()
+        expected_installation = "windows" if os.name == "nt" else "wsl"
+        expected_conformance = "native-windows" if os.name == "nt" else "wsl"
+        self.assertEqual([item["host"] for item in installations["checks"]], [expected_installation])
+        self.assertEqual([item["host"] for item in conformance["checks"]], [expected_conformance])
+
     def test_launcher_smoke_accepts_the_capture_bootstrap(self):
         fake_home = Path(self.temp.name) / "launcher-home"
         fake_runtime = Path(self.temp.name) / "launcher-runtime"
