@@ -5,10 +5,17 @@
     <link>https://theproductiveprompter.com/docs/blog.html</link>
     <description>Practical writing on AI workflows, prompting systems, evaluation, and publication design.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 18 Aug 2026 12:00:00 -0500</lastBuildDate>
+    <lastBuildDate>Fri, 21 Aug 2026 12:00:00 -0500</lastBuildDate>
     <atom:link href="https://theproductiveprompter.com/feed.xml" rel="self" type="application/rss+xml"/>
 
     <!-- ARTICLE_FLOW_FEED_START -->
+<item>
+  <title>I Built an AI Telemetry System Because My Memory Is Too Forgiving</title>
+  <link>https://theproductiveprompter.com/docs/why-i-measure-my-ai-assisted-engineering.html</link>
+  <guid isPermaLink="true">https://theproductiveprompter.com/docs/why-i-measure-my-ai-assisted-engineering.html</guid>
+  <pubDate>Fri, 21 Aug 2026 12:00:00 -0500</pubDate>
+  <description>Why I track AI coding outcomes, API-equivalent cost, subscriptions, project load, and attention—and what the numbers cannot prove.</description>
+</item>
 <item>
   <title>The Machine Did Exactly What You Asked</title>
   <link>https://theproductiveprompter.com/docs/the-machine-did-exactly-what-you-asked.html</link>
