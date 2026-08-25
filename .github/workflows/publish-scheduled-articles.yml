@@ -1,0 +1,58 @@
+name: Publish scheduled articles
+
+"on":
+  schedule:
+    # Run one minute before each five-minute boundary. The release runner waits
+    # until the manifest's exact UTC instant and never publishes early.
+    - cron: "4,9,14,19,24,29,34,39,44,49,54,59 * * * *"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Optional draft-release tag to validate"
+        required: false
+        type: string
+      validate_only:
+        description: "Validate the package and schedule without publishing"
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: scheduled-article-publication
+  cancel-in-progress: false
+
+jobs:
+  publish-due-articles:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ARTICLE_FLOW_REPO_ROOT: ${{ github.workspace }}
+    steps:
+      - name: Check out the exact publication branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure controller-owned publication commits
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Validate or publish scheduled Article Flow releases
+        env:
+          REQUESTED_RELEASE_TAG: ${{ inputs.release_tag }}
+          VALIDATE_ONLY: ${{ inputs.validate_only }}
+        run: |
+          args=()
+          if [[ -n "${REQUESTED_RELEASE_TAG:-}" ]]; then
+            args+=(--release-tag "$REQUESTED_RELEASE_TAG")
+          fi
+          if [[ "${VALIDATE_ONLY:-false}" == "true" ]]; then
+            args+=(--validate-only)
+          fi
+          python3 .github/scripts/publish_scheduled_articles.py "${args[@]}"
