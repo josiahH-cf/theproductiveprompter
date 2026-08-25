@@ -5,10 +5,17 @@
     <link>https://theproductiveprompter.com/docs/blog.html</link>
     <description>Practical writing on AI workflows, prompting systems, evaluation, and publication design.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 21 Aug 2026 12:00:00 -0500</lastBuildDate>
+    <lastBuildDate>Tue, 25 Aug 2026 12:00:00 -0500</lastBuildDate>
     <atom:link href="https://theproductiveprompter.com/feed.xml" rel="self" type="application/rss+xml"/>
 
     <!-- ARTICLE_FLOW_FEED_START -->
+<item>
+  <title>Apple Is Not Positioned for Future Endeavors</title>
+  <link>https://theproductiveprompter.com/docs/apple-is-not-positioned-for-future-endeavors.html</link>
+  <guid isPermaLink="true">https://theproductiveprompter.com/docs/apple-is-not-positioned-for-future-endeavors.html</guid>
+  <pubDate>Tue, 25 Aug 2026 12:00:00 -0500</pubDate>
+  <description>Apple&#x27;s new AI partnerships are the right correction—but until they become broadly shipped capability, its closed-system advantage is becoming a speed risk.</description>
+</item>
 <item>
   <title>I Built an AI Telemetry System Because My Memory Is Too Forgiving</title>
   <link>https://theproductiveprompter.com/docs/why-i-measure-my-ai-assisted-engineering.html</link>
