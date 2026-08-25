@@ -1,7 +1,7 @@
 {
   "$schema": "../schemas/workflow.schema.json",
   "workflow_schema_version": "2.0.0",
-  "workflow_version": "2.0.0",
+  "workflow_version": "2.0.1",
   "authority": true,
   "name": "The Productive Prompter article workflow",
   "precedence": [
@@ -173,7 +173,7 @@
     {
       "id": "DRAFT",
       "actor": "model",
-      "objective": "Write a complete article that follows the approved brief and recipe without adding unsupported claims.",
+      "objective": "Write a complete article that follows the approved brief and recipe without adding unsupported claims or forbidden public-prose characters.",
       "required_inputs": [
         "brief",
         "article-recipe",
@@ -214,7 +214,7 @@
     {
       "id": "EDIT",
       "actor": "model",
-      "objective": "Edit and naturalize the article conservatively while keeping all locked fields unchanged.",
+      "objective": "Edit and naturalize the article conservatively while keeping all locked fields unchanged and excluding forbidden public-prose characters.",
       "required_inputs": [
         "draft",
         "verified-claim-ledger",
@@ -279,7 +279,7 @@
     {
       "id": "PACKAGE",
       "actor": "code",
-      "objective": "Create one clean public package and one private reproducible archive without leaking internal receipts.",
+      "objective": "Create one clean public package and one private reproducible archive without leaking internal receipts or forbidden public-prose characters.",
       "required_inputs": [
         "article",
         "brief",
@@ -471,6 +471,11 @@
       "id": "AF-NATURALIZE-001",
       "level": "MUST",
       "text": "Naturalization may not alter locked claims, numbers, dates, names, citations, URLs, uncertainty, commitments, code, or quotations without reopening evidence verification."
+    },
+    {
+      "id": "AF-CHAR-001",
+      "level": "MUST",
+      "text": "Do not use the em dash character U+2014 in draft, edited article, title, description, or new publication prose; enforce this separately from contextual cliché review."
     },
     {
       "id": "AF-VOICE-001",

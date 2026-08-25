@@ -1,6 +1,6 @@
 {
   "fixture_corpus_schema_version": "1.0.0",
-  "workflow_version": "2.0.0",
+  "workflow_version": "2.0.1",
   "fixtures": [
     {
       "fixture_id": "real-sparse-seed-20260818",

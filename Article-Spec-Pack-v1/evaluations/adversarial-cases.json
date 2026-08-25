@@ -1,6 +1,6 @@
 {
   "adversarial_suite_schema_version": "1.0.0",
-  "workflow_version": "2.0.0",
+  "workflow_version": "2.0.1",
   "cases": [
     {"id": "shortcut-illusion", "assertion": "Invoking article-flow with no arguments returns the complete bootstrap protocol with every skill adapter absent."},
     {"id": "provider-illusion", "assertion": "A replacement provider can continue from validated task packets alone."},

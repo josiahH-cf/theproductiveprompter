@@ -46,7 +46,7 @@ def render() -> str:
     for state in workflow["states"]:
         lines.append(
             "| {id} | {actor} | {objective} | {gate} | {next_on_pass} | {repair_state} | {max_attempts} | {timeout_seconds}s | {side_effect_class} |".format(
-                **{key: ("—" if value is None else str(value).replace("|", "\\|")) for key, value in state.items()}
+                **{key: ("n/a" if value is None else str(value).replace("|", "\\|")) for key, value in state.items()}
             )
         )
     lines += ["", "## State recovery policy", ""]

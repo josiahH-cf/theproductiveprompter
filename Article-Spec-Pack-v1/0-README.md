@@ -58,7 +58,7 @@ Models work only inside the task packet they receive. They do not advance their 
 
 The canonical private article is `article.md`. The website publication target renders it to `docs/{slug}.html`, updates the home page, article index, feed, and sitemap, and verifies the exact live bytes. Internal task packets, receipts, claim ledgers, and run events remain private.
 
-`package`, `publish --plan`, scoped approval, `publish --execute`, and `verify-live` are separate operations. If display text needs a final correction, `amend` changes the approved public title or description and rebuilds from `PACKAGE` without replaying research or drafting. If the active host cannot publish, the controller returns one `human_action`; `deployment-attest` accepts the handoff only when the named commit is the current publication-branch head and every planned public file matches. An expired approval is never reused silently: `next` asks the operator whether to run `publish --renew-approval`, and renewal succeeds only when the target, package revision, and hashed plan are unchanged. Smoke and conformance tests cannot publish.
+`package`, `publish --plan`, scoped approval, `publish --execute`, and `verify-live` are separate operations. If display text needs a final correction, `amend` changes the approved public title or description and rebuilds from `PACKAGE` without replaying research or drafting. A bounded article amendment can repair naturalization without replaying research; a changed article must repeat post-edit claim verification and editorial QA before the controller permits another package. If the active host cannot publish, the controller returns one `human_action`; `deployment-attest` accepts the handoff only when the named commit is the current publication-branch head and every planned public file matches. An expired approval is never reused silently: `next` asks the operator whether to run `publish --renew-approval`, and renewal succeeds only when the target, package revision, and hashed plan are unchanged. Smoke and conformance tests cannot publish.
 
 ## Health commands
 
@@ -74,7 +74,7 @@ Launcher health proves only that the command, canonical process root, and shared
 
 ## Voice and evidence
 
-The current voice profile is provisional. Trial output is not silently promoted into the author corpus. Profile changes require author judgment and a held-out comparison. Editorial assessment covers the article and its public title and description. Packaging also rejects a deliberately narrow set of high-confidence formulaic public-display phrases; contextual voice judgment remains with the operator rather than a blacklist.
+The current voice profile is provisional. Trial output is not silently promoted into the author corpus. Profile changes require author judgment and a held-out comparison. Editorial assessment covers the article and its public title and description. Packaging also rejects a deliberately narrow set of high-confidence formulaic public-display phrases; contextual voice judgment remains with the operator rather than a blacklist. Separately, the controller rejects U+2014 in drafts, edited articles, titles, and descriptions. That character policy is deterministic and does not depend on the contextual cliché assessment.
 
 Every material factual claim must be traceable and fresh enough for its use. Model memory is not a citation source. The final naturalization pass is conservative and fact-locked; a changed number, date, name, citation, URL, code token, quotation, or qualified claim reopens verification.
 

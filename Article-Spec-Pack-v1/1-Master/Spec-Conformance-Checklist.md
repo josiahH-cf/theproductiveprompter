@@ -51,6 +51,7 @@ Purpose: Ensure each article conforms to the Unified Article Spec, Style Baselin
 - [ ] No activation headers or file paths in public text
 - [ ] Short paragraphs; scannable bullets; no redundant sentences (>5 identical words)
 - [ ] Final Prose Naturalization Directive applied; no formulaic AI-style clichés, canned transitions, inflated wording, repetitive rhetoric, generic corporate language, or generated-looking structure remain
+- [ ] No U+2014 em dash remains in draft, edited article, title, description, or new publication prose
 - [ ] Naturalization preserved meaning, facts, uncertainty, links, citations, code, quotations, and Markdown structure; it introduced no new claims
 - [ ] Final line is a verification or next action (not a maxim)
 

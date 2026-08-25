@@ -29,7 +29,17 @@ Do not rewrite source code, commands, configuration, formulas, structured data, 
 
 ---
 
-## 3. Preservation Contract
+## 3. Hard Character Policy
+
+Do not use the em dash character U+2014 in editable public prose. This is a deterministic character rule, not a contextual cliché judgment. It applies to drafts, edited articles, titles, descriptions, and new publication strings.
+
+Replace each occurrence according to meaning with a comma, colon, parentheses, or separate sentences. Do not mechanically substitute one punctuation mark everywhere.
+
+If a locked quotation, code sample, identifier, or other protected field contains U+2014, do not silently alter it. Reopen the evidence or quotation decision, then paraphrase, omit, or replace the protected material through the appropriate workflow gate. A publication candidate containing U+2014 does not pass.
+
+---
+
+## 4. Preservation Contract
 
 Preserve:
 
@@ -45,7 +55,7 @@ Do not add facts, evidence, examples, anecdotes, claims, opinions, promises, hum
 
 ---
 
-## 4. Required Editing Pass
+## 5. Required Editing Pass
 
 Use a substantive but conservative pass:
 
@@ -57,7 +67,7 @@ Use a substantive but conservative pass:
 6. Rewrite formulaic contrasts as one direct statement or demonstrate the distinction with evidence already in the source.
 7. Vary sentence length and structure naturally; combine choppy fragments and divide overloaded sentences.
 8. Prefer concrete nouns and active verbs while preserving intentional passive voice.
-9. Reduce excessive headings, bold labels, symmetrical lists, dramatic one-line paragraphs, em dashes, and semicolon-based contrast formulas when the format does not require them.
+9. Remove every U+2014 em dash from editable public prose using context-appropriate punctuation or sentence boundaries.
 10. Keep the result close to the original length unless repetition warrants removal or the article brief requests another length.
 11. Preserve natural phrasing that already works. Do not rewrite solely for surface variation.
 
@@ -65,7 +75,7 @@ When a cliché carries a real proposition, keep the proposition and rewrite its 
 
 ---
 
-## 5. Formulaic-Prose Inventory
+## 6. Formulaic-Prose Inventory
 
 Inspect grammatical, tense, punctuation, capitalization, and close semantic variants. This inventory is a diagnostic seed, not a literal blacklist.
 
@@ -80,7 +90,7 @@ Inspect grammatical, tense, punctuation, capitalization, and close semantic vari
 ### Repetitive rhetoric and artificial contrast
 
 - Repeated `No X, no Y`, `Did not X, did not Y`, or `Don't X it; Y it` chains
-- `Not just X, but Y`, `It's not about X, it's about Y`, `This isn't just X—it's Y`, `More than just`
+- `Not just X, but Y`, `It's not about X, it's about Y`, `This isn't merely X; it is Y`, `More than just`
 - `The question is no longer X, but Y`, `The real question is`, `Whether you're X or Y`, `From X to Y`
 - Rhetorical question-and-answer pairs used only for drama
 - Repeated negative-positive contrasts that restate one idea twice
@@ -136,7 +146,7 @@ Keep a listed phrase when it is deliberate, quoted, technically necessary, legal
 
 ---
 
-## 6. Safe Rewrite Order
+## 7. Safe Rewrite Order
 
 1. Delete language that contributes no information.
 2. State the underlying proposition directly.
@@ -149,7 +159,7 @@ Keep a listed phrase when it is deliberate, quoted, technically necessary, legal
 
 ---
 
-## 7. Output and Final Check
+## 8. Output and Final Check
 
 Return only the revised Markdown article. Do not include a preface, explanation, change log, score, checklist, authorship claim, or offer for further revision.
 
@@ -158,6 +168,7 @@ Before returning it, verify silently:
 - Meaning, facts, intent, uncertainty, and requested action are unchanged.
 - No new claims or examples were introduced.
 - Formulaic AI-style language was removed or rewritten where supported.
+- No U+2014 em dash remains in editable public prose.
 - Listed phrases were not removed blindly when context made them accurate or necessary.
 - The prose is direct, specific, readable, and natural without artificial errors or gimmicks.
 - Tone, audience, language, formatting, links, citations, code, and quoted material remain intact.
@@ -166,6 +177,6 @@ If the article already satisfies this directive and no supported edit improves i
 
 ---
 
-**Version:** 1.0
-**Date:** August 18, 2026
+**Version:** 1.1
+**Date:** August 25, 2026
 **Status:** Normative, model-agnostic, CLI-enforced final-prose gate for all publication candidates.

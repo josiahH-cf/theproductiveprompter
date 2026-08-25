@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any, Iterable, Iterator, Sequence
 
 
-CONTROLLER_VERSION = "2.1.4"
+CONTROLLER_VERSION = "2.1.5"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -126,6 +126,10 @@ SURFACE_PROSE_PATTERNS = (
     "in conclusion",
     "the bottom line",
 )
+
+FORBIDDEN_PUBLIC_PROSE_CHARACTERS = {
+    "\u2014": {"name": "em dash", "codepoint": "U+2014"},
+}
 
 
 class FlowError(RuntimeError):
@@ -1586,6 +1590,8 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
             match = re.search(pattern, text, flags=re.IGNORECASE)
             if match:
                 findings.append({"criterion": "no_placeholders_or_private_paths", "artifact": str(submission), "location": match.group(0), "finding": "Public-candidate text contains a placeholder or private local path.", "repair_instruction": "Resolve or remove the private/internal text."})
+        for finding in forbidden_public_prose_character_findings(text):
+            findings.append({**finding, "artifact": str(submission)})
     return ("PASS" if not findings else "REPAIR"), findings
 
 
@@ -2352,6 +2358,39 @@ def surface_prose_hits(value: str) -> list[str]:
     return [phrase for phrase in SURFACE_PROSE_PATTERNS if phrase.casefold() in normalized]
 
 
+def forbidden_public_prose_character_findings(value: str) -> list[dict[str, Any]]:
+    findings: list[dict[str, Any]] = []
+    for character, policy_value in FORBIDDEN_PUBLIC_PROSE_CHARACTERS.items():
+        count = value.count(character)
+        if not count:
+            continue
+        locations: list[str] = []
+        for line_number, line in enumerate(value.splitlines(), start=1):
+            start = 0
+            while len(locations) < 5:
+                column = line.find(character, start)
+                if column < 0:
+                    break
+                locations.append(f"line {line_number}, column {column + 1}")
+                start = column + len(character)
+            if len(locations) == 5:
+                break
+        findings.append({
+            "criterion": "forbidden_public_prose_character",
+            "location": "; ".join(locations),
+            "finding": (
+                f"Public prose contains {count} forbidden {policy_value['name']} "
+                f"character(s) ({policy_value['codepoint']})."
+            ),
+            "repair_instruction": (
+                "Replace each occurrence with a comma, colon, parentheses, or separate "
+                "sentences as the meaning requires. Do not alter locked quotations or code; "
+                "reopen the affected evidence decision if one contains the character."
+            ),
+        })
+    return findings
+
+
 def validate_public_package(package_root: Path, metadata: dict[str, Any]) -> list[dict[str, Any]]:
     findings: list[dict[str, Any]] = []
     public_root = package_root / "public"
@@ -2387,6 +2426,12 @@ def validate_public_package(package_root: Path, metadata: dict[str, Any]) -> lis
                 "finding": f"Public-facing {field} still contains the formulaic phrase {phrase!r}.",
                 "repair_instruction": "Rewrite the display text directly, preserving the article's meaning, then package again.",
             })
+        for finding in forbidden_public_prose_character_findings(str(metadata.get(field) or "")):
+            findings.append({**finding, "path": f"metadata.{field}"})
+    if article_markdown.is_file():
+        article_text = article_markdown.read_text(encoding="utf-8", errors="replace")
+        for finding in forbidden_public_prose_character_findings(article_text):
+            findings.append({**finding, "path": str(article_markdown)})
     for xml_name in ("feed.xml", "sitemap.xml"):
         path = site_root / xml_name
         if path.is_file():
@@ -2445,14 +2490,15 @@ def copy_private_run_archive(directory: Path, private_root: Path) -> dict[str, A
 def command_amend(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
     if run["state"] not in {"PACKAGE", "PUBLISH_APPROVAL"}:
-        raise FlowError(f"Display-text amendment requires PACKAGE or PUBLISH_APPROVAL, current state is {run['state']}")
-    if args.title is None and args.description is None:
-        raise FlowError("Amend requires --title and/or --description", EXIT_USAGE)
+        raise FlowError(f"Amend requires PACKAGE or PUBLISH_APPROVAL, current state is {run['state']}")
+    article_argument = getattr(args, "article", None)
+    if args.title is None and args.description is None and article_argument is None:
+        raise FlowError("Amend requires --title, --description, and/or --article", EXIT_USAGE)
     brief_path = artifact_path(directory, run, "brief")
     if not brief_path:
         raise FlowError("Approved brief is missing", EXIT_INTEGRITY)
     brief = load_json(brief_path)
-    changed = {}
+    changed: dict[str, str] = {}
     if args.title is not None:
         if not args.title.strip():
             raise FlowError("Title cannot be empty", EXIT_USAGE)
@@ -2463,20 +2509,63 @@ def command_amend(args: argparse.Namespace) -> int:
             raise FlowError("Description cannot be empty", EXIT_USAGE)
         brief["description"] = args.description.strip()
         changed["description"] = brief["description"]
-    amended_path = directory / "artifacts" / f"amended-brief-{secrets.token_hex(4)}.json"
+
+    display_findings: list[dict[str, Any]] = []
+    for field, value in changed.items():
+        for phrase in surface_prose_hits(value):
+            display_findings.append({
+                "criterion": "public_surface_voice",
+                "path": f"metadata.{field}",
+                "finding": f"Public-facing {field} still contains the formulaic phrase {phrase!r}.",
+                "repair_instruction": "Rewrite the display text directly while preserving the article's meaning.",
+            })
+        for finding in forbidden_public_prose_character_findings(value):
+            display_findings.append({**finding, "path": f"metadata.{field}"})
+    if display_findings:
+        raise FlowError("Amended public display text failed deterministic validation", EXIT_INTEGRITY, display_findings)
+
+    article_source: Path | None = None
+    article_changed = False
+    if article_argument is not None:
+        article_source = Path(article_argument).expanduser().resolve()
+        if not article_source.is_file() or article_source.stat().st_size == 0:
+            raise FlowError(f"Amended article does not exist or is empty: {article_source}", EXIT_USAGE)
+        outcome, article_findings = automatic_gate(directory, run, "EDIT", article_source)
+        if outcome != "PASS":
+            raise FlowError("Amended article failed deterministic naturalization validation", EXIT_INTEGRITY, article_findings)
+        current_article = artifact_path(directory, run, "article")
+        if not current_article:
+            raise FlowError("Current article artifact is missing", EXIT_INTEGRITY)
+        article_changed = sha256_path(article_source) != sha256_path(current_article)
+
     with run_lock(directory, run):
-        write_json(amended_path, brief)
-        errors = validate_json_schema(amended_path, "brief.schema.json")
-        if errors:
-            amended_path.unlink(missing_ok=True)
-            raise FlowError("Amended brief is invalid", EXIT_INTEGRITY, errors)
-        record_artifact(directory, run, amended_path, "brief", {"actor": "operator", "decision": "display-text-amendment"})
-        append_event(directory, run, "PUBLIC_DISPLAY_TEXT_AMENDED", "operator", {"changed_fields": sorted(changed)})
-        if run["state"] != "PACKAGE":
+        if changed:
+            amended_path = directory / "artifacts" / f"amended-brief-{secrets.token_hex(4)}.json"
+            write_json(amended_path, brief)
+            errors = validate_json_schema(amended_path, "brief.schema.json")
+            if errors:
+                amended_path.unlink(missing_ok=True)
+                raise FlowError("Amended brief is invalid", EXIT_INTEGRITY, errors)
+            record_artifact(directory, run, amended_path, "brief", {"actor": "operator", "decision": "display-text-amendment"})
+            append_event(directory, run, "PUBLIC_DISPLAY_TEXT_AMENDED", "operator", {"changed_fields": sorted(changed)})
+        if article_source is not None and article_changed:
+            amended_article = directory / "artifacts" / f"amended-article-{secrets.token_hex(4)}.md"
+            shutil.copy2(article_source, amended_article)
+            record_artifact(directory, run, amended_article, "article", {"actor": "operator", "decision": "bounded-naturalization-amendment"})
+            append_event(directory, run, "PUBLIC_ARTICLE_AMENDED", "operator", {"source_sha256": sha256_path(article_source)})
+            write_gate_receipt(directory, run, "G-NATURALIZATION", "PASS", [], {"type": "code", "version": CONTROLLER_VERSION})
+            transition(directory, run, "POST_EDIT_CLAIM_VERIFICATION", "operator", "Article prose changed; reverify post-edit claims and editorial QA")
+        elif changed and run["state"] != "PACKAGE":
             transition(directory, run, "PACKAGE", "operator", "Public display text changed; rebuild the package")
         else:
             save_run(directory, run)
-    emit({"ok": True, "changed": changed, "state": run["state"], "next_command": ["article-flow", "package", run["run_id"]]}, args.json)
+    if run["state"] == "POST_EDIT_CLAIM_VERIFICATION":
+        next_command = ["article-flow", "next", run["run_id"]]
+    elif run["state"] == "PACKAGE":
+        next_command = ["article-flow", "package", run["run_id"]]
+    else:
+        next_command = ["article-flow", "publish", "--plan", run["run_id"]]
+    emit({"ok": True, "changed": changed, "article_changed": article_changed, "state": run["state"], "next_command": next_command}, args.json)
     return EXIT_OK
 
 
@@ -3952,10 +4041,11 @@ def build_parser() -> argparse.ArgumentParser:
     package.add_argument("run_id")
     add_json(package)
 
-    amend = sub.add_parser("amend", help="Change operator-owned public display text without replaying the article workflow.")
+    amend = sub.add_parser("amend", help="Change public display text or submit a bounded article naturalization repair.")
     amend.add_argument("run_id")
     amend.add_argument("--title")
     amend.add_argument("--description")
+    amend.add_argument("--article", help="Revised Markdown article; deterministic naturalization checks run before downstream reverification.")
     add_json(amend)
 
     publish = sub.add_parser("publish", help="Plan, renew approval for, or execute one scoped publication revision.")

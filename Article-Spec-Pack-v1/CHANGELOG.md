@@ -9,6 +9,15 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## August 25, 2026: Article Flow workflow 2.0.1 (controller 2.1.5)
+
+- Added a deterministic character policy that rejects U+2014 in drafts, edited articles, titles, descriptions, and packaged article Markdown. This operates independently from the contextual cliché review.
+- Strengthened the naturalization directive so each occurrence must be repaired according to meaning with punctuation or sentence boundaries, while protected quotations and code reopen the appropriate evidence decision instead of being silently changed.
+- Extended the amend command with a bounded article repair path. Any changed article must pass deterministic naturalization checks and then repeat post-edit claim verification and editorial QA before packaging.
+- Added regression coverage for draft, edit, metadata amendment, article amendment, and package defense-in-depth failures.
+
+---
+
 ## August 19, 2026 — Article Flow 2.1 (controller 2.1.4)
 
 - Made `capture` the plain-language raw-idea entrypoint and added `list` as a compact index of seeds, resumable runs, canonical locations, and returned live links.

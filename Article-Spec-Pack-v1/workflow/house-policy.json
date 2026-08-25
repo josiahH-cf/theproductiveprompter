@@ -1,6 +1,6 @@
 {
   "policy_schema_version": "2.0.0",
-  "workflow_version": "2.0.0",
+  "workflow_version": "2.0.1",
   "status": "operator-configurable defaults; subordinate to run overrides and an approved article recipe",
   "intake": {
     "preserve_seed_verbatim": true,
@@ -44,7 +44,20 @@
     "require_voice_probe": true,
     "pairwise_order_reversal": true,
     "naturalization_directive": "10-Final-Prose-Naturalization/Final-Prose-Naturalization-Directive.md",
-    "repair_scope": "affected_passage"
+    "repair_scope": "affected_passage",
+    "forbidden_public_prose_characters": [
+      {
+        "character": "\u2014",
+        "name": "em dash",
+        "codepoint": "U+2014",
+        "scope": [
+          "draft",
+          "article",
+          "title",
+          "description"
+        ]
+      }
+    ]
   },
   "repairs": {
     "default_max_attempts": 2,

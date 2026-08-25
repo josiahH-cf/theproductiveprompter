@@ -30,6 +30,9 @@ def namespace(**values):
         "route": None,
         "canary": False,
         "redirect_to": None,
+        "title": None,
+        "description": None,
+        "article": None,
     }
     defaults.update(values)
     return argparse.Namespace(**defaults)
@@ -60,6 +63,7 @@ class AuthorityTests(unittest.TestCase):
     def test_machine_authority_and_generated_view_are_consistent(self):
         result = subprocess.run([sys.executable, str(SPEC_ROOT / "scripts" / "render_workflow_docs.py"), "--check"], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("\u2014", (SPEC_ROOT / "1-Master" / "Article-Workflow-v2.md").read_text(encoding="utf-8"))
         workflow = json.loads((SPEC_ROOT / "workflow" / "workflow.json").read_text())
         self.assertTrue(workflow["authority"])
         self.assertEqual(workflow["precedence"], ["run_overrides", "approved_article_recipe", "workflow_schema", "house_policy", "examples"])
@@ -67,6 +71,13 @@ class AuthorityTests(unittest.TestCase):
         self.assertIn("no grammatical person is universal", rules["AF-PERSON-001"])
         self.assertIn("house bands are never pass/fail gates", rules["AF-LENGTH-001"])
         self.assertIn("Do not require a universal article skeleton", rules["AF-SHAPE-001"])
+        self.assertIn("U+2014", rules["AF-CHAR-001"])
+        house_policy = json.loads((SPEC_ROOT / "workflow" / "house-policy.json").read_text())
+        configured_characters = {
+            item["character"]: {"name": item["name"], "codepoint": item["codepoint"]}
+            for item in house_policy["voice"]["forbidden_public_prose_characters"]
+        }
+        self.assertEqual(configured_characters, af.FORBIDDEN_PUBLIC_PROSE_CHARACTERS)
         lint = af.normative_lint()
         self.assertTrue(lint["ok"], lint["issues"])
         self.assertEqual(lint["conflicting_normative_statement_count"], 0)
@@ -280,16 +291,62 @@ class RunAndSmokeTests(TemporaryRuntime):
 
     def test_public_display_text_is_linted_and_can_be_amended_without_rewind(self):
         run_id = self.walk_to_package()
-        code, amended = call(af.command_amend, run_id=run_id, title=None, description="At its core, this is not a magic spell.")
-        self.assertEqual(code, af.EXIT_OK)
-        self.assertEqual(amended["state"], "PACKAGE")
         with self.assertRaises(af.FlowError) as caught:
-            call(af.command_package, run_id=run_id)
+            call(af.command_amend, run_id=run_id, title=None, description="At its core, this is not a magic spell.")
         self.assertEqual(caught.exception.code, af.EXIT_INTEGRITY)
         self.assertIn("public_surface_voice", {item["criterion"] for item in caught.exception.details})
+        with self.assertRaises(af.FlowError) as caught:
+            call(af.command_amend, run_id=run_id, title=None, description="A bounded test\u2014with a forbidden separator.")
+        self.assertEqual(caught.exception.code, af.EXIT_INTEGRITY)
+        self.assertIn("forbidden_public_prose_character", {item["criterion"] for item in caught.exception.details})
         call(af.command_amend, run_id=run_id, title=None, description="A bounded test of the article workflow.")
         code, packaged = call(af.command_package, run_id=run_id)
         self.assertEqual(code, af.EXIT_OK, packaged)
+
+    def test_em_dash_is_rejected_in_draft_edit_and_package_defense(self):
+        run_id = self.start()
+        directory, run = af.load_run(run_id)
+        candidate = Path(self.temp.name) / "candidate.md"
+        candidate.write_text("# Test\n\nOne clause\u2014another clause.\n", encoding="utf-8")
+        for state in ("DRAFT", "EDIT"):
+            outcome, findings = af.automatic_gate(directory, run, state, candidate)
+            self.assertEqual(outcome, "REPAIR")
+            self.assertIn("forbidden_public_prose_character", {item["criterion"] for item in findings})
+
+        packaged_run = self.walk_to_package()
+        packaged_directory, packaged_state = af.load_run(packaged_run)
+        article_path = af.artifact_path(packaged_directory, packaged_state, "article")
+        self.assertIsNotNone(article_path)
+        article_path.write_text("# A Test Article\n\nOne clause\u2014another clause.\n", encoding="utf-8")
+        with self.assertRaises(af.FlowError) as caught:
+            call(af.command_package, run_id=packaged_run)
+        self.assertEqual(caught.exception.code, af.EXIT_INTEGRITY)
+        self.assertIn("forbidden_public_prose_character", {item["criterion"] for item in caught.exception.details})
+
+    def test_bounded_article_amendment_revalidates_downstream_stages(self):
+        run_id = self.walk_to_package()
+        invalid = Path(self.temp.name) / "invalid-amendment.md"
+        invalid.write_text("# A Test Article\n\nOne clause\u2014another clause.\n", encoding="utf-8")
+        with self.assertRaises(af.FlowError) as caught:
+            call(af.command_amend, run_id=run_id, article=str(invalid))
+        self.assertIn("forbidden_public_prose_character", {item["criterion"] for item in caught.exception.details})
+
+        directory, run = af.load_run(run_id)
+        current = af.artifact_path(directory, run, "article")
+        revised = Path(self.temp.name) / "revised-amendment.md"
+        revised.write_text(
+            current.read_text(encoding="utf-8").replace(
+                "The page is live, and the hash tells us which page.",
+                "The page is live. Its hash identifies the exact page.",
+            ),
+            encoding="utf-8",
+        )
+        code, amended = call(af.command_amend, run_id=run_id, article=str(revised))
+        self.assertEqual(code, af.EXIT_OK, amended)
+        self.assertTrue(amended["article_changed"])
+        self.assertEqual(amended["state"], "POST_EDIT_CLAIM_VERIFICATION")
+        directory, run = af.load_run(run_id)
+        self.assertEqual(af.artifact_path(directory, run, "article").read_text(encoding="utf-8"), revised.read_text(encoding="utf-8"))
 
     def test_review_regate_same_file_terminal_and_targeted_repairs_are_safe(self):
         run_id = self.start()
