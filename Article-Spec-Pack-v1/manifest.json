@@ -267,8 +267,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "publication",
-      "sha256": "4f88a65fa7f26d7052e4ffcf7328ccd793e83fa0f1db88b80ee128985809dbb3",
-      "byte_size": 1570
+      "sha256": "13bd4897f277eda485f4791c38bf8091689f214c0654bcbac1f2a51b40b33e45",
+      "byte_size": 1768
     },
     {
       "path": "schemas/article-recipe.schema.json",
