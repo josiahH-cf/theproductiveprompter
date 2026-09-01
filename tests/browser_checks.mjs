@@ -628,6 +628,95 @@ async function checkSocialAndClipboard(client, baseUrl) {
   return result('PRES-6', failures, ['desktop sidebar links/copy tooltip and mobile hiding passed']);
 }
 
+async function checkHeroFit(client, baseUrl) {
+  const failures = [];
+  const viewports = [
+    { label: 'desktop', width: 1440, height: 900, desktop: true },
+    { label: 'laptop', width: 1366, height: 768, desktop: true },
+    { label: 'scaled desktop', width: 1173, height: 579, desktop: true },
+    { label: 'compact desktop', width: 1024, height: 600, desktop: true },
+    { label: 'narrow tablet', width: 820, height: 700, desktop: false },
+    { label: 'tablet', width: 768, height: 1024, desktop: false },
+    { label: 'mobile', width: 390, height: 844, desktop: false },
+    { label: 'small mobile', width: 320, height: 568, desktop: false },
+  ];
+  for (const viewport of viewports) {
+    await client.send('Emulation.setDeviceMetricsOverride', {
+      width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: !viewport.desktop,
+    });
+    await navigate(client, `${baseUrl}/index.html?hero-fit=${encodeURIComponent(viewport.label)}`);
+    await delay(900);
+    const state = await evaluate(client, `(() => {
+      const rect = element => {
+        const value = element?.getBoundingClientRect();
+        return value && { left: value.left, right: value.right, top: value.top, bottom: value.bottom, width: value.width, height: value.height };
+      };
+      const lineCount = element => {
+        if (!element) return 0;
+        const range = document.createRange(); range.selectNodeContents(element);
+        const tops = [];
+        for (const value of range.getClientRects()) {
+          if (!value.width || !value.height) continue;
+          if (!tops.some(top => Math.abs(top - value.top) < 1)) tops.push(value.top);
+        }
+        return tops.length;
+      };
+      const overlap = (a, b) => !!a && !!b && Math.min(a.right, b.right) > Math.max(a.left, b.left) + 1 && Math.min(a.bottom, b.bottom) > Math.max(a.top, b.top) + 1;
+      const hero = document.querySelector('.hero');
+      const nav = document.querySelector('.nav');
+      const content = document.querySelector('.hero__content');
+      const visual = document.querySelector('.hero__visual');
+      const split = document.querySelector('.split-card');
+      const name = document.querySelector('.hero__name');
+      const tagline = document.querySelector('.hero__tagline');
+      const sidebar = document.querySelector('.social-sidebar');
+      const ctas = [...document.querySelectorAll('.hero__cta')];
+      const socials = [...document.querySelectorAll('.hero__social-link')];
+      const interactive = [...document.querySelectorAll('.hero a, .hero button')];
+      const socialData = socials.map(link => ({
+        href: link.href, target: link.target, rel: link.rel, ariaLabel: link.getAttribute('aria-label') || '',
+        link: rect(link), icon: rect(link.querySelector('svg')),
+      }));
+      const xClipped = [...document.querySelectorAll('.hero__content, .hero__visual, .split-card, .hero a')]
+        .map(element => ({ selector: element.className, rect: rect(element) }))
+        .filter(item => item.rect && (item.rect.left < -1 || item.rect.right > innerWidth + 1));
+      return {
+        viewport: { width: innerWidth, height: innerHeight },
+        horizontalOverflow: document.documentElement.scrollWidth - innerWidth,
+        hero: rect(hero), nav: rect(nav), content: rect(content), visual: rect(visual), split: rect(split),
+        sidebarVisible: !!sidebar && getComputedStyle(sidebar).display !== 'none' && getComputedStyle(sidebar).visibility !== 'hidden',
+        nameLines: lineCount(name), taglineLines: lineCount(tagline),
+        nameFont: parseFloat(getComputedStyle(name).fontSize), taglineFont: parseFloat(getComputedStyle(tagline).fontSize),
+        ctas: ctas.map(rect), socials: socialData, xClipped,
+        contentVisualOverlap: overlap(rect(content), rect(visual)),
+        ctaOverlap: ctas.length === 2 && overlap(rect(ctas[0]), rect(ctas[1])),
+        socialOverlap: socials.some((link, index) => socials.slice(index + 1).some(other => overlap(rect(link), rect(other)))),
+        interactiveClipped: interactive.map(rect).filter(value => value && (value.left < -1 || value.right > innerWidth + 1)),
+      };
+    })()`);
+    const prefix = `${viewport.label} ${viewport.width}x${viewport.height}`;
+    if (state.horizontalOverflow > 1 || state.xClipped.length || state.interactiveClipped.length) failures.push(`${prefix}: horizontal clipping/overflow ${JSON.stringify(state)}`);
+    if (state.ctaOverlap || state.socialOverlap) failures.push(`${prefix}: hero actions overlap ${JSON.stringify(state)}`);
+    if (state.socials.length !== 3 || state.socials.some(item => item.icon.width < 28 || item.icon.height < 28 || item.link.width < 44 || item.link.height < 44)) failures.push(`${prefix}: social icon/target sizing is too small ${JSON.stringify(state.socials)}`);
+    const expectedHrefs = ['https://github.com/josiahH-cf', 'https://www.linkedin.com/in/josiahhunter/', `mailto:${EMAIL}`];
+    if (state.socials.some((item, index) => !item.href.startsWith(expectedHrefs[index]))) failures.push(`${prefix}: social destinations changed ${JSON.stringify(state.socials)}`);
+    if (state.socials.slice(0, 2).some(item => item.target !== '_blank' || !item.rel.split(/\s+/).includes('noopener') || !item.rel.split(/\s+/).includes('noreferrer'))) failures.push(`${prefix}: external social safety attributes missing`);
+    if (state.socials.slice(0, 2).some(item => !item.ariaLabel.toLowerCase().includes('new tab'))) failures.push(`${prefix}: external social accessible name does not announce new-tab behavior`);
+    if (viewport.desktop) {
+      const lowest = Math.max(state.content.bottom, state.visual.bottom, ...state.ctas.map(value => value.bottom), ...state.socials.map(value => value.link.bottom));
+      if (state.nameLines !== 1 || state.taglineLines !== 1) failures.push(`${prefix}: desktop name/tagline wraps (${state.nameLines}/${state.taglineLines} lines)`);
+      if (state.nameFont > 64.1 || state.taglineFont > 36.1 || state.split.width > 360.1 || state.split.height > 360.1) failures.push(`${prefix}: type or visual exceeds compact bounds ${JSON.stringify({ nameFont: state.nameFont, taglineFont: state.taglineFont, split: state.split })}`);
+      if (state.contentVisualOverlap) failures.push(`${prefix}: content and split card overlap`);
+      if (viewport.height <= 700 && state.sidebarVisible) failures.push(`${prefix}: fixed social rail remains visible on a short screen`);
+      if (Math.min(state.content.top, state.visual.top) < state.nav.bottom - 1 || lowest > state.viewport.height + 1) failures.push(`${prefix}: required hero content does not fit the first screen ${JSON.stringify({ nav: state.nav, content: state.content, visual: state.visual, lowest })}`);
+    } else if (state.hero.bottom + 1 < Math.max(state.content.bottom, state.visual.bottom)) {
+      failures.push(`${prefix}: responsive hero clips its stacked content`);
+    }
+  }
+  await client.send('Emulation.clearDeviceMetricsOverride');
+  return result('BEH-9', failures, ['hero fit, single-line desktop branding, and enlarged social icons passed across eight viewports']);
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   const results = [];
@@ -649,6 +738,7 @@ async function main() {
       ['BEH-3', () => checkTelemetry(client, browser.port, page.targetId, server.baseUrl)],
       ['BEH-5', () => checkReachOut(client, server.baseUrl)],
       ['BEH-6', () => checkContactForm(client, server, server.baseUrl)],
+      ['BEH-9', () => checkHeroFit(client, server.baseUrl)],
       ['PRES-3', () => check31Days(client, server.baseUrl)],
       ['PRES-4', () => checkHamburger(client, server.baseUrl, routes)],
       ['PRES-5', () => checkReveal(client, server.baseUrl)],
@@ -661,7 +751,7 @@ async function main() {
       }
     }
   } catch (error) {
-    const ids = ['BEH-1', 'BEH-2', 'BEH-3', 'BEH-5', 'BEH-6', 'PRES-3', 'PRES-4', 'PRES-5', 'PRES-6'];
+    const ids = ['BEH-1', 'BEH-2', 'BEH-3', 'BEH-5', 'BEH-6', 'BEH-9', 'PRES-3', 'PRES-4', 'PRES-5', 'PRES-6'];
     for (const id of ids) results.push({ id, status: 'FAIL', detail: `Browser harness unavailable: ${error.message}` });
   } finally {
     client?.close();

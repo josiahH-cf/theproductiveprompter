@@ -2,7 +2,7 @@
 **If this was built correctly:** The browser tab title and the line under the name
 read "🔐Security | ☁️Cloud | 🧠AI" with the emojis intact, and the old generic
 wording is gone.
-- Model verdict: PASS - why: The rendered home title, meta description, and hero tagline match the required emoji-bearing text exactly; ARCH-7 passes.
+- Model verdict: PASS - why: The rendered home title, meta description, and hero tagline match the required emoji-bearing text exactly; ARCH-7 passes, and BEH-9 keeps the name/tagline on one line at desktop and scaled-desktop widths.
 - Human verdict: PASS | FAIL - why:
 
 ### Navigation stays on screen while scrolling
