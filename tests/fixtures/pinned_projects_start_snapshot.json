@@ -1,22 +1,14 @@
 {
   "_evidence": {
-    "note": "Pin order captured during the 2026-09-01 clean-start audit; repository fields refreshed from GitHub GraphQL before seeding. GitHub later exposed only four pins during the same implementation run.",
+    "captured_at": "2026-09-01T12:30:16Z",
+    "note": "Authenticated GitHub GraphQL snapshot captured after the owner confirmed that four profile pins are intentional.",
     "owner": "josiahH-cf"
   },
   "data": {
     "user": {
       "pinnedItems": {
+        "totalCount": 4,
         "nodes": [
-          {
-            "__typename": "Repository",
-            "name": "workflow",
-            "description": "Files to aid in multi-LLM adjacent development with Copilot, Codex, and Claude",
-            "url": "https://github.com/josiahH-cf/workflow",
-            "primaryLanguage": {"name": "Shell"},
-            "stargazerCount": 0,
-            "forkCount": 0,
-            "updatedAt": "2026-03-08T16:54:06Z"
-          },
           {
             "__typename": "Repository",
             "name": "espansr",
@@ -29,33 +21,23 @@
           },
           {
             "__typename": "Repository",
-            "name": "orchestratr",
-            "description": null,
-            "url": "https://github.com/josiahH-cf/orchestratr",
-            "primaryLanguage": {"name": "Go"},
-            "stargazerCount": 0,
-            "forkCount": 0,
-            "updatedAt": "2026-03-13T17:36:28Z"
-          },
-          {
-            "__typename": "Repository",
-            "name": "templatr",
-            "description": null,
-            "url": "https://github.com/josiahH-cf/templatr",
-            "primaryLanguage": {"name": "Python"},
-            "stargazerCount": 0,
-            "forkCount": 0,
-            "updatedAt": "2026-03-08T11:22:25Z"
-          },
-          {
-            "__typename": "Repository",
             "name": "theproductiveprompter",
             "description": "theproductiveprompter.com or josiahhunter.com",
             "url": "https://github.com/josiahH-cf/theproductiveprompter",
             "primaryLanguage": {"name": "Python"},
             "stargazerCount": 0,
             "forkCount": 0,
-            "updatedAt": "2026-08-31T14:25:25Z"
+            "updatedAt": "2026-09-01T12:08:40Z"
+          },
+          {
+            "__typename": "Repository",
+            "name": "agent-telemetry",
+            "description": null,
+            "url": "https://github.com/josiahH-cf/agent-telemetry",
+            "primaryLanguage": {"name": "Python"},
+            "stargazerCount": 0,
+            "forkCount": 0,
+            "updatedAt": "2026-09-01T08:27:09Z"
           },
           {
             "__typename": "Repository",

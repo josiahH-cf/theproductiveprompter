@@ -27,7 +27,8 @@ import urllib.request
 GRAPHQL_URL = "https://api.github.com/graphql"
 CONFIG_PATH = Path("Article-Spec-Pack-v1/publication/theproductiveprompter.json")
 DEFAULT_OWNER = "josiahH-cf"
-DEFAULT_COUNT = 6
+DEFAULT_COUNT = 4
+MAX_PINNED_ITEMS = 6
 DEFAULT_START_MARKER = "<!-- PINNED_PROJECTS_START -->"
 DEFAULT_END_MARKER = "<!-- PINNED_PROJECTS_END -->"
 DEFAULT_FALLBACKS = {
@@ -41,9 +42,10 @@ MONTHS = (
 )
 
 QUERY = """
-query PinnedProjects($login: String!, $count: Int!) {
+query PinnedProjects($login: String!, $limit: Int!) {
   user(login: $login) {
-    pinnedItems(first: $count, types: [REPOSITORY]) {
+    pinnedItems(first: $limit, types: [REPOSITORY]) {
+      totalCount
       nodes {
         ... on Repository {
           __typename
@@ -77,11 +79,11 @@ def load_config(repository: Path) -> dict[str, Any]:
     return value
 
 
-def request_pins(owner: str, count: int, token: str) -> dict[str, Any]:
+def request_pins(owner: str, token: str) -> dict[str, Any]:
     if not token:
         raise RefreshError("GITHUB_TOKEN is required when --response-file is not used")
     body = json.dumps(
-        {"query": QUERY, "variables": {"login": owner, "count": count}},
+        {"query": QUERY, "variables": {"login": owner, "limit": MAX_PINNED_ITEMS}},
         separators=(",", ":"),
     ).encode("utf-8")
     request = urllib.request.Request(
@@ -173,12 +175,22 @@ def validate_response(
     if errors:
         raise RefreshError("GitHub GraphQL returned one or more errors")
     try:
-        nodes = response["data"]["user"]["pinnedItems"]["nodes"]
+        pinned_items = response["data"]["user"]["pinnedItems"]
+        total_count = pinned_items["totalCount"]
+        nodes = pinned_items["nodes"]
     except (KeyError, TypeError) as exc:
-        raise RefreshError("GraphQL response lacks data.user.pinnedItems.nodes") from exc
-    if not isinstance(nodes, list) or len(nodes) != count:
+        raise RefreshError("GraphQL response lacks complete data.user.pinnedItems fields") from exc
+    if isinstance(total_count, bool) or not isinstance(total_count, int) or total_count < 0:
+        raise RefreshError("GraphQL response has an invalid pinnedItems.totalCount")
+    if total_count != count:
+        raise RefreshError(
+            f"Expected exactly {count} pinned repositories; GitHub reports {total_count}"
+        )
+    if not isinstance(nodes, list) or len(nodes) != total_count:
         actual = len(nodes) if isinstance(nodes, list) else "non-list"
-        raise RefreshError(f"Expected exactly {count} pinned repositories; received {actual}")
+        raise RefreshError(
+            f"GitHub reported {total_count} pinned repositories but returned {actual} nodes"
+        )
 
     projects: list[dict[str, Any]] = []
     seen_names: set[str] = set()
@@ -343,7 +355,7 @@ def main() -> int:
             raise RefreshError(f"pinned_projects_owner must be {DEFAULT_OWNER}")
         count = config.get("pinned_projects_count", DEFAULT_COUNT)
         if isinstance(count, bool) or not isinstance(count, int) or count != DEFAULT_COUNT:
-            raise RefreshError("pinned_projects_count must be exactly 6")
+            raise RefreshError(f"pinned_projects_count must be exactly {DEFAULT_COUNT}")
         start_marker = str(config.get("pinned_projects_start_marker", DEFAULT_START_MARKER))
         end_marker = str(config.get("pinned_projects_end_marker", DEFAULT_END_MARKER))
         if not start_marker or not end_marker or start_marker == end_marker:
@@ -361,7 +373,7 @@ def main() -> int:
         if args.response_file:
             response = load_response(args.response_file.resolve())
         else:
-            response = request_pins(owner, count, os.environ.get("GITHUB_TOKEN", ""))
+            response = request_pins(owner, os.environ.get("GITHUB_TOKEN", ""))
         projects = validate_response(response, owner, count)
 
         configured_target = Path(str(config.get("pinned_projects_file", "projects.html")))
