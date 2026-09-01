@@ -1,5 +1,5 @@
 {
-  "target_schema_version": "1.0.0",
+  "target_schema_version": "1.1.0",
   "target_id": "theproductiveprompter",
   "repository_relative_to_spec": "..",
   "repository_path_environment_variable": "ARTICLE_FLOW_REPO_ROOT",
@@ -25,6 +25,16 @@
   "article_template": "publication/templates/article.html",
   "latest_card_start_marker": "<!-- ARTICLE_FLOW_LATEST_START -->",
   "latest_card_end_marker": "<!-- ARTICLE_FLOW_LATEST_END -->",
+  "pinned_projects_owner": "josiahH-cf",
+  "pinned_projects_count": 6,
+  "pinned_projects_file": "projects.html",
+  "pinned_projects_start_marker": "<!-- PINNED_PROJECTS_START -->",
+  "pinned_projects_end_marker": "<!-- PINNED_PROJECTS_END -->",
+  "pinned_projects_fallbacks": {
+    "description": "No description provided.",
+    "language": "Not specified",
+    "updated": "Update date unavailable"
+  },
   "deployment": {
     "type": "git_push_github_pages",
     "remote": "origin",

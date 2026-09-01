@@ -1,0 +1,111 @@
+name: Refresh pinned projects
+
+"on":
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: refresh-pinned-projects
+  cancel-in-progress: false
+
+jobs:
+  refresh-pinned-projects:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Refresh the marker-owned project cards
+        run: python3 .github/scripts/refresh_pinned_projects.py --json
+
+      - name: Commit a safe refresh when pins changed
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet -- projects.html; then
+            echo "Pinned project cards are already current."
+            exit 0
+          fi
+
+          release_names="$(
+            gh release list --limit 100 --json tagName,isDraft \
+              --jq '.[] | select(.isDraft and (.tagName | startswith("scheduled-article-"))) | .tagName'
+          )"
+          releases=()
+          if [[ -n "$release_names" ]]; then
+            mapfile -t releases <<< "$release_names"
+          fi
+          for release in "${releases[@]}"; do
+            asset_names="$(gh release view "$release" --json assets --jq '.assets[].name')"
+            assets=()
+            if [[ -n "$asset_names" ]]; then
+              mapfile -t assets <<< "$asset_names"
+            fi
+            terminal=false
+            for asset in "${assets[@]}"; do
+              if [[ "$asset" == "completed.json" || "$asset" == blocked-*.json ]]; then
+                terminal=true
+                break
+              fi
+            done
+            if [[ "$terminal" == "false" ]]; then
+              echo "Refusing to commit while scheduled Article Flow release $release is active." >&2
+              exit 1
+            fi
+          done
+
+          git fetch origin main
+          if [[ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]]; then
+            echo "Refusing to commit because origin/main moved during the refresh." >&2
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- projects.html
+          git commit -m "Refresh pinned GitHub projects"
+          commit_sha="$(git rev-parse HEAD)"
+          git push origin HEAD:main
+
+          gh api --method POST \
+            -H "X-GitHub-Api-Version: 2026-03-10" \
+            "repos/${GITHUB_REPOSITORY}/pages/builds" >/dev/null
+
+          deadline=$((SECONDS + 1500))
+          latest_status=""
+          latest_commit=""
+          latest_error=""
+          while (( SECONDS < deadline )); do
+            if latest_build="$(
+              gh api -H "X-GitHub-Api-Version: 2026-03-10" \
+                "repos/${GITHUB_REPOSITORY}/pages/builds/latest" \
+                --jq '[.status, .commit, (.error.message // "")] | @tsv' 2>/dev/null
+            )"; then
+              IFS=$'\t' read -r latest_status latest_commit latest_error <<< "$latest_build"
+              if [[ "$latest_commit" == "$commit_sha" && "$latest_status" == "built" ]]; then
+                echo "GitHub Pages built pinned-project commit $commit_sha."
+                exit 0
+              fi
+              if [[ "$latest_commit" == "$commit_sha" && "$latest_status" == "errored" ]]; then
+                echo "GitHub Pages failed pinned-project commit $commit_sha: $latest_error" >&2
+                exit 1
+              fi
+            fi
+            sleep 15
+          done
+
+          echo "GitHub Pages did not build pinned-project commit $commit_sha within 25 minutes (latest commit=$latest_commit status=$latest_status)." >&2
+          exit 1

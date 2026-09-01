@@ -3,157 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Josiah Hunter - AI Engineer & ML Systems Builder | Cloud & Security Enthusiast">
-    <title>Josiah Hunter | AI Engineer & ML Systems Builder</title>
+    <meta name="description" content="Josiah Hunter | 🔐Security | ☁️Cloud | 🧠AI">
+    <title>Josiah Hunter | 🔐Security | ☁️Cloud | 🧠AI</title>
     <link rel="canonical" href="https://theproductiveprompter.com/">
     <link rel="alternate" type="application/rss+xml" title="The Productive Prompter" href="https://theproductiveprompter.com/feed.xml">
     <link rel="stylesheet" href="styles.css">
     <script src="script.js" defer></script>
 </head>
 <body>
-    <!-- Sticky Navigation -->
     <nav class="nav" id="nav">
         <div class="nav__container">
-            <a href="#hero" class="nav__logo">JH</a>
+            <a href="/" class="nav__logo" aria-label="Josiah Hunter home">JH</a>
             <ul class="nav__menu" id="navMenu">
-                <li class="nav__item">
-                    <a href="#blog" class="nav__link">
-                        <span class="nav__number">01.</span> 📝 Blog
-                    </a>
-                </li>
-                <li class="nav__item">
-                    <a href="#projects" class="nav__link">
-                        <span class="nav__number">02.</span> Projects
-                    </a>
-                </li>
-                <li class="nav__item">
-                    <a href="#about" class="nav__link">
-                        <span class="nav__number">03.</span> About
-                    </a>
-                </li>
-                <li class="nav__item">
-                    <a href="#contact" class="nav__link">
-                        <span class="nav__number">04.</span> Contact
-                    </a>
-                </li>
+                <li class="nav__item"><a href="/docs/blog.html" class="nav__link"><span class="nav__number">01.</span> Blog</a></li>
+                <li class="nav__item"><a href="/projects.html" class="nav__link"><span class="nav__number">02.</span> Projects</a></li>
+                <li class="nav__item"><a href="/reach-out.html" class="nav__link"><span class="nav__number">03.</span> Reach Out</a></li>
+                <li class="nav__item"><a href="https://josiahh-cf.github.io/agent-telemetry/" class="nav__link" target="_blank" rel="noopener noreferrer" aria-label="Agent Telemetry (opens in a new tab)"><span class="nav__number">04.</span> Agent Telemetry <span class="nav__external" aria-hidden="true">↗</span></a></li>
             </ul>
-            <!-- Mobile hamburger menu toggle -->
-            <button class="nav__toggle" id="navToggle" aria-label="Toggle navigation">
-                <span class="nav__toggle-line"></span>
-                <span class="nav__toggle-line"></span>
-                <span class="nav__toggle-line"></span>
-            </button>
+            <button class="nav__toggle" id="navToggle" type="button" aria-label="Toggle navigation" aria-controls="navMenu" aria-expanded="false"><span class="nav__toggle-line"></span><span class="nav__toggle-line"></span><span class="nav__toggle-line"></span></button>
         </div>
     </nav>
 
-    <!-- Fixed Social Sidebar (Desktop) -->
     <aside class="social-sidebar" aria-label="Social media links">
         <ul class="social-sidebar__list">
             <li class="social-sidebar__item">
                 <a href="https://github.com/josiahH-cf" class="social-sidebar__link" target="_blank" rel="noopener noreferrer" aria-label="GitHub Profile">
-                    <!-- TODO: Replace with your real GitHub username -->
-                    <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                    </svg>
+                    <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
                 </a>
             </li>
             <li class="social-sidebar__item">
                 <a href="https://www.linkedin.com/in/josiahhunter/" class="social-sidebar__link" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn Profile">
-                    <!-- TODO: Replace with your real LinkedIn -->
-                    <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-                    </svg>
+                    <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
                 </a>
             </li>
             <li class="social-sidebar__item">
                 <a href="mailto:josiah.hunter.it@gmail.com" class="social-sidebar__link" aria-label="Send Email" id="emailLink">
-                    <!-- TODO: Replace with your real email -->
-                    <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
-                    </svg>
+                    <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
                 </a>
             </li>
         </ul>
         <div class="social-sidebar__line"></div>
     </aside>
 
-    <!-- Hero Section -->
-    <section class="hero" id="hero">
-        <div class="hero__container">
-            <!-- Left side: Text content -->
-            <div class="hero__content fade-in">
-                <p class="hero__greeting">Hi, my name is</p>
-                <h1 class="hero__name">Josiah Hunter.</h1>
-                <h2 class="hero__tagline">AI Engineer & ML Systems Builder | Cloud & Security Enthusiast</h2>
-                <p class="hero__description">
-                    Currently a Senior Security Engineer at Coalfire, migrating to a full time AI engineering role because of proven efficacy in AI Engineering skills.
-                </p>
-                <div class="hero__cta-group">
-                    <a href="#blog" class="hero__cta hero__cta--primary">📝 Blog</a>
-                    <a href="#projects" class="hero__cta hero__cta--secondary">View Projects</a>
+    <main>
+        <section class="hero" id="hero">
+            <div class="hero__container">
+                <div class="hero__content fade-in">
+                    <p class="hero__greeting">Hi, my name is</p>
+                    <h1 class="hero__name">Josiah Hunter.</h1>
+                    <h2 class="hero__tagline">🔐Security | ☁️Cloud | 🧠AI</h2>
+                    <div class="hero__cta-group">
+                        <a href="/docs/blog.html" class="hero__cta hero__cta--primary">Blog</a>
+                        <a href="/projects.html" class="hero__cta hero__cta--secondary">View Projects</a>
+                    </div>
+                    <div class="hero__social">
+                        <a href="https://github.com/josiahH-cf" class="hero__social-link" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                            <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                        </a>
+                        <a href="https://www.linkedin.com/in/josiahhunter/" class="hero__social-link" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                            <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                        </a>
+                        <a href="mailto:josiah.hunter.it@gmail.com" class="hero__social-link" aria-label="Email">
+                            <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                        </a>
+                    </div>
                 </div>
-
-                <!-- Social Links in Hero -->
-                <div class="hero__social">
-                    <a href="https://github.com/josiahH-cf" class="hero__social-link" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
-                        <!-- TODO: Replace with your real GitHub -->
-                        <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                        </svg>
-                    </a>
-                    <a href="https://www.linkedin.com/in/josiahhunter/" class="hero__social-link" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
-                        <!-- TODO: Replace with your real LinkedIn -->
-                        <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-                        </svg>
-                    </a>
-                    <a href="mailto:josiah.hunter.it@gmail.com" class="hero__social-link" aria-label="Email">
-                        <!-- TODO: Replace with your real email -->
-                        <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
-                        </svg>
-                    </a>
+                <div class="hero__visual fade-in">
+                    <div class="split-card">
+                        <a href="/docs/blog.html" class="split-card__side split-card__side--design">
+                            <svg class="split-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+                            <span class="split-card__label">Writing</span>
+                        </a>
+                        <a href="/projects.html" class="split-card__side split-card__side--code">
+                            <svg class="split-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                            <span class="split-card__label">Code</span>
+                        </a>
+                    </div>
                 </div>
             </div>
+        </section>
 
-            <!-- Right side: Visual element -->
-            <div class="hero__visual fade-in">
-                <div class="split-card">
-                    <a href="docs/blog.html" class="split-card__side split-card__side--design">
-                        <svg class="split-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 19l7-7 3 3-7 7-3-3z"/>
-                            <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
-                            <path d="M2 2l7.586 7.586"/>
-                            <circle cx="11" cy="11" r="2"/>
-                        </svg>
-                        <span class="split-card__label">Writing</span>
-                    </a>
-                    <a href="#projects" class="split-card__side split-card__side--code">
-                        <svg class="split-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="16 18 22 12 16 6"/>
-                            <polyline points="8 6 2 12 8 18"/>
-                        </svg>
-                        <span class="split-card__label">Code</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Blog Section -->
-    <section class="articles" id="blog">
-        <div class="container">
-            <h2 class="section-heading">
-                <span class="section-heading__number">01.</span>
-                <span class="section-heading__text">📝 Blog</span>
-            </h2>
-
-            <p class="blog-section-intro">
-                New standalone writing first, completed projects close behind—and still fully browsable.
-            </p>
-
-            <div class="articles__list">
-                <!-- ARTICLE_FLOW_LATEST_START -->
+        <section class="articles" id="blog">
+            <div class="container">
+                <h2 class="section-heading"><span class="section-heading__number">01.</span><span class="section-heading__text">Blog</span></h2>
+                <div class="articles__list">
+                    <!-- ARTICLE_FLOW_LATEST_START -->
 <article class="article-card article-card--featured" data-article-flow-slug="context-plus-prompt-anything-a-computer-can-do">
     <span class="article-card__badge">Latest</span>
     <div class="article-card__content">
@@ -188,429 +122,49 @@
     </div>
 </article>
 <article class="article-card reveal-on-scroll">
-                    <div class="article-card__thumbnail" aria-hidden="true">
-                        <div class="article-card__thumbnail-placeholder article-card__thumbnail-placeholder--workflow">
-                            <svg viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="4">
-                                <circle cx="20" cy="60" r="11"/>
-                                <circle cx="60" cy="25" r="11"/>
-                                <circle cx="60" cy="95" r="11"/>
-                                <circle cx="100" cy="60" r="11"/>
-                                <path d="M31 56L49 31M31 64L49 89M71 31L89 56M71 89L89 64"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="article-card__content">
-                        <div class="article-card__meta">
-                            <time class="article-card__date" datetime="2026-08-18">August 18, 2026</time>
-                            <span class="article-card__separator">•</span>
-                            <span class="article-card__reading-time">11 min read</span>
-                        </div>
-                        <div class="article-card__categories">
-                            <span class="article-category article-category--tutorials">Workflow design</span>
-                            <span class="article-category article-category--career">Writing systems</span>
-                        </div>
-                        <h3 class="article-card__title">
-                            <a href="docs/from-idea-to-verified-url.html" class="article-card__link">From Idea to Verified URL: Build a Blog Workflow That Still Sounds Like You</a>
-                        </h3>
-                        <p class="article-card__summary">
-                            A human-readable way to design stages, decision gates, iterative voice calibration, and a publication loop that ends with evidence—not a green deploy alone.
-                        </p>
-                        <a href="docs/from-idea-to-verified-url.html" class="article-card__cta">Read the article →</a>
-                    </div>
-                </article>
+    <div class="article-card__content">
+        <div class="article-card__meta"><time class="article-card__date" datetime="2026-08-18">August 18, 2026</time><span class="article-card__separator">•</span><span class="article-card__reading-time">11 min read</span></div>
+        <div class="article-card__categories"><span class="article-category article-category--tutorials">Workflow design</span><span class="article-category article-category--career">Writing systems</span></div>
+        <h3 class="article-card__title"><a href="docs/from-idea-to-verified-url.html" class="article-card__link">From Idea to Verified URL: Build a Blog Workflow That Still Sounds Like You</a></h3>
+        <p class="article-card__summary">A human-readable way to design stages, decision gates, iterative voice calibration, and a publication loop that ends with evidence—not a green deploy alone.</p>
+        <a href="docs/from-idea-to-verified-url.html" class="article-card__cta">Read the article →</a>
+    </div>
+</article>
 <!-- ARTICLE_FLOW_LATEST_END -->
-            </div>
-
-            <h3 class="blog-shelf-heading">Completed series</h3>
-            <div class="campaign-banner reveal-on-scroll" data-href="docs/31-days-of-ai.html">
-                <div class="campaign-banner__header">
-                    <h3 class="campaign-banner__title">
-                        31 Days of AI
-                        <span class="campaign-banner__badge">Completed Series · Dec 2025</span>
-                    </h3>
-                    <span class="campaign-banner__counter">31 entries · all visible</span>
-                </div>
-                <div class="campaign-banner__content">
-                    <div class="campaign-banner__latest">
-                        Series Final Entry: <a href="docs/article.html?post=31-days-ai-day-31.md">Day 31: Final Reflection—What 31 Days Actually Changed</a>
-                    </div>
-                    <p class="campaign-banner__desc">
-                        The December 2025 project is complete, not hidden. Every entry remains available at its original link while new writing takes the lead above.
-                    </p>
-                </div>
-                <div class="campaign-banner__actions">
-                    <a href="docs/31-days-of-ai.html" class="campaign-banner__link">
-                        Browse all 31 entries &rarr;
-                    </a>
-                    <a href="docs/blog.html" class="campaign-banner__link">
-                        See the blog hub &rarr;
-                    </a>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- About Section -->
-    <section class="about" id="about">
-        <div class="container">
-            <h2 class="section-heading">
-                <span class="section-heading__number">03.</span>
-                <span class="section-heading__text">About Me</span>
-            </h2>
-            
-            <div class="about__content">
-                <div class="about__text">
-                    <p>
-                        I build AI systems, securely, that are repeatable with infrastructure as code. After years of engineering secure, scalable cloud platforms across AWS, GCP, and Azure, I now focus on designing and deploying AI solutions. From LLM integrations and RAG pipelines to automated workflows that solve actual business problems.
-                    </p>
-                    <p>
-                        My background in cloud security, DevSecOps, and Infrastructure-as-Code from start of project to finish shows that I think about reliability, cost, and production readiness from day one. I've built AI tools, worked with ML pipelines, and spent years automating complex processes across multi-cloud environments.
-                    </p>
                 </div>
 
-                <div class="about__details">
-                    <div class="detail-card">
-                        <h3 class="detail-card__heading">Role</h3>
-                        <p class="detail-card__text">Senior Security Engineer at Coalfire</p>
+                <h3 class="blog-shelf-heading">Completed series</h3>
+                <div class="campaign-banner reveal-on-scroll" data-href="docs/31-days-of-ai.html">
+                    <div class="campaign-banner__header">
+                        <h3 class="campaign-banner__title">31 Days of AI <span class="campaign-banner__badge">Completed Series · Dec 2025</span></h3>
+                        <span class="campaign-banner__counter">31 entries · all visible</span>
                     </div>
-                    <div class="detail-card">
-                        <h3 class="detail-card__heading">Focus</h3>
-                        <p class="detail-card__text">AI Systems, Cloud Security, DevSecOps</p>
+                    <div class="campaign-banner__content">
+                        <div class="campaign-banner__latest">Series Final Entry: <a href="docs/article.html?post=31-days-ai-day-31.md">Day 31: Final Reflection—What 31 Days Actually Changed</a></div>
                     </div>
-                    <div class="detail-card">
-                        <h3 class="detail-card__heading">Platforms</h3>
-                        <p class="detail-card__text">AWS, GCP, Azure</p>
-                    </div>
-                    <div class="detail-card">
-                        <h3 class="detail-card__heading">Expertise</h3>
-                        <p class="detail-card__text">Python, Terraform, LLM APIs, RAG</p>
+                    <div class="campaign-banner__actions">
+                        <a href="docs/31-days-of-ai.html" class="campaign-banner__link">Browse all 31 entries →</a>
+                        <a href="docs/blog.html" class="campaign-banner__link">See the blog hub →</a>
                     </div>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
+    </main>
 
-    <!-- Projects Section -->
-    <section class="projects" id="projects">
-        <div class="container">
-            <h2 class="section-heading">
-                <span class="section-heading__number">02.</span>
-                <span class="section-heading__text">Projects</span>
-            </h2>
-
-            <!-- TODO: Add your GitHub projects here -->
-
-            <div class="projects__grid">
-                <!-- Project 1: automatr -->
-                <article class="project-card project-card--featured reveal-on-scroll" data-delay="0" data-href="https://github.com/josiahH-cf/automatr">
-                    <div class="project-card__badges">
-                        <span class="project-badge project-badge--featured">Featured</span>
-                        <span class="project-badge project-badge--status project-badge--active">Active</span>
-                    </div>
-                    
-                    <div class="project-card__thumbnail">
-                        <div class="project-card__thumbnail-placeholder">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="3" width="18" height="18" rx="2"/>
-                                <path d="M3 9h18M9 21V9"/>
-                            </svg>
-                        </div>
-                        <div class="project-card__thumbnail-overlay">
-                            <span class="project-card__view-hint">View Project →</span>
-                        </div>
-                    </div>
-                    
-                    <div class="project-card__content">
-                        <div class="project-card__header">
-                            <div class="project-card__language">
-                                <span class="language-dot language-dot--python"></span>
-                                <span class="language-name">Makefile</span>
-                            </div>
-                            <time class="project-card__updated">Recently updated</time>
-                        </div>
-                        
-                        <h3 class="project-card__title">automatr</h3>
-                        <p class="project-card__description">
-                            Automation toolkit for streamlining development workflows and infrastructure management tasks.
-                        </p>
-                        
-                        <ul class="project-card__tech">
-                            <li class="tech-badge">Makefile</li>
-                            <li class="tech-badge">Shell</li>
-                            <li class="tech-badge">Python</li>
-                        </ul>
-                        
-                        <div class="project-card__footer">
-                            <div class="project-stats">
-                                <span class="project-stat">
-                                    <svg class="project-stat__icon" viewBox="0 0 16 16" fill="currentColor">
-                                        <path d="M8 .25a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L8 12.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.194L.818 6.374a.75.75 0 01.416-1.28l4.21-.611L7.327.668A.75.75 0 018 .25z"/>
-                                    </svg>
-                                    <span class="project-stat__count">0</span>
-                                </span>
-                                <span class="project-stat">
-                                    <svg class="project-stat__icon" viewBox="0 0 16 16" fill="currentColor">
-                                        <path d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75v-.878a2.25 2.25 0 111.5 0v.878a2.25 2.25 0 01-2.25 2.25h-1.5v2.128a2.251 2.251 0 11-1.5 0V8.5h-1.5A2.25 2.25 0 013 6.25v-.878a2.25 2.25 0 111.5 0zM5 3.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm6.75.75a.75.75 0 100-1.5.75.75 0 000 1.5zm-3 8.75a.75.75 0 100-1.5.75.75 0 000 1.5z"/>
-                                    </svg>
-                                    <span class="project-stat__count">0</span>
-                                </span>
-                            </div>
-                            <div class="project-card__links">
-                                <a href="https://github.com/josiahH-cf/automatr" class="project-card__link" target="_blank" rel="noopener noreferrer">
-                                    <svg class="project-card__link-icon" viewBox="0 0 16 16" fill="currentColor">
-                                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-                                    </svg>
-                                    GitHub
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Project 2: feature-capsule-kit -->
-                <article class="project-card project-card--featured reveal-on-scroll" data-delay="100" data-href="https://github.com/josiahH-cf/feature-capsule-kit">
-                    <div class="project-card__badges">
-                        <span class="project-badge project-badge--featured">Featured</span>
-                        <span class="project-badge project-badge--status project-badge--active">Active</span>
-                    </div>
-                    
-                    <div class="project-card__thumbnail">
-                        <div class="project-card__thumbnail-placeholder">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M9 11l3 3L22 4"/>
-                                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-                            </svg>
-                        </div>
-                        <div class="project-card__thumbnail-overlay">
-                            <span class="project-card__view-hint">View Project →</span>
-                        </div>
-                    </div>
-                    
-                    <div class="project-card__content">
-                        <div class="project-card__header">
-                            <div class="project-card__language">
-                                <span class="language-dot language-dot--python"></span>
-                                <span class="language-name">Python</span>
-                            </div>
-                            <time class="project-card__updated">Recently updated</time>
-                        </div>
-                        
-                        <h3 class="project-card__title">feature-capsule-kit</h3>
-                        <p class="project-card__description">
-                            Agnostic agentic feature kit for building modular, reusable components in AI-powered applications.
-                        </p>
-                        
-                        <ul class="project-card__tech">
-                            <li class="tech-badge">Python</li>
-                            <li class="tech-badge">Shell</li>
-                        </ul>
-                        
-                        <div class="project-card__footer">
-                            <div class="project-stats">
-                                <span class="project-stat">
-                                    <svg class="project-stat__icon" viewBox="0 0 16 16" fill="currentColor">
-                                        <path d="M8 .25a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L8 12.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.194L.818 6.374a.75.75 0 01.416-1.28l4.21-.611L7.327.668A.75.75 0 018 .25z"/>
-                                    </svg>
-                                    <span class="project-stat__count">0</span>
-                                </span>
-                                <span class="project-stat">
-                                    <svg class="project-stat__icon" viewBox="0 0 16 16" fill="currentColor">
-                                        <path d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75v-.878a2.25 2.25 0 111.5 0v.878a2.25 2.25 0 01-2.25 2.25h-1.5v2.128a2.251 2.251 0 11-1.5 0V8.5h-1.5A2.25 2.25 0 013 6.25v-.878a2.25 2.25 0 111.5 0zM5 3.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm6.75.75a.75.75 0 100-1.5.75.75 0 000 1.5zm-3 8.75a.75.75 0 100-1.5.75.75 0 000 1.5z"/>
-                                    </svg>
-                                    <span class="project-stat__count">0</span>
-                                </span>
-                            </div>
-                            <div class="project-card__links">
-                                <a href="https://github.com/josiahH-cf/feature-capsule-kit" class="project-card__link" target="_blank" rel="noopener noreferrer">
-                                    <svg class="project-card__link-icon" viewBox="0 0 16 16" fill="currentColor">
-                                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-                                    </svg>
-                                    GitHub
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Project 3: theproductiveprompter (this site) -->
-                <article class="project-card reveal-on-scroll" data-delay="200" data-href="https://github.com/josiahH-cf/theproductiveprompter">
-                    <div class="project-card__badges">
-                        <span class="project-badge project-badge--status project-badge--maintained">Live</span>
-                    </div>
-                    
-                    <div class="project-card__thumbnail">
-                        <div class="project-card__thumbnail-placeholder">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M20 7h-9M14 17H5M21 12H5M9 17l3-5-3-5"/>
-                            </svg>
-                        </div>
-                        <div class="project-card__thumbnail-overlay">
-                            <span class="project-card__view-hint">View Project →</span>
-                        </div>
-                    </div>
-                    
-                    <div class="project-card__content">
-                        <div class="project-card__header">
-                            <div class="project-card__language">
-                                <span class="language-dot language-dot--javascript"></span>
-                                <span class="language-name">HTML</span>
-                            </div>
-                            <time class="project-card__updated">Recently updated</time>
-                        </div>
-                        
-                        <h3 class="project-card__title">theproductiveprompter</h3>
-                        <p class="project-card__description">
-                            Personal portfolio and blog site showcasing articles on AI, security engineering, and cloud infrastructure. Built with vanilla HTML, CSS, and JavaScript.
-                        </p>
-                        
-                        <ul class="project-card__tech">
-                            <li class="tech-badge">HTML</li>
-                            <li class="tech-badge">CSS</li>
-                            <li class="tech-badge">JavaScript</li>
-                        </ul>
-                        
-                        <div class="project-card__footer">
-                            <div class="project-stats">
-                                <span class="project-stat">
-                                    <svg class="project-stat__icon" viewBox="0 0 16 16" fill="currentColor">
-                                        <path d="M8 .25a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L8 12.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.194L.818 6.374a.75.75 0 01.416-1.28l4.21-.611L7.327.668A.75.75 0 018 .25z"/>
-                                    </svg>
-                                    <span class="project-stat__count">0</span>
-                                </span>
-                                <span class="project-stat">
-                                    <svg class="project-stat__icon" viewBox="0 0 16 16" fill="currentColor">
-                                        <path d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75v-.878a2.25 2.25 0 111.5 0v.878a2.25 2.25 0 01-2.25 2.25h-1.5v2.128a2.251 2.251 0 11-1.5 0V8.5h-1.5A2.25 2.25 0 013 6.25v-.878a2.25 2.25 0 111.5 0zM5 3.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm6.75.75a.75.75 0 100-1.5.75.75 0 000 1.5zm-3 8.75a.75.75 0 100-1.5.75.75 0 000 1.5z"/>
-                                    </svg>
-                                    <span class="project-stat__count">0</span>
-                                </span>
-                            </div>
-                            <div class="project-card__links">
-                                <a href="https://github.com/josiahH-cf/theproductiveprompter" class="project-card__link" target="_blank" rel="noopener noreferrer">
-                                    <svg class="project-card__link-icon" viewBox="0 0 16 16" fill="currentColor">
-                                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-                                    </svg>
-                                    GitHub
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </article>
-            </div>
-        </div>
-    </section>
-
-    <!-- Contact Section -->
-    <section class="contact" id="contact">
-        <div class="container">
-            <h2 class="section-heading">
-                <span class="section-heading__number">04.</span>
-                <span class="section-heading__text">Get In Touch</span>
-            </h2>
-
-            <div class="contact__content">
-                <p class="contact__text">
-                    I'm always interested in discussing cloud security, infrastructure automation, and emerging technologies. Whether you have a question, want to collaborate on a project, or just want to connect, feel free to reach out!
-                </p>
-
-                <!-- Contact Form -->
-                <form class="contact-form" id="contactForm">
-                    <div class="contact-form__group">
-                        <label for="name" class="contact-form__label">Name</label>
-                        <input 
-                            type="text" 
-                            id="name" 
-                            name="name" 
-                            class="contact-form__input" 
-                            required
-                        >
-                    </div>
-
-                    <div class="contact-form__group">
-                        <label for="email" class="contact-form__label">Email</label>
-                        <input 
-                            type="email" 
-                            id="email" 
-                            name="email" 
-                            class="contact-form__input" 
-                            required
-                        >
-                    </div>
-
-                    <div class="contact-form__group">
-                        <label for="message" class="contact-form__label">Message</label>
-                        <textarea 
-                            id="message" 
-                            name="message" 
-                            class="contact-form__textarea" 
-                            rows="5" 
-                            required
-                        ></textarea>
-                    </div>
-
-                    <button type="submit" class="contact-form__submit">Send Message</button>
-                </form>
-
-                <!-- Direct Contact Links -->
-                <div class="contact__links">
-                    <a href="mailto:josiah.hunter.it@gmail.com" class="contact__link">
-                        <svg class="contact__link-icon" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
-                        </svg>
-                        <span>Email Me</span>
-                    </a>
-                    <a href="https://github.com/josiahH-cf" class="contact__link" target="_blank" rel="noopener noreferrer">
-                        <!-- TODO: Replace with your real GitHub -->
-                        <svg class="contact__link-icon" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                        </svg>
-                        <span>GitHub</span>
-                    </a>
-                    <a href="https://www.linkedin.com/in/josiahhunter/" class="contact__link" target="_blank" rel="noopener noreferrer">
-                        <svg class="contact__link-icon" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-                        </svg>
-                        <span>LinkedIn</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
     <footer class="footer">
         <div class="container">
             <div class="footer__content">
                 <div class="footer__info">
-                    <p class="footer__text">
-                        &copy; 2026 Josiah Hunter. Built with HTML, CSS, and JavaScript.
-                    </p>
+                    <p class="footer__text">&copy; 2026 Josiah Hunter.</p>
                     <a href="#hero" class="footer__back-to-top">Back to Top ↑</a>
                 </div>
                 <div class="footer__social">
-                    <a href="https://github.com/josiahH-cf" class="footer__social-link" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
-                        <!-- TODO: Replace with your real GitHub -->
-                        <svg class="social-icon social-icon--large" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                        </svg>
-                    </a>
-                    <a href="https://www.linkedin.com/in/josiahhunter/" class="footer__social-link" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
-                        <svg class="social-icon social-icon--large" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-                        </svg>
-                    </a>
-                    <a href="mailto:josiah.hunter.it@gmail.com" class="footer__social-link" aria-label="Email">
-                        <svg class="social-icon social-icon--large" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
-                        </svg>
-                    </a>
+                    <a href="https://github.com/josiahH-cf" class="footer__social-link footer__social-link--text" target="_blank" rel="noopener noreferrer">GitHub</a>
+                    <a href="https://www.linkedin.com/in/josiahhunter/" class="footer__social-link footer__social-link--text" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+                    <a href="mailto:josiah.hunter.it@gmail.com" class="footer__social-link footer__social-link--text">Email</a>
                 </div>
             </div>
         </div>
     </footer>
-
-    <!-- Success Message (hidden by default) -->
-    <div class="success-message" id="successMessage">
-        <p>Thanks for reaching out! I'll get back to you soon.</p>
-    </div>
 </body>
 </html>

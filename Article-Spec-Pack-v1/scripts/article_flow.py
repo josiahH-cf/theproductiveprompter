@@ -2456,12 +2456,22 @@ def validate_public_package(package_root: Path, metadata: dict[str, Any]) -> lis
             relative = target.split("#", 1)[0].split("?", 1)[0]
             if not relative:
                 continue
-            packaged_target = (article_html.parent / relative).resolve()
+            if relative.startswith("/"):
+                site_relative = relative.lstrip("/")
+                packaged_target = (site_root / site_relative).resolve()
+                repository_target = (repository / site_relative).resolve() if repository else Path("/__article_flow_unavailable__")
+            else:
+                packaged_target = (article_html.parent / relative).resolve()
+                repository_target = (repository / "docs" / relative).resolve() if repository else Path("/__article_flow_unavailable__")
             try:
                 packaged_target.relative_to(site_root.resolve())
             except ValueError:
                 packaged_target = Path("/__outside_package__")
-            repository_target = (repository / "docs" / relative).resolve() if repository else Path("/__article_flow_unavailable__")
+            if repository:
+                try:
+                    repository_target.relative_to(repository.resolve())
+                except ValueError:
+                    repository_target = Path("/__outside_repository__")
             if not packaged_target.exists() and not repository_target.exists():
                 findings.append({"criterion": "internal_link_or_asset", "path": str(article_html), "finding": f"Missing local {attribute} target: {target}"})
     return findings

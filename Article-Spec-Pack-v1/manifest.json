@@ -3,7 +3,7 @@
   "workflow_version": "2.0.1",
   "hash_algorithm": "sha256",
   "generator_name_and_version": "article-flow 2.1.5",
-  "generated_at": "2026-08-25T19:36:49Z",
+  "generated_at": "2026-09-01T10:54:29Z",
   "generated_from": "index",
   "files": [
     {
@@ -259,16 +259,16 @@
       "scope": "spec",
       "role": "template",
       "rule_set": "publication",
-      "sha256": "d5cc77ce9fff216ab0e3d806125e9d5d6cb32ee66300eb03bcc60ca459bdd697",
-      "byte_size": 4165
+      "sha256": "7d5019f0d8e6a52c9bf1dd142fd107257b9d8cf30381290695773a4a63f6b972",
+      "byte_size": 4359
     },
     {
       "path": "publication/theproductiveprompter.json",
       "scope": "spec",
       "role": "runtime",
       "rule_set": "publication",
-      "sha256": "b4b262b1b2bca13bb5c2f324028f9ebfb28ed982dc76d74fa6ec30d93dc50175",
-      "byte_size": 1165
+      "sha256": "ab40ec26fb668a8899a611973c94517f6f32d771c51006eafed9e5faa8c9bb9a",
+      "byte_size": 1570
     },
     {
       "path": "schemas/article-recipe.schema.json",
@@ -467,8 +467,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "02a381d9d8c0b25acfcf334d80a80debc4aa171270bb9a0060a0f46daaf23b8f",
-      "byte_size": 224639
+      "sha256": "d0a2e074bf3fe158b662984edde5cf29ce012aec2d54c50170d3858f5c7929d5",
+      "byte_size": 225190
     },
     {
       "path": "scripts/package_article.py",

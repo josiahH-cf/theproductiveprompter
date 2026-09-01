@@ -1,0 +1,74 @@
+{
+  "_evidence": {
+    "note": "Pin order captured during the 2026-09-01 clean-start audit; repository fields refreshed from GitHub GraphQL before seeding. GitHub later exposed only four pins during the same implementation run.",
+    "owner": "josiahH-cf"
+  },
+  "data": {
+    "user": {
+      "pinnedItems": {
+        "nodes": [
+          {
+            "__typename": "Repository",
+            "name": "workflow",
+            "description": "Files to aid in multi-LLM adjacent development with Copilot, Codex, and Claude",
+            "url": "https://github.com/josiahH-cf/workflow",
+            "primaryLanguage": {"name": "Shell"},
+            "stargazerCount": 0,
+            "forkCount": 0,
+            "updatedAt": "2026-03-08T16:54:06Z"
+          },
+          {
+            "__typename": "Repository",
+            "name": "espansr",
+            "description": "Espanso text expansion template manager — CLI and GUI",
+            "url": "https://github.com/josiahH-cf/espansr",
+            "primaryLanguage": {"name": "Python"},
+            "stargazerCount": 0,
+            "forkCount": 0,
+            "updatedAt": "2026-09-01T09:08:38Z"
+          },
+          {
+            "__typename": "Repository",
+            "name": "orchestratr",
+            "description": null,
+            "url": "https://github.com/josiahH-cf/orchestratr",
+            "primaryLanguage": {"name": "Go"},
+            "stargazerCount": 0,
+            "forkCount": 0,
+            "updatedAt": "2026-03-13T17:36:28Z"
+          },
+          {
+            "__typename": "Repository",
+            "name": "templatr",
+            "description": null,
+            "url": "https://github.com/josiahH-cf/templatr",
+            "primaryLanguage": {"name": "Python"},
+            "stargazerCount": 0,
+            "forkCount": 0,
+            "updatedAt": "2026-03-08T11:22:25Z"
+          },
+          {
+            "__typename": "Repository",
+            "name": "theproductiveprompter",
+            "description": "theproductiveprompter.com or josiahhunter.com",
+            "url": "https://github.com/josiahH-cf/theproductiveprompter",
+            "primaryLanguage": {"name": "Python"},
+            "stargazerCount": 0,
+            "forkCount": 0,
+            "updatedAt": "2026-08-31T14:25:25Z"
+          },
+          {
+            "__typename": "Repository",
+            "name": "fedramp-20x-experiment",
+            "description": null,
+            "url": "https://github.com/josiahH-cf/fedramp-20x-experiment",
+            "primaryLanguage": {"name": "HTML"},
+            "stargazerCount": 0,
+            "forkCount": 0,
+            "updatedAt": "2026-08-11T11:27:01Z"
+          }
+        ]
+      }
+    }
+  }
+}
