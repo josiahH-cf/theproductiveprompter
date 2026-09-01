@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Refresh the public Projects cards from GitHub's pinned repositories.
+"""Refresh public pinned projects and current-year GitHub activity.
 
-The browser never receives a GitHub token. CI fetches public pin metadata,
-validates the complete response, and atomically replaces only the configured
-marker region in projects.html.
+The browser never receives a GitHub token. CI fetches both datasets in one
+GraphQL request, validates the complete response and both marker pairs, then
+atomically replaces only the configured regions in projects.html.
 """
 
 from __future__ import annotations
@@ -31,6 +31,9 @@ DEFAULT_COUNT = 4
 MAX_PINNED_ITEMS = 6
 DEFAULT_START_MARKER = "<!-- PINNED_PROJECTS_START -->"
 DEFAULT_END_MARKER = "<!-- PINNED_PROJECTS_END -->"
+DEFAULT_ACTIVITY_START_MARKER = "<!-- GITHUB_ACTIVITY_START -->"
+DEFAULT_ACTIVITY_END_MARKER = "<!-- GITHUB_ACTIVITY_END -->"
+DEFAULT_PROFILE_URL = "https://github.com/josiahH-cf"
 DEFAULT_FALLBACKS = {
     "description": "No description provided.",
     "language": "Not specified",
@@ -41,8 +44,17 @@ MONTHS = (
     "July", "August", "September", "October", "November", "December",
 )
 
+ACTIVITY_METRICS = (
+    ("contributions", "Contributions", "total_contributions"),
+    ("commits", "Commits", "commits"),
+    ("pull-requests", "Pull requests", "pull_requests"),
+    ("issues", "Issues", "issues"),
+    ("code-reviews", "Code reviews", "reviews"),
+    ("repositories", "Repositories with commits", "repositories"),
+)
+
 QUERY = """
-query PinnedProjects($login: String!, $limit: Int!) {
+query ProjectsAndActivity($login: String!, $limit: Int!, $from: DateTime!, $to: DateTime!) {
   user(login: $login) {
     pinnedItems(first: $limit, types: [REPOSITORY]) {
       totalCount
@@ -58,6 +70,16 @@ query PinnedProjects($login: String!, $limit: Int!) {
           updatedAt
         }
       }
+    }
+    contributionsCollection(from: $from, to: $to) {
+      startedAt
+      endedAt
+      contributionCalendar { totalContributions }
+      totalCommitContributions
+      totalIssueContributions
+      totalPullRequestContributions
+      totalPullRequestReviewContributions
+      totalRepositoriesWithContributedCommits
     }
   }
 }
@@ -79,11 +101,21 @@ def load_config(repository: Path) -> dict[str, Any]:
     return value
 
 
-def request_pins(owner: str, token: str) -> dict[str, Any]:
+def request_github_data(
+    owner: str, token: str, activity_start: str, activity_end: str
+) -> dict[str, Any]:
     if not token:
         raise RefreshError("GITHUB_TOKEN is required when --response-file is not used")
     body = json.dumps(
-        {"query": QUERY, "variables": {"login": owner, "limit": MAX_PINNED_ITEMS}},
+        {
+            "query": QUERY,
+            "variables": {
+                "login": owner,
+                "limit": MAX_PINNED_ITEMS,
+                "from": activity_start,
+                "to": activity_end,
+            },
+        },
         separators=(",", ":"),
     ).encode("utf-8")
     request = urllib.request.Request(
@@ -94,7 +126,7 @@ def request_pins(owner: str, token: str) -> dict[str, Any]:
             "Accept": "application/vnd.github+json",
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
-            "User-Agent": "theproductiveprompter-pinned-projects/1.0",
+            "User-Agent": "theproductiveprompter-github-activity/1.0",
             "X-GitHub-Api-Version": "2022-11-28",
         },
     )
@@ -168,14 +200,97 @@ def utc_timestamp(value: str, index: int) -> dt.datetime:
     return parsed.astimezone(dt.timezone.utc)
 
 
+def parse_as_of(value: str | None) -> dt.datetime:
+    if value is None:
+        return dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+    try:
+        parsed = dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (AttributeError, ValueError) as exc:
+        raise RefreshError("--as-of must be an ISO 8601 UTC timestamp") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() != dt.timedelta(0):
+        raise RefreshError("--as-of must identify UTC")
+    parsed = parsed.astimezone(dt.timezone.utc).replace(microsecond=0)
+    if not 1970 <= parsed.year <= 9998:
+        raise RefreshError("--as-of year is outside the supported range")
+    return parsed
+
+
+def github_datetime(value: dt.datetime) -> str:
+    return value.astimezone(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def activity_bounds(as_of: dt.datetime) -> tuple[dt.datetime, dt.datetime]:
+    start = dt.datetime(as_of.year, 1, 1, tzinfo=dt.timezone.utc)
+    end = dt.datetime(as_of.year, 12, 31, 23, 59, 59, tzinfo=dt.timezone.utc)
+    return start, end
+
+
+def activity_timestamp(value: object, field: str) -> dt.datetime:
+    if not isinstance(value, str) or not value:
+        raise RefreshError(f"GitHub activity has an invalid {field}")
+    try:
+        parsed = dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise RefreshError(f"GitHub activity has an invalid {field}") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() != dt.timedelta(0):
+        raise RefreshError(f"GitHub activity {field} must identify UTC")
+    return parsed.astimezone(dt.timezone.utc)
+
+
+def activity_count(value: object, field: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise RefreshError(f"GitHub activity has an invalid {field}")
+    return value
+
+
+def validate_activity(
+    user: dict[str, Any], expected_start: dt.datetime, expected_end: dt.datetime
+) -> dict[str, Any]:
+    collection = user.get("contributionsCollection")
+    if not isinstance(collection, dict):
+        raise RefreshError("GraphQL response lacks data.user.contributionsCollection")
+    calendar = collection.get("contributionCalendar")
+    if not isinstance(calendar, dict):
+        raise RefreshError("GraphQL response lacks the GitHub contribution calendar")
+    started_at = activity_timestamp(collection.get("startedAt"), "startedAt")
+    ended_at = activity_timestamp(collection.get("endedAt"), "endedAt")
+    if started_at != expected_start or ended_at != expected_end:
+        raise RefreshError("GitHub activity boundaries do not match the requested UTC year")
+    return {
+        "year": expected_start.year,
+        "total_contributions": activity_count(
+            calendar.get("totalContributions"), "contributionCalendar.totalContributions"
+        ),
+        "commits": activity_count(
+            collection.get("totalCommitContributions"), "totalCommitContributions"
+        ),
+        "issues": activity_count(
+            collection.get("totalIssueContributions"), "totalIssueContributions"
+        ),
+        "pull_requests": activity_count(
+            collection.get("totalPullRequestContributions"), "totalPullRequestContributions"
+        ),
+        "reviews": activity_count(
+            collection.get("totalPullRequestReviewContributions"),
+            "totalPullRequestReviewContributions",
+        ),
+        "repositories": activity_count(
+            collection.get("totalRepositoriesWithContributedCommits"),
+            "totalRepositoriesWithContributedCommits",
+        ),
+    }
+
+
 def validate_response(
-    response: dict[str, Any], owner: str, count: int
-) -> list[dict[str, Any]]:
+    response: dict[str, Any], owner: str, count: int,
+    activity_start: dt.datetime, activity_end: dt.datetime,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     errors = response.get("errors")
     if errors:
         raise RefreshError("GitHub GraphQL returned one or more errors")
     try:
-        pinned_items = response["data"]["user"]["pinnedItems"]
+        user = response["data"]["user"]
+        pinned_items = user["pinnedItems"]
         total_count = pinned_items["totalCount"]
         nodes = pinned_items["nodes"]
     except (KeyError, TypeError) as exc:
@@ -232,7 +347,8 @@ def validate_response(
                 "updated": updated,
             }
         )
-    return projects
+    activity = validate_activity(user, activity_start, activity_end)
+    return projects, activity
 
 
 def escaped(value: object) -> str:
@@ -284,29 +400,64 @@ def render_cards(
     return (newline + newline).join(blocks)
 
 
+def render_activity(activity: dict[str, Any], indent: str, newline: str) -> str:
+    child = indent + "  "
+    grandchild = child + "  "
+    year = int(activity["year"])
+    lines = [
+        f'{indent}<div class="github-activity__header">',
+        f'{child}<h2 class="github-activity__title" id="github-activity-title"><time class="github-activity__year" datetime="{year}">{year}</time> GitHub activity</h2>',
+        f'{child}<p class="github-activity__status">Year-to-date public contribution totals <span aria-hidden="true">·</span> Refreshed daily</p>',
+        f"{indent}</div>",
+        f'{indent}<dl class="github-activity__stats" aria-label="Public GitHub activity statistics for {year}">',
+    ]
+    for key, label, value_key in ACTIVITY_METRICS:
+        value = int(activity[value_key])
+        lines.extend(
+            [
+                f'{child}<div class="github-activity-stat" data-github-metric="{key}">',
+                f'{grandchild}<dt class="github-activity-stat__label">{label}</dt>',
+                f'{grandchild}<dd class="github-activity-stat__value">{value:,}</dd>',
+                f"{child}</div>",
+            ]
+        )
+    lines.append(f"{indent}</dl>")
+    return newline.join(lines)
+
+
 def marker_indent(source: str, marker_index: int) -> str:
     line_start = max(source.rfind("\n", 0, marker_index), source.rfind("\r", 0, marker_index)) + 1
     candidate = source[line_start:marker_index]
     return candidate if candidate.strip() == "" else ""
 
 
+def validate_marker_layout(
+    source: str, regions: tuple[tuple[str, str, str], ...]
+) -> None:
+    all_markers = [marker for start, end, _label in regions for marker in (start, end)]
+    if any(not marker for marker in all_markers) or len(set(all_markers)) != len(all_markers):
+        raise RefreshError("Generated-region markers must be distinct non-empty text")
+    previous_end = -1
+    for start_marker, end_marker, label in regions:
+        if source.count(start_marker) != 1 or source.count(end_marker) != 1:
+            raise RefreshError(f"Target must contain exactly one {label} marker pair")
+        start = source.index(start_marker)
+        end = source.index(end_marker)
+        if start >= end:
+            raise RefreshError(f"{label.capitalize()} markers are out of order")
+        if start <= previous_end:
+            raise RefreshError("Generated-region marker pairs must be ordered and disjoint")
+        previous_end = end + len(end_marker) - 1
+
+
 def replace_marker_region(
-    source: str,
-    start_marker: str,
-    end_marker: str,
-    cards: list[dict[str, Any]],
-    fallbacks: dict[str, str],
+    source: str, start_marker: str, end_marker: str, rendered: str
 ) -> str:
-    if source.count(start_marker) != 1 or source.count(end_marker) != 1:
-        raise RefreshError("Target must contain exactly one pinned-project marker pair")
     start = source.index(start_marker)
     end = source.index(end_marker)
-    if start >= end:
-        raise RefreshError("Pinned-project markers are out of order")
     content_start = start + len(start_marker)
     newline = "\r\n" if "\r\n" in source else "\n"
     indent = marker_indent(source, start)
-    rendered = render_cards(cards, fallbacks, indent, newline)
     return source[:content_start] + newline + rendered + newline + indent + source[end:]
 
 
@@ -344,6 +495,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--response-file", type=Path, help="Read a fixed GraphQL JSON response")
     parser.add_argument("--target", type=Path, help="Override the configured HTML target")
+    parser.add_argument(
+        "--as-of",
+        help="Select the UTC calendar year from a fixed ISO timestamp (defaults to now)",
+    )
     parser.add_argument("--json", action="store_true", help="Emit a machine-readable result")
     args = parser.parse_args()
 
@@ -358,8 +513,18 @@ def main() -> int:
             raise RefreshError(f"pinned_projects_count must be exactly {DEFAULT_COUNT}")
         start_marker = str(config.get("pinned_projects_start_marker", DEFAULT_START_MARKER))
         end_marker = str(config.get("pinned_projects_end_marker", DEFAULT_END_MARKER))
-        if not start_marker or not end_marker or start_marker == end_marker:
-            raise RefreshError("Pinned-project markers must be distinct non-empty text")
+        activity_start_marker = str(
+            config.get("github_activity_start_marker", DEFAULT_ACTIVITY_START_MARKER)
+        )
+        activity_end_marker = str(
+            config.get("github_activity_end_marker", DEFAULT_ACTIVITY_END_MARKER)
+        )
+        profile_url = str(config.get("github_activity_profile_url", DEFAULT_PROFILE_URL))
+        if profile_url != DEFAULT_PROFILE_URL:
+            raise RefreshError(f"github_activity_profile_url must be {DEFAULT_PROFILE_URL}")
+        markers = (start_marker, end_marker, activity_start_marker, activity_end_marker)
+        if any(not marker for marker in markers) or len(set(markers)) != len(markers):
+            raise RefreshError("GitHub refresh markers must be distinct non-empty text")
         configured_fallbacks = config.get("pinned_projects_fallbacks", {})
         if not isinstance(configured_fallbacks, dict):
             raise RefreshError("pinned_projects_fallbacks must be an object")
@@ -370,11 +535,20 @@ def main() -> int:
         if any(not isinstance(value, str) or not value for value in fallbacks.values()):
             raise RefreshError("Every pinned-project fallback must be non-empty text")
 
+        as_of = parse_as_of(args.as_of)
+        activity_start, activity_end = activity_bounds(as_of)
         if args.response_file:
             response = load_response(args.response_file.resolve())
         else:
-            response = request_pins(owner, os.environ.get("GITHUB_TOKEN", ""))
-        projects = validate_response(response, owner, count)
+            response = request_github_data(
+                owner,
+                os.environ.get("GITHUB_TOKEN", ""),
+                github_datetime(activity_start),
+                github_datetime(activity_end),
+            )
+        projects, activity = validate_response(
+            response, owner, count, activity_start, activity_end
+        )
 
         configured_target = Path(str(config.get("pinned_projects_file", "projects.html")))
         target = args.target.resolve() if args.target else repository / configured_target
@@ -385,17 +559,36 @@ def main() -> int:
                 source = handle.read()
         except (OSError, UnicodeError) as exc:
             raise RefreshError(f"Could not read target {target}: {exc}") from exc
-        updated = replace_marker_region(source, start_marker, end_marker, projects, fallbacks)
+        regions = (
+            (start_marker, end_marker, "pinned-project"),
+            (activity_start_marker, activity_end_marker, "GitHub-activity"),
+        )
+        validate_marker_layout(source, regions)
+        newline = "\r\n" if "\r\n" in source else "\n"
+        cards = render_cards(
+            projects, fallbacks, marker_indent(source, source.index(start_marker)), newline
+        )
+        activity_block = render_activity(
+            activity,
+            marker_indent(source, source.index(activity_start_marker)),
+            newline,
+        )
+        updated = replace_marker_region(source, start_marker, end_marker, cards)
+        updated = replace_marker_region(
+            updated, activity_start_marker, activity_end_marker, activity_block
+        )
         changed = atomic_write(target, updated.encode("utf-8"))
         result = {
             "status": "ok",
             "changed": changed,
             "owner": owner,
             "project_count": len(projects),
+            "activity_year": activity["year"],
+            "activity_total": activity["total_contributions"],
             "target": str(target),
         }
         print(json.dumps(result, sort_keys=True) if args.json else (
-            f"Refreshed {len(projects)} pinned projects in {target}"
+            f"Refreshed {len(projects)} pinned projects and {activity['year']} activity in {target}"
             + ("" if changed else " (unchanged)")
         ))
         return 0

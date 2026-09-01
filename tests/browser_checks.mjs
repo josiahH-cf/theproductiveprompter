@@ -717,6 +717,77 @@ async function checkHeroFit(client, baseUrl) {
   return result('BEH-9', failures, ['hero fit, single-line desktop branding, and enlarged social icons passed across eight viewports']);
 }
 
+async function checkGitHubActivity(client, baseUrl) {
+  const failures = [];
+  const viewports = [
+    { label: 'desktop', width: 1440, height: 900, mobile: false },
+    { label: 'tablet', width: 768, height: 1024, mobile: true },
+    { label: 'mobile', width: 390, height: 844, mobile: true },
+    { label: 'small mobile', width: 320, height: 568, mobile: true },
+  ];
+  for (const viewport of viewports) {
+    await client.send('Emulation.setDeviceMetricsOverride', {
+      width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.mobile,
+    });
+    await navigate(client, `${baseUrl}/projects.html?github-activity=${encodeURIComponent(viewport.label)}`);
+    await delay(250);
+    const state = await evaluate(client, `(async () => {
+      const rect = element => {
+        const value = element?.getBoundingClientRect();
+        return value && { left: value.left, right: value.right, top: value.top, bottom: value.bottom, width: value.width, height: value.height };
+      };
+      const activity = document.querySelector('.github-activity');
+      const heading = activity?.querySelector('h2.github-activity__title');
+      const time = activity?.querySelector('time.github-activity__year');
+      const status = activity?.querySelector('.github-activity__status');
+      const list = activity?.querySelector('dl.github-activity__stats');
+      const metrics = [...(list?.querySelectorAll('.github-activity-stat') || [])];
+      const cta = document.querySelector('a.github-dashboard-cta');
+      const beforeScroll = rect(cta);
+      document.documentElement.style.scrollBehavior = 'auto';
+      cta?.scrollIntoView({ block: 'center' });
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const ctaRect = rect(cta);
+      const clipped = [...metrics, cta].filter(Boolean).map(element => ({
+        className: element.className, rect: rect(element),
+      })).filter(item => item.rect.left < -1 || item.rect.right > innerWidth + 1);
+      return {
+        sectionCount: document.querySelectorAll('.github-activity').length,
+        heading: heading?.textContent.trim() || '', labelledBy: activity?.getAttribute('aria-labelledby') || '', headingId: heading?.id || '',
+        timeText: time?.textContent.trim() || '', datetime: time?.getAttribute('datetime') || '', statusText: status?.textContent.trim() || '',
+        listCount: activity?.querySelectorAll('dl.github-activity__stats').length || 0,
+        metrics: metrics.map(item => ({
+          key: item.getAttribute('data-github-metric') || '',
+          value: item.querySelector('dd')?.textContent.trim() || '',
+          label: item.querySelector('dt')?.textContent.trim() || '',
+        })),
+        href: cta?.getAttribute('href') || '', target: cta?.target || '', rel: cta?.rel || '',
+        accessible: ((cta?.getAttribute('aria-label') || '') + ' ' + (cta?.textContent || '')).trim(),
+        follows: !!activity && !!cta && !!(activity.compareDocumentPosition(cta) & Node.DOCUMENT_POSITION_FOLLOWING),
+        activityRect: rect(activity), beforeScroll, ctaRect, clipped,
+        overflow: document.documentElement.scrollWidth - innerWidth,
+        reachable: !!ctaRect && ctaRect.top >= -1 && ctaRect.bottom <= innerHeight + 1,
+      };
+    })()`);
+    const prefix = `${viewport.label} ${viewport.width}x${viewport.height}`;
+    const keys = state.metrics.map(item => item.key);
+    const expectedKeys = ['contributions', 'commits', 'pull-requests', 'issues', 'code-reviews', 'repositories'];
+    if (state.sectionCount !== 1 || !state.heading || state.listCount !== 1 || state.metrics.length !== 6) failures.push(`${prefix}: activity structure is incomplete ${JSON.stringify(state)}`);
+    if (state.labelledBy !== state.headingId || !state.headingId) failures.push(`${prefix}: activity section is not labelled by its heading`);
+    if (JSON.stringify(keys) !== JSON.stringify(expectedKeys) || new Set(keys).size !== 6) failures.push(`${prefix}: activity metric keys/order are invalid ${JSON.stringify(keys)}`);
+    if (state.metrics.some(item => !/^\d{1,3}(,\d{3})*$/.test(item.value) || !item.label)) failures.push(`${prefix}: activity values/labels are invalid ${JSON.stringify(state.metrics)}`);
+    const year = state.datetime.match(/^\d{4}$/)?.[0] || '';
+    if (!year || state.timeText !== year || !state.heading.startsWith(`${year} `) || !/year-to-date public contribution totals/i.test(state.statusText) || !/refreshed daily/i.test(state.statusText)) failures.push(`${prefix}: year/scope/cadence are inconsistent ${JSON.stringify({ heading: state.heading, datetime: state.datetime, timeText: state.timeText, statusText: state.statusText })}`);
+    if (state.href !== 'https://github.com/josiahH-cf' || state.target !== '_blank' || !state.rel.split(/\s+/).includes('noopener') || !state.rel.split(/\s+/).includes('noreferrer')) failures.push(`${prefix}: dashboard destination or new-tab protection is invalid`);
+    if (!/github activity dashboard/i.test(state.accessible) || !/opens in a new tab/i.test(state.accessible)) failures.push(`${prefix}: dashboard accessible name is incomplete: ${state.accessible}`);
+    if (!state.follows) failures.push(`${prefix}: dashboard CTA does not follow the activity section`);
+    if (!state.ctaRect || state.ctaRect.height < 72 || !state.activityRect || state.ctaRect.width < state.activityRect.width * 0.95) failures.push(`${prefix}: dashboard CTA is not visually large/full-width ${JSON.stringify({ activity: state.activityRect, cta: state.ctaRect })}`);
+    if (!state.reachable || state.overflow > 1 || state.clipped.length) failures.push(`${prefix}: activity/CTA is clipped, overflowing, or unreachable ${JSON.stringify(state)}`);
+  }
+  await client.send('Emulation.clearDeviceMetricsOverride');
+  return result('BEH-10', failures, ['current-year activity and the large dashboard CTA are safe, reachable, and responsive across four viewports']);
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   const results = [];
@@ -739,6 +810,7 @@ async function main() {
       ['BEH-5', () => checkReachOut(client, server.baseUrl)],
       ['BEH-6', () => checkContactForm(client, server, server.baseUrl)],
       ['BEH-9', () => checkHeroFit(client, server.baseUrl)],
+      ['BEH-10', () => checkGitHubActivity(client, server.baseUrl)],
       ['PRES-3', () => check31Days(client, server.baseUrl)],
       ['PRES-4', () => checkHamburger(client, server.baseUrl, routes)],
       ['PRES-5', () => checkReveal(client, server.baseUrl)],
@@ -751,7 +823,7 @@ async function main() {
       }
     }
   } catch (error) {
-    const ids = ['BEH-1', 'BEH-2', 'BEH-3', 'BEH-5', 'BEH-6', 'BEH-9', 'PRES-3', 'PRES-4', 'PRES-5', 'PRES-6'];
+    const ids = ['BEH-1', 'BEH-2', 'BEH-3', 'BEH-5', 'BEH-6', 'BEH-9', 'BEH-10', 'PRES-3', 'PRES-4', 'PRES-5', 'PRES-6'];
     for (const id of ids) results.push({ id, status: 'FAIL', detail: `Browser harness unavailable: ${error.message}` });
   } finally {
     client?.close();

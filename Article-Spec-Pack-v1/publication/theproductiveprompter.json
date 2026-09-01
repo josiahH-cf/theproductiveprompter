@@ -1,5 +1,5 @@
 {
-  "target_schema_version": "1.1.0",
+  "target_schema_version": "1.2.0",
   "target_id": "theproductiveprompter",
   "repository_relative_to_spec": "..",
   "repository_path_environment_variable": "ARTICLE_FLOW_REPO_ROOT",
@@ -30,6 +30,9 @@
   "pinned_projects_file": "projects.html",
   "pinned_projects_start_marker": "<!-- PINNED_PROJECTS_START -->",
   "pinned_projects_end_marker": "<!-- PINNED_PROJECTS_END -->",
+  "github_activity_start_marker": "<!-- GITHUB_ACTIVITY_START -->",
+  "github_activity_end_marker": "<!-- GITHUB_ACTIVITY_END -->",
+  "github_activity_profile_url": "https://github.com/josiahH-cf",
   "pinned_projects_fallbacks": {
     "description": "No description provided.",
     "language": "Not specified",
