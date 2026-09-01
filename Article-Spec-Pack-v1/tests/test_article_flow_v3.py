@@ -227,6 +227,188 @@ class ProcessLivenessRegressionTests(unittest.TestCase):
         pause.assert_called_once_with(0.01)
 
 
+class PublicationTargetLockRegressionTests(TemporaryRuntime):
+    def publication_repository(self, name="publication-repo"):
+        repository = self.root / name
+        (repository / "docs").mkdir(parents=True)
+        (repository / "index.html").write_text("base\n", encoding="utf-8")
+        subprocess.run(["git", "init", "-q", str(repository)], check=True)
+        subprocess.run(["git", "-C", str(repository), "config", "user.email", "test@example.com"], check=True)
+        subprocess.run(["git", "-C", str(repository), "config", "user.name", "Test"], check=True)
+        subprocess.run(["git", "-C", str(repository), "add", "index.html"], check=True)
+        subprocess.run(["git", "-C", str(repository), "commit", "-qm", "base"], check=True)
+        return repository
+
+    def publishable_run(self, repository, filename, contents):
+        run_id = self.start(f"Publish {filename} safely.")
+        directory, run = af.load_run(run_id)
+        run["workflow_version"] = af.LEGACY_WORKFLOW_VERSION
+        af.save_run(directory, run)
+        source = directory / "package" / "site" / "docs" / filename
+        source.parent.mkdir(parents=True, exist_ok=True)
+        source.write_text(contents, encoding="utf-8")
+        revision = af.sha256_bytes(contents.encode("utf-8"))
+        af.write_json(directory / "package" / "package.json", {
+            "package_revision": revision,
+            "public_files": [],
+        })
+        base_commit = subprocess.check_output(
+            ["git", "-C", str(repository), "rev-parse", "HEAD"],
+            text=True,
+        ).strip()
+        plan = {
+            "run_id": run_id,
+            "target": "theproductiveprompter",
+            "base_commit": base_commit,
+            "package_revision": revision,
+            "changes": [{
+                "path": f"docs/{filename}",
+                "current_sha256": None,
+                "planned_sha256": af.sha256_path(source),
+                "action": "add",
+            }],
+        }
+        plan_path = directory / "publication" / "plan.json"
+        af.write_json(plan_path, plan)
+        approval_id = f"AP-{filename.replace('.', '-')}"
+        approval_path = directory / "approvals" / f"{approval_id}.json"
+        af.write_json(approval_path, {
+            "publication_receipt_schema_version": "1.0.0",
+            "run_id": run_id,
+            "target": plan["target"],
+            "package_revision": revision,
+            "approval_id": approval_id,
+            "plan_sha256": af.sha256_path(plan_path),
+            "expires_at": "2099-01-01T00:00:00Z",
+            "status": "APPROVED",
+            "commit": None,
+            "url": None,
+            "checks": [],
+            "created_at": af.utc_now(),
+        })
+        af.transition(directory, run, "PUBLISH", "test", "exercise publication serialization")
+        return run_id, approval_id, directory
+
+    def test_target_identity_uses_one_shared_lock_outside_checkout(self):
+        first_repository = self.publication_repository("first-publication-repo")
+        second_repository = self.publication_repository("second-publication-repo")
+        target = af.load_json(af.SPEC_ROOT / "publication" / "theproductiveprompter.json")
+        first_path = af.publication_target_lock_path(first_repository, target)
+        second_path = af.publication_target_lock_path(second_repository, target)
+
+        self.assertEqual(first_path, second_path)
+        with self.assertRaises(ValueError):
+            first_path.relative_to(first_repository)
+        with af.publication_target_lock(first_repository, target):
+            self.assertTrue(first_path.is_file())
+            with self.assertRaises(af.FlowError) as caught:
+                with af.publication_target_lock(second_repository, target, wait_seconds=0.05):
+                    pass
+        self.assertIn("Timed out waiting", str(caught.exception))
+        self.assertFalse(first_path.exists())
+
+    def test_shared_state_inside_checkout_falls_back_under_gitdir(self):
+        repository = self.publication_repository()
+        target = af.load_json(af.SPEC_ROOT / "publication" / "theproductiveprompter.json")
+        with mock.patch.object(af, "shared_state_root", return_value=repository / "runtime"):
+            path = af.publication_target_lock_path(repository, target)
+        git_directory = repository / ".git"
+        self.assertEqual(path.relative_to(git_directory).parts[:2], ("article-flow", "publication-locks"))
+
+    def test_concurrent_runs_revalidate_base_only_after_target_lock(self):
+        repository = self.publication_repository()
+        first_run, first_approval, _ = self.publishable_run(repository, "first.html", "first\n")
+        second_run, second_approval, _ = self.publishable_run(repository, "second.html", "second\n")
+        entered_copy = threading.Event()
+        release_copy = threading.Event()
+        original_atomic_write = af.atomic_write
+        first_destination = repository / "docs" / "first.html"
+
+        def paused_atomic_write(path, data):
+            if Path(path) == first_destination:
+                entered_copy.set()
+                if not release_copy.wait(timeout=5):
+                    raise AssertionError("test did not release the first publisher")
+            return original_atomic_write(path, data)
+
+        def execute(run_id, approval_id):
+            try:
+                return af.command_publish_execute(namespace(
+                    run_id=run_id,
+                    approval=approval_id,
+                    commit=True,
+                    push=False,
+                ))
+            except Exception as exc:  # Return the expected loser for thread-safe inspection.
+                return exc
+
+        with (
+            mock.patch.dict(os.environ, {"ARTICLE_FLOW_TEST_NO_PUBLISH": ""}, clear=False),
+            mock.patch.object(af, "publication_repo_root", return_value=repository),
+            mock.patch.object(af, "atomic_write", side_effect=paused_atomic_write),
+            mock.patch.object(af, "emit"),
+            ThreadPoolExecutor(max_workers=2) as pool,
+        ):
+            first_future = pool.submit(execute, first_run, first_approval)
+            self.assertTrue(entered_copy.wait(timeout=5))
+            second_future = pool.submit(execute, second_run, second_approval)
+            self.assertFalse(second_future.done())
+            release_copy.set()
+            first_result = first_future.result(timeout=10)
+            second_result = second_future.result(timeout=10)
+
+        self.assertEqual(first_result, af.EXIT_OK)
+        self.assertIsInstance(second_result, af.FlowError)
+        self.assertIn("HEAD changed after publication planning", str(second_result))
+        self.assertTrue((repository / "docs" / "first.html").is_file())
+        self.assertFalse((repository / "docs" / "second.html").exists())
+        commit_count = subprocess.check_output(
+            ["git", "-C", str(repository), "rev-list", "--count", "HEAD"],
+            text=True,
+        ).strip()
+        self.assertEqual(commit_count, "2")
+
+    def test_push_failure_handoff_is_created_before_target_unlock(self):
+        repository = self.publication_repository()
+        run_id, approval_id, directory = self.publishable_run(repository, "failed-push.html", "pending\n")
+        target = af.load_json(af.SPEC_ROOT / "publication" / "theproductiveprompter.json")
+        original_git = af.git
+        original_handoff = af.create_publication_handoff
+        observed = {"locked_during_cleanup": False}
+
+        def fail_push(arguments, **kwargs):
+            if arguments and arguments[0] == "push":
+                raise af.FlowError("simulated push failure")
+            return original_git(arguments, **kwargs)
+
+        def checked_handoff(*args, **kwargs):
+            with self.assertRaises(af.FlowError):
+                with af.publication_target_lock(repository, target, wait_seconds=0.05):
+                    pass
+            observed["locked_during_cleanup"] = True
+            return original_handoff(*args, **kwargs)
+
+        with (
+            mock.patch.dict(os.environ, {"ARTICLE_FLOW_TEST_NO_PUBLISH": ""}, clear=False),
+            mock.patch.object(af, "publication_repo_root", return_value=repository),
+            mock.patch.object(af, "publication_push_preflight", return_value={"ok": True, "reason": "test"}),
+            mock.patch.object(af, "git", side_effect=fail_push),
+            mock.patch.object(af, "create_publication_handoff", side_effect=checked_handoff),
+        ):
+            code, payload = call(
+                af.command_publish_execute,
+                run_id=run_id,
+                approval=approval_id,
+                commit=True,
+                push=True,
+            )
+
+        self.assertEqual(code, af.EXIT_WAITING, payload)
+        self.assertTrue(observed["locked_during_cleanup"])
+        self.assertTrue((directory / "publication" / "incomplete.json").is_file())
+        self.assertFalse(af.publication_target_lock_path(repository, target).exists())
+
+
 class InstallationRegressionTests(TemporaryRuntime):
     def install_fixture(self, label):
         root = self.root / label

@@ -4189,6 +4189,45 @@ def publication_push_preflight(repository: Path, target: dict[str, Any]) -> dict
     }
 
 
+def publication_target_lock_path(repository: Path, target: dict[str, Any]) -> Path:
+    """Return one host-neutral lock path for a configured publication target."""
+    identity = {
+        "target_id": str(target.get("target_id", "unknown-target")),
+        "publication_branch": str(target.get("publication_branch", "")),
+        "canonical_url": str(target.get("canonical_url", "")),
+    }
+    digest = sha256_bytes(canonical_json(identity))[:16]
+    filename = f"{slugify(identity['target_id'], 48)}-{digest}.lock"
+    shared_root = (shared_state_root() / "locks" / "publication").resolve()
+    repository_root = repository.resolve()
+    try:
+        shared_root.relative_to(repository_root)
+    except ValueError:
+        return shared_root / filename
+
+    # A custom shared-state location may accidentally live in the publication
+    # worktree. Keep lock bytes out of the indexable tree by falling back to the
+    # repository's common git directory.
+    common_dir_value = str(git(["rev-parse", "--git-common-dir"], cwd=repository)).strip()
+    common_dir = Path(common_dir_value)
+    if not common_dir.is_absolute():
+        common_dir = repository / common_dir
+    return common_dir.resolve() / "article-flow" / "publication-locks" / filename
+
+
+@contextlib.contextmanager
+def publication_target_lock(
+    repository: Path,
+    target: dict[str, Any],
+    *,
+    wait_seconds: float = 15.0,
+) -> Iterator[Path]:
+    """Serialize publication mutations across runs and Windows/WSL hosts."""
+    path = publication_target_lock_path(repository, target)
+    with shared_lock(path, stale_seconds=6 * 3600, wait_seconds=wait_seconds):
+        yield path
+
+
 def create_publication_handoff(
     directory: Path,
     run: dict[str, Any],
@@ -4237,13 +4276,24 @@ def create_publication_handoff(
 def command_publish_execute(args: argparse.Namespace) -> int:
     if os.environ.get("ARTICLE_FLOW_TEST_NO_PUBLISH") == "1":
         raise FlowError("Publication execution is disabled inside smoke/conformance tests", EXIT_APPROVAL)
+    if args.push and not args.commit:
+        raise FlowError("--push requires --commit", EXIT_USAGE)
+    repository = publication_repo_root(required=True)
+    target = load_json(SPEC_ROOT / "publication" / "theproductiveprompter.json")
+    with publication_target_lock(repository, target):
+        return _command_publish_execute_locked(args, repository=repository, target=target)
+
+
+def _command_publish_execute_locked(
+    args: argparse.Namespace,
+    *,
+    repository: Path,
+    target: dict[str, Any],
+) -> int:
     directory, run = load_run(args.run_id)
     if run["state"] != "PUBLISH":
         raise FlowError(f"Publication execution requires PUBLISH, current state is {run['state']}")
-    if args.push and not args.commit:
-        raise FlowError("--push requires --commit", EXIT_USAGE)
     approval_path = directory / "approvals" / f"{args.approval}.json"
-    repository = publication_repo_root(required=True)
     if not approval_path.is_file():
         raise FlowError("Scoped publication approval not found", EXIT_APPROVAL)
     approval = load_json(approval_path)
@@ -4286,7 +4336,6 @@ def command_publish_execute(args: argparse.Namespace) -> int:
     status = str(git(["status", "--porcelain=v1", "-uall"], cwd=repository)).splitlines()
     if status:
         raise FlowError("Publication execution requires a clean approved checkout; use a separate clean worktree", EXIT_INTEGRITY, status)
-    target = load_json(SPEC_ROOT / "publication" / "theproductiveprompter.json")
     preflight = {"ok": True, "reason": "push not requested"}
     if args.push:
         preflight = publication_push_preflight(repository, target)
