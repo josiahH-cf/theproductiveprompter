@@ -1,0 +1,215 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://theproductiveprompter.com/schemas/model-assignment.schema.json",
+  "title": "Writing Model Assignment",
+  "type": "object",
+  "required": [
+    "model_assignment_schema_version",
+    "run_id",
+    "pool_id",
+    "pool_version",
+    "rotation_index",
+    "provider_id",
+    "assigned_model_id",
+    "public_display_name",
+    "selection_reason",
+    "override",
+    "consumes_rotation",
+    "status",
+    "actual_models",
+    "contaminated",
+    "created_at"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "model_assignment_schema_version": {
+      "const": "1.0.0"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "pool_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pool_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "rotation_index": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "provider_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "assigned_model_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "public_display_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "selection_reason": {
+      "enum": [
+        "round_robin",
+        "operator_override"
+      ]
+    },
+    "override": {
+      "type": "boolean"
+    },
+    "consumes_rotation": {
+      "type": "boolean"
+    },
+    "status": {
+      "enum": [
+        "assigned",
+        "fallback",
+        "complete"
+      ]
+    },
+    "actual_models": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "string",
+            "minLength": 1
+          },
+          {
+            "type": "object",
+            "required": [
+              "provider_id",
+              "model_id",
+              "public_display_name"
+            ],
+            "properties": {
+              "provider_id": {
+                "type": "string"
+              },
+              "model_id": {
+                "type": "string"
+              },
+              "public_display_name": {
+                "type": "string"
+              },
+              "stages": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "DRAFT",
+                    "VOICE_PROBE",
+                    "EDIT"
+                  ]
+                }
+              },
+              "receipt_sha256": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "role": {
+                "enum": [
+                  "assigned",
+                  "fallback"
+                ]
+              }
+            },
+            "additionalProperties": true
+          }
+        ]
+      }
+    },
+    "contaminated": {
+      "type": "boolean"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "fallback_reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "selection_reason": {
+            "const": "round_robin"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "override": {
+            "const": false
+          },
+          "consumes_rotation": {
+            "const": true
+          },
+          "rotation_index": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "selection_reason": {
+            "const": "operator_override"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "override": {
+            "const": true
+          },
+          "consumes_rotation": {
+            "const": false
+          },
+          "rotation_index": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "fallback"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "contaminated": {
+            "const": true
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

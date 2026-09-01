@@ -3,19 +3,89 @@
   "$id": "https://theproductiveprompter.com/schemas/event.schema.json",
   "title": "Article Flow Event",
   "type": "object",
-  "required": ["event_schema_version", "event_id", "run_id", "sequence", "timestamp", "type", "state", "actor", "payload", "previous_event_hash", "event_hash"],
+  "required": [
+    "event_schema_version",
+    "event_id",
+    "run_id",
+    "sequence",
+    "timestamp",
+    "type",
+    "state",
+    "actor",
+    "payload",
+    "previous_event_hash",
+    "event_hash"
+  ],
   "properties": {
-    "event_schema_version": {"const": "1.0.0"},
-    "event_id": {"type": "string"},
-    "run_id": {"type": "string"},
-    "sequence": {"type": "integer", "minimum": 1},
-    "timestamp": {"type": "string", "format": "date-time"},
-    "type": {"enum": ["RUN_CREATED", "ARTIFACT_RECORDED", "TASK_DISPATCHED", "GATE_RECORDED", "STATE_TRANSITION", "RETRY", "REPAIR", "ESCALATION", "APPROVAL", "PUBLICATION", "PUBLICATION_HANDOFF", "PUBLISH_ATTEMPT", "PUBLISH_INCOMPLETE", "DEPLOYMENT_ATTESTED", "PUBLIC_DISPLAY_TEXT_AMENDED", "PUBLIC_ARTICLE_AMENDED", "VERIFICATION", "TERMINAL", "LOCK_RECOVERED", "MODEL_ROUTE_FAILURE", "MODEL_OUTPUT_REJECTED", "MODEL_ROUTE_RECOVERED", "LIFECYCLE_REQUEST"]},
-    "state": {"type": "string"},
-    "actor": {"type": "string"},
-    "payload": {"type": "object"},
-    "previous_event_hash": {"type": ["string", "null"]},
-    "event_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+    "event_schema_version": {
+      "const": "1.0.0"
+    },
+    "event_id": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "type": {
+      "enum": [
+        "RUN_CREATED",
+        "ARTIFACT_RECORDED",
+        "TASK_DISPATCHED",
+        "GATE_RECORDED",
+        "STATE_TRANSITION",
+        "RETRY",
+        "REPAIR",
+        "ESCALATION",
+        "APPROVAL",
+        "PUBLICATION",
+        "PUBLICATION_HANDOFF",
+        "PUBLISH_ATTEMPT",
+        "PUBLISH_INCOMPLETE",
+        "DEPLOYMENT_ATTESTED",
+        "PUBLIC_DISPLAY_TEXT_AMENDED",
+        "PUBLIC_ARTICLE_AMENDED",
+        "VERIFICATION",
+        "TERMINAL",
+        "LOCK_RECOVERED",
+        "MODEL_ROUTE_FAILURE",
+        "MODEL_OUTPUT_REJECTED",
+        "MODEL_ROUTE_RECOVERED",
+        "LIFECYCLE_REQUEST",
+        "MODEL_ASSIGNED",
+        "VOICE_LEARNING_APPLIED",
+        "VOICE_PROFILE_ROLLED_BACK",
+        "POLICY_APPROVAL",
+        "VOICE_SELECTION_RECORDED",
+        "WRITING_MODEL_ACCEPTED"
+      ]
+    },
+    "state": {
+      "type": "string"
+    },
+    "actor": {
+      "type": "string"
+    },
+    "payload": {
+      "type": "object"
+    },
+    "previous_event_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "event_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
   },
   "additionalProperties": false
 }

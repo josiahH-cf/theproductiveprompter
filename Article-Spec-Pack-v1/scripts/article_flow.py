@@ -22,6 +22,7 @@ import sys
 import tempfile
 import textwrap
 import time
+import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -29,8 +30,14 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Sequence
 
+try:
+    from codex_exec_adapter import CodexExecError, codex_cli_version, execute_task_packet
+except ModuleNotFoundError:  # Supports importlib-based conformance tests.
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from codex_exec_adapter import CodexExecError, codex_cli_version, execute_task_packet
 
-CONTROLLER_VERSION = "2.1.5"
+
+CONTROLLER_VERSION = "3.0.0"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -54,19 +61,21 @@ def bootstrap_payload() -> dict[str, Any]:
         "workflow_version": workflow()["workflow_version"],
         "action": "request_seed",
         "question": SEED_QUESTION,
-        "start_command": ["article-flow", "capture", "<verbatim operator seed>", "--json"],
+        "start_command": ["article-flow", "capture", "<verbatim operator seed>", "--auto", "--json"],
         "protocol": [
             "Preserve the operator's seed verbatim when replacing the placeholder in start_command.",
             "Run only exact command arrays returned by the controller in next_command, command, submission_command, or approval_command fields.",
             "For perform_task, read only task_packet, create only expected_output, then run submission_command.",
-            "For human_decision, show the controller's question and wait; never run approval_command without the operator's confirmed answer.",
+            "For human_decision, show the controller's three voice choices and wait; never run selection_command without the operator's confirmed choice.",
             "For human_action, show the controller's single handoff and wait for the operator or a credentialed host to complete it.",
+            "For run_command, run the exact command array returned by the controller. Use advance for active-session automation and safe resumption.",
             "Stop on complete, terminal, or an unresolved capability or decision.",
         ],
         "capability_requirement": "This interface requires local command execution. A cloud-only chat without access to this machine cannot run it.",
     }
 REVIEW_STATES = {"INTENT_REVIEW", "ARTICLE_RECIPE", "VOICE_PROBE", "EDITORIAL_QA"}
-DETERMINISTIC_STATES = {"PACKAGE", "PUBLISH_APPROVAL", "PUBLISH", "LIVE_VERIFICATION", "COMPLETE"}
+AUTO_REVIEW_STATES = {"INTENT_REVIEW", "ARTICLE_RECIPE", "EDITORIAL_QA"}
+DETERMINISTIC_STATES = {"VOICE_LEARNING", "PACKAGE", "PUBLISH_APPROVAL", "PUBLISH", "LIVE_VERIFICATION", "COMPLETE"}
 MODEL_STATES = {
     "RESEARCH_PLAN",
     "RESEARCH",
@@ -93,6 +102,9 @@ STAGE_CAPABILITIES = {
     "POST_EDIT_CLAIM_VERIFICATION": {"structured-output", "research"},
     "EDITORIAL_QA": {"structured-output"},
 }
+LEGACY_WORKFLOW_VERSION = "2.0.0"
+V3_WRITING_STATES = {"DRAFT", "VOICE_PROBE", "EDIT"}
+DEFAULT_DRAFT_MODEL_POOL = ["gpt-5.5", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"]
 EXIT_OK = 0
 EXIT_FAILED = 1
 EXIT_USAGE = 2
@@ -224,15 +236,43 @@ def workflow() -> dict[str, Any]:
     return load_json(WORKFLOW_PATH)
 
 
+@functools.lru_cache(maxsize=8)
+def workflow_for_version(version: str) -> dict[str, Any]:
+    """Load the immutable authority recorded by a run instead of reinterpreting it."""
+    current = workflow()
+    if version == current.get("workflow_version"):
+        return current
+    archived = SPEC_ROOT / "workflow" / f"workflow.v{version}.json"
+    if archived.is_file():
+        value = load_json(archived)
+        if value.get("workflow_version") != version:
+            raise FlowError(f"Archived workflow {archived.name} declares the wrong version", EXIT_INTEGRITY)
+        return value
+    raise FlowError(f"No compatible workflow authority is installed for run version {version}", EXIT_INTEGRITY)
+
+
+def workflow_for_run(run: dict[str, Any]) -> dict[str, Any]:
+    return workflow_for_version(str(run.get("workflow_version")))
+
+
 def policy() -> dict[str, Any]:
     return load_json(POLICY_PATH)
 
 
-def state_definition(state_id: str) -> dict[str, Any]:
-    for item in workflow()["states"]:
+def state_definition(state_id: str, run: dict[str, Any] | None = None) -> dict[str, Any]:
+    authority = workflow_for_run(run) if run is not None else workflow()
+    for item in authority["states"]:
         if item["id"] == state_id:
             return item
     raise FlowError(f"Unknown workflow state: {state_id}")
+
+
+def is_v3_run(run: dict[str, Any]) -> bool:
+    return str(run.get("workflow_version", "")).split(".", 1)[0] == "3"
+
+
+def automation_enabled(run: dict[str, Any]) -> bool:
+    return is_v3_run(run) and run.get("run_overrides", {}).get("automation_mode") == "active_session"
 
 
 def spec_repo_path(path: str) -> str:
@@ -500,6 +540,297 @@ def runs_root() -> Path:
     return runtime_home() / "runs"
 
 
+def shared_state_root() -> Path:
+    """Return the cross-host state root shared by Windows and WSL runs."""
+    return runs_root().parent
+
+
+def model_state_root() -> Path:
+    return shared_state_root() / "models"
+
+
+def voice_state_root() -> Path:
+    return shared_state_root() / "voice"
+
+
+@contextlib.contextmanager
+def shared_lock(path: Path, *, stale_seconds: int = 3600, wait_seconds: float = 15.0) -> Iterator[None]:
+    """Cross-host, crash-recoverable lock for rotation and voice state."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor: int | None = None
+    deadline = time.monotonic() + wait_seconds
+    while descriptor is None:
+        try:
+            descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError as exc:
+            try:
+                value = load_json(path)
+            except FlowError:
+                value = {}
+            created = value.get("created_at")
+            try:
+                age = (dt.datetime.now(dt.timezone.utc) - parse_time(str(created))).total_seconds() if created else time.time() - path.stat().st_mtime
+            except (OSError, ValueError):
+                age = 0
+            same_namespace = value.get("namespace") == lock_namespace()
+            alive = False
+            if same_namespace and int(value.get("pid", -1)) > 0:
+                try:
+                    os.kill(int(value["pid"]), 0)
+                    alive = True
+                except (OSError, ProcessLookupError):
+                    alive = False
+            has_owner = bool(value.get("namespace") and int(value.get("pid", -1)) > 0)
+            fresh_unknown_owner = not has_owner and age <= min(stale_seconds, 2)
+            cross_host_fresh = has_owner and not same_namespace and age <= stale_seconds
+            if alive or fresh_unknown_owner or cross_host_fresh:
+                if time.monotonic() >= deadline:
+                    raise FlowError(f"Timed out waiting for shared Article Flow state: {path}") from exc
+                time.sleep(0.02)
+                continue
+            recovered = path.with_name(f"{path.name}.recovered-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%SZ')}")
+            try:
+                path.replace(recovered)
+            except FileNotFoundError:
+                continue
+    try:
+        os.write(descriptor, canonical_json({"pid": os.getpid(), "namespace": lock_namespace(), "created_at": utc_now()}))
+        os.close(descriptor)
+        descriptor = None
+        yield
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+        path.unlink(missing_ok=True)
+
+
+def public_model_name(model_id: str) -> str:
+    names = {
+        "gpt-5.5": "GPT-5.5",
+        "gpt-5.6-sol": "GPT-5.6 Sol",
+        "gpt-5.6-terra": "GPT-5.6 Terra",
+        "gpt-5.6-luna": "GPT-5.6 Luna",
+    }
+    return names.get(model_id, model_id)
+
+
+def writing_model_policy() -> dict[str, Any]:
+    configured = policy().get("routing", {}).get("writing_model_rotation", {})
+    raw_models = configured.get("ordered_models") if isinstance(configured, dict) else None
+    if not isinstance(raw_models, list) or not raw_models:
+        raw_models = DEFAULT_DRAFT_MODEL_POOL
+    models: list[str] = []
+    display_names: dict[str, str] = {}
+    for item in raw_models:
+        if isinstance(item, dict):
+            model_id = str(item.get("model_id") or "")
+            if not model_id:
+                continue
+            display_names[model_id] = str(item.get("public_display_name") or public_model_name(model_id))
+        else:
+            model_id = str(item)
+            display_names[model_id] = public_model_name(model_id)
+        models.append(model_id)
+    if not models:
+        models = list(DEFAULT_DRAFT_MODEL_POOL)
+        display_names = {item: public_model_name(item) for item in models}
+    return {
+        "pool_id": str(configured.get("pool_id", "codex-writing-v1")) if isinstance(configured, dict) else "codex-writing-v1",
+        "pool_version": str(configured.get("pool_version", "1.0.0")) if isinstance(configured, dict) else "1.0.0",
+        "provider_id": str(configured.get("provider_id", "codex-cli")) if isinstance(configured, dict) else "codex-cli",
+        "ordered_models": models,
+        "display_names": display_names,
+    }
+
+
+def _read_jsonl(path: Path) -> list[dict[str, Any]]:
+    values: list[dict[str, Any]] = []
+    if not path.is_file():
+        return values
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            item = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise FlowError(f"Invalid JSONL state: {path}: {exc}", EXIT_INTEGRITY) from exc
+        if not isinstance(item, dict):
+            raise FlowError(f"Invalid non-object JSONL state: {path}", EXIT_INTEGRITY)
+        values.append(item)
+    return values
+
+
+def _append_jsonl(path: Path, value: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(value, sort_keys=True, ensure_ascii=False) + "\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+
+
+def reserve_draft_model(run_id: str, override: str | None = None) -> dict[str, Any]:
+    """Reserve one stable writing model without races across local hosts."""
+    config = writing_model_policy()
+    models = config["ordered_models"]
+    if override and override not in models:
+        raise FlowError(f"Draft model is not in the configured experiment pool: {override}", EXIT_USAGE, {"allowed": models})
+    root = model_state_root()
+    ledger = root / "assignments.jsonl"
+    with shared_lock(root / ".lock"):
+        history = _read_jsonl(ledger)
+        existing = next((item for item in history if item.get("run_id") == run_id), None)
+        if existing:
+            if override and existing.get("assigned_model_id") != override:
+                raise FlowError("Run already has a different immutable draft-model assignment", EXIT_INTEGRITY, existing)
+            return existing
+        consumes = override is None
+        consumed = sum(1 for item in history if item.get("consumes_rotation"))
+        rotation_index = consumed % len(models) if consumes else None
+        model_id = override or models[int(rotation_index)]
+        assignment = {
+            "model_assignment_schema_version": "1.0.0",
+            "run_id": run_id,
+            "pool_id": config["pool_id"],
+            "pool_version": config["pool_version"],
+            "rotation_index": rotation_index,
+            "provider_id": config["provider_id"],
+            "assigned_model_id": model_id,
+            "public_display_name": config["display_names"].get(model_id, public_model_name(model_id)),
+            "selection_reason": "operator_override" if override else "round_robin",
+            "override": bool(override),
+            "consumes_rotation": consumes,
+            "status": "assigned",
+            "actual_models": [],
+            "contaminated": False,
+            "created_at": utc_now(),
+        }
+        errors = validate_instance_schema(assignment, "model-assignment.schema.json")
+        if errors:
+            raise FlowError("Controller generated an invalid model assignment", EXIT_INTEGRITY, errors)
+        _append_jsonl(ledger, assignment)
+        return assignment
+
+
+def model_history() -> dict[str, Any]:
+    assignments = _read_jsonl(model_state_root() / "assignments.jsonl")
+    durable_history = {
+        str(item.get("run_id")): item
+        for item in _read_jsonl(model_state_root() / "history.jsonl")
+        if item.get("run_id")
+    }
+    runs: list[dict[str, Any]] = []
+    for assignment in assignments:
+        durable = durable_history.get(str(assignment.get("run_id")), {})
+        try:
+            directory, run = load_run(str(assignment.get("run_id")))
+        except FlowError:
+            directory = None
+            run = {}
+        metadata = json_artifact(directory, run, "brief") if directory else None
+        live = json_artifact(directory, run, "live-verification") if directory else None
+        experiment = run.get("model_experiment", {}) if isinstance(run, dict) else {}
+        experiment_summary = summarize_model_experiment(directory, run, assignment) if directory else {}
+        actual_model = durable.get("actual_model_id") or experiment_summary.get("actual_model_id") or experiment.get("active_model_id")
+        actual_models = durable.get("actual_models") or experiment.get("actual_models") or ([actual_model] if actual_model else [])
+        runs.append({
+            **assignment,
+            **experiment_summary,
+            **{key: value for key, value in durable.items() if key not in {"run_id", "assignment_sha256", "recorded_at"}},
+            "actual_models": actual_models,
+            "contaminated": bool(durable.get("contaminated", experiment.get("contaminated", assignment.get("contaminated", False)))),
+            "active_model_id": actual_model or assignment.get("assigned_model_id"),
+            "stage_routes": durable.get("stage_routes", experiment.get("stage_routes", {})),
+            "state": run.get("state") or ("COMPLETE" if durable else None),
+            "title": durable.get("title") or (metadata or {}).get("title"),
+            "live_url": durable.get("article_url") or (live or {}).get("url"),
+            "recorded_at": durable.get("recorded_at"),
+        })
+    return {"ok": True, "pool": writing_model_policy(), "count": len(runs), "runs": runs}
+
+
+def summarize_model_experiment(directory: Path, run: dict[str, Any], assignment: dict[str, Any] | None = None) -> dict[str, Any]:
+    assignment = assignment or json_artifact(directory, run, "model-assignment") or {}
+    experiment = run.get("model_experiment", {})
+    receipts: list[dict[str, Any]] = []
+    for item in run.get("artifact_index", []):
+        artifact_type = str(item.get("type", ""))
+        if not any(artifact_type.startswith(f"model-call:{stage}:") for stage in V3_WRITING_STATES):
+            continue
+        path = directory / str(item.get("path"))
+        if path.is_file():
+            receipts.append(load_json(path))
+    elapsed = sum(int((receipt.get("route") or {}).get("elapsed_ms") or 0) for receipt in receipts)
+    usage: dict[str, int] = {}
+    cli_versions: list[str] = []
+    for receipt in receipts:
+        transport = (receipt.get("route") or {}).get("transport") or {}
+        if transport.get("cli_version"):
+            cli_versions.append(str(transport["cli_version"]))
+        raw_usage = transport.get("usage")
+        if isinstance(raw_usage, dict):
+            for key, value in raw_usage.items():
+                if isinstance(value, int):
+                    usage[key] = usage.get(key, 0) + value
+    stage_routes = experiment.get("stage_routes", {})
+    fallbacks = [
+        {"stage": stage, **route}
+        for stage, route in stage_routes.items()
+        if isinstance(route, dict) and route.get("fallback")
+    ]
+    retries = sum(max(0, int(run.get("attempts", {}).get(stage, 0)) - 1) for stage in V3_WRITING_STATES)
+    editorial = json_artifact(directory, run, "editorial-qa") or {}
+    return {
+        "requested_model_id": assignment.get("assigned_model_id"),
+        "actual_model_id": experiment.get("active_model_id") or assignment.get("assigned_model_id"),
+        "provider_id": experiment.get("provider_id") or assignment.get("provider_id"),
+        "cli_version": cli_versions[-1] if cli_versions else "unknown",
+        "writing_stages": sorted(stage_routes),
+        "elapsed_milliseconds": elapsed,
+        "token_usage": usage,
+        "cost": {"status": "unknown_not_claimed", "currency": None, "amount": None},
+        "retries": retries,
+        "fallbacks": fallbacks,
+        "qa_results": {
+            "outcome": editorial.get("outcome"),
+            "dimensions": editorial.get("dimensions", {}),
+            "finding_count": len(editorial.get("findings", [])) if isinstance(editorial.get("findings"), list) else None,
+        },
+    }
+
+
+def record_experiment_outcome(directory: Path, run: dict[str, Any]) -> dict[str, Any] | None:
+    if not is_v3_run(run):
+        return None
+    assignment_path = artifact_path(directory, run, "model-assignment")
+    assignment = json_artifact(directory, run, "model-assignment")
+    if not assignment_path or not assignment:
+        raise FlowError("Cannot record model experiment without its assignment", EXIT_INTEGRITY)
+    summary = summarize_model_experiment(directory, run, assignment)
+    live = json_artifact(directory, run, "live-verification") or {}
+    entry = {
+        "run_id": run["run_id"],
+        "assignment_sha256": sha256_path(assignment_path),
+        **summary,
+        "actual_models": list(run.get("model_experiment", {}).get("actual_models", [])),
+        "stage_routes": dict(run.get("model_experiment", {}).get("stage_routes", {})),
+        "contaminated": bool(run.get("model_experiment", {}).get("contaminated", False)),
+        "title": (json_artifact(directory, run, "brief") or {}).get("title"),
+        "article_url": live.get("url"),
+        "recorded_at": utc_now(),
+    }
+    errors = validate_instance_schema({"experiment_history_schema_version": "1.0.0", "entries": [entry]}, "experiment-history.schema.json")
+    if errors:
+        raise FlowError("Controller generated invalid model-experiment history", EXIT_INTEGRITY, errors)
+    root = model_state_root()
+    with shared_lock(root / ".lock"):
+        existing = _read_jsonl(root / "history.jsonl")
+        prior = next((item for item in existing if item.get("run_id") == run["run_id"]), None)
+        if prior:
+            return prior
+        _append_jsonl(root / "history.jsonl", entry)
+    return entry
+
+
 def slugify(value: str, limit: int = 48) -> str:
     value = value.lower()
     value = re.sub(r"[^a-z0-9]+", "-", value).strip("-")
@@ -570,7 +901,10 @@ def verify_event_log(directory: Path, run: dict[str, Any]) -> tuple[bool, str | 
             return False, f"event hash mismatch at sequence {expected_sequence}", derived_state
         previous_hash = str(recorded_hash)
         if event.get("type") == "STATE_TRANSITION":
-            derived_state = str(event.get("payload", {}).get("to", derived_state))
+            transition_payload = event.get("payload", {})
+            if transition_payload.get("from") != derived_state:
+                return False, f"state transition source mismatch at sequence {expected_sequence}", derived_state
+            derived_state = str(transition_payload.get("to", derived_state))
     return True, None, derived_state
 
 
@@ -722,29 +1056,49 @@ def json_type_matches(value: Any, expected: str) -> bool:
     }.get(expected, False)
 
 
-def validate_schema_value(value: Any, schema: dict[str, Any], schemas: dict[str, dict[str, Any]], path: str = "$") -> list[str]:
+def validate_schema_value(value: Any, schema: Any, schemas: dict[str, dict[str, Any]], path: str = "$") -> list[str]:
+    if schema is True:
+        return []
+    if schema is False:
+        return [f"{path}: value is forbidden by the schema"]
+    if not isinstance(schema, dict):
+        return [f"{path}: invalid schema node {schema!r}"]
     if "$ref" in schema:
         reference = str(schema["$ref"]).rsplit("/", 1)[-1]
         target = schemas.get(reference)
         if target is None:
             return [f"{path}: unresolved schema reference {schema['$ref']}"]
         return validate_schema_value(value, target, schemas, path)
+    errors: list[str] = []
+    if "allOf" in schema:
+        for candidate in schema["allOf"]:
+            errors.extend(validate_schema_value(value, candidate, schemas, path))
+    if "anyOf" in schema:
+        results = [validate_schema_value(value, candidate, schemas, path) for candidate in schema["anyOf"]]
+        if not any(not result for result in results):
+            errors.append(f"{path}: expected at least one anyOf branch to match")
     if "oneOf" in schema:
         results = [validate_schema_value(value, candidate, schemas, path) for candidate in schema["oneOf"]]
         passing = sum(not errors for errors in results)
         if passing != 1:
             return [f"{path}: expected exactly one oneOf branch to match; matched {passing}"]
+    if "not" in schema and not validate_schema_value(value, schema["not"], schemas, path):
+        errors.append(f"{path}: value matches a forbidden schema")
+    if "if" in schema:
+        branch = schema.get("then") if not validate_schema_value(value, schema["if"], schemas, path) else schema.get("else")
+        if branch is not None:
+            errors.extend(validate_schema_value(value, branch, schemas, path))
     if "const" in schema and canonical_json(value) != canonical_json(schema["const"]):
-        return [f"{path}: value does not equal required constant {schema['const']!r}"]
+        errors.append(f"{path}: value does not equal required constant {schema['const']!r}")
     if "enum" in schema and not any(canonical_json(value) == canonical_json(candidate) for candidate in schema["enum"]):
-        return [f"{path}: value {value!r} is not in the allowed enum"]
+        errors.append(f"{path}: value {value!r} is not in the allowed enum")
 
     declared_type = schema.get("type")
     expected_types = [declared_type] if isinstance(declared_type, str) else list(declared_type or [])
     if expected_types and not any(json_type_matches(value, item) for item in expected_types):
-        return [f"{path}: expected type {' | '.join(expected_types)}, got {type(value).__name__}"]
+        errors.append(f"{path}: expected type {' | '.join(expected_types)}, got {type(value).__name__}")
+        return errors
 
-    errors: list[str] = []
     if isinstance(value, str):
         if len(value) < int(schema.get("minLength", 0)):
             errors.append(f"{path}: string is shorter than minLength {schema['minLength']}")
@@ -794,6 +1148,8 @@ def validate_schema_value(value: Any, schema: dict[str, Any], schemas: dict[str,
 
 
 def schema_definition_errors(schema: Any, schemas: dict[str, dict[str, Any]], path: str = "$") -> list[str]:
+    if isinstance(schema, bool):
+        return []
     if not isinstance(schema, dict):
         return [f"{path}: schema must be an object"]
     errors: list[str] = []
@@ -816,12 +1172,17 @@ def schema_definition_errors(schema: Any, schemas: dict[str, dict[str, Any]], pa
         errors.extend(schema_definition_errors(schema["items"], schemas, f"{path}.items"))
     if isinstance(schema.get("additionalProperties"), dict):
         errors.extend(schema_definition_errors(schema["additionalProperties"], schemas, f"{path}.additionalProperties"))
-    if "oneOf" in schema:
-        if not isinstance(schema["oneOf"], list) or not schema["oneOf"]:
-            errors.append(f"{path}: oneOf must contain at least one schema")
+    for keyword in ("oneOf", "anyOf", "allOf"):
+        if keyword not in schema:
+            continue
+        if not isinstance(schema[keyword], list) or not schema[keyword]:
+            errors.append(f"{path}: {keyword} must contain at least one schema")
         else:
-            for index, child in enumerate(schema["oneOf"]):
-                errors.extend(schema_definition_errors(child, schemas, f"{path}.oneOf[{index}]"))
+            for index, child in enumerate(schema[keyword]):
+                errors.extend(schema_definition_errors(child, schemas, f"{path}.{keyword}[{index}]"))
+    for keyword in ("if", "then", "else", "not"):
+        if keyword in schema:
+            errors.extend(schema_definition_errors(schema[keyword], schemas, f"{path}.{keyword}"))
     if schema.get("format") not in {None, "date", "date-time"}:
         errors.append(f"{path}: unsupported format {schema['format']!r}")
     return errors
@@ -945,6 +1306,41 @@ def resolved_provider_endpoint(provider: dict[str, Any]) -> str | None:
     return str(value).rstrip("/") if value else None
 
 
+@functools.lru_cache(maxsize=8)
+def inspected_codex_cli_version(executable: str) -> str | None:
+    try:
+        return codex_cli_version(executable)
+    except CodexExecError:
+        return None
+
+
+def evidenced_codex_canary_status(provider: dict[str, Any], model: dict[str, Any]) -> str:
+    declared = str(model.get("canary_status", "not-declared"))
+    if declared != "passed":
+        return declared
+    model_id = str(model.get("model_id") or "")
+    expected_hash = str(model.get("canary_receipt_sha256") or "")
+    receipt_path = shared_state_root() / "canaries" / f"{model_id}.receipt.json"
+    if not expected_hash or not receipt_path.is_file() or sha256_path(receipt_path) != expected_hash:
+        return "invalid-evidence"
+    try:
+        receipt = load_json(receipt_path)
+    except FlowError:
+        return "invalid-evidence"
+    executable = str(provider.get("executable", "codex"))
+    transport = receipt.get("transport", {}) if isinstance(receipt.get("transport"), dict) else {}
+    if not (
+        receipt.get("requested_model") == model_id
+        and receipt.get("exit_code") == 0
+        and receipt.get("cli_version") == inspected_codex_cli_version(executable)
+        and transport.get("host_tool_access") == "disabled"
+        and transport.get("host_file_access") == "none_via_model_tools"
+        and transport.get("web_search_mode") == "disabled"
+    ):
+        return "invalid-evidence"
+    return "passed"
+
+
 def route_candidates(stage: str, excluded_routes: set[str] | None = None) -> dict[str, Any]:
     if stage not in MODEL_STATES:
         return {"stage": stage, "required_capabilities": [], "candidates": [], "chosen": None, "reason": "deterministic stage; no model route permitted"}
@@ -953,6 +1349,11 @@ def route_candidates(stage: str, excluded_routes: set[str] | None = None) -> dic
     required = STAGE_CAPABILITIES.get(stage, set())
     excluded_routes = excluded_routes or set()
     require_local = os.environ.get("ARTICLE_FLOW_REQUIRE_LOCAL", "").lower() in {"1", "true", "yes"}
+    require_canary = bool(
+        load_json(SPEC_ROOT / "evaluations" / "evaluation-registry.json")
+        .get("promotion_policy", {})
+        .get("require_provider_version_canary", False)
+    )
     scored: list[dict[str, Any]] = []
     private_by_key: dict[tuple[str, str], dict[str, Any]] = {}
     for provider in capabilities.get("providers", []):
@@ -973,13 +1374,17 @@ def route_candidates(stage: str, excluded_routes: set[str] | None = None) -> dic
                 eligible = False
                 exclusions.append(f"missing {credential}")
             kind = str(provider.get("kind", "unknown"))
-            if kind == "command":
+            if kind in {"command", "codex-cli"}:
                 command = provider.get("command", [])
-                executable = str(command[0]) if isinstance(command, list) and command else ""
+                executable = (
+                    str(provider.get("executable", "codex"))
+                    if kind == "codex-cli"
+                    else str(command[0]) if isinstance(command, list) and command else ""
+                )
                 if not executable or not (Path(executable).exists() or shutil.which(executable)):
                     eligible = False
                     exclusions.append("command unavailable")
-            if kind not in {"agent-hosted", "command"} and not resolved_provider_endpoint(provider):
+            if kind not in {"agent-hosted", "command", "codex-cli"} and not resolved_provider_endpoint(provider):
                 eligible = False
                 exclusions.append("endpoint unavailable")
             stages = set(str(item) for item in model.get("stages", []))
@@ -998,9 +1403,10 @@ def route_candidates(stage: str, excluded_routes: set[str] | None = None) -> dic
             if require_local and str(model.get("locality", provider.get("locality", "remote"))) != "local":
                 eligible = False
                 exclusions.append("operator requires a local route")
-            if model.get("canary_status") in {"required", "failed"}:
+            canary_status = evidenced_codex_canary_status(provider, model) if kind == "codex-cli" else str(model.get("canary_status", "not-declared"))
+            if require_canary and kind != "agent-hosted" and canary_status != "passed":
                 eligible = False
-                exclusions.append(f"canary {model.get('canary_status')}")
+                exclusions.append(f"canary {canary_status}")
             route_key = f"{provider_id}:{model_id}"
             if route_key in excluded_routes:
                 eligible = False
@@ -1018,7 +1424,7 @@ def route_candidates(stage: str, excluded_routes: set[str] | None = None) -> dic
                 "locality": model.get("locality", provider.get("locality", "unknown")),
                 "cost_class": model.get("cost_class", "unknown"),
                 "latency_class": model.get("latency_class", "unknown"),
-                "canary_status": model.get("canary_status", "not-declared"),
+                "canary_status": canary_status,
             }
             scored.append(public)
             private_by_key[(provider_id, model_id)] = provider
@@ -1052,8 +1458,98 @@ def route_candidates(stage: str, excluded_routes: set[str] | None = None) -> dic
     }
 
 
+def pin_writing_route(run: dict[str, Any], stage: str, routes: dict[str, Any]) -> dict[str, Any]:
+    """Keep the assigned writing model pinned across draft, probe, and rewrite."""
+    if not is_v3_run(run) or stage not in V3_WRITING_STATES:
+        return routes
+    experiment = run.get("model_experiment", {})
+    provider_id = str(experiment.get("provider_id") or "")
+    active_model = str(experiment.get("active_model_id") or experiment.get("assigned_model_id") or "")
+    if not provider_id or not active_model:
+        return {**routes, "chosen": None, "fallbacks": [], "reason": "the run has no immutable writing-model assignment"}
+    eligible = [item for item in routes.get("candidates", []) if item.get("eligible")]
+    chosen = next(
+        (item for item in eligible if item.get("provider") == provider_id and item.get("model") == active_model),
+        None,
+    )
+    if chosen is None:
+        unavailable = next(
+            (item for item in routes.get("candidates", []) if item.get("provider") == provider_id and item.get("model") == active_model),
+            None,
+        )
+        reason = f"assigned writing route {provider_id}:{active_model} is unavailable"
+        if unavailable and unavailable.get("exclusion_reason"):
+            reason += f": {unavailable['exclusion_reason']}"
+        ordered_models = writing_model_policy()["ordered_models"]
+        fallbacks = [
+            candidate
+            for model_id in ordered_models
+            for candidate in eligible
+            if candidate.get("provider") == provider_id and candidate.get("model") == model_id and model_id != active_model
+        ]
+        if not fallbacks:
+            return {**routes, "chosen": None, "fallbacks": [], "reason": reason, "assigned_route": unavailable}
+        fallback = fallbacks[0]
+        return {
+            **routes,
+            "chosen": fallback,
+            "fallbacks": fallbacks[1:],
+            "reason": reason + f"; selected experiment-pool fallback {provider_id}:{fallback['model']}",
+            "assigned_route": unavailable,
+            "assignment_fallback": True,
+        }
+    ordered_models = writing_model_policy()["ordered_models"]
+    fallbacks: list[dict[str, Any]] = []
+    for model_id in ordered_models:
+        if model_id == active_model:
+            continue
+        candidate = next(
+            (item for item in eligible if item.get("provider") == provider_id and item.get("model") == model_id),
+            None,
+        )
+        if candidate:
+            fallbacks.append(candidate)
+    return {
+        **routes,
+        "chosen": chosen,
+        "fallbacks": fallbacks,
+        "reason": (
+            f"workflow 3 writing experiment pinned this run to {provider_id}:{active_model}; "
+            "fallbacks remain inside the declared experiment pool"
+        ),
+        "assignment": {
+            "pool_id": experiment.get("pool_id"),
+            "assigned_model_id": experiment.get("assigned_model_id"),
+            "active_model_id": active_model,
+        },
+    }
+
+
+def prefer_controller_route(run: dict[str, Any], stage: str, routes: dict[str, Any]) -> dict[str, Any]:
+    if not automation_enabled(run) or stage in V3_WRITING_STATES:
+        return routes
+    eligible = [
+        item for item in routes.get("candidates", [])
+        if item.get("eligible") and item.get("kind") != "agent-hosted"
+    ]
+    if not eligible:
+        return routes
+    evaluated = [item for item in eligible if item.get("evaluation_score") is not None]
+    chosen = sorted(
+        evaluated or eligible,
+        key=lambda item: (-(float(item.get("evaluation_score") or 0)), str(item.get("provider")), str(item.get("model"))),
+    )[0]
+    fallbacks = [item for item in eligible if (item.get("provider"), item.get("model")) != (chosen.get("provider"), chosen.get("model"))]
+    return {
+        **routes,
+        "chosen": chosen,
+        "fallbacks": fallbacks,
+        "reason": routes.get("reason", "") + "; active-session automation selected an eligible controller-hosted route",
+    }
+
+
 def packet_inputs(directory: Path, run: dict[str, Any], state: str) -> list[dict[str, str]]:
-    required = set(str(item) for item in state_definition(state).get("required_inputs", []))
+    required = set(str(item) for item in state_definition(state, run).get("required_inputs", []))
     latest = {str(item["type"]): item for item in run.get("artifact_index", [])}
     missing = sorted(required - set(latest))
     if missing:
@@ -1104,9 +1600,15 @@ def stage_output(state: str) -> tuple[str, str]:
     return mapping[state]
 
 
-def task_packet(directory: Path, run: dict[str, Any]) -> tuple[Path, dict[str, Any]]:
+def task_packet(
+    directory: Path,
+    run: dict[str, Any],
+    *,
+    requested_route: str | None = None,
+    allow_canary: bool = False,
+) -> tuple[Path, dict[str, Any]]:
     state = run["state"]
-    definition = state_definition(state)
+    definition = state_definition(state, run)
     artifact_type, filename = stage_output(state)
     attempt = int(run["attempts"].get(state, 0)) + 1
     if attempt > int(definition.get("max_attempts", 1)):
@@ -1123,13 +1625,20 @@ def task_packet(directory: Path, run: dict[str, Any]) -> tuple[Path, dict[str, A
     fallback_threshold = max(1, int(definition.get("max_attempts", 1)) - 1)
     excluded = {key for key, count in failures_for_state.items() if int(count) >= fallback_threshold}
     route = route_candidates(state, excluded)
-    if state in {"CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION"} and route.get("chosen"):
+    route = prefer_controller_route(run, state, route)
+    route = pin_writing_route(run, state, route)
+    if state in {"CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION", "EDITORIAL_QA"} and route.get("chosen"):
         source_type = "draft" if state == "CLAIM_VERIFICATION" else "article"
         source_item = artifact(run, source_type) or {}
         prior_route = source_item.get("producer", {}).get("route") if isinstance(source_item.get("producer"), dict) else None
         if prior_route:
             prior_key = (prior_route.get("provider"), prior_route.get("model"))
-            alternatives = [item for item in route.get("candidates", []) if item.get("eligible") and (item.get("provider"), item.get("model")) != prior_key]
+            alternatives = [
+                item for item in route.get("candidates", [])
+                if item.get("eligible")
+                and (not automation_enabled(run) or item.get("kind") != "agent-hosted")
+                and (item.get("provider"), item.get("model")) != prior_key
+            ]
             if alternatives and (route["chosen"].get("provider"), route["chosen"].get("model")) == prior_key:
                 evaluated = [item for item in alternatives if item.get("evaluation_score") is not None]
                 replacement = sorted(evaluated or alternatives, key=lambda item: (-(item.get("evaluation_score") or 0), item["provider"], item["model"]))[0]
@@ -1152,6 +1661,38 @@ def task_packet(directory: Path, run: dict[str, Any]) -> tuple[Path, dict[str, A
                 "reason": "Every configured route reached the retry threshold; the only available route may retry with the limitation disclosed.",
             }
             route["reason"] += "; exhausted-route retry is allowed with an explicit independence waiver"
+    if requested_route:
+        provider_id, separator, model_id = requested_route.partition(":")
+        if not separator:
+            raise FlowError("--route must be PROVIDER:MODEL", EXIT_USAGE)
+        selected = next(
+            (
+                item for item in route.get("candidates", [])
+                if item.get("provider") == provider_id and item.get("model") == model_id
+            ),
+            None,
+        )
+        exclusions = [part.strip() for part in str((selected or {}).get("exclusion_reason") or "").split(";") if part.strip()]
+        canary_only = bool(exclusions) and all(item.startswith("canary ") for item in exclusions)
+        if not selected or (not selected.get("eligible") and not (allow_canary and canary_only)):
+            raise FlowError("Requested route is absent or ineligible", EXIT_USAGE, selected)
+        if is_v3_run(run) and state in V3_WRITING_STATES:
+            experiment = run.get("model_experiment", {})
+            pinned_key = (str(experiment.get("provider_id") or ""), str(experiment.get("active_model_id") or ""))
+            requested_key = (provider_id, model_id)
+            chosen = route.get("chosen") or {}
+            chosen_key = (str(chosen.get("provider") or ""), str(chosen.get("model") or ""))
+            if allow_canary:
+                if requested_key != pinned_key:
+                    raise FlowError("A writing-stage canary must use the run's pinned experiment route", EXIT_APPROVAL, selected)
+            elif requested_key != chosen_key:
+                raise FlowError("An explicit writing route cannot bypass the run's pinned experiment route", EXIT_APPROVAL, selected)
+        route = {
+            **route,
+            "chosen": {**selected, "eligible": True, "exclusion_reason": None, "canary_execution": bool(allow_canary)},
+            "fallbacks": [],
+            "reason": f"operator requested exact {'canary ' if allow_canary else ''}route {requested_route}",
+        }
     if route.get("chosen") is None:
         run["status"] = "BLOCKED"
         append_event(directory, run, "ESCALATION", "controller", {
@@ -1168,7 +1709,7 @@ def task_packet(directory: Path, run: dict[str, Any]) -> tuple[Path, dict[str, A
         reader_job = recipe.get("reader_job")
     elif intent:
         reader_job = intent.get("reader_job")
-    rule_map = {item["id"]: item["text"] for item in workflow()["rules"]}
+    rule_map = {item["id"]: item["text"] for item in workflow_for_run(run)["rules"]}
     stage_rules = {
         "RESEARCH_PLAN": ["AF-EVIDENCE-001"],
         "RESEARCH": ["AF-CITATION-001", "AF-EVIDENCE-001"],
@@ -1188,6 +1729,15 @@ def task_packet(directory: Path, run: dict[str, Any]) -> tuple[Path, dict[str, A
     output_path = directory / "submissions" / f"{attempt:02d}-{filename}"
     output_schema_name = definition.get("output_schema") if output_path.suffix.lower() == ".json" else None
     output_schema = load_json(SPEC_ROOT / "schemas" / output_schema_name) if output_schema_name else None
+    if is_v3_run(run) and output_schema_name == "voice-probe.schema.json" and isinstance(output_schema, dict):
+        output_schema = next(
+            (
+                branch for branch in output_schema.get("oneOf", [])
+                if isinstance(branch, dict)
+                and branch.get("properties", {}).get("voice_probe_schema_version", {}).get("const") == "2.0.0"
+            ),
+            output_schema,
+        )
     packet = {
         "task_packet_schema_version": "1.0.0",
         "workflow_version": run["workflow_version"],
@@ -1339,9 +1889,26 @@ def invoke_route(route: dict[str, Any], packet_path: Path, packet: dict[str, Any
         raise FlowError("The active-host route is executed by the calling session; use the task packet and submission command", EXIT_WAITING)
     expected = packet["expected_outputs"][0]
     output_path = Path(expected["path"])
-    timeout = int(state_definition(packet["stage"]).get("timeout_seconds", 900))
+    packet_workflow = workflow_for_version(str(packet.get("workflow_version")))
+    timeout = int(next(
+        item for item in packet_workflow["states"] if item.get("id") == packet["stage"]
+    ).get("timeout_seconds", 900))
     started = time.monotonic()
-    if kind == "command":
+    if kind == "codex-cli":
+        try:
+            result = execute_task_packet(
+                packet_path,
+                None,
+                model=str(route["model"]),
+                timeout_seconds=timeout,
+                executable=str(provider.get("executable", "codex")),
+                reasoning_effort=str(provider.get("reasoning_effort", "high")),
+            )
+        except CodexExecError as exc:
+            raise FlowError(f"Codex CLI provider failed: {exc}", EXIT_FAILED, exc.details) from exc
+        raw = result.output_text
+        transport = {"kind": kind, **result.receipt}
+    elif kind == "command":
         template = provider.get("command", [])
         if not isinstance(template, list) or not template:
             raise FlowError("Command provider has no command template")
@@ -1392,34 +1959,96 @@ def invoke_route(route: dict[str, Any], packet_path: Path, packet: dict[str, Any
     return cleaned, {"provider": route["provider"], "model": route["model"], "model_version": route.get("model_version"), "elapsed_ms": elapsed_ms, "transport": transport}
 
 
-def current_packet(directory: Path, run: dict[str, Any]) -> tuple[Path, dict[str, Any]]:
+def current_packet(
+    directory: Path,
+    run: dict[str, Any],
+    *,
+    requested_route: str | None = None,
+    allow_canary: bool = False,
+) -> tuple[Path, dict[str, Any]]:
     prefix = f"task-packet:{run['state']}:"
     item = next((entry for entry in reversed(run.get("artifact_index", [])) if str(entry.get("type", "")).startswith(prefix)), None)
     if item:
         path = directory / item["path"]
-        return path, load_json(path)
-    return task_packet(directory, run)
+        packet = load_json(path)
+        if not requested_route:
+            return path, packet
+        chosen = packet.get("selected_route", {}).get("chosen") or {}
+        chosen_key = f"{chosen.get('provider')}:{chosen.get('model')}"
+        if chosen_key == requested_route and bool(chosen.get("canary_execution")) == bool(allow_canary):
+            return path, packet
+    return task_packet(directory, run, requested_route=requested_route, allow_canary=allow_canary)
+
+
+def latest_model_call_route(directory: Path, run: dict[str, Any], stage: str, attempt: int) -> dict[str, Any] | None:
+    expected_type = f"model-call:{stage}:{attempt}"
+    item = next((entry for entry in reversed(run.get("artifact_index", [])) if entry.get("type") == expected_type), None)
+    if not item:
+        return None
+    value = load_json(directory / item["path"])
+    route = value.get("route")
+    return route if isinstance(route, dict) else None
+
+
+def update_writing_provenance(
+    directory: Path,
+    run: dict[str, Any],
+    stage: str,
+    route: dict[str, Any] | None,
+) -> None:
+    if not is_v3_run(run) or stage not in V3_WRITING_STATES or not route:
+        return
+    experiment = run.setdefault("model_experiment", {})
+    assigned = str(experiment.get("assigned_model_id") or "")
+    actual_model = str(route.get("model") or route.get("model_id") or route.get("requested_model") or "")
+    actual_provider = str(route.get("provider") or route.get("provider_id") or experiment.get("provider_id") or "")
+    if not actual_model:
+        raise FlowError(f"Accepted {stage} output lacks exact model provenance", EXIT_INTEGRITY, route)
+    actual_models = experiment.setdefault("actual_models", [])
+    if actual_model not in actual_models:
+        actual_models.append(actual_model)
+    contaminated = bool(experiment.get("contaminated") or (assigned and actual_model != assigned) or len(actual_models) > 1)
+    experiment["active_model_id"] = actual_model
+    experiment["contaminated"] = contaminated
+    experiment.setdefault("stage_routes", {})[stage] = {
+        "provider_id": actual_provider,
+        "assigned_model_id": assigned,
+        "actual_model_id": actual_model,
+        "public_display_name": writing_model_policy()["display_names"].get(actual_model, public_model_name(actual_model)),
+        "fallback": bool(assigned and actual_model != assigned),
+        "accepted_at": utc_now(),
+    }
+    append_event(directory, run, "WRITING_MODEL_ACCEPTED", "controller", {
+        "stage": stage,
+        "assigned_model_id": assigned,
+        "actual_model_id": actual_model,
+        "provider_id": actual_provider,
+        "contaminated": contaminated,
+    })
+    save_run(directory, run)
 
 
 def command_execute_stage(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
     if run["state"] not in MODEL_STATES:
         raise FlowError(f"State {run['state']} is deterministic or complete and cannot invoke a model")
-    packet_path, packet = current_packet(directory, run)
+    if args.canary and not args.route:
+        raise FlowError("--canary requires an exact --route PROVIDER:MODEL", EXIT_USAGE)
+    packet_path, packet = current_packet(
+        directory,
+        run,
+        requested_route=args.route,
+        allow_canary=bool(args.canary),
+    )
     route_set = packet["selected_route"]
     routes = [route_set.get("chosen"), *route_set.get("fallbacks", [])]
     routes = [item for item in routes if isinstance(item, dict)]
     if args.route:
-        provider_id, separator, model_id = args.route.partition(":")
-        if not separator:
-            raise FlowError("--route must be PROVIDER:MODEL", EXIT_USAGE)
-        selected = next((item for item in route_set.get("candidates", []) if item.get("provider") == provider_id and item.get("model") == model_id), None)
-        canary_only = bool(selected and selected.get("exclusion_reason") and all(part.strip().startswith("canary ") for part in str(selected.get("exclusion_reason")).split(";")))
-        if not selected or (not selected.get("eligible") and not (args.canary and canary_only)):
-            raise FlowError("Requested route is absent or ineligible", EXIT_USAGE, selected)
-        if args.canary and canary_only:
-            selected = {**selected, "eligible": True, "exclusion_reason": None, "canary_execution": True}
-        routes = [selected]
+        chosen = route_set.get("chosen") or {}
+        chosen_key = f"{chosen.get('provider')}:{chosen.get('model')}"
+        if chosen_key != args.route:
+            raise FlowError("Hash-bound task packet does not select the requested route", EXIT_INTEGRITY, route_set)
+        routes = [chosen]
     controller_routes = [item for item in routes if item.get("kind") != "agent-hosted"]
     if not controller_routes:
         raise FlowError("No controller-hosted route is eligible; the active host must perform the task packet", EXIT_WAITING, {"task_packet": str(packet_path), "submission_command": ["article-flow", "submit", run["run_id"], "--stage", run["state"], "--file", packet["expected_outputs"][0]["path"]]})
@@ -1438,7 +2067,7 @@ def command_execute_stage(args: argparse.Namespace) -> int:
                 "output_sha256": sha256_path(output_path),
                 "selection_reason": route_set.get("reason"),
                 "route": call,
-                "canary_execution": bool(args.canary),
+                "canary_execution": bool(route.get("canary_execution")),
                 "created_at": utc_now(),
             }
             receipt_path = directory / "receipts" / f"model-call-{run['state'].lower()}-{packet['attempt']:02d}.json"
@@ -1455,6 +2084,9 @@ def command_execute_stage(args: argparse.Namespace) -> int:
         except FlowError as exc:
             failures.append({"provider": route.get("provider"), "model": route.get("model"), "error": str(exc), "details": exc.details})
             append_event(directory, run, "MODEL_ROUTE_FAILURE", "controller", failures[-1])
+            key = f"{route.get('provider')}:{route.get('model')}"
+            stage_failures = run.setdefault("route_failures", {}).setdefault(run["state"], {})
+            stage_failures[key] = int(stage_failures.get(key, 0)) + 1
     save_run(directory, run)
     raise FlowError("Every eligible controller-hosted route failed", EXIT_FAILED, failures)
 
@@ -1552,6 +2184,45 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
             orders = value.get("comparison_orders", [])
             if len(candidates) >= 2 and not any(list(order) == list(reversed(candidates)) for order in orders if isinstance(order, list)):
                 findings.append({"criterion": "order_reversal", "artifact": str(submission), "location": "comparison_orders", "finding": "The voice comparison does not include a reversed candidate order.", "repair_instruction": "Include both forward and reversed comparison orders to expose position bias."})
+            if is_v3_run(run):
+                if value.get("operator_selection") is not None:
+                    findings.append({"criterion": "operator_selection_authority", "artifact": str(submission), "location": "operator_selection", "finding": "A model-authored voice probe attempted to pre-fill the operator's choice.", "repair_instruction": "Return operator_selection as null; only choose-voice may record this decision."})
+                draft_path = artifact_path(directory, run, "draft")
+                ledger_path = artifact_path(directory, run, "verified-claim-ledger")
+                profile_path = artifact_path(directory, run, "voice-profile")
+                assignment_path = artifact_path(directory, run, "model-assignment")
+                bindings = {
+                    "rough_draft_sha256": draft_path,
+                    "claim_ledger_sha256": ledger_path,
+                    "voice_profile_sha256": profile_path,
+                    "model_assignment_sha256": assignment_path,
+                }
+                for field, bound_path in bindings.items():
+                    if field in value and (not bound_path or value.get(field) != sha256_path(bound_path)):
+                        findings.append({"criterion": "voice_probe_binding", "artifact": str(submission), "location": field, "finding": f"{field} does not match the current run artifact.", "repair_instruction": "Regenerate the probe from the exact task-packet inputs."})
+                source_anchor = value.get("source_anchor", {})
+                source_passage = str(source_anchor.get("source_passage") or "") if isinstance(source_anchor, dict) else ""
+                if source_passage and source_anchor.get("source_passage_sha256") != sha256_bytes(source_passage.encode("utf-8")):
+                    findings.append({"criterion": "source_anchor_hash", "artifact": str(submission), "location": "source_anchor.source_passage_sha256", "finding": "Source passage hash is incorrect.", "repair_instruction": "Hash the exact UTF-8 source passage."})
+                if draft_path and source_passage not in draft_path.read_text(encoding="utf-8"):
+                    findings.append({"criterion": "source_anchor", "artifact": str(submission), "location": "source_anchor.source_passage", "finding": "The quoted source passage is not present in the bound rough draft.", "repair_instruction": "Select one exact rough-draft passage and preserve its verified meaning."})
+                raw_candidates = [item for item in value.get("candidates", []) if isinstance(item, dict)]
+                candidate_ids = [str(item.get("candidate_id")) for item in raw_candidates]
+                if len(raw_candidates) != 3 or len(set(candidate_ids)) != 3:
+                    findings.append({"criterion": "exactly_three_voice_variants", "artifact": str(submission), "location": "candidates", "finding": "Voice probe must contain exactly three uniquely identified candidates.", "repair_instruction": "Return exactly three one-paragraph variants."})
+                claim_sets = []
+                for item in raw_candidates:
+                    passage = str(item.get("passage") or "")
+                    if item.get("passage_sha256") != sha256_bytes(passage.encode("utf-8")):
+                        findings.append({"criterion": "candidate_hash", "artifact": str(submission), "location": str(item.get("candidate_id")), "finding": "Candidate passage hash is incorrect.", "repair_instruction": "Hash the exact UTF-8 candidate passage."})
+                    paragraphs = [part for part in re.split(r"\n\s*\n", passage.strip()) if part.strip()]
+                    if len(paragraphs) != 1:
+                        findings.append({"criterion": "one_paragraph_variant", "artifact": str(submission), "location": str(item.get("candidate_id")), "finding": "A voice candidate is not exactly one paragraph.", "repair_instruction": "Return one paragraph per candidate."})
+                    claim_sets.append(tuple(sorted(str(claim) for claim in item.get("preserved_claim_ids", []))))
+                if claim_sets and len(set(claim_sets)) != 1:
+                    findings.append({"criterion": "shared_verified_meaning", "artifact": str(submission), "location": "candidates.preserved_claim_ids", "finding": "Candidates do not preserve the same verified claim set.", "repair_instruction": "Hold meaning and claims constant; vary only the declared voice dimensions."})
+                if len(orders) != 2 or any(set(order) != set(candidate_ids) for order in orders if isinstance(order, list)) or (len(orders) == 2 and list(orders[1]) != list(reversed(orders[0]))):
+                    findings.append({"criterion": "balanced_comparison_orders", "artifact": str(submission), "location": "comparison_orders", "finding": "Comparison orders must contain the same three IDs in forward and reverse order.", "repair_instruction": "Provide one order and its exact reverse."})
         if state == "ARTICLE_RECIPE":
             if len(value.get("outline_candidates", [])) < 2:
                 findings.append({"criterion": "shape_candidates", "artifact": str(submission), "location": "outline_candidates", "finding": "Fewer than two meaningfully different shapes were considered.", "repair_instruction": "Compare at least two shapes against the reader job and available evidence."})
@@ -1592,6 +2263,7 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
                 findings.append({"criterion": "no_placeholders_or_private_paths", "artifact": str(submission), "location": match.group(0), "finding": "Public-candidate text contains a placeholder or private local path.", "repair_instruction": "Resolve or remove the private/internal text."})
         for finding in forbidden_public_prose_character_findings(text):
             findings.append({**finding, "artifact": str(submission)})
+        findings.extend(style_phrase_findings(text, str(submission)))
     return ("PASS" if not findings else "REPAIR"), findings
 
 
@@ -1644,11 +2316,360 @@ def recent_article_history(limit: int | None = None) -> dict[str, Any]:
     }
 
 
+def baseline_voice_profile_path() -> Path:
+    return SPEC_ROOT / "profiles" / "voice-profile.v1.json"
+
+
+def _voice_profile_path_for_version(version: str) -> Path | None:
+    root = voice_state_root() / "profiles"
+    for candidate in sorted(root.glob("*.json")) if root.is_dir() else []:
+        try:
+            if load_json(candidate).get("version") == version:
+                return candidate
+        except FlowError:
+            continue
+    return None
+
+
+def _initialize_voice_runtime_locked() -> tuple[dict[str, Any], Path, dict[str, Any]]:
+    """Load a verified current profile, seeding it from the protected baseline once."""
+    root = voice_state_root()
+    profiles = root / "profiles"
+    profiles.mkdir(parents=True, exist_ok=True)
+    baseline_path = baseline_voice_profile_path()
+    baseline = load_json(baseline_path)
+    baseline_hash = sha256_path(baseline_path)
+    current_path = root / "current.json"
+    if not current_path.is_file():
+        stored_baseline = profiles / f"baseline-{baseline_hash[:16]}.json"
+        if not stored_baseline.is_file():
+            write_json(stored_baseline, baseline)
+        pointer = {
+            "voice_profile_pointer_schema_version": "1.0.0",
+            "profile_id": baseline["profile_id"],
+            "current_version": baseline["version"],
+            "profile_sha256": sha256_path(stored_baseline),
+            "updated_at": utc_now(),
+            "source_learning_record_id": None,
+            "previous_version": None,
+        }
+        write_json(current_path, pointer)
+    pointer = load_json(current_path)
+    pointer_errors = validate_instance_schema(pointer, "voice-profile-pointer.schema.json")
+    if pointer_errors:
+        raise FlowError("The runtime voice-profile pointer is invalid", EXIT_INTEGRITY, pointer_errors)
+    profile_path = _voice_profile_path_for_version(str(pointer.get("current_version")))
+    if not profile_path:
+        raise FlowError("The active runtime voice-profile pointer names a missing version", EXIT_INTEGRITY, pointer)
+    if pointer.get("profile_sha256") != sha256_path(profile_path):
+        raise FlowError("The active runtime voice profile changed after activation", EXIT_INTEGRITY, pointer)
+    profile = load_json(profile_path)
+    errors = validate_instance_schema(profile, "voice-profile.schema.json")
+    if errors:
+        raise FlowError("The active runtime voice profile is invalid", EXIT_INTEGRITY, errors)
+    if profile.get("profile_id") != baseline.get("profile_id") or profile.get("profile_id") != pointer.get("profile_id") or profile.get("version") != pointer.get("current_version"):
+        raise FlowError("The active runtime voice profile identity does not match its pointer", EXIT_INTEGRITY, pointer)
+    return profile, profile_path, pointer
+
+
+def active_voice_profile() -> tuple[dict[str, Any], Path, dict[str, Any]]:
+    with shared_lock(voice_state_root() / ".lock"):
+        return _initialize_voice_runtime_locked()
+
+
+def snapshot_voice_profile(
+    directory: Path,
+    run: dict[str, Any],
+    profile: dict[str, Any],
+    *,
+    source: str,
+    inputs: Iterable[str] = (),
+) -> Path:
+    version = str(profile.get("version") or "unknown")
+    destination = directory / "artifacts" / f"voice-profile-{slugify(version, 80)}.json"
+    write_json(destination, profile)
+    record_artifact(
+        directory,
+        run,
+        destination,
+        "voice-profile",
+        {"actor": "controller", "source": source, "version": CONTROLLER_VERSION},
+        inputs=inputs,
+    )
+    return destination
+
+
+def voice_history() -> dict[str, Any]:
+    root = voice_state_root()
+    pointer = load_json(root / "current.json") if (root / "current.json").is_file() else None
+    profiles = []
+    for path in sorted((root / "profiles").glob("*.json")) if (root / "profiles").is_dir() else []:
+        value = load_json(path)
+        profiles.append({
+            "version": value.get("version"),
+            "status": value.get("status"),
+            "sha256": sha256_path(path),
+            "path": str(path),
+            "active": bool(pointer and pointer.get("profile_sha256") == sha256_path(path)),
+            "source_learning_record_id": value.get("source_learning_record_id"),
+        })
+    evidence = _read_jsonl(root / "evidence.jsonl")
+    rollbacks = _read_jsonl(root / "rollbacks.jsonl")
+    return {
+        "ok": True,
+        "current_version": pointer.get("current_version") if pointer else None,
+        "current": pointer,
+        "profiles": profiles,
+        "evidence_count": len(evidence),
+        "evidence": evidence,
+        "rollbacks": rollbacks,
+    }
+
+
+def rollback_voice_profile(version: str) -> dict[str, Any]:
+    root = voice_state_root()
+    with shared_lock(root / ".lock"):
+        _, _, prior_pointer = _initialize_voice_runtime_locked()
+        destination = _voice_profile_path_for_version(version)
+        if not destination:
+            raise FlowError(f"Unknown runtime voice-profile version: {version}", EXIT_USAGE)
+        profile = load_json(destination)
+        pointer = {
+            "voice_profile_pointer_schema_version": "1.0.0",
+            "profile_id": profile["profile_id"],
+            "current_version": profile["version"],
+            "profile_sha256": sha256_path(destination),
+            "updated_at": utc_now(),
+            "source_learning_record_id": profile.get("source_learning_record_id"),
+            "previous_version": prior_pointer.get("current_version"),
+        }
+        write_json(root / "current.json", pointer)
+        rollback = {
+            "rollback_id": f"VR-{secrets.token_hex(8)}",
+            "from_version": prior_pointer.get("current_version"),
+            "to_version": version,
+            "created_at": utc_now(),
+        }
+        _append_jsonl(root / "rollbacks.jsonl", rollback)
+    return {"ok": True, "current_version": version, "prior_version": prior_pointer.get("current_version"), "rollback": rollback}
+
+
+def _learning_candidate(candidate: dict[str, Any]) -> dict[str, str]:
+    passage = str(candidate.get("passage") or "")
+    passage_hash = str(candidate.get("passage_sha256") or "")
+    if sha256_bytes(passage.encode("utf-8")) != passage_hash:
+        raise FlowError("A voice-probe candidate passage does not match its recorded hash", EXIT_INTEGRITY, candidate.get("candidate_id"))
+    return {
+        "candidate_id": str(candidate.get("candidate_id")),
+        "passage": passage,
+        "passage_sha256": passage_hash,
+    }
+
+
+def apply_voice_learning(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
+    """Promote one operator selection into a reversible provisional runtime overlay."""
+    if not is_v3_run(run) or run.get("state") != "VOICE_LEARNING":
+        raise FlowError("Voice learning requires a workflow 3 run in VOICE_LEARNING", EXIT_USAGE)
+    probe_path = artifact_path(directory, run, "voice-probe")
+    draft_path = artifact_path(directory, run, "draft")
+    ledger_path = artifact_path(directory, run, "verified-claim-ledger")
+    prior_run_profile_path = artifact_path(directory, run, "voice-profile")
+    if not all((probe_path, draft_path, ledger_path, prior_run_profile_path)):
+        raise FlowError("Voice learning is missing its probe, rough draft, verified claims, or prior profile", EXIT_INTEGRITY)
+    probe = load_json(probe_path)
+    if probe.get("voice_probe_schema_version") != "2.0.0":
+        raise FlowError("Workflow 3 voice learning requires a bound version 2 voice probe", EXIT_INTEGRITY)
+    selection = probe.get("operator_selection")
+    if not isinstance(selection, dict) or not selection.get("candidate_id"):
+        raise FlowError("Voice learning requires the operator's selected candidate", EXIT_APPROVAL)
+    if probe.get("rough_draft_sha256") != sha256_path(draft_path):
+        raise FlowError("The voice probe is not bound to the current rough draft", EXIT_INTEGRITY)
+    if probe.get("claim_ledger_sha256") != sha256_path(ledger_path):
+        raise FlowError("The voice probe is not bound to the current verified claim ledger", EXIT_INTEGRITY)
+    candidates = [item for item in probe.get("candidates", []) if isinstance(item, dict)]
+    selected_raw = next((item for item in candidates if item.get("candidate_id") == selection.get("candidate_id")), None)
+    rejected_raw = [item for item in candidates if item.get("candidate_id") != selection.get("candidate_id")]
+    if selected_raw is None or len(candidates) != 3 or len(rejected_raw) != 2:
+        raise FlowError("Voice learning requires one selection from exactly three candidates", EXIT_INTEGRITY)
+    selected = _learning_candidate(selected_raw)
+    rejected = [_learning_candidate(item) for item in rejected_raw]
+    controlled_dimensions = sorted({
+        str(dimension)
+        for item in candidates
+        for dimension in item.get("intended_dimensions", [])
+        if str(dimension)
+    })
+    if not controlled_dimensions:
+        raise FlowError("Voice probe did not declare controlled dimensions", EXIT_INTEGRITY)
+    voice_probe_hash = sha256_path(probe_path)
+    idempotency_key = sha256_bytes(canonical_json({
+        "run_id": run["run_id"],
+        "voice_probe_sha256": voice_probe_hash,
+        "operator_selection": selection,
+    }))
+    root = voice_state_root()
+    idempotent = False
+    with shared_lock(root / ".lock"):
+        prior_profile, _, pointer = _initialize_voice_runtime_locked()
+        evidence = _read_jsonl(root / "evidence.jsonl")
+        existing = next((item for item in evidence if item.get("idempotency_key") == idempotency_key), None)
+        if existing:
+            learning = existing
+            profile_path = _voice_profile_path_for_version(str(learning.get("new_profile_version")))
+            if not profile_path:
+                raise FlowError("Voice-learning evidence names a missing immutable profile", EXIT_INTEGRITY, learning)
+            profile = load_json(profile_path)
+            if pointer.get("current_version") != profile.get("version"):
+                resumed_pointer = {
+                    "voice_profile_pointer_schema_version": "1.0.0",
+                    "profile_id": profile["profile_id"],
+                    "current_version": profile["version"],
+                    "profile_sha256": sha256_path(profile_path),
+                    "updated_at": utc_now(),
+                    "source_learning_record_id": learning["record_id"],
+                    "previous_version": pointer.get("current_version"),
+                }
+                write_json(root / "current.json", resumed_pointer)
+            idempotent = True
+        else:
+            record_id = f"VL-{idempotency_key[:20]}"
+            new_version = f"runtime-{len(evidence) + 1:06d}-{idempotency_key[:10]}"
+            pair_ids = [f"VP-{idempotency_key[:10]}-{index}" for index in range(1, 3)]
+            positive_id = f"VE-{idempotency_key[:16]}"
+            guidance_id = f"VG-{idempotency_key[:16]}"
+            feedback = selection.get("feedback")
+            dimension_text = ", ".join(controlled_dimensions)
+            guidance_text = (
+                f"For similar passages controlling {dimension_text}, prefer the selected example over its two rejected alternatives. "
+                + (f"Operator note: {feedback}" if feedback else "Treat this as local provisional evidence, not a global voice trait.")
+            )
+            created_at = utc_now()
+            experiment = run.get("model_experiment", {})
+            stage_route = experiment.get("stage_routes", {}).get("VOICE_PROBE", {})
+            writing_model_id = str(stage_route.get("actual_model_id") or experiment.get("active_model_id") or experiment.get("assigned_model_id") or "")
+            provider_id = str(stage_route.get("provider_id") or experiment.get("provider_id") or "")
+            if not writing_model_id or not provider_id:
+                raise FlowError("Voice learning lacks exact writing-model provenance", EXIT_INTEGRITY)
+            learning = {
+                "voice_learning_schema_version": "1.0.0",
+                "record_id": record_id,
+                "run_id": run["run_id"],
+                "idempotency_key": idempotency_key,
+                "created_at": created_at,
+                "voice_probe_sha256": voice_probe_hash,
+                "rough_draft_sha256": sha256_path(draft_path),
+                "claim_ledger_sha256": sha256_path(ledger_path),
+                "prior_profile_version": prior_profile["version"],
+                "new_profile_version": new_version,
+                "selected_candidate": selected,
+                "rejected_candidates": rejected,
+                "controlled_dimensions": controlled_dimensions,
+                "operator_feedback": feedback if isinstance(feedback, str) else None,
+                "writing_model": {
+                    "provider_id": provider_id,
+                    "model_id": writing_model_id,
+                    "public_display_name": writing_model_policy()["display_names"].get(writing_model_id, public_model_name(writing_model_id)),
+                },
+                "profile_update": {
+                    "status": "provisional",
+                    "activated": True,
+                    "guidance_added": [guidance_id],
+                    "guidance_refined": [],
+                    "runtime_guidance_retired": [],
+                    "positive_example_ids": [positive_id],
+                    "pair_ids": pair_ids,
+                },
+            }
+            learning_errors = validate_instance_schema(learning, "voice-learning.schema.json")
+            if learning_errors:
+                raise FlowError("Controller generated an invalid voice-learning record", EXIT_INTEGRITY, learning_errors)
+            profile = json.loads(json.dumps(prior_profile))
+            profile["version"] = new_version
+            profile["status"] = "provisional"
+            profile["parent_version"] = prior_profile["version"]
+            profile["base_profile_sha256"] = sha256_path(baseline_voice_profile_path())
+            profile["source_learning_record_id"] = record_id
+            profile.setdefault("provisional_guidance", []).append({
+                "guidance_id": guidance_id,
+                "text": guidance_text,
+                "status": "provisional",
+                "source_record_id": record_id,
+                "created_at": created_at,
+                "dimensions": controlled_dimensions,
+            })
+            profile.setdefault("positive_examples", []).append({
+                "example_id": positive_id,
+                "status": "operator_selected_voice_probe_provisional",
+                "run_id": run["run_id"],
+                "candidate_id": selected["candidate_id"],
+                "passage": selected["passage"],
+                "source_record_id": record_id,
+                "operator_confirmation": True,
+            })
+            for pair_id, rejected_candidate in zip(pair_ids, rejected):
+                profile.setdefault("accepted_rejected_pairs", []).append({
+                    "pair_id": pair_id,
+                    "status": "operator_selected_provisional",
+                    "run_id": run["run_id"],
+                    "accepted_candidate": selected,
+                    "rejected_candidate": rejected_candidate,
+                    "operator_feedback": learning["operator_feedback"],
+                    "source_record_id": record_id,
+                })
+            profile.setdefault("change_history", []).append({
+                "version": new_version,
+                "date": dt.date.today().isoformat(),
+                "status": "provisional",
+                "reason": f"Immediate runtime overlay from operator voice selection {record_id}; protected baseline remains unchanged.",
+            })
+            profile_errors = validate_instance_schema(profile, "voice-profile.schema.json")
+            if profile_errors:
+                raise FlowError("Controller generated an invalid runtime voice profile", EXIT_INTEGRITY, profile_errors)
+            profile_path = root / "profiles" / f"{slugify(new_version, 80)}-{sha256_bytes(canonical_json(profile))[:12]}.json"
+            write_json(profile_path, profile)
+            _append_jsonl(root / "evidence.jsonl", learning)
+            new_pointer = {
+                "voice_profile_pointer_schema_version": "1.0.0",
+                "profile_id": profile["profile_id"],
+                "current_version": new_version,
+                "profile_sha256": sha256_path(profile_path),
+                "updated_at": utc_now(),
+                "source_learning_record_id": record_id,
+                "previous_version": prior_profile["version"],
+            }
+            pointer_errors = validate_instance_schema(new_pointer, "voice-profile-pointer.schema.json")
+            if pointer_errors:
+                raise FlowError("Controller generated an invalid voice-profile pointer", EXIT_INTEGRITY, pointer_errors)
+            write_json(root / "current.json", new_pointer)
+    learning_path = directory / "artifacts" / "voice-learning.json"
+    write_json(learning_path, learning)
+    learning_artifact = record_artifact(
+        directory,
+        run,
+        learning_path,
+        "voice-learning",
+        {"actor": "controller", "version": CONTROLLER_VERSION, "idempotent": idempotent},
+        inputs=[item["artifact_id"] for item in run.get("artifact_index", []) if item.get("type") in {"voice-probe", "draft", "verified-claim-ledger", "voice-profile"}],
+    )
+    snapshot_voice_profile(directory, run, profile, source=str(profile_path), inputs=[learning_artifact["artifact_id"]])
+    write_gate_receipt(directory, run, "G-VOICE-LEARNING", "PASS", [], {"type": "code", "version": CONTROLLER_VERSION})
+    append_event(directory, run, "VOICE_LEARNING_APPLIED", "controller", {
+        "record_id": learning["record_id"],
+        "idempotency_key": learning["idempotency_key"],
+        "new_profile_version": learning["new_profile_version"],
+        "idempotent": idempotent,
+    })
+    transition(directory, run, "EDIT", "controller", "Selected voice evidence activated as a provisional runtime profile")
+    return {"ok": True, "idempotent": idempotent, "learning": learning, "profile_path": str(profile_path), "state": run["state"]}
+
+
 def record_static_controls(directory: Path, run: dict[str, Any]) -> None:
-    controls = [
-        (SPEC_ROOT / "profiles" / "voice-profile.v1.json", "voice-profile"),
-        (SPEC_ROOT / "10-Final-Prose-Naturalization" / "Final-Prose-Naturalization-Directive.md", "naturalization-directive"),
-    ]
+    controls = [(SPEC_ROOT / "10-Final-Prose-Naturalization" / "Final-Prose-Naturalization-Directive.md", "naturalization-directive")]
+    if is_v3_run(run):
+        profile, source_path, _ = active_voice_profile()
+        snapshot_voice_profile(directory, run, profile, source=str(source_path))
+    else:
+        controls.insert(0, (baseline_voice_profile_path(), "voice-profile"))
     for source, artifact_type in controls:
         destination = directory / "artifacts" / source.name
         shutil.copy2(source, destination)
@@ -1662,6 +2683,15 @@ def record_static_controls(directory: Path, run: dict[str, Any]) -> None:
     history_path = directory / "artifacts" / "recent-article-history.json"
     write_json(history_path, recent_article_history())
     record_artifact(directory, run, history_path, "recent-article-history", {"actor": "controller", "version": CONTROLLER_VERSION})
+    if is_v3_run(run):
+        style_value = policy().get("style_gate", {})
+        style_path = directory / "artifacts" / "style-policy.json"
+        write_json(style_path, {
+            "style_policy_schema_version": "1.0.0",
+            "policy_sha256": sha256_bytes(canonical_json(style_value)),
+            "policy": style_value,
+        })
+        record_artifact(directory, run, style_path, "style-policy", {"actor": "controller", "version": CONTROLLER_VERSION})
     environment = {
         "environment_receipt_schema_version": "1.0.0",
         "created_at": utc_now(),
@@ -1682,6 +2712,9 @@ def next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
     state = run["state"]
     if state in {"COMPLETE", "TERMINAL"}:
         return {"action": state.lower(), "run_id": run["run_id"], "state": state}
+    if run.get("status") == "BLOCKED":
+        definition = state_definition(state, run)
+        return {"action": "repair_required", "run_id": run["run_id"], "state": state, "gate": definition.get("gate"), "command": ["article-flow", "repair", run["run_id"], definition.get("gate")]}
     review_artifact = {
         "INTENT_REVIEW": "intent-candidate",
         "ARTICLE_RECIPE": "article-recipe",
@@ -1689,6 +2722,30 @@ def next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
         "EDITORIAL_QA": "editorial-qa",
     }
     if state in REVIEW_STATES and artifact(run, review_artifact[state]):
+        if is_v3_run(run) and state == "VOICE_PROBE":
+            probe = json_artifact(directory, run, "voice-probe") or {}
+            candidates = [
+                {
+                    "candidate_id": item.get("candidate_id"),
+                    "passage": item.get("passage"),
+                    "controlled_dimensions": item.get("controlled_dimensions") or item.get("intended_dimensions"),
+                }
+                for item in probe.get("candidates", [])
+                if isinstance(item, dict)
+            ]
+            run["status"] = "WAITING_HUMAN"
+            save_run(directory, run)
+            return {
+                "action": "human_decision",
+                "run_id": run["run_id"],
+                "state": state,
+                "question": "Which one of these three paragraphs sounds most like you? You may add a short reason, but it is optional.",
+                "candidates": candidates,
+                "selection_commands": {
+                    str(item["candidate_id"]): ["article-flow", "choose-voice", run["run_id"], str(item["candidate_id"]), "--auto"]
+                    for item in candidates
+                },
+            }
         question = {
             "INTENT_REVIEW": "Does this candidate intent match what you want the article to accomplish? Confirm it or give the smallest correction.",
             "ARTICLE_RECIPE": "Does this article recipe choose the right form for the reader job? Confirm it or identify the choice to change.",
@@ -1702,8 +2759,10 @@ def next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
             "run_id": run["run_id"],
             "state": state,
             "question": question,
-            "approval_command": ["article-flow", "gate", run["run_id"], state_definition(state)["gate"], "--outcome", "PASS"],
+            "approval_command": ["article-flow", "gate", run["run_id"], state_definition(state, run)["gate"], "--outcome", "PASS"],
         }
+    if state == "VOICE_LEARNING":
+        return {"action": "run_command", "run_id": run["run_id"], "state": state, "command": ["article-flow", "voice", "apply", run["run_id"]]}
     if state == "PACKAGE":
         return {"action": "run_command", "run_id": run["run_id"], "state": state, "command": ["article-flow", "package", run["run_id"]]}
     if state == "PUBLISH_APPROVAL":
@@ -1744,9 +2803,6 @@ def next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
         return {"action": "run_command", "run_id": run["run_id"], "state": state, "command": ["article-flow", "publish", "--execute", run["run_id"], "--approval", "APPROVAL_ID", "--commit", "--push"]}
     if state == "LIVE_VERIFICATION":
         return {"action": "run_command", "run_id": run["run_id"], "state": state, "command": ["article-flow", "verify-live", run["run_id"]]}
-    if run.get("status") == "BLOCKED":
-        definition = state_definition(state)
-        return {"action": "repair_required", "run_id": run["run_id"], "state": state, "gate": definition.get("gate"), "command": ["article-flow", "repair", run["run_id"], definition.get("gate")]}
     if run.get("status") == "WAITING_MODEL":
         packet_path, packet = current_packet(directory, run)
     else:
@@ -1787,6 +2843,8 @@ def command_start(args: argparse.Namespace) -> int:
     directory.mkdir(parents=True, exist_ok=False)
     for name in ("artifacts", "tasks", "submissions", "receipts", "approvals", "package", "publication"):
         (directory / name).mkdir()
+    default_mode = str(policy().get("automation", {}).get("default_mode", "active_session"))
+    automation_mode = "active_session" if bool(getattr(args, "auto", False)) or default_mode == "active_session" else "manual"
     run = {
         "run_schema_version": "1.0.0",
         "run_id": run_id,
@@ -1800,12 +2858,49 @@ def command_start(args: argparse.Namespace) -> int:
         "artifact_index": [],
         "attempts": {},
         "lock": None,
-        "run_overrides": {"intent_approval": "required", "recipe_approval": "required", "voice_probe_approval": "required"},
+        "run_overrides": {
+            "intent_approval": "policy",
+            "recipe_approval": "policy",
+            "voice_probe_approval": "required",
+            "editorial_approval": "policy",
+            "automation_mode": automation_mode,
+            "auto_publish": not bool(getattr(args, "hold_before_publish", False)),
+        },
         "publication": {},
         "route_failures": {},
     }
     save_run(directory, run)
     append_event(directory, run, "RUN_CREATED", "controller", {"workflow_version": run["workflow_version"], "controller_version": CONTROLLER_VERSION})
+    assignment = reserve_draft_model(run_id, getattr(args, "draft_model", None)) if is_v3_run(run) else None
+    if assignment:
+        assignment_path = directory / "artifacts" / "model-assignment.json"
+        write_json(assignment_path, assignment)
+        record_artifact(
+            directory,
+            run,
+            assignment_path,
+            "model-assignment",
+            {"actor": "controller", "version": CONTROLLER_VERSION},
+        )
+        run["model_experiment"] = {
+            "pool_id": assignment["pool_id"],
+            "pool_version": assignment["pool_version"],
+            "provider_id": assignment["provider_id"],
+            "assigned_model_id": assignment["assigned_model_id"],
+            "active_model_id": assignment["assigned_model_id"],
+            "public_display_name": assignment["public_display_name"],
+            "actual_models": [],
+            "stage_routes": {},
+            "contaminated": False,
+        }
+        append_event(directory, run, "MODEL_ASSIGNED", "controller", {
+            "pool_id": assignment["pool_id"],
+            "rotation_index": assignment["rotation_index"],
+            "provider_id": assignment["provider_id"],
+            "model_id": assignment["assigned_model_id"],
+            "override": assignment["override"],
+        })
+        save_run(directory, run)
     seed_path = directory / "artifacts" / "seed.txt"
     atomic_write(seed_path, seed.encode("utf-8"))
     record_artifact(directory, run, seed_path, "seed", {"actor": "operator", "preserved_verbatim": True})
@@ -1813,7 +2908,17 @@ def command_start(args: argparse.Namespace) -> int:
     transition(directory, run, "INTAKE", "controller", "Run identity and event chain created")
     write_gate_receipt(directory, run, "G-SEED-PRESERVED", "PASS", [], {"type": "code", "version": CONTROLLER_VERSION})
     transition(directory, run, "RESEARCH_PLAN", "controller", "Seed bytes recorded verbatim")
-    payload = {"ok": True, "run_id": run_id, "state": run["state"], "run_directory": str(directory), "next_command": ["article-flow", "next", run_id]}
+    next_command = ["article-flow", "advance", run_id] if automation_enabled(run) else ["article-flow", "next", run_id]
+    payload = {
+        "ok": True,
+        "run_id": run_id,
+        "state": run["state"],
+        "run_directory": str(directory),
+        "draft_model": assignment["assigned_model_id"] if assignment else None,
+        "next_command": next_command,
+    }
+    if bool(getattr(args, "auto", False)):
+        return command_advance(argparse.Namespace(run_id=run_id, max_steps=100, json=args.json))
     emit(payload, args.json)
     return EXIT_OK
 
@@ -1899,6 +3004,31 @@ def command_resume(args: argparse.Namespace) -> int:
     return command_next(args)
 
 
+def approve_review_artifact(directory: Path, run: dict[str, Any], state: str, *, actor: str) -> Path:
+    type_map = {
+        "INTENT_REVIEW": ("intent-candidate", "intent"),
+        "ARTICLE_RECIPE": ("article-recipe", "article-recipe"),
+        "VOICE_PROBE": ("voice-probe", "voice-probe"),
+        "EDITORIAL_QA": ("editorial-qa", "editorial-qa"),
+    }
+    candidate_type, approved_type = type_map[state]
+    candidate_path = artifact_path(directory, run, candidate_type)
+    if not candidate_path or not candidate_path.is_file():
+        raise FlowError(f"Candidate artifact is missing for {state}", EXIT_INTEGRITY)
+    approved_path = directory / "artifacts" / f"approved-{approved_type}{candidate_path.suffix}"
+    if candidate_path.resolve() != approved_path.resolve():
+        shutil.copy2(candidate_path, approved_path)
+    record_artifact(
+        directory,
+        run,
+        approved_path,
+        approved_type,
+        {"actor": actor, "decision": "policy_validated" if actor == "policy" else "confirmed"},
+        inputs=[artifact(run, candidate_type)["artifact_id"]] if artifact(run, candidate_type) else [],
+    )
+    return approved_path
+
+
 def command_submit(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
     if run["state"] != args.stage:
@@ -1923,14 +3053,16 @@ def command_submit(args: argparse.Namespace) -> int:
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, destination)
         outcome, findings = automatic_gate(directory, run, args.stage, destination)
-        packet_route = None
-        if packet_item:
+        packet_route = latest_model_call_route(directory, run, args.stage, attempt)
+        if packet_route is None and packet_item:
             packet_route = packet_value.get("selected_route", {}).get("chosen")
         record_artifact(directory, run, destination, artifact_type, {"actor": "model_or_host", "route": packet_route}, inputs=[item["artifact_id"] for item in run["artifact_index"]])
         if args.stage == "CLAIM_VERIFICATION" and outcome == "PASS":
             lock_verified_fields(directory, run, destination)
-        definition = state_definition(args.stage)
-        recorded_outcome = "ESCALATE" if outcome == "PASS" and args.stage in REVIEW_STATES else outcome
+        definition = state_definition(args.stage, run)
+        policy_review = outcome == "PASS" and automation_enabled(run) and args.stage in AUTO_REVIEW_STATES
+        human_review = outcome == "PASS" and args.stage in REVIEW_STATES and not policy_review
+        recorded_outcome = "ESCALATE" if human_review else outcome
         review_findings = findings
         if recorded_outcome == "ESCALATE" and not review_findings:
             review_findings = [{
@@ -1940,13 +3072,38 @@ def command_submit(args: argparse.Namespace) -> int:
                 "finding": "Mechanical validation passed; the controlling editorial judgment has not been inferred.",
                 "repair_instruction": "Ask the operator the controller-supplied decision question.",
             }]
-        write_gate_receipt(directory, run, definition["gate"], recorded_outcome, review_findings, {"type": "code", "version": CONTROLLER_VERSION}, definition.get("repair_state"))
+        evaluator = (
+            {"type": "policy", "version": CONTROLLER_VERSION, "basis": "schema_and_code_validation"}
+            if policy_review
+            else {"type": "code", "version": CONTROLLER_VERSION}
+        )
+        write_gate_receipt(directory, run, definition["gate"], recorded_outcome, review_findings, evaluator, definition.get("repair_state"))
         if outcome != "PASS":
             if packet_route:
                 key = f"{packet_route.get('provider')}:{packet_route.get('model')}"
                 stage_failures = run.setdefault("route_failures", {}).setdefault(args.stage, {})
                 stage_failures[key] = int(stage_failures.get(key, 0)) + 1
                 append_event(directory, run, "MODEL_OUTPUT_REJECTED", "controller", {"state": args.stage, "route": packet_route, "failure_count": stage_failures[key], "findings": findings})
+            attempts_used = int(run.get("attempts", {}).get(args.stage, 0))
+            maximum = int(definition.get("max_attempts", 1))
+            if automation_enabled(run) and attempts_used < maximum and definition.get("repair_state") in MODEL_STATES:
+                append_event(directory, run, "REPAIR", "controller", {
+                    "gate_id": definition["gate"],
+                    "findings": findings,
+                    "repair_state": definition["repair_state"],
+                    "attempt": attempts_used,
+                    "maximum": maximum,
+                })
+                transition(directory, run, definition["repair_state"], "controller", f"Automatic targeted repair after {definition['gate']}")
+                payload = {
+                    "ok": False,
+                    "outcome": outcome,
+                    "state": run["state"],
+                    "findings": findings,
+                    "next_command": ["article-flow", "advance", run["run_id"]],
+                }
+                emit(payload, args.json)
+                return EXIT_OK
             run["status"] = "BLOCKED"
             save_run(directory, run)
             payload = {"ok": False, "outcome": outcome, "state": run["state"], "findings": findings, "repair_command": ["article-flow", "repair", run["run_id"], definition["gate"]]}
@@ -1962,7 +3119,12 @@ def command_submit(args: argparse.Namespace) -> int:
                     "route": packet_route,
                     "cleared_failure_count": prior_failures,
                 })
-        if args.stage in REVIEW_STATES:
+        update_writing_provenance(directory, run, args.stage, packet_route)
+        if policy_review:
+            approve_review_artifact(directory, run, args.stage, actor="policy")
+            transition(directory, run, definition["next_on_pass"], "policy", f"Policy approved validated {args.stage} artifact")
+            payload = {"ok": True, "outcome": "PASS", "state": run["state"], "next_command": ["article-flow", "advance", run["run_id"]]}
+        elif args.stage in REVIEW_STATES:
             run["status"] = "WAITING_HUMAN"
             save_run(directory, run)
             payload = next_state_payload(directory, run)
@@ -1973,12 +3135,35 @@ def command_submit(args: argparse.Namespace) -> int:
     return EXIT_WAITING if payload.get("action") == "human_decision" else EXIT_OK
 
 
-def create_publish_approval(directory: Path, run: dict[str, Any], plan: dict[str, Any], *, renewed_from: str | None = None) -> tuple[str, Path]:
+def create_publish_approval(
+    directory: Path,
+    run: dict[str, Any],
+    plan: dict[str, Any],
+    *,
+    renewed_from: str | None = None,
+    actor: str = "operator",
+) -> tuple[str, Path]:
     plan_path = directory / "publication" / "plan.json"
     ttl = int(policy()["publication"]["approval_ttl_minutes"])
     expires = dt.datetime.now(dt.timezone.utc) + dt.timedelta(minutes=ttl)
     approval_id = f"AP-{secrets.token_hex(12)}"
     checks: list[dict[str, Any]] = [{"plan_sha256": sha256_path(plan_path)}]
+    if is_v3_run(run):
+        target_config = load_json(SPEC_ROOT / "publication" / "theproductiveprompter.json")
+        allowlisted = policy().get("publication", {}).get("allowlisted_automatic_targets", [])
+        expected_policy_hash = style_policy_sha256()
+        if actor == "policy" and "publication/theproductiveprompter.json" not in allowlisted:
+            raise FlowError("Automatic publication target is not allowlisted", EXIT_APPROVAL, allowlisted)
+        if plan.get("target") != target_config.get("target_id"):
+            raise FlowError("Publication plan target does not match the configured Productive Prompter target", EXIT_APPROVAL)
+        if plan.get("style_policy_sha256") != expected_policy_hash:
+            raise FlowError("Style policy changed after packaging; rebuild before approval", EXIT_APPROVAL)
+        checks.append({
+            "approval_actor": actor,
+            "allowlisted_target": "publication/theproductiveprompter.json",
+            "style_policy_sha256": expected_policy_hash,
+            "package_revision": plan.get("package_revision"),
+        })
     if renewed_from:
         checks.append({"renewed_from": renewed_from, "scope_unchanged": True})
     approval = {
@@ -2000,30 +3185,42 @@ def create_publish_approval(directory: Path, run: dict[str, Any], plan: dict[str
     errors = validate_json_schema(approval_path, "publication-receipt.schema.json")
     if errors:
         raise FlowError("Controller generated an invalid publication approval", EXIT_INTEGRITY, errors)
-    record_artifact(directory, run, approval_path, "publish-approval", {"actor": "operator", "renewed_from": renewed_from})
-    append_event(directory, run, "APPROVAL", "operator", {
+    record_artifact(directory, run, approval_path, "publish-approval", {"actor": actor, "renewed_from": renewed_from})
+    append_event(directory, run, "POLICY_APPROVAL" if actor == "policy" else "APPROVAL", actor, {
         "approval_id": approval_id,
         "target": plan["target"],
         "package_revision": plan["package_revision"],
         "renewed_from": renewed_from,
+        "style_policy_sha256": plan.get("style_policy_sha256"),
     })
     return approval_id, approval_path
 
 
 def command_gate(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
-    definition = state_definition(run["state"])
+    loaded_state = run["state"]
+    definition = state_definition(run["state"], run)
     expected_gate = definition.get("gate")
     args.gate_id = args.gate_id or expected_gate
     if not args.gate_id:
         raise FlowError(f"State {run['state']} has no operator-owned gate", EXIT_USAGE)
     if args.gate_id != expected_gate:
         raise FlowError(f"Gate {args.gate_id} does not control current state {run['state']} (expected {expected_gate})")
-    if args.outcome not in workflow()["gate_outcomes"]:
+    if args.outcome not in workflow_for_run(run)["gate_outcomes"]:
         raise FlowError(f"Invalid gate outcome: {args.outcome}")
     if gate_class(args.gate_id) == "hard" and args.gate_id != "G-PUBLISH-APPROVAL" and args.outcome != "TERMINAL":
         raise FlowError(f"Hard gate {args.gate_id} is code-owned and cannot be manually passed")
     with run_lock(directory, run):
+        _, current_run = load_run(args.run_id)
+        if current_run["state"] != loaded_state:
+            raise FlowError(
+                f"Gate state changed concurrently from {loaded_state} to {current_run['state']}; reload before deciding",
+                EXIT_WAITING,
+            )
+        run = current_run
+        definition = state_definition(run["state"], run)
+        if args.gate_id != definition.get("gate"):
+            raise FlowError(f"Gate {args.gate_id} no longer controls current state {run['state']}", EXIT_WAITING)
         findings = []
         if args.finding:
             findings.append({"criterion": "operator_review", "artifact": args.artifact or "current", "location": None, "finding": args.finding, "repair_instruction": args.finding})
@@ -2044,16 +3241,33 @@ def command_gate(args: argparse.Namespace) -> int:
             candidate_path = Path(args.artifact).resolve() if args.artifact else artifact_path(directory, run, candidate_type)
             if not candidate_path or not candidate_path.is_file():
                 raise FlowError(f"Candidate artifact is missing for {run['state']}")
+            if run["state"] == "VOICE_PROBE" and is_v3_run(run):
+                recorded_item = artifact(run, candidate_type)
+                recorded_path = artifact_path(directory, run, candidate_type)
+                if not recorded_item or not recorded_path or candidate_path.resolve() != recorded_path.resolve():
+                    raise FlowError("Voice selection must use the controller-recorded probe artifact", EXIT_APPROVAL)
+                if sha256_path(recorded_path) != recorded_item.get("sha256"):
+                    raise FlowError("Recorded voice probe changed after validation", EXIT_INTEGRITY)
+                probe_outcome, probe_findings = automatic_gate(directory, run, "VOICE_PROBE", recorded_path)
+                if probe_outcome != "PASS":
+                    raise FlowError("Recorded voice probe no longer passes its code-owned checks", EXIT_INTEGRITY, probe_findings)
             approved_path = directory / "artifacts" / f"approved-{approved_type}{candidate_path.suffix}"
             if run["state"] == "VOICE_PROBE":
-                if not args.selection or not args.feedback:
-                    raise FlowError("Voice-probe approval requires --selection CANDIDATE_ID and --feedback with the operator's most important reason", EXIT_APPROVAL)
+                if not args.selection or (not is_v3_run(run) and not args.feedback):
+                    requirement = "--selection CANDIDATE_ID" if is_v3_run(run) else "--selection CANDIDATE_ID and --feedback"
+                    raise FlowError(f"Voice-probe approval requires {requirement}", EXIT_APPROVAL)
                 value = load_json(candidate_path)
                 candidate_ids = {str(item.get("candidate_id")) for item in value.get("candidates", []) if isinstance(item, dict)}
                 if args.selection not in candidate_ids:
                     raise FlowError(f"Unknown voice candidate: {args.selection}", EXIT_APPROVAL)
-                value["operator_selection"] = {"candidate_id": args.selection, "reason": args.feedback, "confirmed_at": utc_now()}
+                if is_v3_run(run):
+                    value["operator_selection"] = {"candidate_id": args.selection, "selected_at": utc_now(), "feedback": args.feedback or None}
+                else:
+                    value["operator_selection"] = {"candidate_id": args.selection, "reason": args.feedback, "confirmed_at": utc_now()}
                 write_json(approved_path, value)
+                selection_errors = validate_json_schema(approved_path, "voice-probe.schema.json")
+                if selection_errors:
+                    raise FlowError("Selected voice probe is invalid", EXIT_INTEGRITY, selection_errors)
             else:
                 same_file = candidate_path.resolve() == approved_path.resolve()
                 if not same_file and approved_path.exists():
@@ -2064,6 +3278,12 @@ def command_gate(args: argparse.Namespace) -> int:
                 if not same_file:
                     shutil.copy2(candidate_path, approved_path)
             record_artifact(directory, run, approved_path, approved_type, {"actor": "operator", "decision": "confirmed"})
+            if run["state"] == "VOICE_PROBE" and is_v3_run(run):
+                append_event(directory, run, "VOICE_SELECTION_RECORDED", "operator", {
+                    "candidate_id": args.selection,
+                    "feedback_present": bool(args.feedback),
+                    "voice_probe_sha256": sha256_path(approved_path),
+                })
         write_gate_receipt(directory, run, args.gate_id, args.outcome, findings, {"type": "human", "identity": "operator"}, definition.get("repair_state"))
         if args.outcome == "PASS":
             transition(directory, run, definition["next_on_pass"], "operator", f"Operator confirmed {args.gate_id}")
@@ -2077,14 +3297,15 @@ def command_gate(args: argparse.Namespace) -> int:
         else:
             run["status"] = "WAITING_HUMAN" if args.outcome == "ESCALATE" else "ACTIVE"
             save_run(directory, run)
-        payload = {"ok": True, "outcome": args.outcome, "state": run["state"], "approval_id": locals().get("approval_id"), "next_command": ["article-flow", "next", run["run_id"]]}
+        next_command = ["article-flow", "advance", run["run_id"]] if automation_enabled(run) else ["article-flow", "next", run["run_id"]]
+        payload = {"ok": True, "outcome": args.outcome, "state": run["state"], "approval_id": locals().get("approval_id"), "next_command": next_command}
     emit(payload, args.json)
     return EXIT_OK
 
 
 def command_repair(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
-    definition = state_definition(run["state"])
+    definition = state_definition(run["state"], run)
     args.gate_id = args.gate_id or definition.get("gate")
     if not args.gate_id:
         raise FlowError(f"State {run['state']} has no repairable gate", EXIT_USAGE)
@@ -2210,6 +3431,16 @@ def package_metadata(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
     tags = brief.get("tags", [])
     if not isinstance(tags, list):
         tags = []
+    experiment = run.get("model_experiment", {})
+    actual_models = [str(item) for item in experiment.get("actual_models", []) if str(item)]
+    if is_v3_run(run) and not actual_models:
+        raise FlowError("Workflow 3 packaging requires exact accepted writing-model provenance", EXIT_INTEGRITY)
+    display_names = writing_model_policy()["display_names"]
+    drafting_models = [
+        {"model_id": model_id, "public_display_name": display_names.get(model_id, public_model_name(model_id))}
+        for model_id in actual_models
+    ]
+    effective_profile = json_artifact(directory, run, "voice-profile") or load_json(baseline_voice_profile_path())
     return {
         "title": title,
         "slug": slug,
@@ -2225,7 +3456,10 @@ def package_metadata(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
         "summary": (recipe.get("summary") or {}).get("policy") if isinstance(recipe.get("summary"), dict) else None,
         "narrative_person": recipe.get("narrative_person"),
         "workflow_version": run["workflow_version"],
-        "voice_profile_version": load_json(SPEC_ROOT / "profiles" / "voice-profile.v1.json")["version"],
+        "voice_profile_version": effective_profile["version"],
+        "drafting_models": drafting_models,
+        "model_experiment_contaminated": bool(experiment.get("contaminated", False)),
+        "style_policy_sha256": style_policy_sha256(),
     }
 
 
@@ -2266,6 +3500,16 @@ def render_publication_files(directory: Path, run: dict[str, Any], package_root:
     repository = publication_repo_root(required=True)
     template = (SPEC_ROOT / target["article_template"]).read_text(encoding="utf-8")
     body = markdown_to_html(article_path.read_text(encoding="utf-8"))
+    drafting_models = metadata.get("drafting_models", [])
+    if is_v3_run(run) and not drafting_models:
+        raise FlowError("Cannot render a workflow 3 article without drafting-model disclosure", EXIT_INTEGRITY)
+    if drafting_models:
+        names = [str(item.get("public_display_name")) for item in drafting_models if isinstance(item, dict)]
+        body += (
+            "\n<footer class=\"article-model-attribution\" "
+            f"data-style-policy-sha256=\"{html.escape(metadata['style_policy_sha256'], quote=True)}\">"
+            f"<p>Drafting model: {html.escape(', '.join(names))}</p></footer>"
+        )
     canonical = target["canonical_url"].format(slug=metadata["slug"])
     words = len(re.findall(r"\b\w+\b", article_path.read_text(encoding="utf-8")))
     reading_minutes = max(1, round(words / 230))
@@ -2291,6 +3535,15 @@ def render_publication_files(directory: Path, run: dict[str, Any], package_root:
     rendered = template
     for key, value in replacements.items():
         rendered = rendered.replace(key, value)
+    if drafting_models:
+        model_ids = [str(item.get("model_id")) for item in drafting_models if isinstance(item, dict)]
+        disclosure_meta = (
+            f'<meta name="article-flow-drafting-models" content="{html.escape(json.dumps(model_ids, separators=(",", ":")), quote=True)}">\n'
+            f'<meta name="article-flow-style-policy-sha256" content="{html.escape(metadata["style_policy_sha256"], quote=True)}">'
+        )
+        if "</head>" not in rendered:
+            raise FlowError("Article publication template has no </head> marker for provenance metadata", EXIT_INTEGRITY)
+        rendered = rendered.replace("</head>", disclosure_meta + "\n</head>", 1)
     site_root = package_root / "site"
     article_output = site_root / "docs" / f"{metadata['slug']}.html"
     atomic_write(article_output, rendered.encode("utf-8"))
@@ -2353,19 +3606,81 @@ def package_revision(files: Iterable[Path], root: Path) -> str:
     return digest.hexdigest()
 
 
+def style_policy_sha256() -> str:
+    return sha256_bytes(canonical_json(policy().get("style_gate", {})))
+
+
+def phrase_scan_text(value: str) -> str:
+    """Normalize public prose while excluding code, URLs, and attributed quotations."""
+    def attributed_quote(value: str) -> bool:
+        plain = re.sub(r"<[^>]+>", " ", value)
+        return bool(re.search(
+            r"(?:\b(?:said|wrote|asked|replied|according\s+to)\s+[A-Z]|"
+            r"\b[A-Z][\w.'-]*(?:\s+[A-Z][\w.'-]*){0,4}\s+(?:said|wrote|asked|replied)\b|"
+            r"(?:^|\n)\s*[—-]\s*[A-Z])",
+            plain,
+            flags=re.IGNORECASE,
+        ))
+
+    def html_blockquote(match: re.Match[str]) -> str:
+        block = match.group(0)
+        if re.search(r"<(?:cite)\b|class=[\"'][^\"']*attribution", block, flags=re.IGNORECASE) or attributed_quote(block):
+            return " "
+        return " " + re.sub(r"<[^>]+>", " ", block) + " "
+
+    def markdown_blockquote(match: re.Match[str]) -> str:
+        block = match.group(0)
+        plain = re.sub(r"(?m)^\s*>\s?", "", block)
+        return " " if attributed_quote(plain) else " " + plain + " "
+
+    normalized = unicodedata.normalize("NFKC", html.unescape(value)).replace("’", "'")
+    normalized = re.sub(r"```.*?```", " ", normalized, flags=re.DOTALL)
+    normalized = re.sub(r"`[^`\n]*`", " ", normalized)
+    normalized = re.sub(r"<(?:pre|code)\b[^>]*>.*?</(?:pre|code)>", " ", normalized, flags=re.IGNORECASE | re.DOTALL)
+    normalized = re.sub(r"<blockquote\b[^>]*>.*?</blockquote>", html_blockquote, normalized, flags=re.IGNORECASE | re.DOTALL)
+    normalized = re.sub(r"(?m)(?:^\s*>.*(?:\n|$))+", markdown_blockquote, normalized)
+    normalized = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", normalized)
+    normalized = re.sub(r"https?://[^\s<>'\")\]]+", " ", normalized, flags=re.IGNORECASE)
+    normalized = re.sub(
+        r"(?:\"[^\"\n]+\"|“[^”\n]+”)\s*,?\s*(?:(?:said|wrote|asked|replied|according\s+to)\b[^\n]*|"
+        r"[A-Z][\w.'-]*(?:\s+[A-Z][\w.'-]*){0,4}\s+(?:said|wrote|asked|replied)\b[^\n]*|[—-]\s*[A-Z][^\n]*)",
+        " ",
+        normalized,
+        flags=re.IGNORECASE,
+    )
+    normalized = re.sub(r"<[^>]+>", " ", normalized)
+    return re.sub(r"\s+", " ", normalized).strip().casefold()
+
+
 def surface_prose_hits(value: str) -> list[str]:
-    normalized = re.sub(r"\s+", " ", value).casefold()
-    return [phrase for phrase in SURFACE_PROSE_PATTERNS if phrase.casefold() in normalized]
+    normalized = phrase_scan_text(value)
+    configured = policy().get("style_gate", {}).get("high_confidence_phrases", SURFACE_PROSE_PATTERNS)
+    phrases = [str(item) for item in configured] if isinstance(configured, list) else list(SURFACE_PROSE_PATTERNS)
+    return [phrase for phrase in phrases if phrase_scan_text(phrase) in normalized]
+
+
+def style_phrase_findings(value: str, artifact: str = "current") -> list[dict[str, Any]]:
+    return [
+        {
+            "criterion": "high_confidence_cliche",
+            "artifact": artifact,
+            "location": None,
+            "finding": f"Public prose contains the high-confidence formulaic phrase {phrase!r}.",
+            "repair_instruction": "Rewrite only the affected passage in concrete, article-specific language, then rescan it.",
+        }
+        for phrase in surface_prose_hits(value)
+    ]
 
 
 def forbidden_public_prose_character_findings(value: str) -> list[dict[str, Any]]:
     findings: list[dict[str, Any]] = []
+    decoded_value = unicodedata.normalize("NFKC", html.unescape(value))
     for character, policy_value in FORBIDDEN_PUBLIC_PROSE_CHARACTERS.items():
-        count = value.count(character)
+        count = decoded_value.count(character)
         if not count:
             continue
         locations: list[str] = []
-        for line_number, line in enumerate(value.splitlines(), start=1):
+        for line_number, line in enumerate(decoded_value.splitlines(), start=1):
             start = 0
             while len(locations) < 5:
                 column = line.find(character, start)
@@ -2430,8 +3745,34 @@ def validate_public_package(package_root: Path, metadata: dict[str, Any]) -> lis
             findings.append({**finding, "path": f"metadata.{field}"})
     if article_markdown.is_file():
         article_text = article_markdown.read_text(encoding="utf-8", errors="replace")
+        findings.extend(style_phrase_findings(article_text, str(article_markdown)))
         for finding in forbidden_public_prose_character_findings(article_text):
             findings.append({**finding, "path": str(article_markdown)})
+    rendered_surfaces = [article_html, site_root / "docs" / "blog.html", site_root / "index.html", site_root / "feed.xml"]
+    for surface in rendered_surfaces:
+        if not surface.is_file():
+            continue
+        surface_text = surface.read_text(encoding="utf-8", errors="replace")
+        scan_text = surface_text
+        if surface.name in {"blog.html", "index.html"}:
+            card = re.search(
+                rf'<article\b[^>]*data-article-flow-slug="{re.escape(str(metadata["slug"]))}"[^>]*>.*?</article>',
+                surface_text,
+                flags=re.IGNORECASE | re.DOTALL,
+            )
+            if card:
+                scan_text = card.group(0)
+        elif surface.name == "feed.xml":
+            item = next(
+                (match.group(0) for match in re.finditer(r"<item\b[^>]*>.*?</item>", surface_text, flags=re.IGNORECASE | re.DOTALL) if str(metadata["slug"]) in match.group(0)),
+                None,
+            )
+            if item:
+                scan_text = item
+        for finding in style_phrase_findings(scan_text, str(surface)):
+            findings.append({**finding, "path": str(surface)})
+        for finding in forbidden_public_prose_character_findings(scan_text):
+            findings.append({**finding, "path": str(surface)})
     for xml_name in ("feed.xml", "sitemap.xml"):
         path = site_root / xml_name
         if path.is_file():
@@ -2450,6 +3791,18 @@ def validate_public_package(package_root: Path, metadata: dict[str, Any]) -> lis
         }.items():
             if required_text not in text:
                 findings.append({"criterion": name, "path": str(article_html), "finding": f"Missing {name}."})
+        drafting_models = metadata.get("drafting_models", [])
+        if drafting_models:
+            model_names = ", ".join(str(item.get("public_display_name")) for item in drafting_models if isinstance(item, dict))
+            required_provenance = {
+                "model_footer": f"Drafting model: {html.escape(model_names)}",
+                "model_meta": '<meta name="article-flow-drafting-models"',
+                "style_policy_meta": f'<meta name="article-flow-style-policy-sha256" content="{metadata.get("style_policy_sha256")}">',
+                "style_policy_footer": f'data-style-policy-sha256="{metadata.get("style_policy_sha256")}"',
+            }
+            for name, required_text in required_provenance.items():
+                if required_text not in text:
+                    findings.append({"criterion": name, "path": str(article_html), "finding": f"Missing or incorrect {name}."})
         for attribute, target in re.findall(r"\b(href|src)=\"([^\"]+)\"", text):
             if target.startswith(("http://", "https://", "mailto:", "#", "data:")):
                 continue
@@ -2630,6 +3983,33 @@ def command_package(args: argparse.Namespace) -> int:
             "private_archive": "private/archive-index.json",
             "created_at": utc_now(),
         }
+        if is_v3_run(run):
+            assignment_value = json_artifact(directory, run, "model-assignment")
+            if not assignment_value:
+                raise FlowError("Workflow 3 package is missing its model assignment", EXIT_INTEGRITY)
+            receipt_hashes = sorted({
+                str(item.get("sha256"))
+                for item in run.get("artifact_index", [])
+                if str(item.get("type", "")).startswith("model-call:")
+                and any(f"model-call:{stage}:" in str(item.get("type")) for stage in V3_WRITING_STATES)
+                and item.get("sha256")
+            })
+            if not receipt_hashes:
+                raise FlowError("Workflow 3 package lacks writing-model call receipts", EXIT_INTEGRITY)
+            model_names = [str(item["public_display_name"]) for item in metadata["drafting_models"]]
+            experiment = run.get("model_experiment", {})
+            package.update({
+                "automation_mode": str(run.get("run_overrides", {}).get("automation_mode", "manual")),
+                "effective_voice_profile_version": metadata["voice_profile_version"],
+                "model_assignment": assignment_value,
+                "model_attribution": {
+                    "public_display_name": ", ".join(model_names),
+                    "footer_text": f"Drafting model: {', '.join(model_names)}",
+                    "source_receipt_hashes": receipt_hashes,
+                },
+                "style_policy_sha256": metadata["style_policy_sha256"],
+                "writing_model_fallback_status": "contaminated" if experiment.get("contaminated") else "none",
+            })
         package_path = package_root / "package.json"
         write_json(package_path, package)
         errors = validate_json_schema(package_path, "package.schema.json")
@@ -2652,7 +4032,7 @@ def command_publish_plan(args: argparse.Namespace) -> int:
     plan_path = directory / "publication" / "plan.json"
     if plan_path.is_file():
         existing = load_json(plan_path)
-        if existing.get("package_revision") == package.get("package_revision") and existing.get("base_commit") == str(git(["rev-parse", "HEAD"], cwd=repository)).strip() and existing.get("target") == target.get("target_id"):
+        if existing.get("package_revision") == package.get("package_revision") and existing.get("base_commit") == str(git(["rev-parse", "HEAD"], cwd=repository)).strip() and existing.get("target") == target.get("target_id") and (not is_v3_run(run) or existing.get("style_policy_sha256") == package.get("style_policy_sha256") == style_policy_sha256()):
             emit({"ok": True, "dry_run": True, "idempotent": True, "plan": str(plan_path), **existing, "approval_command": ["article-flow", "gate", run["run_id"], "G-PUBLISH-APPROVAL", "--outcome", "PASS"]}, args.json)
             return EXIT_OK
     site_root = directory / "package" / "site"
@@ -2672,6 +4052,7 @@ def command_publish_plan(args: argparse.Namespace) -> int:
         "target": target["target_id"],
         "base_commit": str(git(["rev-parse", "HEAD"], cwd=repository)).strip(),
         "package_revision": package["package_revision"],
+        "style_policy_sha256": package.get("style_policy_sha256") if is_v3_run(run) else None,
         "changes": changes,
         "push_requires_explicit_flag": True,
         "created_at": utc_now(),
@@ -2837,6 +4218,13 @@ def command_publish_execute(args: argparse.Namespace) -> int:
     package = load_json(directory / "package" / "package.json")
     if package.get("package_revision") != plan.get("package_revision"):
         raise FlowError("Package revision changed after publication planning", EXIT_INTEGRITY)
+    if is_v3_run(run):
+        current_style_hash = style_policy_sha256()
+        if package.get("style_policy_sha256") != current_style_hash or plan.get("style_policy_sha256") != current_style_hash:
+            raise FlowError("Style policy changed after package approval", EXIT_INTEGRITY)
+        findings = validate_public_package(directory / "package", load_json(directory / "package" / "public" / "metadata.json"))
+        if findings:
+            raise FlowError("Approved package no longer passes public-prose validation", EXIT_INTEGRITY, findings)
     for item in package.get("public_files", []):
         path = directory / "package" / safe_relative(str(item["path"]))
         if not path.is_file() or sha256_path(path) != item.get("sha256"):
@@ -3098,8 +4486,247 @@ def command_verify_live(args: argparse.Namespace) -> int:
         emit({"ok": False, "receipt": str(receipt_path), "checks": checks, "indexing": "unknown_not_claimed"}, args.json)
         return EXIT_FAILED
     write_gate_receipt(directory, run, "G-LIVE-REVISION", "PASS", [], {"type": "code", "version": CONTROLLER_VERSION})
+    record_experiment_outcome(directory, run)
     transition(directory, run, "COMPLETE", "controller", "Exact rendered revision and required discovery surfaces verified")
     emit({"ok": True, "url": receipt["url"], "receipt": str(receipt_path), "state": run["state"], "indexing": "unknown_not_claimed"}, args.json)
+    return EXIT_OK
+
+
+def _silent_command(function: Any, args: argparse.Namespace) -> tuple[int, dict[str, Any] | None]:
+    buffer = io.StringIO()
+    with contextlib.redirect_stdout(buffer):
+        code = int(function(args))
+    rendered = buffer.getvalue().strip()
+    if not rendered:
+        return code, None
+    try:
+        value = json.loads(rendered)
+    except json.JSONDecodeError:
+        value = {"output": rendered}
+    return code, value if isinstance(value, dict) else {"output": value}
+
+
+def simulate_no_publish(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
+    """Complete deterministic publication states without git, network, or public writes."""
+    if os.environ.get("ARTICLE_FLOW_TEST_NO_PUBLISH") != "1":
+        raise FlowError("No-publish simulation is available only in the explicit test environment", EXIT_APPROVAL)
+    package = load_json(directory / "package" / "package.json")
+    plan = load_json(directory / "publication" / "plan.json")
+    approval = json_artifact(directory, run, "publish-approval") or {}
+    if run["state"] == "PUBLISH":
+        receipt = {
+            "publication_receipt_schema_version": "1.0.0",
+            "run_id": run["run_id"],
+            "target": plan["target"],
+            "package_revision": package["package_revision"],
+            "approval_id": approval.get("approval_id"),
+            "expires_at": approval.get("expires_at"),
+            "status": "APPLIED",
+            "commit": None,
+            "url": None,
+            "checks": [{"test_no_publish": True, "git_write": False, "network_write": False}],
+            "created_at": utc_now(),
+        }
+        path = directory / "receipts" / "publication.json"
+        write_json(path, receipt)
+        errors = validate_json_schema(path, "publication-receipt.schema.json")
+        if errors:
+            raise FlowError("Controller generated an invalid no-publish receipt", EXIT_INTEGRITY, errors)
+        record_artifact(directory, run, path, "publication", {"actor": "controller", "version": CONTROLLER_VERSION, "simulation": True})
+        append_event(directory, run, "PUBLICATION", "controller", {"status": "TEST_NO_PUBLISH", "package_revision": plan["package_revision"]})
+        write_gate_receipt(directory, run, "G-PUBLISH-REVISION", "PASS", [], {"type": "code", "version": CONTROLLER_VERSION, "simulation": True})
+        transition(directory, run, "LIVE_VERIFICATION", "controller", "Explicit no-publish test simulated an applied revision without external writes")
+    if run["state"] == "LIVE_VERIFICATION":
+        receipt = {
+            "publication_receipt_schema_version": "1.0.0",
+            "run_id": run["run_id"],
+            "target": plan["target"],
+            "package_revision": package["package_revision"],
+            "approval_id": approval.get("approval_id"),
+            "expires_at": None,
+            "status": "VERIFIED",
+            "commit": None,
+            "url": None,
+            "checks": [{"test_no_publish": True, "live_network_check_skipped": True}],
+            "accessibility_proved": False,
+            "represented_for_discovery": False,
+            "indexing": "unknown_not_claimed",
+            "created_at": utc_now(),
+        }
+        path = directory / "receipts" / "live-verification.json"
+        write_json(path, receipt)
+        errors = validate_json_schema(path, "publication-receipt.schema.json")
+        if errors:
+            raise FlowError("Controller generated an invalid simulated verification receipt", EXIT_INTEGRITY, errors)
+        record_artifact(directory, run, path, "live-verification", {"actor": "controller", "version": CONTROLLER_VERSION, "simulation": True})
+        append_event(directory, run, "VERIFICATION", "controller", {"ok": True, "test_no_publish": True, "url": None})
+        write_gate_receipt(directory, run, "G-LIVE-REVISION", "PASS", [], {"type": "code", "version": CONTROLLER_VERSION, "simulation": True})
+        record_experiment_outcome(directory, run)
+        transition(directory, run, "COMPLETE", "controller", "No-publish conformance path completed without external writes")
+    return {"ok": True, "test_no_publish": True, "state": run["state"]}
+
+
+def command_advance(args: argparse.Namespace) -> int:
+    """Continue a workflow-3 run synchronously until its sole routine human choice or completion."""
+    progress: list[dict[str, Any]] = []
+    maximum = int(getattr(args, "max_steps", 100))
+    for _ in range(maximum):
+        directory, run = load_run(args.run_id)
+        state = run["state"]
+        if state in {"COMPLETE", "TERMINAL"}:
+            payload = {"ok": state == "COMPLETE", "action": state.lower(), "run_id": run["run_id"], "state": state, "progress": progress}
+            emit(payload, args.json)
+            return EXIT_OK if state == "COMPLETE" else EXIT_FAILED
+        if run.get("status") == "BLOCKED":
+            payload = {**next_state_payload(directory, run), "ok": False, "progress": progress}
+            emit(payload, args.json)
+            return EXIT_WAITING
+        if state == "VOICE_PROBE" and artifact(run, "voice-probe"):
+            payload = {**next_state_payload(directory, run), "ok": True, "progress": progress}
+            emit(payload, args.json)
+            return EXIT_WAITING
+        if state in MODEL_STATES:
+            code, result = _silent_command(command_execute_stage, argparse.Namespace(
+                run_id=run["run_id"], route=None, canary=False, json=True,
+            ))
+            progress.append({"state": state, "command": "execute-stage", "exit_code": code, "result": result})
+            if code == EXIT_WAITING:
+                directory, run = load_run(args.run_id)
+                payload = {**next_state_payload(directory, run), "ok": False, "progress": progress}
+                emit(payload, args.json)
+                return EXIT_WAITING
+            if code not in {EXIT_OK}:
+                directory, run = load_run(args.run_id)
+                payload = {"ok": False, "action": "blocked", "run_id": run["run_id"], "state": run["state"], "progress": progress, "result": result}
+                emit(payload, args.json)
+                return code
+            continue
+        if state == "VOICE_LEARNING":
+            with run_lock(directory, run):
+                result = apply_voice_learning(directory, run)
+            progress.append({"state": state, "command": "voice-apply", "result": result})
+            continue
+        if state == "PACKAGE":
+            code, result = _silent_command(command_package, argparse.Namespace(run_id=run["run_id"], json=True))
+            progress.append({"state": state, "command": "package", "exit_code": code, "result": result})
+            if code != EXIT_OK:
+                emit({"ok": False, "action": "blocked", "run_id": run["run_id"], "state": state, "progress": progress}, args.json)
+                return code
+            continue
+        if state == "PUBLISH_APPROVAL":
+            plan_path = directory / "publication" / "plan.json"
+            if not plan_path.is_file():
+                code, result = _silent_command(command_publish_plan, argparse.Namespace(run_id=run["run_id"], json=True))
+                progress.append({"state": state, "command": "publish-plan", "exit_code": code, "result": result})
+                if code != EXIT_OK:
+                    emit({"ok": False, "action": "blocked", "run_id": run["run_id"], "state": state, "progress": progress}, args.json)
+                    return code
+                continue
+            if not run.get("run_overrides", {}).get("auto_publish", False):
+                run["status"] = "WAITING_HUMAN"
+                save_run(directory, run)
+                payload = {"ok": True, "action": "publication_hold", "run_id": run["run_id"], "state": state, "plan": str(plan_path), "progress": progress}
+                emit(payload, args.json)
+                return EXIT_WAITING
+            with run_lock(directory, run):
+                approval_id, _ = create_publish_approval(directory, run, load_json(plan_path), actor="policy")
+                transition(directory, run, "PUBLISH", "policy", "Hash-bound policy approval issued for the allowlisted production target")
+            progress.append({"state": state, "command": "policy-approval", "approval_id": approval_id})
+            continue
+        if state == "PUBLISH":
+            if os.environ.get("ARTICLE_FLOW_TEST_NO_PUBLISH") == "1":
+                with run_lock(directory, run):
+                    result = simulate_no_publish(directory, run)
+                progress.append({"state": state, "command": "test-no-publish", "result": result})
+                continue
+            approval = json_artifact(directory, run, "publish-approval")
+            if not approval:
+                raise FlowError("Automatic publish reached PUBLISH without a scoped approval", EXIT_APPROVAL)
+            if parse_time(str(approval["expires_at"])) <= dt.datetime.now(dt.timezone.utc):
+                with run_lock(directory, run):
+                    approval_id, _ = create_publish_approval(
+                        directory,
+                        run,
+                        load_json(directory / "publication" / "plan.json"),
+                        renewed_from=str(approval.get("approval_id")),
+                        actor="policy",
+                    )
+            else:
+                approval_id = str(approval["approval_id"])
+            code, result = _silent_command(command_publish_execute, argparse.Namespace(
+                run_id=run["run_id"], approval=approval_id, commit=True, push=True, json=True,
+            ))
+            progress.append({"state": state, "command": "publish-execute", "exit_code": code, "result": result})
+            if code == EXIT_WAITING:
+                directory, run = load_run(args.run_id)
+                payload = {**next_state_payload(directory, run), "ok": False, "progress": progress}
+                emit(payload, args.json)
+                return EXIT_WAITING
+            if code != EXIT_OK:
+                emit({"ok": False, "action": "blocked", "run_id": run["run_id"], "state": state, "progress": progress}, args.json)
+                return code
+            continue
+        if state == "LIVE_VERIFICATION":
+            if os.environ.get("ARTICLE_FLOW_TEST_NO_PUBLISH") == "1":
+                with run_lock(directory, run):
+                    result = simulate_no_publish(directory, run)
+                progress.append({"state": state, "command": "test-live-verification", "result": result})
+                continue
+            code, result = _silent_command(command_verify_live, argparse.Namespace(run_id=run["run_id"], json=True))
+            progress.append({"state": state, "command": "verify-live", "exit_code": code, "result": result})
+            if code != EXIT_OK:
+                emit({"ok": False, "action": "live_verification_failed", "run_id": run["run_id"], "state": state, "progress": progress}, args.json)
+                return EXIT_WAITING
+            continue
+        raise FlowError(f"Advance has no deterministic handler for state {state}", EXIT_INTEGRITY)
+    directory, run = load_run(args.run_id)
+    emit({"ok": False, "action": "step_limit", "run_id": run["run_id"], "state": run["state"], "progress": progress}, args.json)
+    return EXIT_WAITING
+
+
+def command_choose_voice(args: argparse.Namespace) -> int:
+    gate_args = argparse.Namespace(
+        run_id=args.run_id,
+        gate_id="G-VOICE-PROBE",
+        outcome="PASS",
+        finding=None,
+        artifact=None,
+        selection=args.candidate_id,
+        feedback=args.feedback,
+        json=True,
+    )
+    code, result = _silent_command(command_gate, gate_args)
+    if code != EXIT_OK:
+        emit(result or {"ok": False}, args.json)
+        return code
+    if args.auto:
+        return command_advance(argparse.Namespace(run_id=args.run_id, max_steps=100, json=args.json))
+    directory, run = load_run(args.run_id)
+    emit({"ok": True, "selection": args.candidate_id, "state": run["state"], "next_command": ["article-flow", "advance", run["run_id"]]}, args.json)
+    return EXIT_OK
+
+
+def command_voice_apply(args: argparse.Namespace) -> int:
+    directory, run = load_run(args.run_id)
+    with run_lock(directory, run):
+        result = apply_voice_learning(directory, run)
+    result["next_command"] = ["article-flow", "advance", run["run_id"]]
+    emit(result, args.json)
+    return EXIT_OK
+
+
+def command_voice_history(args: argparse.Namespace) -> int:
+    emit(voice_history(), args.json)
+    return EXIT_OK
+
+
+def command_voice_rollback(args: argparse.Namespace) -> int:
+    emit(rollback_voice_profile(args.version), args.json)
+    return EXIT_OK
+
+
+def command_models_history(args: argparse.Namespace) -> int:
+    emit(model_history(), args.json)
     return EXIT_OK
 
 
@@ -3156,18 +4783,19 @@ def record_linked_checkout(
         "workflow_version": workflow()["workflow_version"],
         "spec_root": spec_root_value,
         "source_checkout": source_checkout_value,
-        "installed_at": current.get("installed_at") or utc_now(),
         "development": development,
         "linked_checkout": True,
         "publication_repo_root": publication_repository,
         "captured_material_root": captured_material_root,
         "source_commit": source_commit,
     }
+    prior_without_timestamp = {key: value for key, value in current.items() if key != "installed_at"}
+    current_value["installed_at"] = (current.get("installed_at") or utc_now()) if prior_without_timestamp == current_value else utc_now()
     if current != current_value:
         write_json(current_path, current_value)
 
 
-def remove_managed_release_copies(home: Path) -> str | None:
+def validate_managed_release_copies(home: Path) -> Path | None:
     releases = home / "releases"
     if not releases.is_dir():
         return None
@@ -3190,6 +4818,13 @@ def remove_managed_release_copies(home: Path) -> str | None:
                 )
         if not recognized:
             raise FlowError(f"Refusing to remove an unrecognized release directory: {candidate}")
+    return releases
+
+
+def remove_managed_release_copies(home: Path) -> str | None:
+    releases = validate_managed_release_copies(home)
+    if releases is None:
+        return None
     shutil.rmtree(releases)
     return str(releases)
 
@@ -3257,63 +4892,88 @@ def command_install(args: argparse.Namespace) -> int:
     invalid = hosts - {"windows", "wsl"}
     if invalid:
         raise FlowError(f"Unsupported hosts: {', '.join(sorted(invalid))}", EXIT_USAGE)
+    if not args.development:
+        integrity = check_manifest("worktree")
+        if not integrity["ok"]:
+            raise FlowError("Cannot install an unmanifested workflow", EXIT_INTEGRITY, integrity)
     user_root = windows_user_root()
+    publication_repository = publication_repo_root(required=True)
     shared_runs_root = (user_root / ".article-flow" / "runs").resolve() if user_root else (runtime_home() / "runs").resolve()
+    wsl_home = runtime_home() if os.environ.get("ARTICLE_FLOW_HOME") else Path.home() / ".local" / "share" / "article-flow"
+    wsl_wrapper = Path.home() / ".local" / "bin" / "article-flow"
+    windows_home: Path | None = None
+    windows_bin_dir: Path | None = None
+    windows_python: Path | None = None
+    windows_legacy_launchers: tuple[Path, ...] = ()
+    if "wsl" in hosts:
+        require_managed_legacy_skill_adapters(wsl_legacy_skill_targets())
+        validate_managed_release_copies(wsl_home.resolve())
+        if wsl_wrapper.is_file() and "article-flow managed launcher" not in wsl_wrapper.read_text(encoding="utf-8", errors="ignore"):
+            raise FlowError(f"Refusing to overwrite an unmanaged launcher: {wsl_wrapper}")
+    if "windows" in hosts:
+        if not user_root:
+            raise FlowError("Cannot resolve the Windows user profile; set ARTICLE_FLOW_WINDOWS_USER_ROOT")
+        require_managed_legacy_skill_adapters(windows_legacy_skill_targets(user_root))
+        windows_bin_dir = user_root / "AppData" / "Local" / "Microsoft" / "WindowsApps"
+        windows_home = user_root / ".article-flow"
+        validate_managed_release_copies(windows_home)
+        windows_legacy_launchers = (
+            user_root / ".local" / "bin" / "article-flow.cmd",
+            user_root / ".local" / "bin" / "article-flow.ps1",
+            windows_bin_dir / "article-flow.ps1",
+        )
+        for legacy in windows_legacy_launchers:
+            if legacy.is_file() and "article-flow managed launcher" not in legacy.read_text(encoding="utf-8", errors="ignore"):
+                raise FlowError(f"Refusing to remove an unmanaged launcher: {legacy}")
+        python_candidates = [
+            user_root / "AppData" / "Local" / "Programs" / "Python" / "Python312" / "python.exe",
+            user_root / "AppData" / "Local" / "Microsoft" / "WindowsApps" / "python.exe",
+        ]
+        windows_python = next((item for item in python_candidates if item.exists()), None)
+        if not windows_python:
+            raise FlowError("Native Windows Python was not found")
+        windows_command = windows_bin_dir / "article-flow.cmd"
+        if windows_command.is_file() and "article-flow managed launcher" not in windows_command.read_text(encoding="utf-8", errors="ignore"):
+            raise FlowError(f"Refusing to overwrite an unmanaged launcher: {windows_command}")
     shared_runs_root.mkdir(parents=True, exist_ok=True)
     installed: list[dict[str, Any]] = []
     if "wsl" in hosts:
-        require_managed_legacy_skill_adapters(wsl_legacy_skill_targets())
-        home = runtime_home() if os.environ.get("ARTICLE_FLOW_HOME") else Path.home() / ".local" / "share" / "article-flow"
+        home = wsl_home
         record_linked_checkout(
             home.resolve(),
             host="wsl",
             development=args.development,
-            publication_repository=str(publication_repo_root() or REPO_ROOT),
+            publication_repository=str(publication_repository),
             captured_material_root=str(shared_runs_root),
         )
-        wrapper = Path.home() / ".local" / "bin" / "article-flow"
+        wrapper = wsl_wrapper
         wrapper.parent.mkdir(parents=True, exist_ok=True)
         wrapper_text = (
             f"#!/usr/bin/env sh\n# article-flow managed launcher {CONTROLLER_VERSION}\n"
             f"export ARTICLE_FLOW_HOME={shlex.quote(str(home.resolve()))}\n"
             f"export ARTICLE_FLOW_RUNS_ROOT={shlex.quote(str(shared_runs_root))}\n"
-            f"export ARTICLE_FLOW_REPO_ROOT={shlex.quote(str(REPO_ROOT.resolve()))}\n"
+            f"export ARTICLE_FLOW_REPO_ROOT={shlex.quote(str(publication_repository))}\n"
             f"exec python3 {shlex.quote(str(SCRIPT_PATH.resolve()))} \"$@\"\n"
         )
         write_if_changed(wrapper, wrapper_text.encode("utf-8"), mode=0o755)
         retired = retire_managed_skill_adapters(wsl_legacy_skill_targets(), home.resolve())
         removed_releases = remove_managed_release_copies(home.resolve())
-        installed.append({"host": "wsl", "home": str(home.resolve()), "captured_material_root": str(shared_runs_root), "command": str(wrapper), "source_checkout": str(REPO_ROOT.resolve()), "retired_skill_adapters": retired, "removed_release_copies": removed_releases})
+        installed.append({"host": "wsl", "home": str(home.resolve()), "captured_material_root": str(shared_runs_root), "publication_repo_root": str(publication_repository), "command": str(wrapper), "source_checkout": str(REPO_ROOT.resolve()), "retired_skill_adapters": retired, "removed_release_copies": removed_releases})
     if "windows" in hosts:
-        if not user_root:
-            raise FlowError("Cannot resolve the Windows user profile; set ARTICLE_FLOW_WINDOWS_USER_ROOT")
-        require_managed_legacy_skill_adapters(windows_legacy_skill_targets(user_root))
-        bin_dir = user_root / "AppData" / "Local" / "Microsoft" / "WindowsApps"
-        legacy_launchers = (
-            user_root / ".local" / "bin" / "article-flow.cmd",
-            user_root / ".local" / "bin" / "article-flow.ps1",
-            bin_dir / "article-flow.ps1",
-        )
-        for legacy in legacy_launchers:
-            if legacy.is_file() and "article-flow managed launcher" not in legacy.read_text(encoding="utf-8", errors="ignore"):
-                raise FlowError(f"Refusing to remove an unmanaged launcher: {legacy}")
-        home = user_root / ".article-flow"
+        assert user_root is not None and windows_home is not None and windows_bin_dir is not None and windows_python is not None
+        bin_dir = windows_bin_dir
+        legacy_launchers = windows_legacy_launchers
+        home = windows_home
         record_linked_checkout(
             home,
             host="windows",
             development=args.development,
-            publication_repository=windows_path(publication_repo_root() or REPO_ROOT),
+            publication_repository=windows_path(publication_repository),
             captured_material_root=windows_path(shared_runs_root),
         )
-        python_candidates = [
-            user_root / "AppData" / "Local" / "Programs" / "Python" / "Python312" / "python.exe",
-            user_root / "AppData" / "Local" / "Microsoft" / "WindowsApps" / "python.exe",
-        ]
-        python_exe = next((item for item in python_candidates if item.exists()), None)
-        if not python_exe:
-            raise FlowError("Native Windows Python was not found")
+        python_exe = windows_python
         bin_dir.mkdir(parents=True, exist_ok=True)
-        cmd_text = f"@echo off\r\nrem article-flow managed launcher {CONTROLLER_VERSION}\r\nset \"ARTICLE_FLOW_HOME={windows_path(home)}\"\r\nset \"ARTICLE_FLOW_RUNS_ROOT={windows_path(shared_runs_root)}\"\r\nset \"ARTICLE_FLOW_REPO_ROOT={windows_path(REPO_ROOT)}\"\r\n\"{windows_path(python_exe)}\" \"{windows_path(SCRIPT_PATH)}\" %*\r\n"
+        cmd_text = f"@echo off\r\nrem article-flow managed launcher {CONTROLLER_VERSION}\r\nset \"ARTICLE_FLOW_HOME={windows_path(home)}\"\r\nset \"ARTICLE_FLOW_RUNS_ROOT={windows_path(shared_runs_root)}\"\r\nset \"ARTICLE_FLOW_REPO_ROOT={windows_path(publication_repository)}\"\r\n\"{windows_path(python_exe)}\" \"{windows_path(SCRIPT_PATH)}\" %*\r\n"
         command = bin_dir / "article-flow.cmd"
         if command.is_file() and "article-flow managed launcher" not in command.read_text(encoding="utf-8", errors="ignore"):
             raise FlowError(f"Refusing to overwrite an unmanaged launcher: {command}")
@@ -3324,7 +4984,7 @@ def command_install(args: argparse.Namespace) -> int:
                 retired_launchers.append(str(legacy))
         retired = retire_managed_skill_adapters(windows_legacy_skill_targets(user_root), home)
         removed_releases = remove_managed_release_copies(home)
-        installed.append({"host": "windows", "home": str(home), "captured_material_root": windows_path(shared_runs_root), "command": str(command), "source_checkout": windows_path(REPO_ROOT), "retired_launchers": retired_launchers, "retired_skill_adapters": retired, "removed_release_copies": removed_releases, "python": str(python_exe)})
+        installed.append({"host": "windows", "home": str(home), "captured_material_root": windows_path(shared_runs_root), "publication_repo_root": windows_path(publication_repository), "command": str(command), "source_checkout": windows_path(REPO_ROOT), "retired_launchers": retired_launchers, "retired_skill_adapters": retired, "removed_release_copies": removed_releases, "python": str(python_exe)})
     emit({"ok": True, "controller_version": CONTROLLER_VERSION, "workflow_version": workflow()["workflow_version"], "installed": installed, "idempotent": True}, args.json)
     return EXIT_OK
 
@@ -3373,7 +5033,7 @@ def command_providers_list(args: argparse.Namespace) -> int:
             "enabled": provider.get("enabled", False),
             "credential_environment_variable": provider.get("credential_environment_variable"),
             "credential_present": bool(os.environ.get(str(provider.get("credential_environment_variable")))) if provider.get("credential_environment_variable") else None,
-            "endpoint_present": resolved_provider_endpoint(provider) is not None or provider.get("kind") in {"agent-hosted", "command"},
+            "endpoint_present": resolved_provider_endpoint(provider) is not None or provider.get("kind") in {"agent-hosted", "command", "codex-cli"},
             "models": [{key: model.get(key) for key in ("model_id", "version", "capabilities", "stages", "canary_status")} for model in provider.get("models", []) if isinstance(model, dict)],
         })
     emit({"ok": True, "configuration_path": registry["configuration_path"], "providers": providers}, args.json)
@@ -3612,23 +5272,68 @@ def host_conformance_health() -> dict[str, Any]:
 
 
 def installation_health() -> dict[str, Any]:
-    checks = []
+    checks: list[dict[str, Any]] = []
     if os.name == "nt":
         windows_root = windows_user_root()
         candidates = [("windows", windows_root / ".article-flow" / "current.json")] if windows_root else []
     else:
         candidates = [("wsl", Path.home() / ".local" / "share" / "article-flow" / "current.json")]
+        windows_root = windows_user_root()
+        if windows_root:
+            candidates.append(("windows", windows_root / ".article-flow" / "current.json"))
     for host, path in candidates:
         record = load_json(path) if path.is_file() else {}
+        expected_spec_root = windows_path(SPEC_ROOT) if host == "windows" else str(SPEC_ROOT.resolve())
+        expected_source_checkout = windows_path(REPO_ROOT) if host == "windows" else str(REPO_ROOT.resolve())
+        expected_script_path = windows_path(SCRIPT_PATH) if host == "windows" else str(SCRIPT_PATH.resolve())
+        expected_runs_root = windows_path(runs_root()) if host == "windows" else str(runs_root().resolve())
+        publication_root = publication_repo_root()
+        expected_publication_root = (
+            windows_path(publication_root) if host == "windows" and publication_root
+            else str(publication_root.resolve()) if publication_root
+            else None
+        )
+        if host == "windows" and windows_root:
+            launcher_path = windows_root / "AppData" / "Local" / "Microsoft" / "WindowsApps" / "article-flow.cmd"
+            python_candidates = [
+                windows_root / "AppData" / "Local" / "Programs" / "Python" / "Python312" / "python.exe",
+                windows_root / "AppData" / "Local" / "Microsoft" / "WindowsApps" / "python.exe",
+            ]
+            python_exe = next((item for item in python_candidates if item.exists()), None)
+            expected_launcher = (
+                f"@echo off\r\nrem article-flow managed launcher {CONTROLLER_VERSION}\r\n"
+                f"set \"ARTICLE_FLOW_HOME={windows_path(path.parent)}\"\r\n"
+                f"set \"ARTICLE_FLOW_RUNS_ROOT={expected_runs_root}\"\r\n"
+                f"set \"ARTICLE_FLOW_REPO_ROOT={expected_publication_root}\"\r\n"
+                f"\"{windows_path(python_exe)}\" \"{expected_script_path}\" %*\r\n"
+            ) if python_exe and expected_publication_root else ""
+        else:
+            launcher_path = Path.home() / ".local" / "bin" / "article-flow"
+            expected_launcher = (
+                f"#!/usr/bin/env sh\n# article-flow managed launcher {CONTROLLER_VERSION}\n"
+                f"export ARTICLE_FLOW_HOME={shlex.quote(str(path.parent.resolve()))}\n"
+                f"export ARTICLE_FLOW_RUNS_ROOT={shlex.quote(expected_runs_root)}\n"
+                f"export ARTICLE_FLOW_REPO_ROOT={shlex.quote(str(expected_publication_root))}\n"
+                f"exec python3 {shlex.quote(expected_script_path)} \"$@\"\n"
+            ) if expected_publication_root else ""
+        launcher_agrees = bool(
+            expected_launcher
+            and launcher_path.is_file()
+            and launcher_path.read_bytes() == expected_launcher.encode("utf-8")
+        )
         ok = bool(
             record.get("controller_version") == CONTROLLER_VERSION
             and record.get("workflow_version") == workflow()["workflow_version"]
             and record.get("development") is False
             and record.get("linked_checkout") is True
-            and Path(str(record.get("captured_material_root", ""))).resolve() == runs_root().resolve()
+            and record.get("spec_root") == expected_spec_root
+            and record.get("source_checkout") == expected_source_checkout
+            and record.get("publication_repo_root") == expected_publication_root
+            and record.get("captured_material_root") == expected_runs_root
             and record.get("source_commit") == release_source_commit()
+            and launcher_agrees
         )
-        checks.append({"host": host, "path": str(path), "ok": ok, "controller_version": record.get("controller_version"), "workflow_version": record.get("workflow_version"), "development": record.get("development"), "linked_checkout": record.get("linked_checkout"), "captured_material_root": record.get("captured_material_root"), "source_commit": record.get("source_commit")})
+        checks.append({"host": host, "path": str(path), "ok": ok, "controller_version": record.get("controller_version"), "workflow_version": record.get("workflow_version"), "development": record.get("development"), "linked_checkout": record.get("linked_checkout"), "spec_root": record.get("spec_root"), "source_checkout": record.get("source_checkout"), "publication_repo_root": record.get("publication_repo_root"), "captured_material_root": record.get("captured_material_root"), "source_commit": record.get("source_commit"), "launcher": str(launcher_path), "launcher_agrees": launcher_agrees})
     return {"ok": bool(checks) and all(item["ok"] for item in checks), "checks": checks}
 
 
@@ -4002,6 +5707,9 @@ def build_parser() -> argparse.ArgumentParser:
     seed_group.add_argument("--seed")
     seed_group.add_argument("--seed-file")
     start.add_argument("--slug")
+    start.add_argument("--auto", action="store_true", help="Continue synchronously until the voice choice, a blocker, or completion.")
+    start.add_argument("--draft-model", choices=DEFAULT_DRAFT_MODEL_POOL, help="Override the next round-robin writing-model assignment without consuming a rotation slot.")
+    start.add_argument("--hold-before-publish", action="store_true", help="Stop after publication planning instead of issuing policy approval.")
     add_json(start)
 
     capture = sub.add_parser("capture", help="Capture one raw article idea verbatim and begin its run.")
@@ -4009,7 +5717,38 @@ def build_parser() -> argparse.ArgumentParser:
     capture_group.add_argument("seed", nargs="?")
     capture_group.add_argument("--seed-file")
     capture.add_argument("--slug")
+    capture.add_argument("--auto", action="store_true", help="Continue synchronously until the voice choice, a blocker, or completion.")
+    capture.add_argument("--draft-model", choices=DEFAULT_DRAFT_MODEL_POOL, help="Override the next round-robin writing-model assignment without consuming a rotation slot.")
+    capture.add_argument("--hold-before-publish", action="store_true", help="Stop after publication planning instead of issuing policy approval.")
     add_json(capture)
+
+    advance = sub.add_parser("advance", help="Continue an active-session run until its voice choice, a blocker, or completion.")
+    advance.add_argument("run_id")
+    advance.add_argument("--max-steps", type=int, default=100)
+    add_json(advance)
+
+    choose_voice = sub.add_parser("choose-voice", help="Select one of the three voice paragraphs and optionally continue automatically.")
+    choose_voice.add_argument("run_id")
+    choose_voice.add_argument("candidate_id")
+    choose_voice.add_argument("--feedback")
+    choose_voice.add_argument("--auto", action="store_true")
+    add_json(choose_voice)
+
+    models = sub.add_parser("models", help="Inspect the immutable writing-model experiment ledger.")
+    models_sub = models.add_subparsers(dest="models_command", required=True)
+    models_history_parser = models_sub.add_parser("history")
+    add_json(models_history_parser)
+
+    voice = sub.add_parser("voice", help="Apply, inspect, or roll back provisional runtime voice learning.")
+    voice_sub = voice.add_subparsers(dest="voice_command", required=True)
+    voice_apply = voice_sub.add_parser("apply")
+    voice_apply.add_argument("run_id")
+    add_json(voice_apply)
+    voice_history_parser = voice_sub.add_parser("history")
+    add_json(voice_history_parser)
+    voice_rollback = voice_sub.add_parser("rollback")
+    voice_rollback.add_argument("version")
+    add_json(voice_rollback)
 
     listing = sub.add_parser("list", help="List captured ideas, active runs, and returned live links.")
     add_json(listing)
@@ -4143,6 +5882,18 @@ def main(argv: Sequence[str] | None = None) -> int:
             return command_start(args)
         if args.command == "capture":
             return command_start(args)
+        if args.command == "advance":
+            return command_advance(args)
+        if args.command == "choose-voice":
+            return command_choose_voice(args)
+        if args.command == "models" and args.models_command == "history":
+            return command_models_history(args)
+        if args.command == "voice":
+            if args.voice_command == "apply":
+                return command_voice_apply(args)
+            if args.voice_command == "history":
+                return command_voice_history(args)
+            return command_voice_rollback(args)
         if args.command == "list":
             return command_list(args)
         if args.command == "status":

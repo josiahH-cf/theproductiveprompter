@@ -1,11 +1,28 @@
 {
-  "policy_schema_version": "2.0.0",
-  "workflow_version": "2.0.1",
+  "policy_schema_version": "3.0.0",
+  "workflow_version": "3.0.0",
   "status": "operator-configurable defaults; subordinate to run overrides and an approved article recipe",
+  "automation": {
+    "default_mode": "active_session",
+    "routine_human_decision_states": [
+      "VOICE_PROBE"
+    ],
+    "continue_after_voice_selection": true,
+    "blocked_conditions": [
+      "material_ambiguity",
+      "attempt_exhaustion",
+      "missing_credentials_or_capability",
+      "voice_profile_conflict",
+      "publication_hold",
+      "merge_conflict",
+      "failed_live_verification"
+    ],
+    "background_semantics": "resumable automation in the active local session; no detached daemon"
+  },
   "intake": {
     "preserve_seed_verbatim": true,
     "first_trial_max_paragraphs": 1,
-    "intent_approval": "required_until_operator_changes_policy",
+    "intent_approval": "automatic_unless_materially_ambiguous",
     "ask_one_material_question_at_a_time": true
   },
   "research": {
@@ -17,7 +34,8 @@
       "escalate"
     ],
     "reverify_after_draft": true,
-    "reverify_after_material_edit": true
+    "reverify_after_material_edit": true,
+    "independent_verification_prefer_different_model": true
   },
   "editorial_defaults": {
     "narrative_person": "second",
@@ -40,34 +58,135 @@
   },
   "voice": {
     "profile": "profiles/voice-profile.v1.json",
-    "profile_status": "provisional_trial_derived",
+    "profile_status": "protected_immutable_baseline",
     "require_voice_probe": true,
+    "candidate_count": 3,
+    "candidate_unit": "one_paragraph",
+    "candidates_share_verified_meaning": true,
+    "require_rough_draft_binding": true,
+    "require_verified_claim_ledger_binding": true,
     "pairwise_order_reversal": true,
+    "operator_feedback": "optional",
+    "only_routine_human_gate": true,
     "naturalization_directive": "10-Final-Prose-Naturalization/Final-Prose-Naturalization-Directive.md",
     "repair_scope": "affected_passage",
+    "runtime_profile": {
+      "state_scope": "shared_article_flow_runtime",
+      "base_profile_immutable": true,
+      "evidence_log": "append_only",
+      "profile_versions": "immutable",
+      "current_pointer": "atomic",
+      "cross_host_lock": true,
+      "selection_activation": "immediate_provisional",
+      "replay_behavior": "idempotent_by_selection_hash",
+      "rollback_behavior": "move_pointer_without_deleting_evidence",
+      "retire_scope": "runtime_provisional_guidance_only",
+      "future_runs_use_current_version": true
+    },
     "forbidden_public_prose_characters": [
       {
-        "character": "\u2014",
+        "character": "—",
         "name": "em dash",
         "codepoint": "U+2014",
+        "encoded_forms": [
+          "&mdash;",
+          "&#8212;",
+          "&#x2014;"
+        ],
         "scope": [
           "draft",
           "article",
           "title",
-          "description"
-        ]
+          "description",
+          "rendered_article",
+          "cards",
+          "feed",
+          "code",
+          "attributed_quotations"
+        ],
+        "exclusion_policy": "none"
       }
     ]
   },
+  "style_gate": {
+    "policy_id": "theproductiveprompter-public-prose-v1",
+    "hash_algorithm": "sha256",
+    "hash_source": "canonical_json_of_style_gate",
+    "normalization": [
+      "unicode_nfkc",
+      "decode_html_entities",
+      "case_fold",
+      "collapse_whitespace",
+      "normalize_smart_apostrophes"
+    ],
+    "scan_surfaces": [
+      "draft",
+      "article",
+      "title",
+      "description",
+      "rendered_article",
+      "cards",
+      "feed"
+    ],
+    "phrase_match_exclusions": [
+      "code",
+      "urls",
+      "attributed_quotations"
+    ],
+    "em_dash_exclusions": [],
+    "high_confidence_phrases": [
+      "not a magic spell",
+      "at its core",
+      "here's the thing",
+      "the key takeaway",
+      "it's important to note",
+      "it's worth noting",
+      "in today's world",
+      "in an ever-evolving",
+      "let's unpack",
+      "let's explore",
+      "delve into",
+      "dive into",
+      "game-changer",
+      "unlock the power",
+      "harness the power",
+      "seamless",
+      "robust and scalable",
+      "holistic approach",
+      "actionable insights",
+      "now more than ever",
+      "the possibilities are endless",
+      "at the end of the day",
+      "in conclusion",
+      "the bottom line"
+    ],
+    "contextual_evaluator": {
+      "enabled": true,
+      "independent_from_writing_model": true,
+      "automatic": true,
+      "target_repair_scope": "affected_passage_or_surface_field",
+      "deterministic_rescan_after_repair": true,
+      "max_repair_attempts": 3,
+      "exhaustion": "BLOCKED"
+    },
+    "package_revalidation": true,
+    "publication_plan_revalidation": true,
+    "publication_execution_revalidation": true
+  },
   "repairs": {
     "default_max_attempts": 2,
-    "transient_retry_backoff_seconds": [1, 3, 10],
-    "attempt_exhaustion": "ESCALATE"
+    "transient_retry_backoff_seconds": [
+      1,
+      3,
+      10
+    ],
+    "attempt_exhaustion": "ESCALATE",
+    "routine_repairs_require_human_approval": false
   },
   "routing": {
     "require_reachability": true,
     "require_stage_capability": true,
-    "primary_rank": "task_specific_evaluation_score",
+    "primary_rank": "task_specific_evaluation_score_except_assigned_writing_stages",
     "secondary_rank": [
       "operator_privacy",
       "operator_locality",
@@ -75,14 +194,77 @@
       "operator_latency"
     ],
     "uncalibrated_default": "active_capable_host",
-    "deterministic_tasks_use_models": false
+    "deterministic_tasks_use_models": false,
+    "writing_model_rotation": {
+      "enabled": true,
+      "purpose": "controlled_writing_experiment",
+      "pool_id": "article-writing-round-robin",
+      "pool_version": "1.0.0",
+      "provider_id": "codex-cli",
+      "ordered_models": [
+        {
+          "model_id": "gpt-5.5",
+          "public_display_name": "GPT-5.5"
+        },
+        {
+          "model_id": "gpt-5.6-sol",
+          "public_display_name": "GPT-5.6 Sol"
+        },
+        {
+          "model_id": "gpt-5.6-terra",
+          "public_display_name": "GPT-5.6 Terra"
+        },
+        {
+          "model_id": "gpt-5.6-luna",
+          "public_display_name": "GPT-5.6 Luna"
+        }
+      ],
+      "writing_stages": [
+        "DRAFT",
+        "VOICE_PROBE",
+        "EDIT"
+      ],
+      "reservation": "atomic_cross_host_shared_state",
+      "override_consumes_rotation": false,
+      "require_passed_canary": true,
+      "pin_assignment_across_writing_stages": true,
+      "pin_fallback_for_remaining_writing_stages": true,
+      "fallback_marks_experiment_contaminated": true
+    },
+    "model_attribution": {
+      "public_footer_template": "Drafting model: {public_display_name}",
+      "source": "accepted_model_execution_receipts",
+      "private_history_fields": [
+        "exact_model_id",
+        "cli_version",
+        "route",
+        "timing",
+        "retries",
+        "fallbacks",
+        "article_url",
+        "qa_results"
+      ]
+    }
   },
   "publication": {
     "target": "publication/theproductiveprompter.json",
-    "approval": "required_until_operator_defines_automatic_boundary",
+    "allowlisted_automatic_targets": [
+      "publication/theproductiveprompter.json"
+    ],
+    "approval": "automatic_hash_bound_policy_for_allowlisted_target",
     "approval_ttl_minutes": 30,
+    "policy_approval_scope": [
+      "target",
+      "package_revision",
+      "publish_plan_sha256",
+      "style_policy_sha256"
+    ],
+    "per_run_hold_override": "publication_hold",
     "require_clean_approved_checkout": true,
     "require_exact_revision_live_check": true,
-    "claim_search_indexing": false
+    "require_model_footer_live_check": true,
+    "require_style_policy_hash_match": true,
+    "claim_search_indexing": false,
+    "test_no_publish_environment_variable": "ARTICLE_FLOW_TEST_NO_PUBLISH"
   }
 }

@@ -1,6 +1,6 @@
 {
-  "registry_schema_version": "1.0.0",
-  "workflow_version": "2.0.1",
+  "registry_schema_version": "2.0.0",
+  "workflow_version": "3.0.0",
   "providers": [
     {
       "provider_id": "active-host",
@@ -11,11 +11,109 @@
         {
           "model_id": "active-capable-host",
           "version": null,
-          "capabilities": ["files", "structured-output", "research-if-host-provides", "tools-if-host-provides"],
+          "capabilities": [
+            "files",
+            "structured-output",
+            "research-if-host-provides",
+            "tools-if-host-provides"
+          ],
           "privacy": "inherits-host",
           "locality": "inherits-host",
           "cost_class": "unknown",
           "latency_class": "unknown"
+        }
+      ]
+    },
+    {
+      "provider_id": "codex-cli",
+      "kind": "codex-cli",
+      "enabled": true,
+      "executable": "codex",
+      "reasoning_effort": "high",
+      "disable_user_config_fallback": true,
+      "working_directory_policy": "read_only_temporary",
+      "models": [
+        {
+          "model_id": "gpt-5.5",
+          "public_display_name": "GPT-5.5",
+          "version": null,
+          "capabilities": [
+            "structured-output",
+            "long-form",
+            "research"
+          ],
+          "stages": [
+            "DRAFT",
+            "VOICE_PROBE",
+            "EDIT",
+            "CLAIM_VERIFICATION",
+            "POST_EDIT_CLAIM_VERIFICATION",
+            "EDITORIAL_QA"
+          ],
+          "locality": "operator-local-cli",
+          "privacy": "operator-reviewed",
+          "canary_status": "required"
+        },
+        {
+          "model_id": "gpt-5.6-sol",
+          "public_display_name": "GPT-5.6 Sol",
+          "version": null,
+          "capabilities": [
+            "structured-output",
+            "long-form",
+            "research"
+          ],
+          "stages": [
+            "RESEARCH_PLAN",
+            "RESEARCH",
+            "INTENT_REVIEW",
+            "ARTICLE_RECIPE",
+            "BRIEF",
+            "DRAFT",
+            "VOICE_PROBE",
+            "EDIT",
+            "EDITORIAL_QA"
+          ],
+          "locality": "operator-local-cli",
+          "privacy": "operator-reviewed",
+          "canary_status": "required"
+        },
+        {
+          "model_id": "gpt-5.6-terra",
+          "public_display_name": "GPT-5.6 Terra",
+          "version": null,
+          "capabilities": [
+            "structured-output",
+            "long-form",
+            "research"
+          ],
+          "stages": [
+            "DRAFT",
+            "VOICE_PROBE",
+            "EDIT",
+            "CLAIM_VERIFICATION",
+            "POST_EDIT_CLAIM_VERIFICATION"
+          ],
+          "locality": "operator-local-cli",
+          "privacy": "operator-reviewed",
+          "canary_status": "required"
+        },
+        {
+          "model_id": "gpt-5.6-luna",
+          "public_display_name": "GPT-5.6 Luna",
+          "version": null,
+          "capabilities": [
+            "structured-output",
+            "long-form"
+          ],
+          "stages": [
+            "DRAFT",
+            "VOICE_PROBE",
+            "EDIT"
+          ],
+          "locality": "operator-local-cli",
+          "privacy": "operator-reviewed",
+          "canary_status": "required"
         }
       ]
     },
@@ -58,5 +156,17 @@
       "command": [],
       "models": []
     }
-  ]
+  ],
+  "writing_model_pool": {
+    "pool_id": "article-writing-round-robin",
+    "pool_version": "1.0.0",
+    "provider_id": "codex-cli",
+    "ordered_model_ids": [
+      "gpt-5.5",
+      "gpt-5.6-sol",
+      "gpt-5.6-terra",
+      "gpt-5.6-luna"
+    ],
+    "selection": "atomic_round_robin_after_passed_canary"
+  }
 }

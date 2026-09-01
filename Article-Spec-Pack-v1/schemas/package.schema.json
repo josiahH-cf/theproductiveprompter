@@ -3,16 +3,104 @@
   "$id": "https://theproductiveprompter.com/schemas/package.schema.json",
   "title": "Article Package",
   "type": "object",
-  "required": ["package_schema_version", "run_id", "workflow_version", "package_revision", "canonical_article_file", "public_files", "private_archive", "created_at"],
+  "required": [
+    "package_schema_version",
+    "run_id",
+    "workflow_version",
+    "package_revision",
+    "canonical_article_file",
+    "public_files",
+    "private_archive",
+    "created_at"
+  ],
   "properties": {
-    "package_schema_version": {"const": "1.0.0"},
-    "run_id": {"type": "string"},
-    "workflow_version": {"type": "string"},
-    "package_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "canonical_article_file": {"const": "public/article.md"},
-    "public_files": {"type": "array", "items": {"type": "object"}},
-    "private_archive": {"type": "string"},
-    "created_at": {"type": "string", "format": "date-time"}
+    "package_schema_version": {
+      "const": "1.0.0"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "workflow_version": {
+      "type": "string"
+    },
+    "package_revision": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "canonical_article_file": {
+      "const": "public/article.md"
+    },
+    "public_files": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "private_archive": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "automation_mode": {
+      "enum": [
+        "manual",
+        "active_session"
+      ]
+    },
+    "model_assignment": {
+      "oneOf": [
+        {
+          "$ref": "model-assignment.schema.json"
+        },
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "effective_voice_profile_version": {
+      "type": "string"
+    },
+    "style_policy_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "writing_model_fallback_status": {
+      "enum": [
+        "none",
+        "fallback",
+        "contaminated"
+      ]
+    },
+    "model_attribution": {
+      "type": "object",
+      "required": [
+        "public_display_name",
+        "footer_text",
+        "source_receipt_hashes"
+      ],
+      "properties": {
+        "public_display_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "footer_text": {
+          "type": "string",
+          "pattern": "^Drafting model: .+"
+        },
+        "source_receipt_hashes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
   },
   "additionalProperties": false
 }

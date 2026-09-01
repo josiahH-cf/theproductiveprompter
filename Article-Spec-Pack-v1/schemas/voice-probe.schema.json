@@ -2,34 +2,243 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://theproductiveprompter.com/schemas/voice-probe.schema.json",
   "title": "Voice Probe",
-  "type": "object",
-  "required": ["voice_probe_schema_version", "run_id", "article_register", "candidates", "comparison_orders", "held_out_plan", "operator_selection"],
-  "properties": {
-    "voice_probe_schema_version": {"const": "1.0.0"},
-    "run_id": {"type": "string"},
-    "article_register": {"type": "object"},
-    "candidates": {
-      "type": "array",
-      "minItems": 2,
-      "maxItems": 3,
-      "items": {
-        "type": "object",
-        "required": ["candidate_id", "passage", "intended_dimensions"],
-        "properties": {
-          "candidate_id": {"type": "string"},
-          "passage": {"type": "string", "minLength": 1},
-          "intended_dimensions": {"type": "array", "items": {"type": "string"}}
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "voice_probe_schema_version",
+        "run_id",
+        "article_register",
+        "candidates",
+        "comparison_orders",
+        "held_out_plan",
+        "operator_selection"
+      ],
+      "properties": {
+        "voice_probe_schema_version": {
+          "const": "1.0.0"
         },
-        "additionalProperties": false
-      }
+        "run_id": {
+          "type": "string"
+        },
+        "article_register": {
+          "type": "object"
+        },
+        "candidates": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "required": [
+              "candidate_id",
+              "passage",
+              "intended_dimensions"
+            ],
+            "properties": {
+              "candidate_id": {
+                "type": "string"
+              },
+              "passage": {
+                "type": "string",
+                "minLength": 1
+              },
+              "intended_dimensions": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "comparison_orders": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "held_out_plan": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operator_selection": {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
     },
-    "comparison_orders": {
-      "type": "array",
-      "minItems": 2,
-      "items": {"type": "array", "minItems": 2, "items": {"type": "string"}}
-    },
-    "held_out_plan": {"type": "string", "minLength": 1},
-    "operator_selection": {"type": ["object", "null"]}
-  },
-  "additionalProperties": false
+    {
+      "type": "object",
+      "required": [
+        "voice_probe_schema_version",
+        "run_id",
+        "rough_draft_sha256",
+        "claim_ledger_sha256",
+        "source_anchor",
+        "article_register",
+        "candidates",
+        "comparison_orders",
+        "held_out_plan",
+        "operator_selection"
+      ],
+      "properties": {
+        "$schema": {
+          "type": "string"
+        },
+        "voice_probe_schema_version": {
+          "const": "2.0.0"
+        },
+        "run_id": {
+          "type": "string"
+        },
+        "rough_draft_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "claim_ledger_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "voice_profile_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "model_assignment_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source_anchor": {
+          "type": "object",
+          "required": [
+            "locator",
+            "source_passage",
+            "source_passage_sha256"
+          ],
+          "properties": {
+            "locator": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_passage": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_passage_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "additionalProperties": false
+        },
+        "article_register": {
+          "type": "object"
+        },
+        "candidates": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "required": [
+              "candidate_id",
+              "passage",
+              "passage_sha256",
+              "intended_dimensions",
+              "preserved_claim_ids"
+            ],
+            "properties": {
+              "candidate_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+              },
+              "passage": {
+                "type": "string",
+                "minLength": 1
+              },
+              "passage_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "intended_dimensions": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "preserved_claim_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "comparison_orders": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "held_out_plan": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operator_selection": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "candidate_id",
+                "selected_at"
+              ],
+              "properties": {
+                "candidate_id": {
+                  "type": "string"
+                },
+                "selected_at": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "feedback": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  ]
 }

@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://theproductiveprompter.com/schemas/experiment-history.schema.json",
+  "title": "Private Model Experiment History",
+  "type": "object",
+  "required": [
+    "experiment_history_schema_version",
+    "entries"
+  ],
+  "properties": {
+    "experiment_history_schema_version": {
+      "const": "1.0.0"
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "run_id",
+          "assignment_sha256",
+          "requested_model_id",
+          "actual_model_id",
+          "provider_id",
+          "cli_version",
+          "writing_stages",
+          "elapsed_milliseconds",
+          "retries",
+          "fallbacks",
+          "contaminated",
+          "qa_results",
+          "recorded_at"
+        ],
+        "properties": {
+          "run_id": {
+            "type": "string"
+          },
+          "assignment_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "requested_model_id": {
+            "type": "string"
+          },
+          "actual_model_id": {
+            "type": "string"
+          },
+          "provider_id": {
+            "type": "string"
+          },
+          "cli_version": {
+            "type": "string"
+          },
+          "writing_stages": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "DRAFT",
+                "VOICE_PROBE",
+                "EDIT"
+              ]
+            }
+          },
+          "elapsed_milliseconds": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "retries": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "fallbacks": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "contaminated": {
+            "type": "boolean"
+          },
+          "article_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "qa_results": {
+            "type": "object"
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": false
+}

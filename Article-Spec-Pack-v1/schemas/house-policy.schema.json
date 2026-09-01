@@ -3,17 +3,518 @@
   "$id": "https://theproductiveprompter.com/schemas/house-policy.schema.json",
   "title": "Article House Policy",
   "type": "object",
-  "required": ["policy_schema_version", "workflow_version", "intake", "research", "editorial_defaults", "voice", "repairs", "routing", "publication"],
+  "required": [
+    "policy_schema_version",
+    "workflow_version",
+    "intake",
+    "research",
+    "editorial_defaults",
+    "voice",
+    "repairs",
+    "routing",
+    "publication",
+    "automation",
+    "style_gate"
+  ],
   "properties": {
-    "policy_schema_version": {"type": "string"},
-    "workflow_version": {"type": "string"},
-    "intake": {"type": "object"},
-    "research": {"type": "object"},
-    "editorial_defaults": {"type": "object"},
-    "voice": {"type": "object"},
-    "repairs": {"type": "object"},
-    "routing": {"type": "object"},
-    "publication": {"type": "object"}
+    "policy_schema_version": {
+      "type": "string"
+    },
+    "workflow_version": {
+      "type": "string"
+    },
+    "intake": {
+      "type": "object"
+    },
+    "research": {
+      "type": "object"
+    },
+    "editorial_defaults": {
+      "type": "object"
+    },
+    "voice": {
+      "type": "object",
+      "required": [
+        "profile",
+        "profile_status",
+        "require_voice_probe",
+        "candidate_count",
+        "candidate_unit",
+        "candidates_share_verified_meaning",
+        "require_rough_draft_binding",
+        "require_verified_claim_ledger_binding",
+        "operator_feedback",
+        "only_routine_human_gate",
+        "runtime_profile",
+        "forbidden_public_prose_characters"
+      ],
+      "properties": {
+        "profile": {
+          "type": "string"
+        },
+        "profile_status": {
+          "type": "string"
+        },
+        "require_voice_probe": {
+          "const": true
+        },
+        "candidate_count": {
+          "const": 3
+        },
+        "candidate_unit": {
+          "const": "one_paragraph"
+        },
+        "candidates_share_verified_meaning": {
+          "const": true
+        },
+        "require_rough_draft_binding": {
+          "const": true
+        },
+        "require_verified_claim_ledger_binding": {
+          "const": true
+        },
+        "operator_feedback": {
+          "const": "optional"
+        },
+        "only_routine_human_gate": {
+          "const": true
+        },
+        "runtime_profile": {
+          "type": "object",
+          "required": [
+            "base_profile_immutable",
+            "evidence_log",
+            "profile_versions",
+            "current_pointer",
+            "cross_host_lock",
+            "selection_activation",
+            "replay_behavior",
+            "rollback_behavior",
+            "retire_scope",
+            "future_runs_use_current_version"
+          ],
+          "properties": {
+            "base_profile_immutable": {
+              "const": true
+            },
+            "evidence_log": {
+              "const": "append_only"
+            },
+            "profile_versions": {
+              "const": "immutable"
+            },
+            "current_pointer": {
+              "const": "atomic"
+            },
+            "cross_host_lock": {
+              "const": true
+            },
+            "selection_activation": {
+              "const": "immediate_provisional"
+            },
+            "replay_behavior": {
+              "const": "idempotent_by_selection_hash"
+            },
+            "rollback_behavior": {
+              "const": "move_pointer_without_deleting_evidence"
+            },
+            "retire_scope": {
+              "const": "runtime_provisional_guidance_only"
+            },
+            "future_runs_use_current_version": {
+              "const": true
+            }
+          },
+          "additionalProperties": true
+        },
+        "forbidden_public_prose_characters": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "character",
+              "name",
+              "codepoint",
+              "encoded_forms",
+              "scope",
+              "exclusion_policy"
+            ],
+            "properties": {
+              "character": {
+                "const": "—"
+              },
+              "name": {
+                "const": "em dash"
+              },
+              "codepoint": {
+                "const": "U+2014"
+              },
+              "encoded_forms": {
+                "type": "array",
+                "minItems": 3,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "scope": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "exclusion_policy": {
+                "const": "none"
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "repairs": {
+      "type": "object"
+    },
+    "routing": {
+      "type": "object",
+      "required": [
+        "writing_model_rotation",
+        "model_attribution"
+      ],
+      "properties": {
+        "writing_model_rotation": {
+          "type": "object",
+          "required": [
+            "enabled",
+            "purpose",
+            "pool_id",
+            "pool_version",
+            "provider_id",
+            "ordered_models",
+            "writing_stages",
+            "reservation",
+            "override_consumes_rotation",
+            "require_passed_canary",
+            "pin_assignment_across_writing_stages",
+            "pin_fallback_for_remaining_writing_stages",
+            "fallback_marks_experiment_contaminated"
+          ],
+          "properties": {
+            "enabled": {
+              "const": true
+            },
+            "purpose": {
+              "const": "controlled_writing_experiment"
+            },
+            "pool_id": {
+              "type": "string"
+            },
+            "pool_version": {
+              "type": "string"
+            },
+            "provider_id": {
+              "const": "codex-cli"
+            },
+            "ordered_models": {
+              "type": "array",
+              "minItems": 4,
+              "maxItems": 4,
+              "uniqueItems": true,
+              "items": {
+                "type": "object",
+                "required": [
+                  "model_id",
+                  "public_display_name"
+                ],
+                "properties": {
+                  "model_id": {
+                    "type": "string"
+                  },
+                  "public_display_name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "writing_stages": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "DRAFT",
+                  "VOICE_PROBE",
+                  "EDIT"
+                ]
+              }
+            },
+            "reservation": {
+              "const": "atomic_cross_host_shared_state"
+            },
+            "override_consumes_rotation": {
+              "const": false
+            },
+            "require_passed_canary": {
+              "const": true
+            },
+            "pin_assignment_across_writing_stages": {
+              "const": true
+            },
+            "pin_fallback_for_remaining_writing_stages": {
+              "const": true
+            },
+            "fallback_marks_experiment_contaminated": {
+              "const": true
+            }
+          },
+          "additionalProperties": true
+        },
+        "model_attribution": {
+          "type": "object",
+          "required": [
+            "public_footer_template",
+            "source",
+            "private_history_fields"
+          ],
+          "properties": {
+            "public_footer_template": {
+              "type": "string",
+              "pattern": "^Drafting model:"
+            },
+            "source": {
+              "const": "accepted_model_execution_receipts"
+            },
+            "private_history_fields": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "publication": {
+      "type": "object",
+      "required": [
+        "target",
+        "allowlisted_automatic_targets",
+        "approval",
+        "policy_approval_scope",
+        "per_run_hold_override",
+        "require_exact_revision_live_check",
+        "require_model_footer_live_check",
+        "require_style_policy_hash_match",
+        "test_no_publish_environment_variable"
+      ],
+      "properties": {
+        "target": {
+          "type": "string"
+        },
+        "allowlisted_automatic_targets": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "approval": {
+          "const": "automatic_hash_bound_policy_for_allowlisted_target"
+        },
+        "policy_approval_scope": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "per_run_hold_override": {
+          "const": "publication_hold"
+        },
+        "require_exact_revision_live_check": {
+          "const": true
+        },
+        "require_model_footer_live_check": {
+          "const": true
+        },
+        "require_style_policy_hash_match": {
+          "const": true
+        },
+        "test_no_publish_environment_variable": {
+          "const": "ARTICLE_FLOW_TEST_NO_PUBLISH"
+        }
+      },
+      "additionalProperties": true
+    },
+    "automation": {
+      "type": "object",
+      "required": [
+        "default_mode",
+        "routine_human_decision_states",
+        "continue_after_voice_selection",
+        "blocked_conditions",
+        "background_semantics"
+      ],
+      "properties": {
+        "default_mode": {
+          "const": "active_session"
+        },
+        "routine_human_decision_states": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "const": "VOICE_PROBE"
+          }
+        },
+        "continue_after_voice_selection": {
+          "const": true
+        },
+        "blocked_conditions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "background_semantics": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "style_gate": {
+      "type": "object",
+      "required": [
+        "policy_id",
+        "hash_algorithm",
+        "hash_source",
+        "normalization",
+        "scan_surfaces",
+        "phrase_match_exclusions",
+        "em_dash_exclusions",
+        "high_confidence_phrases",
+        "contextual_evaluator",
+        "package_revalidation",
+        "publication_plan_revalidation",
+        "publication_execution_revalidation"
+      ],
+      "properties": {
+        "policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hash_algorithm": {
+          "const": "sha256"
+        },
+        "hash_source": {
+          "const": "canonical_json_of_style_gate"
+        },
+        "normalization": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "scan_surfaces": {
+          "type": "array",
+          "minItems": 7,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "phrase_match_exclusions": {
+          "type": "array",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "code",
+              "urls",
+              "attributed_quotations"
+            ]
+          }
+        },
+        "em_dash_exclusions": {
+          "type": "array",
+          "maxItems": 0
+        },
+        "high_confidence_phrases": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "contextual_evaluator": {
+          "type": "object",
+          "required": [
+            "enabled",
+            "independent_from_writing_model",
+            "automatic",
+            "target_repair_scope",
+            "deterministic_rescan_after_repair",
+            "max_repair_attempts",
+            "exhaustion"
+          ],
+          "properties": {
+            "enabled": {
+              "const": true
+            },
+            "independent_from_writing_model": {
+              "const": true
+            },
+            "automatic": {
+              "const": true
+            },
+            "target_repair_scope": {
+              "type": "string"
+            },
+            "deterministic_rescan_after_repair": {
+              "const": true
+            },
+            "max_repair_attempts": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "exhaustion": {
+              "const": "BLOCKED"
+            }
+          },
+          "additionalProperties": true
+        },
+        "package_revalidation": {
+          "const": true
+        },
+        "publication_plan_revalidation": {
+          "const": true
+        },
+        "publication_execution_revalidation": {
+          "const": true
+        }
+      },
+      "additionalProperties": true
+    }
   },
   "additionalProperties": true
 }

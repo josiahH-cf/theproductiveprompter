@@ -1,6 +1,6 @@
 {
   "protected_set_schema_version": "1.1.0",
-  "workflow_version": "2.0.1",
+  "workflow_version": "3.0.0",
   "watched_roots": [
     "workflow",
     "schemas",
@@ -270,6 +270,12 @@
       "rule_set": "schemas"
     },
     {
+      "path": "schemas/experiment-history.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
       "path": "schemas/gate-receipt.schema.json",
       "scope": "spec",
       "role": "runtime",
@@ -295,6 +301,12 @@
     },
     {
       "path": "schemas/manifest.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/model-assignment.schema.json",
       "scope": "spec",
       "role": "runtime",
       "rule_set": "schemas"
@@ -342,7 +354,19 @@
       "rule_set": "schemas"
     },
     {
+      "path": "schemas/voice-learning.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
       "path": "schemas/voice-probe.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/voice-profile-pointer.schema.json",
       "scope": "spec",
       "role": "runtime",
       "rule_set": "schemas"
@@ -366,6 +390,12 @@
       "rule_set": "controller"
     },
     {
+      "path": "scripts/codex_exec_adapter.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "controller"
+    },
+    {
       "path": "scripts/package_article.py",
       "scope": "spec",
       "role": "runtime",
@@ -378,7 +408,19 @@
       "rule_set": "controller"
     },
     {
+      "path": "tests/test_article_flow_v3.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "conformance"
+    },
+    {
       "path": "tests/test_article_flow.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "conformance"
+    },
+    {
+      "path": "tests/test_codex_exec_adapter.py",
       "scope": "spec",
       "role": "runtime",
       "rule_set": "conformance"
@@ -409,6 +451,12 @@
     },
     {
       "path": "workflow/workflow.json",
+      "scope": "spec",
+      "role": "normative",
+      "rule_set": "workflow"
+    },
+    {
+      "path": "workflow/workflow.v2.0.0.json",
       "scope": "spec",
       "role": "normative",
       "rule_set": "workflow"

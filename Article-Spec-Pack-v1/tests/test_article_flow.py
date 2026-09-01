@@ -189,6 +189,18 @@ class RunAndSmokeTests(TemporaryRuntime):
     def start(self, seed="A small idea about reliable article workflows."):
         code, payload = call(af.command_start, seed=seed, seed_file=None, slug=None)
         self.assertEqual(code, af.EXIT_OK)
+        # This module is the frozen 2.0 regression suite. New 3.0 behavior lives
+        # in test_article_flow_v3.py; pin these runs to the bundled authority so
+        # its historical human-gate and state-order assertions remain meaningful.
+        directory, run = af.load_run(payload["run_id"])
+        run["workflow_version"] = "2.0.0"
+        run["run_overrides"].update({
+            "automation_mode": "manual",
+            "intent_approval": "required",
+            "recipe_approval": "required",
+            "editorial_approval": "required",
+        })
+        af.save_run(directory, run)
         return payload["run_id"]
 
     def write_submission(self, run_id, state, value, suffix="json"):

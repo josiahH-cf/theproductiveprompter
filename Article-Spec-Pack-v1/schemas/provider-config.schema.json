@@ -3,24 +3,184 @@
   "$id": "https://theproductiveprompter.com/schemas/provider-config.schema.json",
   "title": "Private Provider Configuration",
   "type": "object",
-  "required": ["provider_config_schema_version", "providers"],
+  "required": [
+    "provider_config_schema_version",
+    "providers"
+  ],
   "properties": {
-    "provider_config_schema_version": {"const": "1.0.0"},
+    "provider_config_schema_version": {
+      "const": "1.0.0"
+    },
     "providers": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["provider_id", "kind", "enabled", "models"],
+        "required": [
+          "provider_id",
+          "kind",
+          "enabled",
+          "models"
+        ],
         "properties": {
-          "provider_id": {"type": "string"},
-          "kind": {"enum": ["agent-hosted", "openai-responses", "anthropic-messages", "google-generative-language", "openai-compatible", "command"]},
-          "enabled": {"type": "boolean"},
-          "credential_environment_variable": {"type": "string"},
-          "base_url": {"type": "string"},
-          "base_url_environment_variable": {"type": "string"},
-          "command": {"type": "array", "items": {"type": "string"}},
-          "models": {"type": "array", "items": {"type": "object"}}
+          "provider_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "enum": [
+              "agent-hosted",
+              "openai-responses",
+              "anthropic-messages",
+              "google-generative-language",
+              "openai-compatible",
+              "command",
+              "codex-cli"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "credential_environment_variable": {
+            "type": "string"
+          },
+          "base_url": {
+            "type": "string"
+          },
+          "base_url_environment_variable": {
+            "type": "string"
+          },
+          "command": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "executable": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reasoning_effort": {
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max",
+              "ultra"
+            ]
+          },
+          "disable_user_config_fallback": {
+            "type": "boolean"
+          },
+          "working_directory_policy": {
+            "enum": [
+              "read_only_temporary",
+              "operator_configured"
+            ]
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "model_id"
+              ],
+              "properties": {
+                "model_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "public_display_name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "version": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "enabled": {
+                  "type": "boolean"
+                },
+                "capabilities": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "stages": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "locality": {
+                  "type": "string"
+                },
+                "privacy": {
+                  "type": "string"
+                },
+                "cost_class": {
+                  "type": "string"
+                },
+                "latency_class": {
+                  "type": "string"
+                },
+                "canary_status": {
+                  "enum": [
+                    "required",
+                    "passed",
+                    "failed"
+                  ]
+                }
+              },
+              "additionalProperties": true
+            }
+          }
         },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "codex-cli"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "properties": {
+                "credential_environment_variable": false,
+                "base_url": false,
+                "base_url_environment_variable": false,
+                "command": false
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "command"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "required": [
+                "command"
+              ]
+            }
+          }
+        ],
         "additionalProperties": true
       }
     }
