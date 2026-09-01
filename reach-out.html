@@ -45,25 +45,27 @@
             <section class="reach-out__contact" aria-labelledby="contact-heading">
                 <h2 id="contact-heading" class="section-heading"><span class="section-heading__number">02.</span><span class="section-heading__text">Contact</span></h2>
                 <div class="contact__content">
-                    <form class="contact-form" id="contactForm">
+                    <form class="contact-form" id="contactForm" aria-describedby="contactFormHelp contactFormStatus">
                         <div class="contact-form__group">
                             <label for="name" class="contact-form__label">Name <span class="contact-form__required">required</span></label>
-                            <input type="text" id="name" name="name" class="contact-form__input" autocomplete="name" required>
+                            <input type="text" id="name" name="name" class="contact-form__input" autocomplete="name" maxlength="100" required>
                         </div>
                         <div class="contact-form__group">
                             <label for="email" class="contact-form__label">Email <span class="contact-form__required">required</span></label>
-                            <input type="email" id="email" name="email" class="contact-form__input" autocomplete="email" required>
+                            <input type="email" id="email" name="email" class="contact-form__input" autocomplete="email" maxlength="254" required>
                         </div>
                         <div class="contact-form__group">
                             <label for="message" class="contact-form__label">Message <span class="contact-form__required">required</span></label>
-                            <textarea id="message" name="message" class="contact-form__textarea" rows="6" required></textarea>
+                            <textarea id="message" name="message" class="contact-form__textarea" rows="6" maxlength="1500" required></textarea>
                         </div>
-                        <button type="submit" class="contact-form__submit" id="contactSubmit" disabled>Send Message</button>
-                        <p class="contact-form__status" id="contactFormStatus" aria-live="polite">The contact form is not configured yet. <a href="mailto:josiah.hunter.it@gmail.com">Email me directly instead.</a></p>
+                        <p class="contact-form__help" id="contactFormHelp">This opens a draft in your email app; nothing is sent until you press Send.</p>
+                        <button type="submit" class="contact-form__submit" id="contactSubmit" disabled>Open Email Draft</button>
+                        <p class="contact-form__status" id="contactFormStatus" role="status" aria-live="polite" aria-atomic="true"><span id="contactStatusMessage">Fill out the form to prepare your email draft.</span> <a id="contactDraftLink" href="mailto:josiah.hunter.it@gmail.com" hidden>Open the draft again.</a></p>
                     </form>
 
                     <div class="contact__links" role="group" aria-label="Direct contact links">
-                        <a href="mailto:josiah.hunter.it@gmail.com" class="contact__link">Email</a>
+                        <a href="mailto:josiah.hunter.it@gmail.com" class="contact__link" id="contactEmailLink">josiah.hunter.it@gmail.com</a>
+                        <button type="button" class="contact__link contact__copy-button" id="copyEmailButton" disabled>Copy email address</button>
                         <a href="https://github.com/josiahH-cf" class="contact__link" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
                         <a href="https://www.linkedin.com/in/josiahhunter/" class="contact__link" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>
                     </div>
