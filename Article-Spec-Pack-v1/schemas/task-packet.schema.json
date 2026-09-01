@@ -3,9 +3,9 @@
   "$id": "https://theproductiveprompter.com/schemas/task-packet.schema.json",
   "title": "Provider-Neutral Task Packet",
   "type": "object",
-  "required": ["task_packet_schema_version", "workflow_version", "run_id", "stage", "attempt", "objective", "inputs", "repair_context", "reader_job", "article_recipe", "allowed_tools", "side_effect_policy", "constraints", "expected_outputs", "success_criteria", "non_authorities", "stop_conditions", "escalation_question"],
+  "required": ["task_packet_schema_version", "workflow_version", "run_id", "stage", "attempt", "objective", "inputs", "reader_job", "article_recipe", "allowed_tools", "side_effect_policy", "constraints", "expected_outputs", "success_criteria", "non_authorities", "stop_conditions", "escalation_question"],
   "properties": {
-    "task_packet_schema_version": {"const": "1.0.0"},
+    "task_packet_schema_version": {"enum": ["1.0.0", "1.1.0"]},
     "workflow_version": {"type": "string"},
     "run_id": {"type": "string"},
     "stage": {"type": "string"},
@@ -25,7 +25,7 @@
       }
     },
     "repair_context": {
-      "type": ["object", "null"],
+      "type": "object",
       "required": ["context_type", "source_stage", "repair_state", "failed_attempt", "maximum_attempts", "rejected_output", "gate_receipt", "findings"],
       "properties": {
         "context_type": {"const": "targeted_gate_repair"},
@@ -33,6 +33,16 @@
         "repair_state": {"type": "string"},
         "failed_attempt": {"type": "integer", "minimum": 1},
         "maximum_attempts": {"type": "integer", "minimum": 1},
+        "task_binding": {
+          "type": "object",
+          "required": ["state", "attempt", "task_packet_sha256"],
+          "properties": {
+            "state": {"type": "string", "minLength": 1},
+            "attempt": {"type": "integer", "minimum": 1},
+            "task_packet_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+          },
+          "additionalProperties": false
+        },
         "rejected_output": {
           "type": "object",
           "required": ["input_id", "artifact_type", "path", "sha256"],
@@ -87,5 +97,21 @@
     "escalation_question": {"type": "string"},
     "selected_route": {"type": ["object", "null"]}
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"task_packet_schema_version": {"const": "1.0.0"}},
+        "required": ["task_packet_schema_version"]
+      },
+      "then": {"not": {"required": ["repair_context"]}}
+    },
+    {
+      "if": {
+        "properties": {"task_packet_schema_version": {"const": "1.1.0"}},
+        "required": ["task_packet_schema_version"]
+      },
+      "then": {"required": ["repair_context"]}
+    }
+  ],
   "additionalProperties": false
 }

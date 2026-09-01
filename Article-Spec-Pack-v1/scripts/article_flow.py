@@ -194,6 +194,35 @@ def atomic_write(path: Path, data: bytes) -> None:
     temp_path.replace(path)
 
 
+def immutable_write(path: Path, data: bytes) -> bool:
+    """Create attempt-scoped evidence once; accept only an identical replay."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    except FileExistsError as exc:
+        if path.is_file() and path.read_bytes() == data:
+            return False
+        raise FlowError(
+            f"Immutable attempt artifact already exists with different bytes: {path}",
+            EXIT_INTEGRITY,
+            {"path": str(path), "existing_sha256": sha256_path(path) if path.is_file() else None, "new_sha256": sha256_bytes(data)},
+        ) from exc
+    try:
+        with os.fdopen(descriptor, "wb") as handle:
+            handle.write(data)
+            handle.flush()
+            os.fsync(handle.fileno())
+    except BaseException:
+        # Preserve a partial create as crash evidence; future recovery must not
+        # overwrite it or mistake it for a completed immutable artifact.
+        raise
+    return True
+
+
+def write_json_immutable(path: Path, value: Any) -> bool:
+    return immutable_write(path, (json.dumps(value, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
+
+
 def write_if_changed(path: Path, data: bytes, *, mode: int | None = None) -> bool:
     if path.is_file() and path.read_bytes() == data:
         if mode is not None:
@@ -1076,6 +1105,128 @@ def verify_event_log(directory: Path, run: dict[str, Any]) -> tuple[bool, str | 
     return True, None, derived_state
 
 
+def roll_forward_run_cache(directory: Path, run: dict[str, Any], derived_state: str) -> bool:
+    """Recover deterministic run.json fields from the verified event-log WAL.
+
+    ``run.json`` is a cache.  Artifact records, dispatch ordinals, and state
+    transitions are committed to the hash-chained event log before that cache
+    is rewritten, so a process death in that window must roll the cache forward
+    instead of making the run permanently unloadable.  Only fields whose value
+    is completely determined by verified events are recovered here.
+    """
+    events = _read_jsonl(directory / str(run["event_log"]))
+    changed = False
+
+    recovered_artifacts: list[dict[str, Any]] = []
+    for event in events:
+        if event.get("type") != "ARTIFACT_RECORDED":
+            continue
+        payload = event.get("payload", {}) if isinstance(event.get("payload"), dict) else {}
+        item = payload.get("artifact")
+        if not isinstance(item, dict):
+            raise FlowError("Artifact event lacks an artifact record", EXIT_INTEGRITY, event.get("sequence"))
+        artifact_errors = validate_instance_schema(item, "artifact.schema.json")
+        if artifact_errors:
+            raise FlowError("Artifact event contains an invalid record", EXIT_INTEGRITY, artifact_errors)
+        recovered_artifacts = [prior for prior in recovered_artifacts if prior.get("type") != item.get("type")]
+        recovered_artifacts.append(item)
+
+    cached_artifacts = run.get("artifact_index", [])
+    newly_recovered = [item for item in recovered_artifacts if item not in cached_artifacts]
+    # Validate only records being rolled forward into the cache.  Normal
+    # operation validates an artifact at its point of use (notably task packets
+    # in ``current_packet``), which lets that path persist an explicit BLOCKED
+    # integrity state rather than making load itself mutate state.
+    for item in newly_recovered:
+        try:
+            artifact_path_value = (directory / safe_relative(str(item.get("path", "")))).resolve()
+            artifact_path_value.relative_to(directory.resolve())
+        except (FlowError, ValueError) as exc:
+            raise FlowError("Artifact event names an unsafe path", EXIT_INTEGRITY, item) from exc
+        if not artifact_path_value.is_file():
+            raise FlowError("Artifact recorded by the event log is missing", EXIT_INTEGRITY, item)
+        actual_hash = sha256_path(artifact_path_value)
+        if actual_hash != item.get("sha256"):
+            raise FlowError(
+                "Artifact recorded by the event log changed",
+                EXIT_INTEGRITY,
+                {"path": str(artifact_path_value), "expected_sha256": item.get("sha256"), "actual_sha256": actual_hash},
+            )
+    if cached_artifacts != recovered_artifacts:
+        run["artifact_index"] = recovered_artifacts
+        changed = True
+
+    recovered_attempts = {str(state): 0 for state in run.get("attempts", {})}
+    latest_dispatch: dict[str, dict[str, Any]] = {}
+    model_receipt_counts: dict[str, int] = {}
+    rejection_counts: dict[str, int] = {}
+    for event in events:
+        payload = event.get("payload", {}) if isinstance(event.get("payload"), dict) else {}
+        if event.get("type") == "TASK_DISPATCHED":
+            state = str(payload.get("state") or "")
+            try:
+                attempt = int(payload.get("attempt", 0))
+            except (TypeError, ValueError):
+                attempt = 0
+            if not state or attempt < 1:
+                raise FlowError("Task dispatch event has an invalid identity", EXIT_INTEGRITY, event.get("sequence"))
+            recovered_attempts[state] = max(int(recovered_attempts.get(state, 0)), attempt)
+            latest_dispatch[state] = {"sequence": int(event.get("sequence", 0)), "attempt": attempt}
+        elif event.get("type") == "ARTIFACT_RECORDED":
+            item = payload.get("artifact", {}) if isinstance(payload.get("artifact"), dict) else {}
+            artifact_type = str(item.get("type", ""))
+            packet_match = re.fullmatch(r"task-packet:([^:]+):(\d+)", artifact_type)
+            receipt_match = re.fullmatch(r"model-call:([^:]+):(\d+)", artifact_type)
+            match = packet_match or receipt_match
+            if match:
+                state = match.group(1)
+                recovered_attempts[state] = max(int(recovered_attempts.get(state, 0)), int(match.group(2)))
+            if receipt_match:
+                state = receipt_match.group(1)
+                model_receipt_counts[state] = int(model_receipt_counts.get(state, 0)) + 1
+        elif event.get("type") == "MODEL_OUTPUT_REJECTED":
+            state = str(payload.get("state") or event.get("state") or "")
+            if state:
+                rejection_counts[state] = int(rejection_counts.get(state, 0)) + 1
+    for state in set(model_receipt_counts) | set(rejection_counts):
+        recovered_attempts[state] = max(
+            int(recovered_attempts.get(state, 0)),
+            int(model_receipt_counts.get(state, 0)),
+            int(rejection_counts.get(state, 0)),
+        )
+    if run.get("attempts") != recovered_attempts:
+        run["attempts"] = recovered_attempts
+        changed = True
+
+    if run.get("state") != derived_state:
+        run["state"] = derived_state
+        run["status"] = "COMPLETE" if derived_state == "COMPLETE" else "TERMINAL" if derived_state == "TERMINAL" else "ACTIVE"
+        changed = True
+
+    # A trailing dispatch is itself the durable decision that this exact packet
+    # is pending.  Do not require the stale cache to have reached WAITING_MODEL.
+    dispatch = latest_dispatch.get(derived_state)
+    if dispatch:
+        later_decision = any(
+            int(event.get("sequence", 0)) > dispatch["sequence"]
+            and event.get("type") in {"GATE_RECORDED", "MODEL_OUTPUT_REJECTED", "STATE_TRANSITION", "TERMINAL"}
+            and (event.get("state") == derived_state or (event.get("payload") or {}).get("state") == derived_state)
+            for event in events
+        )
+        if not later_decision and run.get("status") not in {"COMPLETE", "TERMINAL"}:
+            if run.get("status") != "WAITING_MODEL":
+                run["status"] = "WAITING_MODEL"
+                changed = True
+
+    if changed:
+        run["updated_at"] = utc_now()
+        errors = validate_instance_schema(run, "run.schema.json")
+        if errors:
+            raise FlowError("Recovered run cache is invalid", EXIT_INTEGRITY, errors)
+        write_json(directory / "run.json", run)
+    return changed
+
+
 def load_run(run_id: str) -> tuple[Path, dict[str, Any]]:
     directory = run_dir(run_id)
     path = directory / "run.json"
@@ -1088,8 +1239,7 @@ def load_run(run_id: str) -> tuple[Path, dict[str, Any]]:
     ok, error, derived_state = verify_event_log(directory, run)
     if not ok:
         raise FlowError(f"Run event log failed integrity: {error}", EXIT_INTEGRITY)
-    if run.get("state") != derived_state:
-        raise FlowError(f"run.json state {run.get('state')} disagrees with event log state {derived_state}", EXIT_INTEGRITY)
+    roll_forward_run_cache(directory, run, derived_state)
     return directory, run
 
 
@@ -1373,7 +1523,19 @@ def gate_class(gate_id: str) -> str:
     return "hard" if gate_id in gates["hard"] else "soft"
 
 
-def write_gate_receipt(directory: Path, run: dict[str, Any], gate_id: str, outcome: str, findings: list[dict[str, Any]], evaluator: dict[str, Any], repair_state: str | None = None) -> Path:
+def write_gate_receipt(
+    directory: Path,
+    run: dict[str, Any],
+    gate_id: str,
+    outcome: str,
+    findings: list[dict[str, Any]],
+    evaluator: dict[str, Any],
+    repair_state: str | None = None,
+    *,
+    task_state: str | None = None,
+    task_attempt: int | None = None,
+    task_packet_sha256: str | None = None,
+) -> Path:
     normalized_findings = []
     for finding in findings:
         normalized = dict(finding)
@@ -1384,8 +1546,17 @@ def write_gate_receipt(directory: Path, run: dict[str, Any], gate_id: str, outco
         normalized.setdefault("repair_instruction", "Repair the affected artifact at the declared repair state.")
         normalized_findings.append(normalized)
     findings = normalized_findings
+    task_binding = None
+    if task_state is not None or task_attempt is not None or task_packet_sha256 is not None:
+        if task_state is None or task_attempt is None or task_packet_sha256 is None:
+            raise FlowError("Task-bound gate receipts require the complete task identity", EXIT_INTEGRITY)
+        task_binding = {
+            "state": task_state,
+            "attempt": task_attempt,
+            "task_packet_sha256": task_packet_sha256,
+        }
     receipt = {
-        "gate_receipt_schema_version": "1.0.0",
+        "gate_receipt_schema_version": "1.1.0" if task_binding else "1.0.0",
         "run_id": run["run_id"],
         "gate_id": gate_id,
         "gate_class": gate_class(gate_id),
@@ -1397,13 +1568,18 @@ def write_gate_receipt(directory: Path, run: dict[str, Any], gate_id: str, outco
         "evaluator": evaluator,
         "created_at": utc_now(),
     }
+    if task_binding:
+        receipt["task_binding"] = task_binding
     errors = validate_instance_schema(receipt, "gate-receipt.schema.json")
     if errors:
         raise FlowError("Controller generated an invalid gate receipt", EXIT_INTEGRITY, errors)
     path = directory / "receipts" / f"{gate_id.lower()}-{len(list((directory / 'receipts').glob('*.json'))) + 1}.json"
-    write_json(path, receipt)
+    write_json_immutable(path, receipt)
     record_artifact(directory, run, path, f"gate-receipt:{gate_id}", {"actor": evaluator.get("type", "code")})
-    append_event(directory, run, "GATE_RECORDED", evaluator.get("type", "code"), {"gate_id": gate_id, "outcome": outcome, "findings": findings})
+    event_payload = {"gate_id": gate_id, "outcome": outcome, "findings": findings}
+    if task_binding:
+        event_payload.update(task_binding)
+    append_event(directory, run, "GATE_RECORDED", evaluator.get("type", "code"), event_payload)
     return path
 
 
@@ -1774,10 +1950,12 @@ def stage_attempt_evidence(directory: Path, run: dict[str, Any], state: str) -> 
     greatest value.  This both repairs stale counters and keeps future artifact
     paths monotonic.
     """
+    recorded_packet_attempts: list[int] = []
     dispatched_attempts: list[int] = []
     receipt_attempts: list[int] = []
     model_executions = 0
     rejections = 0
+    packet_pattern = re.compile(rf"^task-packet:{re.escape(state)}:(\d+)$")
     receipt_pattern = re.compile(rf"^model-call:{re.escape(state)}:(\d+)$")
     for event in _read_jsonl(directory / str(run["event_log"])):
         payload = event.get("payload", {}) if isinstance(event.get("payload"), dict) else {}
@@ -1788,28 +1966,58 @@ def stage_attempt_evidence(directory: Path, run: dict[str, Any], state: str) -> 
                 continue
         elif event.get("type") == "ARTIFACT_RECORDED":
             recorded = payload.get("artifact", {}) if isinstance(payload.get("artifact"), dict) else {}
-            match = receipt_pattern.fullmatch(str(recorded.get("type", "")))
-            if match:
+            artifact_type = str(recorded.get("type", ""))
+            packet_match = packet_pattern.fullmatch(artifact_type)
+            receipt_match = receipt_pattern.fullmatch(artifact_type)
+            if packet_match:
+                recorded_packet_attempts.append(int(packet_match.group(1)))
+            elif receipt_match:
                 model_executions += 1
-                receipt_attempts.append(int(match.group(1)))
+                receipt_attempts.append(int(receipt_match.group(1)))
         elif event.get("type") == "MODEL_OUTPUT_REJECTED" and payload.get("state") == state:
             rejections += 1
+    _, output_filename = stage_output(state)
+    raw_packet_attempts = {
+        int(match.group(1))
+        for path in (directory / "tasks").glob(f"{state.lower()}-*.json")
+        if (match := re.fullmatch(rf"{re.escape(state.lower())}-(\d+)\.json", path.name))
+    }
+    raw_output_attempts: set[int] = set()
+    for root_name in ("submissions", "artifacts"):
+        for path in (directory / root_name).glob(f"*-{output_filename}"):
+            match = re.fullmatch(rf"(\d+)-{re.escape(output_filename)}", path.name)
+            if match:
+                raw_output_attempts.add(int(match.group(1)))
+    for path in (directory / "receipts").glob(f"model-call-{state.lower()}-*.json"):
+        match = re.fullmatch(rf"model-call-{re.escape(state.lower())}-(\d+)\.json", path.name)
+        if match:
+            raw_output_attempts.add(int(match.group(1)))
+    model_executions += len(raw_output_attempts - set(receipt_attempts))
     counter = int(run.get("attempts", {}).get(state, 0))
     dispatch_count = len(dispatched_attempts)
     ordinal = max(
         counter,
+        max(recorded_packet_attempts, default=0),
+        max(raw_packet_attempts, default=0),
         max(dispatched_attempts, default=0),
         max(receipt_attempts, default=0),
+        max(raw_output_attempts, default=0),
+        len(recorded_packet_attempts),
+        len(raw_packet_attempts),
         dispatch_count,
         model_executions,
         rejections,
     )
     baseline = int(run.get("attempt_baselines", {}).get(state, 0))
+    execution_count = max(model_executions, rejections)
     return {
         "ordinal": ordinal,
         "window_baseline": baseline,
-        "window_used": max(0, ordinal - baseline),
+        "window_used": max(0, execution_count - baseline),
+        "recorded_packet_count": len(recorded_packet_attempts),
+        "raw_packet_count": len(raw_packet_attempts),
         "dispatch_count": dispatch_count,
+        "execution_count": execution_count,
         "model_execution_count": model_executions,
         "rejection_count": rejections,
     }
@@ -1817,8 +2025,9 @@ def stage_attempt_evidence(directory: Path, run: dict[str, Any], state: str) -> 
 
 def reset_attempt_window(directory: Path, run: dict[str, Any], state: str) -> int:
     """Authorize a new bounded repair window without reusing artifact paths."""
-    ordinal = stage_attempt_evidence(directory, run, state)["ordinal"]
-    run.setdefault("attempt_baselines", {})[state] = ordinal
+    evidence = stage_attempt_evidence(directory, run, state)
+    ordinal = evidence["ordinal"]
+    run.setdefault("attempt_baselines", {})[state] = evidence["execution_count"]
     run.setdefault("attempts", {})[state] = max(int(run.get("attempts", {}).get(state, 0)), ordinal)
     return ordinal
 
@@ -1830,13 +2039,20 @@ def remember_repair_context(
     definition: dict[str, Any],
 ) -> dict[str, Any] | None:
     """Persist the latest rejected bytes and normalized gate findings for repair."""
+    def omit_stale_context() -> None:
+        pending = run.get("pending_repair")
+        if isinstance(pending, dict) and pending.get("source_stage") == source_stage:
+            run.pop("pending_repair", None)
+
     if source_stage not in MODEL_STATES:
+        omit_stale_context()
         return None
     artifact_type, _ = stage_output(source_stage)
     rejected = artifact(run, artifact_type)
     gate_id = str(definition.get("gate") or "")
     gate_item = artifact(run, f"gate-receipt:{gate_id}") if gate_id else None
     if not rejected or not gate_item:
+        omit_stale_context()
         return None
     rejected_path = directory / safe_relative(str(rejected["path"]))
     gate_path = directory / safe_relative(str(gate_item["path"]))
@@ -1845,10 +2061,58 @@ def remember_repair_context(
     if sha256_path(rejected_path) != rejected.get("sha256") or sha256_path(gate_path) != gate_item.get("sha256"):
         raise FlowError("Rejected output or gate receipt changed before repair context was recorded", EXIT_INTEGRITY)
     receipt = load_json(gate_path)
+    findings = receipt.get("findings")
     if receipt.get("outcome") == "PASS" or receipt.get("gate_id") != gate_id:
+        omit_stale_context()
         return None
+    if not isinstance(findings, list) or not findings:
+        omit_stale_context()
+        return None
+    if (
+        receipt.get("run_id") != run.get("run_id")
+        or receipt.get("repair_state") != definition.get("repair_state")
+        or (receipt.get("artifact_hashes") or {}).get(artifact_type) != rejected.get("sha256")
+    ):
+        raise FlowError("Gate receipt is not cross-bound to the rejected repair artifact", EXIT_INTEGRITY)
+    task_binding = receipt.get("task_binding")
+    if isinstance(task_binding, dict):
+        try:
+            bound_attempt = int(task_binding.get("attempt", 0))
+        except (TypeError, ValueError):
+            bound_attempt = 0
+        packet_item = latest_recorded_artifact(
+            directory,
+            run,
+            lambda item: item.get("type") == f"task-packet:{source_stage}:{bound_attempt}",
+        )
+        if (
+            task_binding.get("state") != source_stage
+            or bound_attempt < 1
+            or not packet_item
+            or packet_item.get("sha256") != task_binding.get("task_packet_sha256")
+            or (receipt.get("artifact_hashes") or {}).get(f"task-packet:{source_stage}:{bound_attempt}")
+            != task_binding.get("task_packet_sha256")
+        ):
+            raise FlowError("Gate receipt is not cross-bound to its rejected task packet", EXIT_INTEGRITY)
+    elif (receipt.get("evaluator") or {}).get("type") not in {"operator", "human"}:
+        # Compatibility for archived 1.0 receipts: their artifact hash map is
+        # the only task binding available.  New automated receipts are 1.1 and
+        # must carry the explicit identity above.
+        legacy_packet_bound = receipt.get("gate_receipt_schema_version") == "1.0.0" and any(
+            str(item.get("type", "")).startswith(f"task-packet:{source_stage}:")
+            and (receipt.get("artifact_hashes") or {}).get(str(item.get("type"))) == item.get("sha256")
+            for item in run.get("artifact_index", [])
+        )
+        if not legacy_packet_bound:
+            raise FlowError("Automated repair receipt lacks its task-packet binding", EXIT_INTEGRITY)
     evidence = stage_attempt_evidence(directory, run, source_stage)
-    failed_attempt = evidence["ordinal"]
+    failed_attempt = int(task_binding["attempt"]) if isinstance(task_binding, dict) else evidence["ordinal"]
+    if failed_attempt < 1:
+        # An operator may request a repair before any task attempt exists.  The
+        # receipt still records a normalized finding, but there is no rejected
+        # attempt identity to place in task-packet repair_context.
+        omit_stale_context()
+        return None
     context = {
         "context_type": "targeted_gate_repair",
         "source_stage": source_stage,
@@ -1867,8 +2131,10 @@ def remember_repair_context(
             "path": str(gate_item["path"]),
             "sha256": str(gate_item["sha256"]),
         },
-        "findings": receipt.get("findings", []),
+        "findings": findings,
     }
+    if isinstance(task_binding, dict):
+        context["task_binding"] = json.loads(json.dumps(task_binding))
     run["pending_repair"] = context
     return context
 
@@ -1903,12 +2169,46 @@ def repair_context_for_packet(
             "sha256": str(reference["sha256"]),
         })
     receipt = load_json(Path(context["gate_receipt"]["path"]))
+    task_binding = context.get("task_binding")
+    receipt_binding = receipt.get("task_binding")
     if (
-        receipt.get("gate_id") != context["gate_receipt"].get("gate_id")
+        receipt.get("run_id") != run.get("run_id")
+        or receipt.get("gate_id") != context["gate_receipt"].get("gate_id")
         or receipt.get("outcome") == "PASS"
+        or receipt.get("repair_state") != state
         or receipt.get("findings") != context.get("findings")
+        or (receipt.get("artifact_hashes") or {}).get(context["rejected_output"].get("artifact_type"))
+        != context["rejected_output"].get("sha256")
     ):
         raise FlowError("Pending repair findings no longer match their hash-bound gate receipt", EXIT_INTEGRITY)
+    if task_binding is not None:
+        if receipt_binding != task_binding:
+            raise FlowError("Pending repair task binding no longer matches its gate receipt", EXIT_INTEGRITY)
+        try:
+            bound_attempt = int(task_binding.get("attempt", 0))
+        except (AttributeError, TypeError, ValueError):
+            bound_attempt = 0
+        packet_item = latest_recorded_artifact(
+            directory,
+            run,
+            lambda item: item.get("type") == f"task-packet:{context.get('source_stage')}:{bound_attempt}",
+        )
+        if (
+            not packet_item
+            or packet_item.get("sha256") != task_binding.get("task_packet_sha256")
+            or (receipt.get("artifact_hashes") or {}).get(
+                f"task-packet:{context.get('source_stage')}:{bound_attempt}"
+            ) != task_binding.get("task_packet_sha256")
+        ):
+            raise FlowError("Pending repair task packet is not hash-bound to its receipt", EXIT_INTEGRITY)
+    elif (receipt.get("evaluator") or {}).get("type") not in {"operator", "human"}:
+        legacy_packet_bound = receipt.get("gate_receipt_schema_version") == "1.0.0" and any(
+            str(item.get("type", "")).startswith(f"task-packet:{context.get('source_stage')}:")
+            and (receipt.get("artifact_hashes") or {}).get(str(item.get("type"))) == item.get("sha256")
+            for item in run.get("artifact_index", [])
+        )
+        if not legacy_packet_bound:
+            raise FlowError("Automated pending repair lacks its task-packet binding", EXIT_INTEGRITY)
     return context, inputs
 
 
@@ -1957,9 +2257,21 @@ def task_packet(
         raise FlowError(f"{state} exhausted its bounded attempts and requires an operator decision", EXIT_WAITING)
     attempt = attempt_evidence["ordinal"] + 1
     failures_for_state = run.get("route_failures", {}).get(state, {})
-    fallback_threshold = max(1, int(definition.get("max_attempts", 1)) - 1)
-    excluded = {key for key, count in failures_for_state.items() if int(count) >= fallback_threshold}
-    route = route_candidates(state, excluded)
+    unrestricted_route = route_candidates(state)
+    eligible_route_keys = {
+        f"{item.get('provider')}:{item.get('model')}"
+        for item in unrestricted_route.get("candidates", [])
+        if item.get("eligible")
+    }
+    failed_route_keys = {
+        key for key, count in failures_for_state.items()
+        if int(count) > 0 and key in eligible_route_keys
+    }
+    # Route fallback is independent from the stage execution bound. Prefer a
+    # route without a prior failure when one exists, but never exclude every
+    # eligible route and thereby prevent the remaining bounded executions.
+    excluded = failed_route_keys if eligible_route_keys - failed_route_keys else set()
+    route = route_candidates(state, excluded) if excluded else unrestricted_route
     route = prefer_controller_route(run, state, route)
     route = pin_writing_route(run, state, route)
     if state in {"CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION", "EDITORIAL_QA"} and route.get("chosen"):
@@ -2082,14 +2394,13 @@ def task_packet(
             "This is a targeted repair. Resolve every hash-bound gate finding in repair_context while preserving unaffected verified content."
         )
     packet = {
-        "task_packet_schema_version": "1.0.0",
+        "task_packet_schema_version": "1.1.0" if repair_context else "1.0.0",
         "workflow_version": run["workflow_version"],
         "run_id": run["run_id"],
         "stage": state,
         "attempt": attempt,
         "objective": definition["objective"],
         "inputs": inputs,
-        "repair_context": repair_context,
         "reader_job": reader_job,
         "article_recipe": recipe,
         "allowed_tools": allowed_tools,
@@ -2108,16 +2419,25 @@ def task_packet(
         "escalation_question": "What is the smallest operator decision or missing capability needed to complete this stage without guessing?",
         "selected_route": route,
     }
+    if repair_context:
+        packet["repair_context"] = repair_context
     path = directory / "tasks" / f"{state.lower()}-{attempt:02d}.json"
-    write_json(path, packet)
+    created = write_json_immutable(path, packet)
     errors = validate_json_schema(path, "task-packet.schema.json")
     if errors:
-        path.unlink(missing_ok=True)
+        if created:
+            path.unlink(missing_ok=True)
         raise FlowError("Controller generated an invalid task packet", EXIT_INTEGRITY, errors)
     record_artifact(directory, run, path, f"task-packet:{state}:{attempt}", {"actor": "controller", "version": CONTROLLER_VERSION})
     run["attempts"][state] = attempt
     run["status"] = "WAITING_MODEL"
-    append_event(directory, run, "TASK_DISPATCHED", "controller", {"state": state, "attempt": attempt, "packet": path.relative_to(directory).as_posix(), "route": route})
+    append_event(directory, run, "TASK_DISPATCHED", "controller", {
+        "state": state,
+        "attempt": attempt,
+        "packet": path.relative_to(directory).as_posix(),
+        "task_packet_sha256": sha256_path(path),
+        "route": route,
+    })
     save_run(directory, run)
     return path, packet
 
@@ -2303,6 +2623,252 @@ def invoke_route(route: dict[str, Any], packet_path: Path, packet: dict[str, Any
     return cleaned, {"provider": route["provider"], "model": route["model"], "model_version": route.get("model_version"), "elapsed_ms": elapsed_ms, "transport": transport}
 
 
+def latest_recorded_artifact(
+    directory: Path,
+    run: dict[str, Any],
+    predicate: Any,
+) -> dict[str, Any] | None:
+    """Resolve artifact evidence from the event-log WAL before run.json."""
+    for event in reversed(_read_jsonl(directory / str(run["event_log"]))):
+        if event.get("type") != "ARTIFACT_RECORDED":
+            continue
+        payload = event.get("payload", {}) if isinstance(event.get("payload"), dict) else {}
+        item = payload.get("artifact")
+        if isinstance(item, dict) and predicate(item):
+            return item
+    return next((item for item in reversed(run.get("artifact_index", [])) if predicate(item)), None)
+
+
+def latest_task_packet_item(directory: Path, run: dict[str, Any], state: str) -> dict[str, Any] | None:
+    prefix = f"task-packet:{state}:"
+    return latest_recorded_artifact(directory, run, lambda item: str(item.get("type", "")).startswith(prefix))
+
+
+def validate_recorded_task_packet(
+    directory: Path,
+    run: dict[str, Any],
+    item: dict[str, Any],
+) -> tuple[Path | None, dict[str, Any] | None, dict[str, Any] | None]:
+    """Validate the bytes and identity of a controller-recorded task packet."""
+    artifact_type = str(item.get("type", ""))
+    match = re.fullmatch(r"task-packet:([^:]+):(\d+)", artifact_type)
+    if not match:
+        return None, None, {"reason": "invalid_task_packet_artifact_type", "artifact_type": artifact_type}
+    expected_state = match.group(1)
+    expected_attempt = int(match.group(2))
+    try:
+        relative = safe_relative(str(item.get("path", "")))
+    except FlowError as exc:
+        return None, None, {"reason": "unsafe_task_packet_path", "error": str(exc)}
+    path = (directory / relative).resolve()
+    try:
+        path.relative_to(directory.resolve())
+    except ValueError:
+        return None, None, {"reason": "task_packet_path_escaped_run", "path": str(path)}
+    if not path.is_file():
+        return path, None, {"reason": "task_packet_missing", "path": str(path), "expected_sha256": item.get("sha256")}
+    actual_hash = sha256_path(path)
+    if actual_hash != item.get("sha256"):
+        return path, None, {
+            "reason": "task_packet_hash_mismatch",
+            "path": str(path),
+            "expected_sha256": item.get("sha256"),
+            "actual_sha256": actual_hash,
+        }
+    try:
+        packet = load_json(path)
+    except FlowError as exc:
+        return path, None, {"reason": "task_packet_unreadable", "path": str(path), "error": str(exc)}
+    packet_errors = validate_instance_schema(packet, "task-packet.schema.json")
+    if packet_errors:
+        return path, None, {"reason": "task_packet_schema_mismatch", "path": str(path), "errors": packet_errors}
+    identity = {
+        "run_id": packet.get("run_id"),
+        "state": packet.get("stage"),
+        "attempt": packet.get("attempt"),
+    }
+    if identity != {"run_id": run.get("run_id"), "state": expected_state, "attempt": expected_attempt}:
+        return path, None, {
+            "reason": "task_packet_identity_mismatch",
+            "path": str(path),
+            "expected": {"run_id": run.get("run_id"), "state": expected_state, "attempt": expected_attempt},
+            "actual": identity,
+        }
+    return path, packet, None
+
+
+def task_packet_dispatch_sequence(
+    directory: Path,
+    run: dict[str, Any],
+    state: str,
+    attempt: int,
+    packet_path: Path,
+) -> int | None:
+    relative = packet_path.relative_to(directory).as_posix()
+    packet_hash = sha256_path(packet_path)
+    for event in reversed(_read_jsonl(directory / str(run["event_log"]))):
+        payload = event.get("payload", {}) if isinstance(event.get("payload"), dict) else {}
+        if (
+            event.get("type") == "TASK_DISPATCHED"
+            and payload.get("state") == state
+            and int(payload.get("attempt", 0)) == attempt
+            and payload.get("packet") == relative
+            and payload.get("task_packet_sha256", packet_hash) == packet_hash
+        ):
+            return int(event.get("sequence", 0))
+    return None
+
+
+def task_packet_gate_consumed(
+    directory: Path,
+    run: dict[str, Any],
+    state: str,
+    attempt: int,
+    packet_sha256: str,
+    dispatch_sequence: int,
+) -> bool:
+    gate_id = state_definition(state, run).get("gate")
+    for event in _read_jsonl(directory / str(run["event_log"])):
+        if int(event.get("sequence", 0)) <= dispatch_sequence:
+            continue
+        payload = event.get("payload", {}) if isinstance(event.get("payload"), dict) else {}
+        try:
+            payload_attempt = int(payload.get("attempt", 0))
+        except (TypeError, ValueError):
+            payload_attempt = 0
+        binding_matches = (
+            payload.get("state") == state
+            and payload_attempt == attempt
+            and payload.get("task_packet_sha256") == packet_sha256
+        )
+        if event.get("type") == "MODEL_OUTPUT_REJECTED" and binding_matches:
+            return True
+        if event.get("type") == "GATE_RECORDED" and payload.get("gate_id") == gate_id and binding_matches:
+            return True
+    return False
+
+
+def validated_model_call_item(
+    directory: Path,
+    run: dict[str, Any],
+    state: str,
+    attempt: int,
+    packet_path: Path,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    item = latest_recorded_artifact(
+        directory,
+        run,
+        lambda candidate: candidate.get("type") == f"model-call:{state}:{attempt}",
+    )
+    if not item:
+        return None, None
+    path = (directory / safe_relative(str(item.get("path", "")))).resolve()
+    try:
+        path.relative_to(directory.resolve())
+    except ValueError:
+        return None, {"reason": "model_call_receipt_escaped_run", "path": str(path)}
+    if not path.is_file() or sha256_path(path) != item.get("sha256"):
+        return None, {"reason": "model_call_receipt_changed", "path": str(path), "expected_sha256": item.get("sha256")}
+    receipt = load_json(path)
+    if (
+        receipt.get("run_id") != run.get("run_id")
+        or receipt.get("stage") != state
+        or int(receipt.get("attempt", 0)) != attempt
+        or receipt.get("packet_sha256") != sha256_path(packet_path)
+    ):
+        return None, {"reason": "model_call_receipt_identity_mismatch", "path": str(path)}
+    return {"item": item, "path": str(path), "receipt": receipt}, None
+
+
+def validated_gate_receipt_for_attempt(
+    directory: Path,
+    run: dict[str, Any],
+    state: str,
+    attempt: int,
+    packet_sha256: str,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    """Find a durable gate receipt committed for one exact task identity."""
+    gate_id = str(state_definition(state, run).get("gate") or "")
+    for event in reversed(_read_jsonl(directory / str(run["event_log"]))):
+        if event.get("type") != "ARTIFACT_RECORDED":
+            continue
+        payload = event.get("payload", {}) if isinstance(event.get("payload"), dict) else {}
+        item = payload.get("artifact")
+        if not isinstance(item, dict) or item.get("type") != f"gate-receipt:{gate_id}":
+            continue
+        path = (directory / safe_relative(str(item.get("path", "")))).resolve()
+        try:
+            path.relative_to(directory.resolve())
+        except ValueError:
+            return None, {"reason": "gate_receipt_escaped_run", "path": str(path)}
+        if not path.is_file() or sha256_path(path) != item.get("sha256"):
+            return None, {"reason": "gate_receipt_changed", "path": str(path), "expected_sha256": item.get("sha256")}
+        receipt = load_json(path)
+        binding = receipt.get("task_binding")
+        if not isinstance(binding, dict):
+            continue
+        try:
+            bound_attempt = int(binding.get("attempt", 0))
+        except (TypeError, ValueError):
+            bound_attempt = 0
+        if (
+            receipt.get("run_id") == run.get("run_id")
+            and receipt.get("gate_id") == gate_id
+            and binding.get("state") == state
+            and bound_attempt == attempt
+            and binding.get("task_packet_sha256") == packet_sha256
+        ):
+            return {"item": item, "path": str(path), "receipt": receipt}, None
+    return None, None
+
+
+def resumable_model_output(
+    directory: Path,
+    run: dict[str, Any],
+    packet_path: Path,
+    packet: dict[str, Any],
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    """Resolve a durable model call to the exact output bound by its packet."""
+    state = str(packet.get("stage"))
+    attempt = int(packet.get("attempt", 0))
+    model_call, issue = validated_model_call_item(directory, run, state, attempt, packet_path)
+    if issue or not model_call:
+        return None, issue
+    try:
+        output_path = Path(str(packet["expected_outputs"][0]["path"])).expanduser().resolve()
+        output_path.relative_to((directory / "submissions").resolve())
+    except (IndexError, KeyError, TypeError, ValueError) as exc:
+        return None, {"reason": "model_output_path_is_not_the_bound_run_submission", "error": str(exc)}
+    receipt = model_call["receipt"]
+    if not output_path.is_file():
+        return None, {"reason": "recorded_model_output_missing", "path": str(output_path)}
+    actual_hash = sha256_path(output_path)
+    if receipt.get("output_sha256") != actual_hash:
+        return None, {
+            "reason": "recorded_model_output_changed",
+            "path": str(output_path),
+            "expected_sha256": receipt.get("output_sha256"),
+            "actual_sha256": actual_hash,
+        }
+    return {"model_call": model_call, "output_path": output_path}, None
+
+
+def abandon_cached_packet(
+    directory: Path,
+    run: dict[str, Any],
+    state: str,
+    item: dict[str, Any],
+    details: dict[str, Any],
+) -> None:
+    append_event(directory, run, "RETRY", "controller", {
+        "state": state,
+        "task_packet_artifact_id": item.get("artifact_id"),
+        **details,
+    })
+    run["status"] = "ACTIVE"
+    save_run(directory, run)
+
+
 def current_packet(
     directory: Path,
     run: dict[str, Any],
@@ -2325,11 +2891,100 @@ def current_packet(
     # repair transitions the run back to ACTIVE, which must mint the next
     # monotonic attempt and preserve the rejected packet and output unchanged.
     if run.get("status") == "WAITING_MODEL":
-        prefix = f"task-packet:{run['state']}:"
-        item = next((entry for entry in reversed(run.get("artifact_index", [])) if str(entry.get("type", "")).startswith(prefix)), None)
+        item = latest_task_packet_item(directory, run, run["state"])
         if item:
-            path = directory / item["path"]
-            packet = load_json(path)
+            path, packet, issue = validate_recorded_task_packet(directory, run, item)
+            if issue:
+                run["status"] = "BLOCKED"
+                append_event(directory, run, "ESCALATION", "controller", {
+                    "state": run["state"],
+                    "gate_id": state_definition(run["state"], run).get("gate"),
+                    **issue,
+                })
+                save_run(directory, run)
+                raise FlowError("Recorded task packet failed integrity validation", EXIT_INTEGRITY, issue)
+            assert path is not None and packet is not None
+            attempt = int(packet["attempt"])
+            dispatch_sequence = task_packet_dispatch_sequence(directory, run, run["state"], attempt, path)
+            if dispatch_sequence is None:
+                issue = {"reason": "task_packet_was_not_durably_dispatched", "attempt": attempt}
+                run["status"] = "BLOCKED"
+                append_event(directory, run, "ESCALATION", "controller", {
+                    "state": run["state"],
+                    "gate_id": state_definition(run["state"], run).get("gate"),
+                    **issue,
+                })
+                save_run(directory, run)
+                raise FlowError("Recorded task packet lacks durable dispatch evidence", EXIT_INTEGRITY, issue)
+            if task_packet_gate_consumed(
+                directory,
+                run,
+                run["state"],
+                attempt,
+                sha256_path(path),
+                dispatch_sequence,
+            ):
+                issue = {
+                    "reason": "task_packet_gate_already_recorded",
+                    "attempt": attempt,
+                    "dispatch_sequence": dispatch_sequence,
+                }
+                # The recorded gate is the decision commit for this attempt.  A
+                # stale cache must never turn it into another execution.  Full
+                # outcome reconciliation is operator-visible; block safely if
+                # no later transition was durably completed.
+                run["status"] = "BLOCKED"
+                append_event(directory, run, "ESCALATION", "controller", {
+                    "state": run["state"],
+                    "gate_id": state_definition(run["state"], run).get("gate"),
+                    **issue,
+                })
+                save_run(directory, run)
+                raise FlowError("Task packet gate outcome is already recorded and requires reconciliation", EXIT_WAITING, issue)
+            committed_gate, gate_issue = validated_gate_receipt_for_attempt(
+                directory,
+                run,
+                run["state"],
+                attempt,
+                sha256_path(path),
+            )
+            if gate_issue or committed_gate:
+                issue = gate_issue or {
+                    "reason": "task_packet_gate_receipt_requires_reconciliation",
+                    "attempt": attempt,
+                    "gate_receipt": committed_gate["path"],
+                }
+                run["status"] = "BLOCKED"
+                append_event(directory, run, "ESCALATION", "controller", {
+                    "state": run["state"],
+                    "gate_id": state_definition(run["state"], run).get("gate"),
+                    **issue,
+                })
+                save_run(directory, run)
+                raise FlowError("Task packet has a committed gate receipt requiring reconciliation", EXIT_WAITING, issue)
+            model_call, receipt_issue = validated_model_call_item(directory, run, run["state"], attempt, path)
+            if receipt_issue:
+                run["status"] = "BLOCKED"
+                append_event(directory, run, "ESCALATION", "controller", {
+                    "state": run["state"],
+                    "gate_id": state_definition(run["state"], run).get("gate"),
+                    **receipt_issue,
+                })
+                save_run(directory, run)
+                raise FlowError("Recorded model-call receipt failed integrity validation", EXIT_INTEGRITY, receipt_issue)
+            if model_call:
+                chosen = packet.get("selected_route", {}).get("chosen") or {}
+                chosen_key = f"{chosen.get('provider')}:{chosen.get('model')}"
+                if requested_route and (
+                    chosen_key != requested_route
+                    or bool(chosen.get("canary_execution")) != bool(allow_canary)
+                ):
+                    raise FlowError(
+                        "A durable model call already consumed this packet; its route cannot be changed",
+                        EXIT_INTEGRITY,
+                        {"recorded_route": chosen_key, "requested_route": requested_route},
+                    )
+                return path, packet
             if not requested_route:
                 return path, packet
             chosen = packet.get("selected_route", {}).get("chosen") or {}
@@ -2341,10 +2996,19 @@ def current_packet(
 
 def latest_model_call_route(directory: Path, run: dict[str, Any], stage: str, attempt: int) -> dict[str, Any] | None:
     expected_type = f"model-call:{stage}:{attempt}"
-    item = next((entry for entry in reversed(run.get("artifact_index", [])) if entry.get("type") == expected_type), None)
+    item = latest_recorded_artifact(directory, run, lambda entry: entry.get("type") == expected_type)
     if not item:
         return None
-    value = load_json(directory / item["path"])
+    path = (directory / safe_relative(str(item.get("path", "")))).resolve()
+    try:
+        path.relative_to(directory.resolve())
+    except ValueError as exc:
+        raise FlowError("Recorded model-call route receipt escaped its run", EXIT_INTEGRITY, item) from exc
+    if not path.is_file() or sha256_path(path) != item.get("sha256"):
+        raise FlowError("Recorded model-call route receipt changed", EXIT_INTEGRITY, item)
+    value = load_json(path)
+    if value.get("run_id") != run.get("run_id") or value.get("stage") != stage or int(value.get("attempt", 0)) != attempt:
+        raise FlowError("Recorded model-call route receipt has the wrong identity", EXIT_INTEGRITY, item)
     route = value.get("route")
     return route if isinstance(route, dict) else None
 
@@ -2408,6 +3072,54 @@ def command_execute_stage(args: argparse.Namespace) -> int:
         requested_route=args.route,
         allow_canary=bool(args.canary),
     )
+    resumable, resume_issue = resumable_model_output(directory, run, packet_path, packet)
+    if resume_issue:
+        run["status"] = "BLOCKED"
+        append_event(directory, run, "ESCALATION", "controller", {
+            "state": run["state"],
+            "gate_id": definition.get("gate"),
+            **resume_issue,
+        })
+        save_run(directory, run)
+        raise FlowError("Recorded model-call evidence failed integrity validation", EXIT_INTEGRITY, resume_issue)
+    if resumable:
+        output_path = resumable["output_path"]
+        receipt = resumable["model_call"]["receipt"]
+        command = [sys.executable, str(SCRIPT_PATH), "submit", run["run_id"], "--stage", run["state"], "--file", str(output_path), "--json"]
+        result = subprocess.run(command, capture_output=True, text=True)
+        try:
+            submission = json.loads(result.stdout)
+        except json.JSONDecodeError:
+            submission = {"raw_stdout": result.stdout, "stderr": result.stderr}
+        emit({
+            "ok": result.returncode in {EXIT_OK, EXIT_WAITING},
+            "resumed_recorded_model_call": True,
+            "model_call": receipt,
+            "submission": submission,
+        }, args.json)
+        return result.returncode
+
+    # Bytes created before their ARTIFACT_RECORDED commit are crash evidence,
+    # not an invitation to overwrite or reinvoke the same ordinal.  Preserve
+    # them and advance to a fresh immutable attempt; the raw output/receipt also
+    # counts toward the stage execution bound.
+    expected_output = Path(str(packet["expected_outputs"][0]["path"])).expanduser().resolve()
+    raw_receipt = directory / "receipts" / f"model-call-{run['state'].lower()}-{int(packet['attempt']):02d}.json"
+    if expected_output.exists() or raw_receipt.exists():
+        item = latest_task_packet_item(directory, run, run["state"])
+        assert item is not None
+        abandon_cached_packet(directory, run, run["state"], item, {
+            "reason": "uncommitted_attempt_bytes_preserved",
+            "attempt": int(packet["attempt"]),
+            "output_present": expected_output.exists(),
+            "receipt_present": raw_receipt.exists(),
+        })
+        packet_path, packet = current_packet(
+            directory,
+            run,
+            requested_route=args.route,
+            allow_canary=bool(args.canary),
+        )
     route_set = packet["selected_route"]
     routes = [route_set.get("chosen"), *route_set.get("fallbacks", [])]
     routes = [item for item in routes if isinstance(item, dict)]
@@ -2425,7 +3137,20 @@ def command_execute_stage(args: argparse.Namespace) -> int:
         try:
             output, call = invoke_route(route, packet_path, packet)
             output_path = Path(packet["expected_outputs"][0]["path"])
-            atomic_write(output_path, output.encode("utf-8"))
+            if output_path.exists():
+                # A command provider may write the packet-bound destination
+                # itself.  Validate that those immutable bytes are the exact
+                # semantic output returned by the adapter, then preserve them.
+                existing_text = output_path.read_text(encoding="utf-8")
+                expected_format = str(packet["expected_outputs"][0].get("format"))
+                if clean_model_output(existing_text, expected_format) != output:
+                    raise FlowError(
+                        "Provider wrote output bytes that disagree with its returned output",
+                        EXIT_INTEGRITY,
+                        {"path": str(output_path)},
+                    )
+            else:
+                immutable_write(output_path, output.encode("utf-8"))
             receipt = {
                 "model_call_receipt_schema_version": "1.0.0",
                 "run_id": run["run_id"],
@@ -2439,7 +3164,7 @@ def command_execute_stage(args: argparse.Namespace) -> int:
                 "created_at": utc_now(),
             }
             receipt_path = directory / "receipts" / f"model-call-{run['state'].lower()}-{packet['attempt']:02d}.json"
-            write_json(receipt_path, receipt)
+            write_json_immutable(receipt_path, receipt)
             record_artifact(directory, run, receipt_path, f"model-call:{run['state']}:{packet['attempt']}", {"actor": "controller", "version": CONTROLLER_VERSION})
             command = [sys.executable, str(SCRIPT_PATH), "submit", run["run_id"], "--stage", run["state"], "--file", str(output_path), "--json"]
             result = subprocess.run(command, capture_output=True, text=True)
@@ -2455,6 +3180,22 @@ def command_execute_stage(args: argparse.Namespace) -> int:
             key = f"{route.get('provider')}:{route.get('model')}"
             stage_failures = run.setdefault("route_failures", {}).setdefault(run["state"], {})
             stage_failures[key] = int(stage_failures.get(key, 0)) + 1
+            failed_output = Path(str(packet["expected_outputs"][0]["path"])).expanduser().resolve()
+            failed_receipt = directory / "receipts" / f"model-call-{run['state'].lower()}-{int(packet['attempt']):02d}.json"
+            if failed_output.exists() or failed_receipt.exists():
+                item = latest_task_packet_item(directory, run, run["state"])
+                if item:
+                    abandon_cached_packet(directory, run, run["state"], item, {
+                        "reason": "failed_route_left_immutable_attempt_bytes",
+                        "attempt": int(packet["attempt"]),
+                        "output_present": failed_output.exists(),
+                        "receipt_present": failed_receipt.exists(),
+                    })
+                raise FlowError(
+                    "A failed route left attempt-bound bytes; they were preserved and no fallback reused the ordinal",
+                    EXIT_FAILED,
+                    failures,
+                )
     save_run(directory, run)
     raise FlowError("Every eligible controller-hosted route failed", EXIT_FAILED, failures)
 
@@ -3176,6 +3917,24 @@ def next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
     else:
         packet_path, packet = task_packet(directory, run)
     expected = packet["expected_outputs"][0]
+    resumable, resume_issue = resumable_model_output(directory, run, packet_path, packet)
+    if resume_issue:
+        run["status"] = "BLOCKED"
+        append_event(directory, run, "ESCALATION", "controller", {
+            "state": state,
+            "gate_id": state_definition(state, run).get("gate"),
+            **resume_issue,
+        })
+        save_run(directory, run)
+        raise FlowError("Recorded model-call evidence failed integrity validation", EXIT_INTEGRITY, resume_issue)
+    if resumable:
+        return {
+            "action": "run_command",
+            "run_id": run["run_id"],
+            "state": state,
+            "reason": "resume_recorded_model_call",
+            "command": ["article-flow", "submit", run["run_id"], "--stage", state, "--file", str(resumable["output_path"])],
+        }
     return {
         "action": "perform_task",
         "run_id": run["run_id"],
@@ -3406,26 +4165,118 @@ def command_submit(args: argparse.Namespace) -> int:
     if not source.is_file():
         raise FlowError(f"Submission file does not exist: {source}")
     artifact_type, filename = stage_output(args.stage)
-    attempt = int(run["attempts"].get(args.stage, 1))
-    destination = directory / "artifacts" / f"{attempt:02d}-{filename}"
     with run_lock(directory, run):
-        packet_item = next((item for item in reversed(run["artifact_index"]) if item["type"].startswith(f"task-packet:{args.stage}:")), None)
+        _, run = load_run(args.run_id)
+        if run["state"] != args.stage or run.get("status") != "WAITING_MODEL":
+            raise FlowError(
+                f"Submission for {args.stage} is stale or the recorded task is no longer waiting for a model",
+                EXIT_INTEGRITY,
+                {"state": run["state"], "status": run.get("status")},
+            )
+        packet_item = latest_task_packet_item(directory, run, args.stage)
         if not packet_item:
             raise FlowError(f"No dispatched task packet exists for {args.stage}", EXIT_INTEGRITY)
-        packet_value = load_json(directory / packet_item["path"])
+        packet_path, packet_value, packet_issue = validate_recorded_task_packet(directory, run, packet_item)
+        if packet_issue or packet_path is None or packet_value is None:
+            raise FlowError("Recorded task packet failed integrity validation", EXIT_INTEGRITY, packet_issue)
+        attempt = int(packet_value["attempt"])
+        if int(run.get("attempts", {}).get(args.stage, 0)) != attempt:
+            raise FlowError(
+                "Submission attempt does not match the current monotonic task attempt",
+                EXIT_INTEGRITY,
+                {"packet_attempt": attempt, "run_attempt": run.get("attempts", {}).get(args.stage)},
+            )
+        dispatch_sequence = task_packet_dispatch_sequence(directory, run, args.stage, attempt, packet_path)
+        if dispatch_sequence is None or task_packet_gate_consumed(
+            directory,
+            run,
+            args.stage,
+            attempt,
+            sha256_path(packet_path),
+            dispatch_sequence,
+        ):
+            raise FlowError(
+                "Task packet was never dispatched or its gate outcome was already recorded",
+                EXIT_INTEGRITY,
+                {"attempt": attempt, "dispatch_sequence": dispatch_sequence},
+            )
+        committed_gate, gate_issue = validated_gate_receipt_for_attempt(
+            directory,
+            run,
+            args.stage,
+            attempt,
+            sha256_path(packet_path),
+        )
+        if gate_issue or committed_gate:
+            issue = gate_issue or {
+                "reason": "task_packet_gate_receipt_requires_reconciliation",
+                "attempt": attempt,
+                "gate_receipt": committed_gate["path"],
+            }
+            run["status"] = "BLOCKED"
+            append_event(directory, run, "ESCALATION", "controller", {
+                "state": args.stage,
+                "gate_id": state_definition(args.stage, run).get("gate"),
+                **issue,
+            })
+            save_run(directory, run)
+            raise FlowError("Submission gate receipt is already committed and cannot be replayed", EXIT_WAITING, issue)
+        model_call, receipt_issue = validated_model_call_item(directory, run, args.stage, attempt, packet_path)
+        if receipt_issue:
+            raise FlowError("Recorded model-call receipt failed integrity validation", EXIT_INTEGRITY, receipt_issue)
+        expected_output = Path(packet_value["expected_outputs"][0]["path"]).expanduser().resolve()
+        submissions_root = (directory / "submissions").resolve()
+        try:
+            source.relative_to(submissions_root)
+            source_is_run_submission = True
+        except ValueError:
+            source_is_run_submission = False
+        if is_v3_run(run) and source != expected_output:
+            raise FlowError(
+                "Workflow 3 submissions must use the exact output path bound by the current task packet",
+                EXIT_INTEGRITY,
+                {"source": str(source), "expected_output": str(expected_output), "attempt": attempt},
+            )
+        if not is_v3_run(run) and source_is_run_submission and source != expected_output:
+            raise FlowError(
+                "Submission file belongs to a stale task attempt",
+                EXIT_INTEGRITY,
+                {"source": str(source), "expected_output": str(expected_output), "attempt": attempt},
+            )
+        if model_call and model_call["receipt"].get("output_sha256") != sha256_path(source):
+            raise FlowError(
+                "Submission bytes do not match the recorded model-call output",
+                EXIT_INTEGRITY,
+                {
+                    "expected_sha256": model_call["receipt"].get("output_sha256"),
+                    "actual_sha256": sha256_path(source),
+                    "attempt": attempt,
+                },
+            )
+        destination = directory / "artifacts" / f"{attempt:02d}-{filename}"
         for item in packet_value.get("inputs", []):
             input_path = Path(item["path"])
             actual_hash = sha256_path(input_path) if input_path.is_file() else None
             if actual_hash != item["sha256"]:
                 raise FlowError(f"Task input changed before submission: {item['id']}", EXIT_INTEGRITY, {"expected_sha256": item["sha256"], "actual_sha256": actual_hash, "path": str(input_path)})
         if source != destination.resolve():
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source, destination)
+            immutable_write(destination, source.read_bytes())
         outcome, findings = automatic_gate(directory, run, args.stage, destination)
         packet_route = latest_model_call_route(directory, run, args.stage, attempt)
         if packet_route is None and packet_item:
             packet_route = packet_value.get("selected_route", {}).get("chosen")
-        record_artifact(directory, run, destination, artifact_type, {"actor": "model_or_host", "route": packet_route}, inputs=[item["artifact_id"] for item in run["artifact_index"]])
+        existing_output = latest_recorded_artifact(
+            directory,
+            run,
+            lambda item: item.get("type") == artifact_type
+            and item.get("path") == destination.relative_to(directory).as_posix()
+            and item.get("sha256") == sha256_path(destination),
+        )
+        if existing_output:
+            run["artifact_index"] = [item for item in run["artifact_index"] if item.get("type") != artifact_type]
+            run["artifact_index"].append(existing_output)
+        else:
+            record_artifact(directory, run, destination, artifact_type, {"actor": "model_or_host", "route": packet_route}, inputs=[item["artifact_id"] for item in run["artifact_index"]])
         if args.stage == "CLAIM_VERIFICATION" and outcome == "PASS":
             lock_verified_fields(directory, run, destination)
         definition = state_definition(args.stage, run)
@@ -3446,13 +4297,31 @@ def command_submit(args: argparse.Namespace) -> int:
             if policy_review
             else {"type": "code", "version": CONTROLLER_VERSION}
         )
-        gate_receipt_path = write_gate_receipt(directory, run, definition["gate"], recorded_outcome, review_findings, evaluator, definition.get("repair_state"))
+        gate_receipt_path = write_gate_receipt(
+            directory,
+            run,
+            definition["gate"],
+            recorded_outcome,
+            review_findings,
+            evaluator,
+            definition.get("repair_state"),
+            task_state=args.stage,
+            task_attempt=attempt,
+            task_packet_sha256=sha256_path(packet_path),
+        )
         if outcome != "PASS":
             if packet_route:
                 key = f"{packet_route.get('provider')}:{packet_route.get('model')}"
                 stage_failures = run.setdefault("route_failures", {}).setdefault(args.stage, {})
                 stage_failures[key] = int(stage_failures.get(key, 0)) + 1
-                append_event(directory, run, "MODEL_OUTPUT_REJECTED", "controller", {"state": args.stage, "route": packet_route, "failure_count": stage_failures[key], "findings": findings})
+                append_event(directory, run, "MODEL_OUTPUT_REJECTED", "controller", {
+                    "state": args.stage,
+                    "attempt": attempt,
+                    "task_packet_sha256": sha256_path(packet_path),
+                    "route": packet_route,
+                    "failure_count": stage_failures[key],
+                    "findings": findings,
+                })
             remember_repair_context(directory, run, args.stage, definition)
             attempt_evidence = stage_attempt_evidence(directory, run, args.stage)
             attempts_used = attempt_evidence["window_used"]
@@ -3603,6 +4472,14 @@ def command_gate(args: argparse.Namespace) -> int:
         findings = []
         if args.finding:
             findings.append({"criterion": "operator_review", "artifact": args.artifact or "current", "location": None, "finding": args.finding, "repair_instruction": args.finding})
+        elif args.outcome == "REPAIR":
+            findings.append({
+                "criterion": "operator_requested_repair",
+                "artifact": args.artifact or "current",
+                "location": None,
+                "finding": "The operator requested a bounded repair without adding a passage-specific finding.",
+                "repair_instruction": "Re-evaluate the current artifact against every criterion of this gate and repair only the failing content.",
+            })
         if args.gate_id == "G-PUBLISH-APPROVAL" and args.outcome == "PASS":
             plan_path = directory / "publication" / "plan.json"
             if not plan_path.is_file():

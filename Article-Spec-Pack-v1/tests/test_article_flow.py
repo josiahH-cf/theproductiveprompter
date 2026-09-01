@@ -373,13 +373,21 @@ class RunAndSmokeTests(TemporaryRuntime):
         directory, run = af.load_run(run_id)
         af.transition(directory, run, "CLAIM_VERIFICATION", "test", "exercise safe terminal")
         run["attempts"]["CLAIM_VERIFICATION"] = 3
+        for attempt in range(1, 4):
+            af.append_event(directory, run, "TASK_DISPATCHED", "test", {
+                "state": "CLAIM_VERIFICATION",
+                "attempt": attempt,
+                "packet": f"tasks/claim_verification-{attempt:02d}.json",
+            })
         run["route_failures"]["CLAIM_VERIFICATION"] = {"only:route": 2}
         af.save_run(directory, run)
         code, repaired = call(af.command_repair, run_id=run_id, gate_id="G-CLAIMS-VERIFIED", finding="Retry only the failed verification.")
         self.assertEqual(code, af.EXIT_OK, repaired)
         _, run = af.load_run(run_id)
         self.assertEqual(run["attempts"]["CLAIM_VERIFICATION"], 3)
-        self.assertEqual(run["attempt_baselines"]["CLAIM_VERIFICATION"], 3)
+        # A monotonic packet ordinal is not itself a model execution.  The new
+        # repair window therefore starts after zero durable executions here.
+        self.assertEqual(run["attempt_baselines"]["CLAIM_VERIFICATION"], 0)
         self.assertNotIn("CLAIM_VERIFICATION", run["route_failures"])
         code, ended = call(af.command_gate, run_id=run_id, gate_id="G-CLAIMS-VERIFIED", outcome="TERMINAL")
         self.assertEqual(code, af.EXIT_OK, ended)
@@ -547,8 +555,10 @@ class RunAndSmokeTests(TemporaryRuntime):
         _, action = self.next(run_id)
         packet_path = Path(action["task_packet"])
         packet = json.loads(packet_path.read_text(encoding="utf-8"))
-        for field in ["workflow_version", "run_id", "stage", "attempt", "objective", "inputs", "repair_context", "reader_job", "article_recipe", "allowed_tools", "side_effect_policy", "constraints", "expected_outputs", "success_criteria", "non_authorities", "stop_conditions", "escalation_question"]:
+        for field in ["workflow_version", "run_id", "stage", "attempt", "objective", "inputs", "reader_job", "article_recipe", "allowed_tools", "side_effect_policy", "constraints", "expected_outputs", "success_criteria", "non_authorities", "stop_conditions", "escalation_question"]:
             self.assertIn(field, packet)
+        self.assertEqual(packet["task_packet_schema_version"], "1.0.0")
+        self.assertNotIn("repair_context", packet)
         packet.pop("escalation_question")
         broken = Path(self.temp.name) / "broken-packet.json"
         broken.write_text(json.dumps(packet), encoding="utf-8")
