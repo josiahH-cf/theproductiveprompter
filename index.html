@@ -97,9 +97,12 @@
             </div>
         </section>
 
-        <section class="articles" id="blog">
+        <section class="articles articles--home" id="blog" aria-labelledby="home-blog-heading">
             <div class="container">
-                <h2 class="section-heading"><span class="section-heading__number">01.</span><span class="section-heading__text">Blog</span></h2>
+                <header class="home-blog__header">
+                    <h2 class="section-heading" id="home-blog-heading"><span class="section-heading__number">01.</span><span class="section-heading__text">Blog</span></h2>
+                    <p class="home-blog__intro reveal-on-scroll">Ideas, experiments, and the occasional useful rabbit hole.</p>
+                </header>
                 <div class="articles__list">
                     <!-- ARTICLE_FLOW_LATEST_START -->
 <article class="article-card article-card--featured" data-article-flow-slug="context-plus-prompt-anything-a-computer-can-do">
@@ -147,19 +150,9 @@
 <!-- ARTICLE_FLOW_LATEST_END -->
                 </div>
 
-                <h3 class="blog-shelf-heading">Completed series</h3>
-                <div class="campaign-banner reveal-on-scroll" data-href="docs/31-days-of-ai.html">
-                    <div class="campaign-banner__header">
-                        <h3 class="campaign-banner__title">31 Days of AI <span class="campaign-banner__badge">Completed Series · Dec 2025</span></h3>
-                        <span class="campaign-banner__counter">31 entries · all visible</span>
-                    </div>
-                    <div class="campaign-banner__content">
-                        <div class="campaign-banner__latest">Series Final Entry: <a href="docs/article.html?post=31-days-ai-day-31.md">Day 31: Final Reflection—What 31 Days Actually Changed</a></div>
-                    </div>
-                    <div class="campaign-banner__actions">
-                        <a href="docs/31-days-of-ai.html" class="campaign-banner__link">Browse all 31 entries →</a>
-                        <a href="docs/blog.html" class="campaign-banner__link">See the blog hub →</a>
-                    </div>
+                <div class="home-blog__actions">
+                    <a href="/docs/blog.html" class="home-blog__all-link">See all writing →</a>
+                    <a href="/docs/31-days-of-ai.html" class="home-series-link">A completed side quest: 31 Days of AI — 31 entries →</a>
                 </div>
             </div>
         </section>

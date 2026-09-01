@@ -283,33 +283,33 @@ clickableElements.forEach(element => {
 // Contact Form Handling
 // ===================================
 
-// Replace this value with the HTTPS endpoint supplied by the form-forwarding service.
-const CONTACT_FORM_ENDPOINT = 'PASTE_FORM_FORWARDING_ENDPOINT_HERE';
+const CONTACT_EMAIL = 'josiah.hunter.it@gmail.com';
 const contactForm = document.getElementById('contactForm');
 const contactSubmit = contactForm?.querySelector('button[type="submit"], input[type="submit"]');
-const contactStatus = document.getElementById('contactFormStatus') ||
-    document.getElementById('contactStatus') ||
-    document.querySelector('[aria-live]');
+const contactStatus = document.getElementById('contactFormStatus');
+const contactStatusMessage = document.getElementById('contactStatusMessage');
+const contactDraftLink = document.getElementById('contactDraftLink');
+const copyEmailButton = document.getElementById('copyEmailButton');
+let latestContactDraftHref = '';
 
-function getContactEndpoint() {
-    try {
-        const endpoint = new URL(CONTACT_FORM_ENDPOINT);
-        if (endpoint.protocol !== 'https:' || CONTACT_FORM_ENDPOINT.startsWith('PASTE_')) {
-            return null;
-        }
-        return endpoint.href;
-    } catch {
-        return null;
-    }
+function sanitizeContactSubjectName(value) {
+    return String(value).replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-function getDirectEmailHref() {
-    return document.querySelector('a[href^="mailto:"]')?.getAttribute('href') ||
-        'mailto:josiah.hunter.it@gmail.com';
+function buildContactDraftHref(form) {
+    const formData = new FormData(form);
+    const name = String(formData.get('name') || '').trim();
+    const email = String(formData.get('email') || '').trim();
+    const message = String(formData.get('message') || '');
+    const subjectName = sanitizeContactSubjectName(name) || 'a website visitor';
+    const subject = `Website message from ${subjectName}`;
+    const body = `Name: ${name}\nEmail: ${email}\n\n${message}`;
+
+    return `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
-function setContactStatus(message, fallbackLabel = '', state = '') {
-    if (!contactStatus) {
+function setContactStatus(message, state = '') {
+    if (!contactStatus || !contactStatusMessage) {
         return;
     }
 
@@ -318,90 +318,52 @@ function setContactStatus(message, fallbackLabel = '', state = '') {
     } else {
         delete contactStatus.dataset.state;
     }
-    contactStatus.replaceChildren(document.createTextNode(message));
+    contactStatusMessage.textContent = message;
 
-    if (fallbackLabel) {
-        const fallbackLink = document.createElement('a');
-        fallbackLink.href = getDirectEmailHref();
-        fallbackLink.textContent = fallbackLabel;
-        contactStatus.append(fallbackLink);
+    if (contactDraftLink) {
+        contactDraftLink.hidden = !latestContactDraftHref;
+        contactDraftLink.href = latestContactDraftHref || `mailto:${CONTACT_EMAIL}`;
     }
-}
-
-function showContactFallback() {
-    setContactStatus(
-        'The contact form is not configured yet. ',
-        'Email me directly instead.',
-        'fallback'
-    );
-}
-
-function showContactError() {
-    setContactStatus(
-        "I couldn't send your message. Please try again or ",
-        'email me directly.',
-        'error'
-    );
 }
 
 if (contactForm) {
-    const contactEndpoint = getContactEndpoint();
-    let isSubmitting = false;
-
     if (contactSubmit) {
-        contactSubmit.disabled = !contactEndpoint;
+        contactSubmit.disabled = false;
     }
 
-    if (contactEndpoint) {
-        setContactStatus('');
-    } else {
-        showContactFallback();
-    }
-
-    contactForm.addEventListener('submit', async (event) => {
+    contactForm.addEventListener('submit', (event) => {
         event.preventDefault();
 
-        if (!contactEndpoint) {
-            showContactFallback();
+        if (!contactForm.reportValidity()) {
             return;
         }
 
-        if (isSubmitting || !contactForm.reportValidity()) {
-            return;
-        }
+        latestContactDraftHref = buildContactDraftHref(contactForm);
+        setContactStatus(
+            'Your email app should open with a draft. Review it and press Send there. If nothing opened, use the draft link.',
+            'draft'
+        );
 
-        isSubmitting = true;
-        contactForm.setAttribute('aria-busy', 'true');
-        if (contactSubmit) {
-            contactSubmit.disabled = true;
-            contactSubmit.classList.add('is-pending');
+        if (contactDraftLink) {
+            contactDraftLink.click();
         }
-        setContactStatus('Sending your message…', '', 'pending');
+    });
+}
 
+if (copyEmailButton) {
+    copyEmailButton.disabled = false;
+    copyEmailButton.addEventListener('click', async () => {
         try {
-            const response = await fetch(contactEndpoint, {
-                method: 'POST',
-                body: new FormData(contactForm),
-                headers: {
-                    Accept: 'application/json'
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error(`Contact form request failed with HTTP ${response.status}`);
+            if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
+                throw new Error('Clipboard API unavailable');
             }
-
-            contactForm.reset();
-            setContactStatus('Thanks for reaching out. Your message was sent.', '', 'success');
+            await navigator.clipboard.writeText(CONTACT_EMAIL);
+            setContactStatus('Email address copied.', 'copy-success');
         } catch {
-            showContactError();
-        } finally {
-            isSubmitting = false;
-            contactForm.removeAttribute('aria-busy');
-            if (contactSubmit) {
-                contactSubmit.disabled = false;
-                contactSubmit.classList.remove('is-pending');
-            }
+            setContactStatus(
+                `Copying did not work. Select ${CONTACT_EMAIL} or open it in your email app.`,
+                'error'
+            );
         }
     });
 }
@@ -540,81 +502,6 @@ if (prefersReducedMotion.matches) {
 window.addEventListener('load', () => {
     document.body.classList.add('loaded');
 });
-
-// ===================================
-// Email Copy to Clipboard
-// ===================================
-
-/**
- * Add copy-to-clipboard functionality for email links
- * Provides better UX for copying email addresses
- */
-const emailLink = document.getElementById('emailLink');
-
-if (emailLink) {
-    emailLink.addEventListener('click', (e) => {
-        // Only trigger copy on desktop (where sidebar is visible)
-        if (window.innerWidth > 1024) {
-            e.preventDefault();
-            
-            // Extract email from mailto: link
-            const email = emailLink.getAttribute('href').replace('mailto:', '');
-            
-            // Copy to clipboard
-            navigator.clipboard.writeText(email).then(() => {
-                // Show temporary tooltip
-                showCopyTooltip(emailLink, 'Email copied!');
-            }).catch(() => {
-                // Fallback: just open mailto link
-                window.location.href = emailLink.getAttribute('href');
-            });
-        }
-        // On mobile/tablet, let the default mailto: behavior work
-    });
-}
-
-/**
- * Show a temporary tooltip when email is copied
- */
-function showCopyTooltip(element, message) {
-    const tooltip = document.createElement('div');
-    tooltip.textContent = message;
-    tooltip.style.cssText = `
-        position: fixed;
-        left: 80px;
-        bottom: ${element.offsetTop + 10}px;
-        background-color: var(--color-accent);
-        color: var(--color-bg);
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        font-family: var(--font-mono);
-        font-size: 0.85rem;
-        font-weight: 600;
-        z-index: 10000;
-        pointer-events: none;
-        animation: fadeInOut 2s ease;
-    `;
-    
-    document.body.appendChild(tooltip);
-    
-    // Remove tooltip after animation
-    setTimeout(() => {
-        tooltip.remove();
-    }, 2000);
-}
-
-// Add CSS animation for tooltip (inject into style tag)
-if (!document.getElementById('tooltipAnimation')) {
-    const style = document.createElement('style');
-    style.id = 'tooltipAnimation';
-    style.textContent = `
-        @keyframes fadeInOut {
-            0%, 100% { opacity: 0; transform: translateX(-10px); }
-            10%, 90% { opacity: 1; transform: translateX(0); }
-        }
-    `;
-    document.head.appendChild(style);
-}
 
 // ===================================
 // Console Easter Egg (Optional)

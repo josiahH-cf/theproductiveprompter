@@ -8,7 +8,7 @@
  *
  * The harness deliberately uses only Node built-ins and Chrome/Edge's DevTools
  * protocol.  It serves the repository from an ephemeral loopback origin so
- * root-relative links, fetch, form validation, and new-tab behavior are real.
+ * root-relative links, form validation, responsive layout, and new-tab behavior are real.
  */
 
 import { spawn } from 'node:child_process';
@@ -18,8 +18,6 @@ import { tmpdir } from 'node:os';
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const PLACEHOLDER = 'PASTE_FORM_FORWARDING_ENDPOINT_HERE';
-const FORM_ENDPOINT = 'https://form.test/contact';
 const EMAIL = 'josiah.hunter.it@gmail.com';
 const TIMEOUT_MS = 12_000;
 
@@ -46,7 +44,6 @@ function mimeType(pathname) {
 }
 
 async function startSiteServer(root) {
-  let endpointOverride = null;
   const server = createServer(async (request, response) => {
     try {
       const url = new URL(request.url || '/', 'http://127.0.0.1');
@@ -62,11 +59,8 @@ async function startSiteServer(root) {
         response.writeHead(404).end('Not Found');
         return;
       }
-      let body = await readFile(diskPath);
+      const body = await readFile(diskPath);
       const type = mimeType(diskPath);
-      if (endpointOverride && /(?:html|javascript)/.test(type)) {
-        body = Buffer.from(body.toString('utf8').split(PLACEHOLDER).join(endpointOverride));
-      }
       response.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-store' }).end(body);
     } catch (error) {
       response.writeHead(error?.code === 'ENOENT' ? 404 : 500).end(error?.code === 'ENOENT' ? 'Not Found' : 'Server error');
@@ -80,7 +74,6 @@ async function startSiteServer(root) {
   return {
     baseUrl: `http://127.0.0.1:${address.port}`,
     close: () => new Promise((accept) => server.close(accept)),
-    setEndpoint(value) { endpointOverride = value; },
   };
 }
 
@@ -390,104 +383,137 @@ async function checkReachOut(client, baseUrl) {
   return result('BEH-5', failures, ['Reach Out content, details, role link, and form rendered']);
 }
 
-async function checkContactForm(client, server, baseUrl) {
+async function checkContactForm(client, baseUrl) {
   const failures = [];
-  server.setEndpoint(null);
-  await navigate(client, `${baseUrl}/reach-out.html?form-test=placeholder`);
-  const placeholder = await evaluate(client, `(() => {
+  await navigate(client, `${baseUrl}/reach-out.html?form-test=email-draft`);
+  const initial = await evaluate(client, `(() => {
     const form = document.querySelector('#contactForm');
-    const button = form?.querySelector('button[type="submit"], input[type="submit"]');
-    const live = document.querySelector('[aria-live]');
-    return { form: !!form, disabled: !!button?.disabled, status: live?.textContent.replace(/\\s+/g, ' ').trim() || '',
-      statusState: live?.dataset.state || '', emailFallback: !!live?.querySelector('a[href^="mailto:"]') };
+    const submit = document.querySelector('#contactSubmit');
+    const copy = document.querySelector('#copyEmailButton');
+    const live = document.querySelector('#contactFormStatus');
+    const direct = document.querySelector('#contactEmailLink');
+    const controls = form ? Object.fromEntries(['name', 'email', 'message'].map(name => [name, {
+      required: form.elements[name]?.required || false,
+      maxLength: form.elements[name]?.maxLength || 0,
+    }])) : {};
+    window.__draftClicks = [];
+    window.__fetchCalls = [];
+    window.fetch = (...args) => { window.__fetchCalls.push(args.map(String)); return Promise.reject(new Error('network must not be used')); };
+    document.addEventListener('click', event => {
+      const anchor = event.target.closest?.('a#contactDraftLink');
+      if (anchor) {
+        window.__draftClicks.push(anchor.getAttribute('href'));
+        event.preventDefault();
+      }
+    }, true);
+    let directPreventedBeforeHarness = null;
+    direct?.addEventListener('click', event => {
+      directPreventedBeforeHarness = event.defaultPrevented;
+      event.preventDefault();
+      window.__directPreventedBeforeHarness = directPreventedBeforeHarness;
+    }, { once: true });
+    direct?.click();
+    return {
+      form: !!form, submitEnabled: !!submit && !submit.disabled,
+      submitText: submit?.textContent.trim() || '', copyEnabled: !!copy && !copy.disabled,
+      helper: document.querySelector('#contactFormHelp')?.textContent.replace(/\\s+/g, ' ').trim() || '',
+      statusRole: live?.getAttribute('role') || '', live: live?.getAttribute('aria-live') || '',
+      atomic: live?.getAttribute('aria-atomic') || '',
+      directHref: direct?.getAttribute('href') || '', directText: direct?.textContent.trim() || '',
+      directPreventedBeforeHarness: window.__directPreventedBeforeHarness,
+      controls,
+    };
   })()`);
-  if (!placeholder.form) return result('BEH-6', ['contact form missing; runtime states cannot be tested']);
-  const fallbackText = 'The contact form is not configured yet. Email me directly instead.';
-  if (!placeholder.disabled) failures.push('placeholder endpoint did not disable submit');
-  if (placeholder.status !== fallbackText) failures.push(`placeholder status mismatch: ${placeholder.status || '(missing)'}`);
-  if (placeholder.statusState !== 'fallback') failures.push(`placeholder status state mismatch: ${placeholder.statusState || '(missing)'}`);
-  if (!placeholder.emailFallback) failures.push('placeholder status lacks email fallback link');
+  if (!initial.form) return result('BEH-6', ['contact form missing; email-draft handoff cannot be tested']);
+  if (!initial.submitEnabled || initial.submitText !== 'Open Email Draft' || !initial.copyEnabled) failures.push(`progressive-enhancement controls are not enabled correctly: ${JSON.stringify(initial)}`);
+  if (!/nothing is sent until you press Send/i.test(initial.helper)) failures.push(`truthful email-draft helper is missing: ${initial.helper}`);
+  if (initial.statusRole !== 'status' || initial.live !== 'polite' || initial.atomic !== 'true') failures.push(`live-region semantics are incomplete: ${JSON.stringify(initial)}`);
+  if (initial.directHref !== `mailto:${EMAIL}` || initial.directText !== EMAIL || initial.directPreventedBeforeHarness !== false) failures.push(`direct email fallback is not a normal mailto link: ${JSON.stringify(initial)}`);
+  const expectedLengths = { name: 100, email: 254, message: 1500 };
+  for (const [name, length] of Object.entries(expectedLengths)) {
+    if (!initial.controls[name]?.required || initial.controls[name]?.maxLength !== length) failures.push(`${name} field contract is invalid: ${JSON.stringify(initial.controls[name])}`);
+  }
 
-  server.setEndpoint(FORM_ENDPOINT);
-  await client.send('Fetch.enable', { patterns: [{ urlPattern: 'https://form.test/*', requestStage: 'Request' }] });
-  let mode = 'success';
-  let requests = [];
-  const stop = client.on('Fetch.requestPaused', (event) => {
-    requests.push(event.request);
-    setTimeout(() => {
-      if (mode === 'reject') client.send('Fetch.failRequest', { requestId: event.requestId, errorReason: 'Failed' }).catch(() => {});
-      else client.send('Fetch.fulfillRequest', {
-        requestId: event.requestId, responseCode: mode === 'success' ? 204 : 500,
-        responseHeaders: [{ name: 'Access-Control-Allow-Origin', value: '*' }, { name: 'Content-Type', value: 'application/json' }],
-        body: mode === 'success' ? '' : Buffer.from('{"error":"test"}').toString('base64'),
-      }).catch(() => {});
-    }, 250);
-  });
-
-  const loadConfigured = async (caseName) => {
-    requests = [];
-    await navigate(client, `${baseUrl}/reach-out.html?form-test=${caseName}-${Date.now()}`);
-    return evaluate(client, `!document.querySelector('#contactForm button[type="submit"], #contactForm input[type="submit"]')?.disabled`);
-  };
-  const submit = () => evaluate(client, `(() => {
+  await evaluate(client, `(() => {
     const form = document.querySelector('#contactForm');
-    form.elements.name.value = 'Browser Tester';
-    form.elements.email.value = 'browser@example.com';
-    form.elements.message.value = 'Adversarial browser message';
+    form.elements.name.value = '';
+    form.elements.email.value = 'invalid';
+    form.elements.message.value = '';
     form.requestSubmit();
   })()`);
-  const formState = () => evaluate(client, `(() => {
+  await delay(100);
+  let state = await evaluate(client, `(() => ({
+    draftClicks: [...window.__draftClicks], fetchCount: window.__fetchCalls.length,
+    retryHidden: document.querySelector('#contactDraftLink')?.hidden,
+  }))()`);
+  if (state.draftClicks.length || state.fetchCount || !state.retryHidden) failures.push(`invalid form opened a draft, used network, or exposed retry: ${JSON.stringify(state)}`);
+
+  await evaluate(client, `(() => {
     const form = document.querySelector('#contactForm');
-    const button = form.querySelector('button[type="submit"], input[type="submit"]');
-    const live = document.querySelector('[aria-live]');
-    return { disabled: button.disabled, status: live?.textContent.replace(/\\s+/g, ' ').trim() || '', statusState: live?.dataset.state || '',
-      busy: form.getAttribute('aria-busy'), pendingClass: button.classList.contains('is-pending'),
-      mail: !!live?.querySelector('a[href^="mailto:"]'), name: form.elements.name.value,
-      email: form.elements.email.value, message: form.elements.message.value };
+    form.elements.name.value = 'Browser Tester Bcc: injected@example.com';
+    form.elements.email.value = 'browser+site@example.com';
+    form.elements.message.value = 'Line one & line two?\\nSecond line.';
+    form.requestSubmit();
   })()`);
+  await delay(100);
+  state = await evaluate(client, `(() => {
+    const form = document.querySelector('#contactForm');
+    const retry = document.querySelector('#contactDraftLink');
+    const live = document.querySelector('#contactFormStatus');
+    return {
+      draftClicks: [...window.__draftClicks], fetchCount: window.__fetchCalls.length,
+      href: retry?.getAttribute('href') || '', retryHidden: retry?.hidden,
+      status: document.querySelector('#contactStatusMessage')?.textContent.replace(/\\s+/g, ' ').trim() || '',
+      statusState: live?.dataset.state || '',
+      name: form.elements.name.value, email: form.elements.email.value, message: form.elements.message.value,
+    };
+  })()`);
+  let draft;
+  try { draft = new URL(state.href); } catch { draft = null; }
+  if (!draft || draft.protocol !== 'mailto:' || draft.pathname !== EMAIL) failures.push(`draft destination is invalid: ${state.href || '(missing)'}`);
+  const subject = draft?.searchParams.get('subject') || '';
+  const body = draft?.searchParams.get('body') || '';
+  const expectedBody = `Name: ${state.name}\nEmail: ${state.email}\n\n${state.message}`;
+  if (subject !== `Website message from ${state.name}` || /[\r\n]/.test(subject)) failures.push(`draft subject is not a sanitized single line: ${JSON.stringify(subject)}`);
+  if (body !== expectedBody) failures.push(`draft body is incomplete or incorrectly encoded: ${JSON.stringify({ body, expectedBody })}`);
+  if (state.draftClicks.length !== 1 || state.draftClicks[0] !== state.href || state.retryHidden) failures.push(`draft open/retry state is incorrect: ${JSON.stringify(state)}`);
+  if (!/review it and press Send there/i.test(state.status) || !/if nothing opened/i.test(state.status) || state.statusState !== 'draft') failures.push(`draft status overclaims delivery or lacks retry guidance: ${JSON.stringify(state)}`);
+  if (!state.name || !state.email || !state.message) failures.push('draft handoff cleared form fields');
+  if (state.fetchCount) failures.push(`draft handoff unexpectedly used fetch ${state.fetchCount} time(s)`);
 
-  mode = 'success';
-  if (!await loadConfigured('success')) failures.push('valid HTTPS endpoint did not enable submit');
-  await submit();
+  await evaluate(client, `document.querySelector('#contactDraftLink').click()`);
   await delay(50);
-  let state = await formState();
-  if (state.status !== 'Sending your message…' || state.statusState !== 'pending' || state.busy !== 'true' || !state.pendingClass || !state.disabled) failures.push(`pending state incorrect: ${JSON.stringify(state)}`);
-  await evaluate(client, `document.querySelector('#contactForm').requestSubmit()`);
-  await delay(50);
-  if (requests.length !== 1) failures.push(`repeat submit produced ${requests.length} requests (expected 1)`);
-  state = await until(formState, (value) => value.status === 'Thanks for reaching out. Your message was sent.');
-  if (state.status !== 'Thanks for reaching out. Your message was sent.') failures.push(`2xx success state missing: ${state.status}`);
-  if (state.statusState !== 'success' || state.busy || state.pendingClass || state.disabled) failures.push(`2xx success state semantics incorrect: ${JSON.stringify(state)}`);
-  if (state.name || state.email || state.message) failures.push('2xx success did not reset the form');
-  const request = requests[0];
-  if (!request || request.method !== 'POST') failures.push('configured form did not issue one POST');
-  const accept = request && Object.entries(request.headers || {}).find(([name]) => name.toLowerCase() === 'accept')?.[1];
-  if (accept !== 'application/json') failures.push(`POST Accept header mismatch: ${accept || '(missing)'}`);
-  for (const value of ['Browser Tester', 'browser@example.com', 'Adversarial browser message']) if (!request?.postData?.includes(value)) failures.push(`POST body missing ${value}`);
+  const retryCount = await evaluate(client, `window.__draftClicks.length`);
+  if (retryCount !== 2) failures.push(`visible retry link did not reopen the same draft (${retryCount} clicks)`);
 
-  mode = 'server-error';
-  await loadConfigured('500');
-  await submit();
-  state = await until(formState, (value) => value.status.startsWith("I couldn't send your message."));
-  if (state.status !== "I couldn't send your message. Please try again or email me directly." || state.statusState !== 'error' || state.busy || state.pendingClass || state.disabled || !state.mail) failures.push(`500 error state/fallback incorrect: ${JSON.stringify(state)}`);
-  if (state.name !== 'Browser Tester') failures.push('500 response incorrectly reset the form');
+  await evaluate(client, `(() => {
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
+      writeText(value) { window.__copiedEmail = String(value); return Promise.resolve(); }
+    }});
+    document.querySelector('#copyEmailButton').click();
+  })()`);
+  await delay(100);
+  const copySuccess = await evaluate(client, `(() => ({
+    copied: window.__copiedEmail || '',
+    status: document.querySelector('#contactStatusMessage')?.textContent.trim() || '',
+    state: document.querySelector('#contactFormStatus')?.dataset.state || '',
+  }))()`);
+  if (copySuccess.copied !== EMAIL || copySuccess.status !== 'Email address copied.' || copySuccess.state !== 'copy-success') failures.push(`copy success state is inaccurate: ${JSON.stringify(copySuccess)}`);
 
-  mode = 'reject';
-  await loadConfigured('reject');
-  await submit();
-  state = await until(formState, (value) => value.status.startsWith("I couldn't send your message."));
-  if (state.status !== "I couldn't send your message. Please try again or email me directly." || state.statusState !== 'error' || state.busy || state.pendingClass || state.disabled || !state.mail) failures.push(`network rejection state/fallback incorrect: ${JSON.stringify(state)}`);
+  await evaluate(client, `(() => {
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
+      writeText() { return Promise.reject(new Error('denied')); }
+    }});
+    document.querySelector('#copyEmailButton').click();
+  })()`);
+  await delay(100);
+  const copyFailure = await evaluate(client, `(() => ({
+    status: document.querySelector('#contactStatusMessage')?.textContent.replace(/\\s+/g, ' ').trim() || '',
+    state: document.querySelector('#contactFormStatus')?.dataset.state || '',
+  }))()`);
+  if (!copyFailure.status.startsWith('Copying did not work.') || !copyFailure.status.includes(EMAIL) || copyFailure.state !== 'error') failures.push(`copy failure state is inaccurate: ${JSON.stringify(copyFailure)}`);
 
-  mode = 'success';
-  await loadConfigured('validation');
-  await evaluate(client, `(() => { const form = document.querySelector('#contactForm'); form.elements.name.value=''; form.elements.email.value='invalid'; form.elements.message.value=''; form.requestSubmit(); })()`);
-  await delay(150);
-  if (requests.length) failures.push('invalid form issued a network request');
-
-  stop();
-  await client.send('Fetch.disable');
-  server.setEndpoint(null);
-  return result('BEH-6', failures, ['placeholder, validation, pending, 2xx, 5xx, and rejected-network states passed']);
+  return result('BEH-6', failures, ['validation, encoded draft, retained fields, retry, no-network behavior, and copy success/failure passed']);
 }
 
 async function check31Days(client, baseUrl) {
@@ -602,30 +628,30 @@ async function checkReveal(client, baseUrl) {
 
 async function checkSocialAndClipboard(client, baseUrl) {
   const failures = [];
-  await client.send('Page.addScriptToEvaluateOnNewDocument', { source: `
-    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
-      writeText(value) { window.__browserHarnessCopied = String(value); return Promise.resolve(); }
-    }});
-  ` });
   await client.send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
-  await navigate(client, `${baseUrl}/index.html?clipboard-test=desktop`);
+  await navigate(client, `${baseUrl}/index.html?social-test=desktop`);
   const desktop = await evaluate(client, `(async () => {
     const sidebar = document.querySelector('.social-sidebar'); const email = document.querySelector('#emailLink');
     const external = [...(sidebar?.querySelectorAll('a[href^="http"]') || [])];
+    email?.addEventListener('click', event => {
+      window.__emailPreventedBeforeHarness = event.defaultPrevented;
+      event.preventDefault();
+    }, { once: true });
     email?.click(); await new Promise(r => setTimeout(r, 50));
     return { sidebar: !!sidebar, visible: sidebar && getComputedStyle(sidebar).display !== 'none', email: email?.getAttribute('href'),
-      copied: window.__browserHarnessCopied || '', tooltip: document.body.innerText.includes('Email copied!'),
+      preventedBeforeHarness: window.__emailPreventedBeforeHarness,
+      tooltip: document.body.innerText.includes('Email copied!'),
       safeExternal: external.length >= 2 && external.every(a => a.target === '_blank' && a.rel.split(/\\s+/).includes('noopener') && a.rel.split(/\\s+/).includes('noreferrer')) };
   })()`);
   if (!desktop.sidebar || !desktop.visible) failures.push('desktop social sidebar missing or hidden');
-  if (desktop.email !== `mailto:${EMAIL}` || desktop.copied !== EMAIL || !desktop.tooltip) failures.push(`desktop email clipboard behavior failed: ${JSON.stringify(desktop)}`);
+  if (desktop.email !== `mailto:${EMAIL}` || desktop.preventedBeforeHarness !== false || desktop.tooltip) failures.push(`desktop email link is not a normal, unambiguous mailto action: ${JSON.stringify(desktop)}`);
   if (!desktop.safeExternal) failures.push('social external links lack safe new-tab attributes');
   await client.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
-  await navigate(client, `${baseUrl}/index.html?clipboard-test=mobile`);
+  await navigate(client, `${baseUrl}/index.html?social-test=mobile`);
   const mobileHidden = await evaluate(client, `(() => { const sidebar = document.querySelector('.social-sidebar'); return !!sidebar && getComputedStyle(sidebar).display === 'none'; })()`);
   if (!mobileHidden) failures.push('social sidebar is not hidden at mobile width');
   await client.send('Emulation.clearDeviceMetricsOverride');
-  return result('PRES-6', failures, ['desktop sidebar links/copy tooltip and mobile hiding passed']);
+  return result('PRES-6', failures, ['desktop social links keep normal destinations and the rail hides on mobile']);
 }
 
 async function checkHeroFit(client, baseUrl) {
@@ -682,6 +708,13 @@ async function checkHeroFit(client, baseUrl) {
       const ctaGroup = document.querySelector('.hero__cta-group');
       const socialGroup = document.querySelector('.hero__social');
       const sidebar = document.querySelector('.social-sidebar');
+      const homeBlog = document.querySelector('section.articles--home');
+      const homeBlogList = homeBlog?.querySelector('.articles__list');
+      const homeBlogCards = [...(homeBlogList?.querySelectorAll('.article-card') || [])];
+      const visibleHomeBlogCards = homeBlogCards.filter(item => getComputedStyle(item).display !== 'none');
+      const homeBlogIntro = homeBlog?.querySelector('.home-blog__intro');
+      const homeBlogAll = homeBlog?.querySelector('a.home-blog__all-link');
+      const homeSeries = homeBlog?.querySelector('a.home-series-link');
       const ctas = [...document.querySelectorAll('.hero__cta')];
       const socials = [...document.querySelectorAll('.hero__social-link')];
       const interactive = [...document.querySelectorAll('.hero a, .hero button')];
@@ -707,6 +740,7 @@ async function checkHeroFit(client, baseUrl) {
         topicsLabel: topics?.getAttribute('aria-label') || '',
         topics: topicItems.map(item => {
           const label = item.querySelector('.hero__topic-label');
+          const style = getComputedStyle(item);
           return {
             tag: item.tagName, rect: rect(item),
             emoji: item.querySelector('.hero__topic-emoji')?.textContent.trim() || '',
@@ -714,8 +748,25 @@ async function checkHeroFit(client, baseUrl) {
             label: label?.textContent.trim() || '',
             contentOverflow: Math.max(0, item.scrollWidth - item.clientWidth),
             labelOverflow: label ? Math.max(0, label.scrollWidth - label.clientWidth) : 0,
+            background: style.backgroundColor,
+            borderWidths: [style.borderTopWidth, style.borderRightWidth, style.borderBottomWidth, style.borderLeftWidth],
+            cursor: style.cursor, transform: style.transform,
+            role: item.getAttribute('role') || '', tabindex: item.getAttribute('tabindex'),
+            interactiveDescendants: item.querySelectorAll('a, button, input, select, textarea').length,
           };
         }),
+        homeBlog: {
+          exists: !!homeBlog,
+          intro: homeBlogIntro?.textContent.replace(/\\s+/g, ' ').trim() || '',
+          introReveals: homeBlogIntro?.classList.contains('reveal-on-scroll') || false,
+          allHref: homeBlogAll?.getAttribute('href') || '', allText: homeBlogAll?.textContent.trim() || '',
+          seriesHref: homeSeries?.getAttribute('href') || '', seriesText: homeSeries?.textContent.replace(/\\s+/g, ' ').trim() || '',
+          campaignCount: homeBlog?.querySelectorAll('.campaign-banner').length || 0,
+          allCardCount: homeBlogCards.length,
+          visibleCardRects: visibleHomeBlogCards.map(rect),
+          gridColumns: homeBlogList ? getComputedStyle(homeBlogList).gridTemplateColumns.split(/\\s+/).filter(Boolean).length : 0,
+          overflow: homeBlog ? Math.max(0, homeBlog.scrollWidth - homeBlog.clientWidth) : -1,
+        },
         domOrdered: ordered.every(Boolean) && ordered.slice(0, -1).every((item, index) => !!(item.compareDocumentPosition(ordered[index + 1]) & Node.DOCUMENT_POSITION_FOLLOWING)),
         containerContentLeft: container ? rect(container).left + parseFloat(getComputedStyle(container).paddingLeft) : 0,
         containerContentRight: container ? rect(container).right - parseFloat(getComputedStyle(container).paddingRight) : 0,
@@ -736,11 +787,22 @@ async function checkHeroFit(client, baseUrl) {
     if (state.nameText !== 'Josiah Hunter' || state.promptText !== 'I love to chat about...' || actualTopics !== expectedTopics || state.topicListTag !== 'UL' || state.topicsLabel !== 'Topics I love to chat about' || state.topics.some(item => item.tag !== 'LI' || item.emojiHidden !== 'true')) failures.push(`${prefix}: intro copy/topic semantics are wrong ${JSON.stringify({ name: state.nameText, prompt: state.promptText, topicsLabel: state.topicsLabel, topics: state.topics })}`);
     if (!state.domOrdered || !state.name || !state.prompt || !state.topicsRect || !state.ctaGroup || !state.socialGroup || state.name.bottom > state.prompt.top + 1 || state.prompt.bottom > state.topicsRect.top + 1 || state.topicsRect.bottom > state.ctaGroup.top + 1 || state.ctaGroup.bottom > state.socialGroup.top + 1) failures.push(`${prefix}: intro hierarchy/order is not visually coherent ${JSON.stringify(state)}`);
     if (state.topics.some(item => item.contentOverflow > 1 || item.labelOverflow > 1) || state.topics.some((item, index) => state.topics.slice(index + 1).some(other => rectsOverlap(item.rect, other.rect)))) failures.push(`${prefix}: topic tags overlap or contain clipped text ${JSON.stringify(state.topics)}`);
+    if (state.topics.some(item => item.background !== 'rgba(0, 0, 0, 0)' || item.borderWidths.some(width => width !== '0px') || item.cursor === 'pointer' || item.transform !== 'none' || item.role || item.tabindex !== null || item.interactiveDescendants)) failures.push(`${prefix}: interests still look or behave like interactive blocks ${JSON.stringify(state.topics)}`);
     if (state.socials.length !== 3 || state.socials.some(item => item.icon.width < 28 || item.icon.height < 28 || item.link.width < 44 || item.link.height < 44)) failures.push(`${prefix}: social icon/target sizing is too small ${JSON.stringify(state.socials)}`);
     const expectedHrefs = ['https://github.com/josiahH-cf', 'https://www.linkedin.com/in/josiahhunter/', `mailto:${EMAIL}`];
     if (state.socials.some((item, index) => !item.href.startsWith(expectedHrefs[index]))) failures.push(`${prefix}: social destinations changed ${JSON.stringify(state.socials)}`);
     if (state.socials.slice(0, 2).some(item => item.target !== '_blank' || !item.rel.split(/\s+/).includes('noopener') || !item.rel.split(/\s+/).includes('noreferrer'))) failures.push(`${prefix}: external social safety attributes missing`);
     if (state.socials.slice(0, 2).some(item => !item.ariaLabel.toLowerCase().includes('new tab'))) failures.push(`${prefix}: external social accessible name does not announce new-tab behavior`);
+    const home = state.homeBlog;
+    if (!home.exists || home.intro !== 'Ideas, experiments, and the occasional useful rabbit hole.' || !home.introReveals || home.allHref !== '/docs/blog.html' || home.allText !== 'See all writing →' || home.seriesHref !== '/docs/31-days-of-ai.html' || home.seriesText !== 'A completed side quest: 31 Days of AI — 31 entries →' || home.campaignCount !== 0 || home.allCardCount !== 5 || home.visibleCardRects.length !== 3) failures.push(`${prefix}: lightweight home Blog structure/copy is incomplete ${JSON.stringify(home)}`);
+    if (home.overflow > 1) failures.push(`${prefix}: home Blog overflows its section by ${home.overflow}px`);
+    if (viewport.width > 900) {
+      if (home.gridColumns !== 3 || home.visibleCardRects.some((item, index) => index && Math.abs(item.top - home.visibleCardRects[0].top) > 10) || home.visibleCardRects.some((item, index) => index && Math.abs(item.width - home.visibleCardRects[0].width) > 12)) failures.push(`${prefix}: home Blog is not a clean three-column desktop row ${JSON.stringify(home)}`);
+    } else if (viewport.width > 640) {
+      if (home.gridColumns !== 2 || home.visibleCardRects[0]?.width < (home.visibleCardRects[1]?.width || Infinity) * 1.7 || Math.abs((home.visibleCardRects[1]?.top || 0) - (home.visibleCardRects[2]?.top || 0)) > 10) failures.push(`${prefix}: home Blog tablet composition is not one lead card over two columns ${JSON.stringify(home)}`);
+    } else if (home.gridColumns !== 1 || home.visibleCardRects.some((item, index) => index && (Math.abs(item.left - home.visibleCardRects[0].left) > 4 || Math.abs(item.width - home.visibleCardRects[0].width) > 8))) {
+      failures.push(`${prefix}: home Blog is not a readable single-column mobile stack ${JSON.stringify(home)}`);
+    }
     if (viewport.desktop) {
       const lowest = Math.max(state.content.bottom, state.visual.bottom, ...state.ctas.map(value => value.bottom), ...state.socials.map(value => value.link.bottom));
       if (state.gridColumnCount !== 2 || !state.container || Math.abs(state.content.left - state.containerContentLeft) > 1 || Math.abs(state.split.right - state.containerContentRight) > 1 || state.visual.left - state.content.right < 24 || state.content.width < state.container.width * 0.3 || state.visual.width < state.container.width * 0.3) failures.push(`${prefix}: desktop hero columns are not clearly aligned ${JSON.stringify({ container: state.container, containerContentLeft: state.containerContentLeft, containerContentRight: state.containerContentRight, content: state.content, visual: state.visual, split: state.split, gridColumnCount: state.gridColumnCount })}`);
@@ -748,7 +810,7 @@ async function checkHeroFit(client, baseUrl) {
       if (state.nameLines !== 1 || state.promptLines !== 1) failures.push(`${prefix}: desktop name/prompt wraps (${state.nameLines}/${state.promptLines} lines)`);
       if (state.nameFont > 64.1 || state.split.width > 440.1 || state.split.height > 300.1) failures.push(`${prefix}: type or visual exceeds compact bounds ${JSON.stringify({ nameFont: state.nameFont, split: state.split })}`);
       if (state.ctas.length !== 2 || Math.abs(state.ctas[0].top - state.ctas[1].top) > 1 || Math.abs(state.ctas[0].width - state.ctas[1].width) > 2 || Math.abs(state.ctas[0].height - state.ctas[1].height) > 1) failures.push(`${prefix}: CTA columns are not aligned/equal ${JSON.stringify(state.ctas)}`);
-      if (state.topics.length !== 3 || state.topics.some(item => item.rect.height < 40) || state.topics.some(item => Math.abs(item.rect.top - state.topics[0].rect.top) > 1 || Math.abs(item.rect.width - state.topics[0].rect.width) > 2)) failures.push(`${prefix}: desktop topic tags are not one equal row ${JSON.stringify(state.topics)}`);
+      if (state.topics.length !== 3 || state.topics.some(item => Math.abs(item.rect.top - state.topics[0].rect.top) > 1)) failures.push(`${prefix}: desktop interests are not a clean inline row ${JSON.stringify(state.topics)}`);
       if (state.contentVisualOverlap) failures.push(`${prefix}: content and split card overlap`);
       if (viewport.height <= 700 && state.sidebarVisible) failures.push(`${prefix}: fixed social rail remains visible on a short screen`);
       if (Math.min(state.content.top, state.visual.top) < state.nav.bottom - 1 || lowest > state.viewport.height + 1) failures.push(`${prefix}: required hero content does not fit the first screen ${JSON.stringify({ nav: state.nav, content: state.content, visual: state.visual, lowest })}`);
@@ -761,7 +823,7 @@ async function checkHeroFit(client, baseUrl) {
     }
   }
   await client.send('Emulation.clearDeviceMetricsOverride');
-  return result('BEH-9', failures, ['natural intro hierarchy, aligned columns, tall-screen spacing, and enlarged social icons passed across eleven viewports']);
+  return result('BEH-9', failures, ['natural intro hierarchy, plain interests, light home Blog, aligned columns, and enlarged social icons passed across eleven viewports']);
 }
 
 async function checkGitHubActivity(client, baseUrl) {
@@ -784,30 +846,67 @@ async function checkGitHubActivity(client, baseUrl) {
         return value && { left: value.left, right: value.right, top: value.top, bottom: value.bottom, width: value.width, height: value.height };
       };
       const activity = document.querySelector('.github-activity');
+      const pageHeader = document.querySelector('.projects-page .page-header');
+      const pageTitle = pageHeader?.querySelector('h1');
+      const subtitle = pageHeader?.querySelector('.projects-page__subtitle');
       const heading = activity?.querySelector('h2.github-activity__title');
       const time = activity?.querySelector('time.github-activity__year');
       const status = activity?.querySelector('.github-activity__status');
-      const list = activity?.querySelector('dl.github-activity__stats');
-      const metrics = [...(list?.querySelectorAll('.github-activity-stat') || [])];
+      const list = activity?.querySelector('dl.github-activity__highlights');
+      const metrics = [...(list?.querySelectorAll('.github-activity-highlight') || [])];
+      const figure = activity?.querySelector('figure.github-activity__rhythm');
+      const caption = figure?.querySelector('figcaption');
+      const frame = figure?.querySelector('.github-activity__calendar-frame');
+      const calendar = frame?.querySelector('svg.github-activity-calendar');
+      const days = [...(calendar?.querySelectorAll('rect.github-activity-day') || [])];
+      const legend = figure?.querySelector('.github-activity__legend');
+      const legendSwatches = [...(legend?.querySelectorAll('[data-level]') || [])];
+      const labelledIds = (calendar?.getAttribute('aria-labelledby') || '').split(/\\s+/).filter(Boolean);
       const cta = document.querySelector('a.github-dashboard-cta');
       const beforeScroll = rect(cta);
       document.documentElement.style.scrollBehavior = 'auto';
       cta?.scrollIntoView({ block: 'center' });
       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       const ctaRect = rect(cta);
-      const clipped = [...metrics, cta].filter(Boolean).map(element => ({
+      const clipped = [...metrics, figure, frame, cta].filter(Boolean).map(element => ({
         className: element.className, rect: rect(element),
       })).filter(item => item.rect.left < -1 || item.rect.right > innerWidth + 1);
+      const dayData = days.map(day => ({
+        date: day.getAttribute('data-date') || '',
+        count: day.getAttribute('data-count') || '',
+        level: day.getAttribute('data-level') || '',
+        title: day.querySelector('title')?.textContent.trim() || '',
+        fill: getComputedStyle(day).fill,
+      }));
       return {
+        subtitle: subtitle?.textContent.trim() || '',
+        subtitleDirectlyAfterTitle: !!pageTitle && !!subtitle && pageTitle.nextElementSibling === subtitle,
         sectionCount: document.querySelectorAll('.github-activity').length,
         heading: heading?.textContent.trim() || '', labelledBy: activity?.getAttribute('aria-labelledby') || '', headingId: heading?.id || '',
         timeText: time?.textContent.trim() || '', datetime: time?.getAttribute('datetime') || '', statusText: status?.textContent.trim() || '',
-        listCount: activity?.querySelectorAll('dl.github-activity__stats').length || 0,
+        listCount: activity?.querySelectorAll('dl.github-activity__highlights').length || 0,
         metrics: metrics.map(item => ({
           key: item.getAttribute('data-github-metric') || '',
           value: item.querySelector('dd')?.textContent.trim() || '',
           label: item.querySelector('dt')?.textContent.trim() || '',
+          rect: rect(item),
         })),
+        figureCount: activity?.querySelectorAll('figure.github-activity__rhythm').length || 0,
+        figureLabelledBy: figure?.getAttribute('aria-labelledby') || '', captionId: caption?.id || '',
+        caption: caption?.textContent.replace(/\\s+/g, ' ').trim() || '',
+        calendarRole: calendar?.getAttribute('role') || '', calendarLabelledIds: labelledIds,
+        calendarLabelsResolve: labelledIds.length === 2 && labelledIds.every(id => !!document.getElementById(id)),
+        calendarTitle: calendar?.querySelector('title')?.textContent.trim() || '',
+        calendarDescription: calendar?.querySelector('desc')?.textContent.trim() || '',
+        monthCount: calendar?.querySelectorAll('.github-activity-calendar__month').length || 0,
+        weekdays: [...(calendar?.querySelectorAll('.github-activity-calendar__weekday') || [])].map(item => item.textContent.trim()),
+        dayData,
+        legendLevels: legendSwatches.map(item => item.getAttribute('data-level')),
+        legendFills: legendSwatches.map(item => getComputedStyle(item).backgroundColor),
+        legendText: legend?.textContent.replace(/\\s+/g, ' ').trim() || '',
+        frameRect: rect(frame), calendarRect: rect(calendar),
+        frameOverflowX: frame ? getComputedStyle(frame).overflowX : '',
+        frameScrollable: !!frame && frame.scrollWidth > frame.clientWidth + 1,
         href: cta?.getAttribute('href') || '', target: cta?.target || '', rel: cta?.rel || '',
         accessible: ((cta?.getAttribute('aria-label') || '') + ' ' + (cta?.textContent || '')).trim(),
         follows: !!activity && !!cta && !!(activity.compareDocumentPosition(cta) & Node.DOCUMENT_POSITION_FOLLOWING),
@@ -817,14 +916,25 @@ async function checkGitHubActivity(client, baseUrl) {
       };
     })()`);
     const prefix = `${viewport.label} ${viewport.width}x${viewport.height}`;
+    if (state.subtitle !== 'top projects' || !state.subtitleDirectlyAfterTitle) failures.push(`${prefix}: exact Projects subtitle is absent or misplaced`);
     const keys = state.metrics.map(item => item.key);
-    const expectedKeys = ['contributions', 'commits', 'pull-requests', 'issues', 'code-reviews', 'repositories'];
-    if (state.sectionCount !== 1 || !state.heading || state.listCount !== 1 || state.metrics.length !== 6) failures.push(`${prefix}: activity structure is incomplete ${JSON.stringify(state)}`);
+    const expectedKeys = ['contributions', 'commits', 'pull-requests'];
+    if (state.sectionCount !== 1 || !state.heading || state.listCount !== 1 || state.metrics.length !== 3 || state.figureCount !== 1) failures.push(`${prefix}: activity structure is incomplete ${JSON.stringify(state)}`);
     if (state.labelledBy !== state.headingId || !state.headingId) failures.push(`${prefix}: activity section is not labelled by its heading`);
-    if (JSON.stringify(keys) !== JSON.stringify(expectedKeys) || new Set(keys).size !== 6) failures.push(`${prefix}: activity metric keys/order are invalid ${JSON.stringify(keys)}`);
+    if (JSON.stringify(keys) !== JSON.stringify(expectedKeys) || new Set(keys).size !== 3) failures.push(`${prefix}: headline metric keys/order are invalid ${JSON.stringify(keys)}`);
     if (state.metrics.some(item => !/^\d{1,3}(,\d{3})*$/.test(item.value) || !item.label)) failures.push(`${prefix}: activity values/labels are invalid ${JSON.stringify(state.metrics)}`);
     const year = state.datetime.match(/^\d{4}$/)?.[0] || '';
     if (!year || state.timeText !== year || !state.heading.startsWith(`${year} `) || !/year-to-date public contribution totals/i.test(state.statusText) || !/refreshed daily/i.test(state.statusText)) failures.push(`${prefix}: year/scope/cadence are inconsistent ${JSON.stringify({ heading: state.heading, datetime: state.datetime, timeText: state.timeText, statusText: state.statusText })}`);
+    const expectedDays = year && new Date(Date.UTC(Number(year), 1, 29)).getUTCDate() === 29 ? 366 : 365;
+    const dates = state.dayData.map(day => day.date);
+    const dayTotal = state.dayData.reduce((sum, day) => sum + (/^\d+$/.test(day.count) ? Number(day.count) : 0), 0);
+    const contributionTotal = Number((state.metrics.find(item => item.key === 'contributions')?.value || '').replace(/,/g, ''));
+    if (state.figureLabelledBy !== state.captionId || !state.captionId || !/contribution rhythm/i.test(state.caption) || state.calendarRole !== 'img' || !state.calendarLabelsResolve || !state.calendarTitle || !state.calendarDescription) failures.push(`${prefix}: contribution graph accessible naming is incomplete ${JSON.stringify(state)}`);
+    if (state.monthCount !== 12 || JSON.stringify(state.weekdays) !== JSON.stringify(['Mon', 'Wed', 'Fri']) || state.dayData.length !== expectedDays) failures.push(`${prefix}: contribution graph axes/day coverage are incomplete ${JSON.stringify({ monthCount: state.monthCount, weekdays: state.weekdays, days: state.dayData.length, expectedDays })}`);
+    if (dates.some(date => !new RegExp(`^${year}-\\d{2}-\\d{2}$`).test(date)) || dates.some((date, index) => index && date <= dates[index - 1]) || new Set(dates).size !== dates.length || state.dayData.some(day => !/^\d+$/.test(day.count) || !/^[0-4]$/.test(day.level) || !day.title) || dayTotal !== contributionTotal) failures.push(`${prefix}: contribution cells are invalid or do not reconcile ${JSON.stringify({ dayTotal, contributionTotal, first: state.dayData[0], last: state.dayData.at(-1) })}`);
+    if (JSON.stringify(state.legendLevels) !== JSON.stringify(['0', '1', '2', '3', '4']) || !/^Less\s+More$/.test(state.legendText) || new Set(state.legendFills).size !== 5) failures.push(`${prefix}: contribution intensity encoding/legend is incomplete ${JSON.stringify({ legendLevels: state.legendLevels, legendText: state.legendText, fills: state.legendFills })}`);
+    if (viewport.width <= 390 && (!state.frameScrollable || !['auto', 'scroll'].includes(state.frameOverflowX))) failures.push(`${prefix}: narrow contribution graph is not locally scrollable ${JSON.stringify({ frameScrollable: state.frameScrollable, overflowX: state.frameOverflowX, frame: state.frameRect, calendar: state.calendarRect })}`);
+    if (viewport.width >= 900 && (state.metrics.some((item, index) => index && Math.abs(item.rect.top - state.metrics[0].rect.top) > 1) || state.metrics.some((item, index) => index && Math.abs(item.rect.width - state.metrics[0].rect.width) > 3))) failures.push(`${prefix}: headline metrics are not aligned as three equal columns ${JSON.stringify(state.metrics)}`);
     if (state.href !== 'https://github.com/josiahH-cf' || state.target !== '_blank' || !state.rel.split(/\s+/).includes('noopener') || !state.rel.split(/\s+/).includes('noreferrer')) failures.push(`${prefix}: dashboard destination or new-tab protection is invalid`);
     if (!/github activity dashboard/i.test(state.accessible) || !/opens in a new tab/i.test(state.accessible)) failures.push(`${prefix}: dashboard accessible name is incomplete: ${state.accessible}`);
     if (!state.follows) failures.push(`${prefix}: dashboard CTA does not follow the activity section`);
@@ -832,7 +942,7 @@ async function checkGitHubActivity(client, baseUrl) {
     if (!state.reachable || state.overflow > 1 || state.clipped.length) failures.push(`${prefix}: activity/CTA is clipped, overflowing, or unreachable ${JSON.stringify(state)}`);
   }
   await client.send('Emulation.clearDeviceMetricsOverride');
-  return result('BEH-10', failures, ['current-year activity and the large dashboard CTA are safe, reachable, and responsive across four viewports']);
+  return result('BEH-10', failures, ['three headline metrics, reconciled activity graph, subtitle, and dashboard CTA are accessible and responsive across four viewports']);
 }
 
 async function main() {
@@ -855,7 +965,7 @@ async function main() {
       ['BEH-2', () => checkInternalNavigation(client, server.baseUrl)],
       ['BEH-3', () => checkTelemetry(client, browser.port, page.targetId, server.baseUrl)],
       ['BEH-5', () => checkReachOut(client, server.baseUrl)],
-      ['BEH-6', () => checkContactForm(client, server, server.baseUrl)],
+      ['BEH-6', () => checkContactForm(client, server.baseUrl)],
       ['BEH-9', () => checkHeroFit(client, server.baseUrl)],
       ['BEH-10', () => checkGitHubActivity(client, server.baseUrl)],
       ['PRES-3', () => check31Days(client, server.baseUrl)],

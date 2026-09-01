@@ -48,10 +48,15 @@ ACTIVITY_METRICS = (
     ("contributions", "Contributions", "total_contributions"),
     ("commits", "Commits", "commits"),
     ("pull-requests", "Pull requests", "pull_requests"),
-    ("issues", "Issues", "issues"),
-    ("code-reviews", "Code reviews", "reviews"),
-    ("repositories", "Repositories with commits", "repositories"),
 )
+
+CONTRIBUTION_LEVELS = {
+    "NONE": 0,
+    "FIRST_QUARTILE": 1,
+    "SECOND_QUARTILE": 2,
+    "THIRD_QUARTILE": 3,
+    "FOURTH_QUARTILE": 4,
+}
 
 QUERY = """
 query ProjectsAndActivity($login: String!, $limit: Int!, $from: DateTime!, $to: DateTime!) {
@@ -74,7 +79,18 @@ query ProjectsAndActivity($login: String!, $limit: Int!, $from: DateTime!, $to: 
     contributionsCollection(from: $from, to: $to) {
       startedAt
       endedAt
-      contributionCalendar { totalContributions }
+      contributionCalendar {
+        totalContributions
+        weeks {
+          firstDay
+          contributionDays {
+            contributionCount
+            contributionLevel
+            date
+            weekday
+          }
+        }
+      }
       totalCommitContributions
       totalIssueContributions
       totalPullRequestContributions
@@ -243,6 +259,119 @@ def activity_count(value: object, field: str) -> int:
     return value
 
 
+def calendar_date(value: object, field: str) -> dt.date:
+    if not isinstance(value, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+        raise RefreshError(f"GitHub activity has an invalid {field}")
+    try:
+        return dt.date.fromisoformat(value)
+    except ValueError as exc:
+        raise RefreshError(f"GitHub activity has an invalid {field}") from exc
+
+
+def validate_contribution_calendar(
+    calendar: dict[str, Any], expected_start: dt.datetime, expected_end: dt.datetime,
+    total_contributions: int,
+) -> list[dict[str, Any]]:
+    weeks = calendar.get("weeks")
+    if not isinstance(weeks, list) or not weeks:
+        raise RefreshError("GitHub contribution calendar weeks must be a non-empty list")
+
+    start_date = expected_start.date()
+    end_date = expected_end.date()
+    earliest_edge = start_date - dt.timedelta(days=6)
+    latest_edge = end_date + dt.timedelta(days=6)
+    previous_week_first: dt.date | None = None
+    previous_date: dt.date | None = None
+    seen_dates: set[dt.date] = set()
+    validated_days: list[dict[str, Any]] = []
+
+    for week_index, week in enumerate(weeks, start=1):
+        if not isinstance(week, dict):
+            raise RefreshError(f"GitHub contribution calendar week {week_index} must be an object")
+        first_day = calendar_date(
+            week.get("firstDay"), f"contributionCalendar.weeks[{week_index}].firstDay"
+        )
+        if previous_week_first is not None and first_day <= previous_week_first:
+            raise RefreshError("GitHub contribution calendar weeks are not strictly ordered")
+        previous_week_first = first_day
+        raw_days = week.get("contributionDays")
+        if not isinstance(raw_days, list) or not 1 <= len(raw_days) <= 7:
+            raise RefreshError(
+                f"GitHub contribution calendar week {week_index} must contain one to seven days"
+            )
+
+        previous_in_week: dt.date | None = None
+        for day_index, raw_day in enumerate(raw_days, start=1):
+            if not isinstance(raw_day, dict):
+                raise RefreshError(
+                    f"GitHub contribution calendar week {week_index} day {day_index} must be an object"
+                )
+            field_prefix = (
+                f"contributionCalendar.weeks[{week_index}].contributionDays[{day_index}]"
+            )
+            date_value = calendar_date(raw_day.get("date"), f"{field_prefix}.date")
+            if not earliest_edge <= date_value <= latest_edge:
+                raise RefreshError("GitHub contribution calendar contains a non-edge date outside the requested year")
+            if date_value in seen_dates:
+                raise RefreshError("GitHub contribution calendar contains a duplicate date")
+            if previous_date is not None and date_value <= previous_date:
+                raise RefreshError("GitHub contribution calendar dates are not strictly ordered")
+            if previous_in_week is None:
+                if date_value != first_day:
+                    raise RefreshError(
+                        f"GitHub contribution calendar week {week_index} firstDay does not match its first day"
+                    )
+            elif date_value != previous_in_week + dt.timedelta(days=1):
+                raise RefreshError(
+                    f"GitHub contribution calendar week {week_index} days are not consecutive"
+                )
+            if date_value > first_day + dt.timedelta(days=6):
+                raise RefreshError(
+                    f"GitHub contribution calendar week {week_index} spans more than seven days"
+                )
+
+            count = activity_count(raw_day.get("contributionCount"), f"{field_prefix}.contributionCount")
+            weekday = activity_count(raw_day.get("weekday"), f"{field_prefix}.weekday")
+            if weekday > 6 or weekday != (date_value.weekday() + 1) % 7:
+                raise RefreshError(f"GitHub contribution calendar has an invalid weekday for {date_value}")
+            level_name = raw_day.get("contributionLevel")
+            if not isinstance(level_name, str) or level_name not in CONTRIBUTION_LEVELS:
+                raise RefreshError(f"GitHub contribution calendar has an invalid level for {date_value}")
+            if (count == 0) != (level_name == "NONE"):
+                raise RefreshError(
+                    f"GitHub contribution calendar count and level disagree for {date_value}"
+                )
+
+            seen_dates.add(date_value)
+            previous_date = date_value
+            previous_in_week = date_value
+            if start_date <= date_value <= end_date:
+                validated_days.append(
+                    {
+                        "date": date_value,
+                        "date_text": date_value.isoformat(),
+                        "count": count,
+                        "level": CONTRIBUTION_LEVELS[level_name],
+                        "weekday": weekday,
+                    }
+                )
+
+    expected_day_count = (end_date - start_date).days + 1
+    expected_dates = [start_date + dt.timedelta(days=offset) for offset in range(expected_day_count)]
+    actual_dates = [day["date"] for day in validated_days]
+    if actual_dates != expected_dates:
+        missing_count = len(set(expected_dates) - set(actual_dates))
+        raise RefreshError(
+            f"GitHub contribution calendar does not cover the requested year ({missing_count} dates missing)"
+        )
+    rendered_total = sum(int(day["count"]) for day in validated_days)
+    if rendered_total != total_contributions:
+        raise RefreshError(
+            "GitHub contribution calendar daily counts do not match totalContributions"
+        )
+    return validated_days
+
+
 def validate_activity(
     user: dict[str, Any], expected_start: dt.datetime, expected_end: dt.datetime
 ) -> dict[str, Any]:
@@ -256,11 +385,16 @@ def validate_activity(
     ended_at = activity_timestamp(collection.get("endedAt"), "endedAt")
     if started_at != expected_start or ended_at != expected_end:
         raise RefreshError("GitHub activity boundaries do not match the requested UTC year")
+    total_contributions = activity_count(
+        calendar.get("totalContributions"), "contributionCalendar.totalContributions"
+    )
+    calendar_days = validate_contribution_calendar(
+        calendar, expected_start, expected_end, total_contributions
+    )
     return {
         "year": expected_start.year,
-        "total_contributions": activity_count(
-            calendar.get("totalContributions"), "contributionCalendar.totalContributions"
-        ),
+        "total_contributions": total_contributions,
+        "calendar_days": calendar_days,
         "commits": activity_count(
             collection.get("totalCommitContributions"), "totalCommitContributions"
         ),
@@ -403,25 +537,99 @@ def render_cards(
 def render_activity(activity: dict[str, Any], indent: str, newline: str) -> str:
     child = indent + "  "
     grandchild = child + "  "
+    great_grandchild = grandchild + "  "
     year = int(activity["year"])
+    days: list[dict[str, Any]] = activity["calendar_days"]
+    year_start = dt.date(year, 1, 1)
+    year_end = dt.date(year, 12, 31)
+    calendar_origin = year_start - dt.timedelta(days=(year_start.weekday() + 1) % 7)
+    week_count = ((year_end - calendar_origin).days // 7) + 1
+    label_width = 34
+    grid_top = 20
+    cell_step = 14
+    cell_size = 10
+    chart_width = label_width + week_count * cell_step
+    chart_height = grid_top + 7 * cell_step
+
     lines = [
         f'{indent}<div class="github-activity__header">',
         f'{child}<h2 class="github-activity__title" id="github-activity-title"><time class="github-activity__year" datetime="{year}">{year}</time> GitHub activity</h2>',
         f'{child}<p class="github-activity__status">Year-to-date public contribution totals <span aria-hidden="true">·</span> Refreshed daily</p>',
         f"{indent}</div>",
-        f'{indent}<dl class="github-activity__stats" aria-label="Public GitHub activity statistics for {year}">',
+        f'{indent}<dl class="github-activity__highlights" aria-label="Headline public GitHub activity statistics for {year}">',
     ]
     for key, label, value_key in ACTIVITY_METRICS:
         value = int(activity[value_key])
         lines.extend(
             [
-                f'{child}<div class="github-activity-stat" data-github-metric="{key}">',
-                f'{grandchild}<dt class="github-activity-stat__label">{label}</dt>',
-                f'{grandchild}<dd class="github-activity-stat__value">{value:,}</dd>',
+                f'{child}<div class="github-activity-highlight" data-github-metric="{key}">',
+                f'{grandchild}<dt class="github-activity-highlight__label">{label}</dt>',
+                f'{grandchild}<dd class="github-activity-highlight__value">{value:,}</dd>',
                 f"{child}</div>",
             ]
         )
-    lines.append(f"{indent}</dl>")
+    lines.extend(
+        [
+            f"{indent}</dl>",
+            f'{indent}<figure class="github-activity__rhythm" aria-labelledby="github-activity-rhythm-caption">',
+            f'{child}<figcaption class="github-activity__rhythm-caption" id="github-activity-rhythm-caption">',
+            f'{grandchild}<span class="github-activity__rhythm-title">Contribution rhythm</span>',
+            f'{grandchild}<span class="github-activity__rhythm-summary">Daily public activity across {year}</span>',
+            f"{child}</figcaption>",
+            f'{child}<div class="github-activity__calendar-frame">',
+            f'{grandchild}<svg class="github-activity-calendar" viewBox="0 0 {chart_width} {chart_height}" role="img" aria-labelledby="github-activity-calendar-title github-activity-calendar-description" focusable="false" xmlns="http://www.w3.org/2000/svg">',
+            f'{great_grandchild}<title id="github-activity-calendar-title">{year} public contribution rhythm</title>',
+            f'{great_grandchild}<desc id="github-activity-calendar-description">Daily public GitHub contributions for {year}. Darker cells represent more contributions relative to other days in the year.</desc>',
+        ]
+    )
+
+    for month in range(1, 13):
+        first_of_month = dt.date(year, month, 1)
+        month_week = (first_of_month - calendar_origin).days // 7
+        month_x = label_width + month_week * cell_step
+        lines.append(
+            f'{great_grandchild}<text class="github-activity-calendar__month" x="{month_x}" y="11">{MONTHS[month - 1][:3]}</text>'
+        )
+    for weekday, label in ((1, "Mon"), (3, "Wed"), (5, "Fri")):
+        label_y = grid_top + weekday * cell_step + cell_size - 1
+        lines.append(
+            f'{great_grandchild}<text class="github-activity-calendar__weekday" x="0" y="{label_y}">{label}</text>'
+        )
+    for day in days:
+        date_value: dt.date = day["date"]
+        week_index = (date_value - calendar_origin).days // 7
+        x_value = label_width + week_index * cell_step
+        y_value = grid_top + int(day["weekday"]) * cell_step
+        count = int(day["count"])
+        level = int(day["level"])
+        contribution_word = "contribution" if count == 1 else "contributions"
+        day_label = f"{MONTHS[date_value.month - 1]} {date_value.day}, {date_value.year}: {count} {contribution_word}"
+        lines.extend(
+            [
+                f'{great_grandchild}<rect class="github-activity-day github-activity-day--level-{level}" x="{x_value}" y="{y_value}" width="{cell_size}" height="{cell_size}" rx="2" data-date="{day["date_text"]}" data-count="{count}" data-level="{level}">',
+                f"{great_grandchild}  <title>{escaped(day_label)}</title>",
+                f"{great_grandchild}</rect>",
+            ]
+        )
+    lines.extend(
+        [
+            f"{grandchild}</svg>",
+            f"{child}</div>",
+            f'{child}<div class="github-activity__legend" aria-hidden="true">',
+            f'{grandchild}<span class="github-activity__legend-label">Less</span>',
+        ]
+    )
+    for level in range(5):
+        lines.append(
+            f'{grandchild}<span class="github-activity__legend-swatch github-activity-day--level-{level}" data-level="{level}"></span>'
+        )
+    lines.extend(
+        [
+            f'{grandchild}<span class="github-activity__legend-label">More</span>',
+            f"{child}</div>",
+            f"{indent}</figure>",
+        ]
+    )
     return newline.join(lines)
 
 
