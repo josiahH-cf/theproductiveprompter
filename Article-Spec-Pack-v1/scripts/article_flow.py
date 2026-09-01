@@ -1071,41 +1071,67 @@ def append_event(directory: Path, run: dict[str, Any], event_type: str, actor: s
         handle.write(json.dumps(event, sort_keys=True, ensure_ascii=False) + "\n")
         handle.flush()
         os.fsync(handle.fileno())
+    # This head lives only in the caller's in-memory projection until
+    # save_run commits the corresponding cache mutations.  A crash therefore
+    # leaves run.json pointing at the preceding applied head, and load_run can
+    # fold exactly the verified tail after it.
+    run["applied_event_head"] = {
+        "sequence": sequence,
+        "event_hash": event["event_hash"],
+    }
     return event
 
 
-def verify_event_log(directory: Path, run: dict[str, Any]) -> tuple[bool, str | None, str]:
+def verify_event_log(
+    directory: Path,
+    run: dict[str, Any],
+) -> tuple[bool, str | None, str, list[dict[str, Any]]]:
+    """Verify one immutable in-memory snapshot of the event log.
+
+    Observers must never verify one version of ``events.jsonl`` and then fold a
+    newer, possibly partial version.  Returning the parsed snapshot keeps
+    validation and recovery on the same hash-chained head.
+    """
     log_path = directory / run["event_log"]
     if not log_path.is_file():
-        return False, "event log missing", "NEW"
+        return False, "event log missing", "NEW", []
     previous_hash: str | None = None
     derived_state = "NEW"
-    for expected_sequence, line in enumerate(log_path.read_text(encoding="utf-8").splitlines(), start=1):
+    events: list[dict[str, Any]] = []
+    snapshot = log_path.read_text(encoding="utf-8")
+    for expected_sequence, line in enumerate(snapshot.splitlines(), start=1):
         if not line.strip():
             continue
         try:
             event = json.loads(line)
         except json.JSONDecodeError as exc:
-            return False, f"invalid event JSON: {exc}", derived_state
+            return False, f"invalid event JSON: {exc}", derived_state, events
         schema_errors = validate_instance_schema(event, "event.schema.json")
         if schema_errors:
-            return False, f"event schema mismatch at sequence {expected_sequence}: {schema_errors[0]}", derived_state
-        recorded_hash = event.pop("event_hash", None)
-        if event.get("sequence") != expected_sequence or event.get("previous_event_hash") != previous_hash:
-            return False, f"event chain mismatch at sequence {expected_sequence}", derived_state
-        actual_hash = sha256_bytes((previous_hash or "").encode("ascii") + canonical_json(event))
+            return False, f"event schema mismatch at sequence {expected_sequence}: {schema_errors[0]}", derived_state, events
+        hash_input = dict(event)
+        recorded_hash = hash_input.pop("event_hash", None)
+        if hash_input.get("sequence") != expected_sequence or hash_input.get("previous_event_hash") != previous_hash:
+            return False, f"event chain mismatch at sequence {expected_sequence}", derived_state, events
+        actual_hash = sha256_bytes((previous_hash or "").encode("ascii") + canonical_json(hash_input))
         if recorded_hash != actual_hash:
-            return False, f"event hash mismatch at sequence {expected_sequence}", derived_state
+            return False, f"event hash mismatch at sequence {expected_sequence}", derived_state, events
         previous_hash = str(recorded_hash)
         if event.get("type") == "STATE_TRANSITION":
             transition_payload = event.get("payload", {})
             if transition_payload.get("from") != derived_state:
-                return False, f"state transition source mismatch at sequence {expected_sequence}", derived_state
+                return False, f"state transition source mismatch at sequence {expected_sequence}", derived_state, events
             derived_state = str(transition_payload.get("to", derived_state))
-    return True, None, derived_state
+        events.append(event)
+    return True, None, derived_state, events
 
 
-def roll_forward_run_cache(directory: Path, run: dict[str, Any], derived_state: str) -> bool:
+def roll_forward_run_cache(
+    directory: Path,
+    run: dict[str, Any],
+    derived_state: str,
+    events: list[dict[str, Any]],
+) -> bool:
     """Recover deterministic run.json fields from the verified event-log WAL.
 
     ``run.json`` is a cache.  Artifact records, dispatch ordinals, and state
@@ -1114,8 +1140,28 @@ def roll_forward_run_cache(directory: Path, run: dict[str, Any], derived_state: 
     instead of making the run permanently unloadable.  Only fields whose value
     is completely determined by verified events are recovered here.
     """
-    events = _read_jsonl(directory / str(run["event_log"]))
     changed = False
+    cached_state = str(run.get("state") or "NEW")
+    cached_status = str(run.get("status") or "ACTIVE")
+    cached_head = run.get("applied_event_head")
+    legacy_without_head = not isinstance(cached_head, dict)
+    cached_sequence = 0
+    if isinstance(cached_head, dict):
+        try:
+            cached_sequence = int(cached_head.get("sequence", 0))
+        except (TypeError, ValueError) as exc:
+            raise FlowError("Run cache has an invalid applied event head", EXIT_INTEGRITY, cached_head) from exc
+        if cached_sequence < 1 or cached_sequence > len(events):
+            raise FlowError("Run cache applied event head is outside the verified event log", EXIT_INTEGRITY, cached_head)
+        applied_event = events[cached_sequence - 1]
+        if cached_head.get("event_hash") != applied_event.get("event_hash"):
+            raise FlowError("Run cache applied event head does not match the verified event log", EXIT_INTEGRITY, cached_head)
+    # Old released runs predate the head marker.  Their cache-only phases
+    # (especially WAITING_HUMAN) are authoritative and must not be recomputed
+    # from historical events.  The in-memory projection is migrated to the
+    # verified head; the first mutation under run_lock persists it before any
+    # subsequent event can be appended.
+    tail_events = [] if legacy_without_head else events[cached_sequence:]
 
     recovered_artifacts: list[dict[str, Any]] = []
     for event in events:
@@ -1156,12 +1202,35 @@ def roll_forward_run_cache(directory: Path, run: dict[str, Any], derived_state: 
         run["artifact_index"] = recovered_artifacts
         changed = True
 
-    recovered_attempts = {str(state): 0 for state in run.get("attempts", {})}
+    recovered_attempts = {str(state): int(value) for state, value in run.get("attempts", {}).items()}
+    # Route state is a cache baseline plus an exact post-head tail.  Released
+    # logs predate explicit repair-clear semantics, so replaying their whole
+    # history can both erase live failure counts and resurrect failures that a
+    # human repair already cleared.  A headless legacy cache therefore remains
+    # authoritative; after migration, only verified events beyond its saved
+    # head are applied here.
+    recovered_route_failures: dict[str, dict[str, int]] = {
+        str(state): {str(key): int(value) for key, value in failures.items()}
+        for state, failures in run.get("route_failures", {}).items()
+        if isinstance(failures, dict)
+    }
+    recovered_route_retry_candidates: dict[str, list[dict[str, Any]]] = {
+        str(state): [json.loads(json.dumps(item)) for item in candidates if isinstance(item, dict)]
+        for state, candidates in run.get("route_retry_candidates", {}).items()
+        if isinstance(candidates, list)
+    }
+    recovered_baselines = {
+        str(state): int(value)
+        for state, value in run.get("attempt_baselines", {}).items()
+    }
     latest_dispatch: dict[str, dict[str, Any]] = {}
-    model_receipt_counts: dict[str, int] = {}
-    rejection_counts: dict[str, int] = {}
+    active_repair_context = run.get("pending_repair") if isinstance(run.get("pending_repair"), dict) else None
+    repair_recovery_error: dict[str, Any] | None = None
+    latest_transition_sequence = 0
     for event in events:
         payload = event.get("payload", {}) if isinstance(event.get("payload"), dict) else {}
+        sequence = int(event.get("sequence", 0))
+        route_event_is_tail = not legacy_without_head and sequence > cached_sequence
         if event.get("type") == "TASK_DISPATCHED":
             state = str(payload.get("state") or "")
             try:
@@ -1171,7 +1240,13 @@ def roll_forward_run_cache(directory: Path, run: dict[str, Any], derived_state: 
             if not state or attempt < 1:
                 raise FlowError("Task dispatch event has an invalid identity", EXIT_INTEGRITY, event.get("sequence"))
             recovered_attempts[state] = max(int(recovered_attempts.get(state, 0)), attempt)
-            latest_dispatch[state] = {"sequence": int(event.get("sequence", 0)), "attempt": attempt}
+            latest_dispatch[state] = {
+                "sequence": sequence,
+                "attempt": attempt,
+                "task_packet_sha256": str(payload.get("task_packet_sha256") or ""),
+            }
+            if route_event_is_tail:
+                recovered_route_retry_candidates.pop(state, None)
         elif event.get("type") == "ARTIFACT_RECORDED":
             item = payload.get("artifact", {}) if isinstance(payload.get("artifact"), dict) else {}
             artifact_type = str(item.get("type", ""))
@@ -1181,49 +1256,276 @@ def roll_forward_run_cache(directory: Path, run: dict[str, Any], derived_state: 
             if match:
                 state = match.group(1)
                 recovered_attempts[state] = max(int(recovered_attempts.get(state, 0)), int(match.group(2)))
-            if receipt_match:
-                state = receipt_match.group(1)
-                model_receipt_counts[state] = int(model_receipt_counts.get(state, 0)) + 1
-        elif event.get("type") == "MODEL_OUTPUT_REJECTED":
+        elif event.get("type") in {"MODEL_EXECUTION_STARTED", "MODEL_ROUTE_FAILURE", "MODEL_OUTPUT_REJECTED"}:
+            identity = event_task_identity(event)
+            if identity:
+                state, attempt, _ = identity
+                recovered_attempts[state] = max(int(recovered_attempts.get(state, 0)), attempt)
+            else:
+                state = str(payload.get("state") or event.get("state") or "")
+            if route_event_is_tail and event.get("type") in {"MODEL_ROUTE_FAILURE", "MODEL_OUTPUT_REJECTED"} and state:
+                route = payload.get("route") if isinstance(payload.get("route"), dict) else payload
+                provider = str(route.get("provider") or "")
+                model = str(route.get("model") or "")
+                if provider and model:
+                    key = f"{provider}:{model}"
+                    failures = recovered_route_failures.setdefault(state, {})
+                    failures[key] = int(failures.get(key, 0)) + 1
+            if route_event_is_tail and event.get("type") == "MODEL_ROUTE_FAILURE" and state:
+                remaining = payload.get("remaining_routes")
+                if isinstance(remaining, list):
+                    recovered_route_retry_candidates[state] = [
+                        json.loads(json.dumps(item))
+                        for item in remaining
+                        if isinstance(item, dict)
+                    ]
+        elif event.get("type") == "MODEL_ROUTE_RECOVERED" and route_event_is_tail:
             state = str(payload.get("state") or event.get("state") or "")
-            if state:
-                rejection_counts[state] = int(rejection_counts.get(state, 0)) + 1
-    for state in set(model_receipt_counts) | set(rejection_counts):
-        recovered_attempts[state] = max(
-            int(recovered_attempts.get(state, 0)),
-            int(model_receipt_counts.get(state, 0)),
-            int(rejection_counts.get(state, 0)),
-        )
+            route = payload.get("route") if isinstance(payload.get("route"), dict) else {}
+            key = f"{route.get('provider')}:{route.get('model')}"
+            recovered_route_failures.setdefault(state, {}).pop(key, None)
+        elif event.get("type") == "REPAIR":
+            source_state = str(payload.get("source_state") or event.get("state") or "")
+            repair_state = str(payload.get("repair_state") or "")
+            context = payload.get("repair_context")
+            if route_event_is_tail and payload.get("clear_route_failures", True) and repair_state:
+                recovered_route_failures.pop(repair_state, None)
+            if route_event_is_tail and repair_state:
+                recovered_route_retry_candidates.pop(repair_state, None)
+            if repair_state and payload.get("execution_count_baseline") is not None:
+                try:
+                    recovered_baselines[repair_state] = int(payload["execution_count_baseline"])
+                except (TypeError, ValueError) as exc:
+                    raise FlowError("Repair event has an invalid execution baseline", EXIT_INTEGRITY, sequence) from exc
+            if isinstance(context, dict):
+                if context.get("source_stage") != source_state or context.get("repair_state") != repair_state:
+                    repair_recovery_error = {
+                        "reason": "repair_event_context_identity_mismatch",
+                        "sequence": sequence,
+                    }
+                    active_repair_context = None
+                else:
+                    active_repair_context = json.loads(json.dumps(context))
+                    repair_recovery_error = None
+            elif bool(payload.get("repair_context_required")):
+                repair_recovery_error = {
+                    "reason": "repair_event_lacks_required_context",
+                    "sequence": sequence,
+                    "source_state": source_state,
+                    "repair_state": repair_state,
+                }
+                active_repair_context = None
+        elif event.get("type") == "GATE_RECORDED" and active_repair_context:
+            if (
+                payload.get("state") == active_repair_context.get("repair_state")
+                and payload.get("outcome") == "PASS"
+            ):
+                active_repair_context = None
+                repair_recovery_error = None
+        if event.get("type") == "STATE_TRANSITION":
+            transition_payload = payload
+            if transition_payload.get("to") == derived_state:
+                latest_transition_sequence = sequence
+            if active_repair_context and (
+                transition_payload.get("from") == active_repair_context.get("repair_state")
+                and transition_payload.get("to") != active_repair_context.get("repair_state")
+            ):
+                active_repair_context = None
+                repair_recovery_error = None
     if run.get("attempts") != recovered_attempts:
         run["attempts"] = recovered_attempts
         changed = True
+    recovered_route_failures = {
+        state: failures for state, failures in recovered_route_failures.items() if failures
+    }
+    if run.get("route_failures", {}) != recovered_route_failures:
+        run["route_failures"] = recovered_route_failures
+        changed = True
+    recovered_route_retry_candidates = {
+        state: candidates
+        for state, candidates in recovered_route_retry_candidates.items()
+        if candidates
+    }
+    if run.get("route_retry_candidates", {}) != recovered_route_retry_candidates:
+        run["route_retry_candidates"] = recovered_route_retry_candidates
+        changed = True
+    if run.get("attempt_baselines", {}) != recovered_baselines:
+        run["attempt_baselines"] = recovered_baselines
+        changed = True
+    if active_repair_context is not None:
+        if run.get("pending_repair") != active_repair_context:
+            run["pending_repair"] = active_repair_context
+            changed = True
+    elif "pending_repair" in run:
+        run.pop("pending_repair", None)
+        changed = True
+    if repair_recovery_error is not None:
+        if run.get("repair_recovery_error") != repair_recovery_error:
+            run["repair_recovery_error"] = repair_recovery_error
+            changed = True
+    elif "repair_recovery_error" in run:
+        run.pop("repair_recovery_error", None)
+        changed = True
 
+    state_changed = cached_state != derived_state
     if run.get("state") != derived_state:
         run["state"] = derived_state
         run["status"] = "COMPLETE" if derived_state == "COMPLETE" else "TERMINAL" if derived_state == "TERMINAL" else "ACTIVE"
         changed = True
 
-    # A trailing dispatch is itself the durable decision that this exact packet
-    # is pending.  Do not require the stale cache to have reached WAITING_MODEL.
+    # Derive the phase after the latest transition into the current state.  A
+    # same-state repair transition is a real boundary even though ``state`` did
+    # not change in run.json.
     dispatch = latest_dispatch.get(derived_state)
-    if dispatch:
-        later_decision = any(
-            int(event.get("sequence", 0)) > dispatch["sequence"]
-            and event.get("type") in {"GATE_RECORDED", "MODEL_OUTPUT_REJECTED", "STATE_TRANSITION", "TERMINAL"}
-            and (event.get("state") == derived_state or (event.get("payload") or {}).get("state") == derived_state)
-            for event in events
+    if run.get("status") not in {"COMPLETE", "TERMINAL"}:
+        recovered_status: str | None = None
+        if repair_recovery_error is not None:
+            recovered_status = "BLOCKED"
+        tail_transition_sequence = max(
+            (
+                int(event.get("sequence", 0))
+                for event in tail_events
+                if event.get("type") == "STATE_TRANSITION"
+                and (event.get("payload") or {}).get("to") == derived_state
+            ),
+            default=0,
         )
-        if not later_decision and run.get("status") not in {"COMPLETE", "TERMINAL"}:
-            if run.get("status") != "WAITING_MODEL":
-                run["status"] = "WAITING_MODEL"
-                changed = True
+        trailing_escalation = any(
+            event.get("type") == "ESCALATION"
+            and event.get("state") == derived_state
+            and int(event.get("sequence", 0)) > tail_transition_sequence
+            for event in tail_events
+        )
+        if trailing_escalation:
+            recovered_status = "BLOCKED"
+        elif tail_events and dispatch and dispatch["sequence"] > latest_transition_sequence:
+            exact_later = []
+            blocking_escalation = False
+            for event in events:
+                if int(event.get("sequence", 0)) <= dispatch["sequence"]:
+                    continue
+                identity = event_task_identity(event)
+                if identity and identity == (
+                    derived_state,
+                    int(dispatch["attempt"]),
+                    str(dispatch["task_packet_sha256"]),
+                ):
+                    exact_later.append(event)
+                if event.get("type") == "ESCALATION" and (
+                    identity == (
+                        derived_state,
+                        int(dispatch["attempt"]),
+                        str(dispatch["task_packet_sha256"]),
+                    )
+                    or (identity is None and event.get("state") == derived_state)
+                ):
+                    # New escalations bind the exact attempt.  Legacy events
+                    # did not carry that identity, so a post-dispatch
+                    # escalation in the current state is the conservative
+                    # lower-bound authority for BLOCKED.
+                    blocking_escalation = True
+            tail_exact = [
+                event for event in exact_later
+                if int(event.get("sequence", 0)) > cached_sequence
+            ]
+            later_types = {str(event.get("type")) for event in tail_exact}
+            gate_receipt_committed = any(
+                event.get("type") == "ARTIFACT_RECORDED"
+                and str((event.get("payload") or {}).get("artifact", {}).get("type", "")).startswith("gate-receipt:")
+                for event in tail_events
+                if int(event.get("sequence", 0)) > dispatch["sequence"]
+            )
+            if blocking_escalation:
+                recovered_status = "BLOCKED"
+            elif "GATE_RECORDED" in later_types:
+                gate_event = next(
+                    event for event in reversed(tail_exact)
+                    if event.get("type") == "GATE_RECORDED"
+                )
+                gate_outcome = str((gate_event.get("payload") or {}).get("outcome") or "")
+                if (
+                    derived_state in REVIEW_STATES
+                    and (
+                        gate_outcome == "ESCALATE"
+                        or (gate_outcome == "PASS" and not automation_enabled(run))
+                    )
+                ):
+                    recovered_status = "WAITING_HUMAN"
+                else:
+                    recovered_status = "BLOCKED"
+            elif gate_receipt_committed:
+                # ARTIFACT_RECORDED is the durable receipt commit.  Until the
+                # task-bound GATE_RECORDED/follow-on phase is present, replay
+                # must fail closed.
+                recovered_status = "BLOCKED"
+            elif "RETRY" in later_types:
+                model_receipt_exists = any(
+                    event.get("type") == "ARTIFACT_RECORDED"
+                    and (event.get("payload") or {}).get("artifact", {}).get("type")
+                    == f"model-call:{derived_state}:{dispatch['attempt']}"
+                    for event in events
+                )
+                recovered_status = "WAITING_MODEL" if model_receipt_exists else "ACTIVE"
+            elif "MODEL_ROUTE_FAILURE" in later_types:
+                # The failure consumes the execution claim, but only RETRY
+                # durably abandons its dispatched packet.  Keep it current so
+                # current_packet can append that exact retry before minting a
+                # successor.
+                recovered_status = "WAITING_MODEL"
+            elif "MODEL_EXECUTION_STARTED" in later_types:
+                # A durable claim with no terminal evidence is recovered by
+                # current_packet, which records one RETRY before minting a new
+                # ordinal.  Keep the packet discoverable until then.
+                recovered_status = "WAITING_MODEL"
+            elif dispatch["sequence"] > cached_sequence:
+                recovered_status = "WAITING_MODEL"
+        elif (
+            legacy_without_head
+            and cached_status == "ACTIVE"
+            and dispatch
+            and dispatch["sequence"] > latest_transition_sequence
+        ):
+            later_decision = any(
+                int(event.get("sequence", 0)) > dispatch["sequence"]
+                and event.get("type") in {
+                    "GATE_RECORDED",
+                    "MODEL_OUTPUT_REJECTED",
+                    "RETRY",
+                    "ESCALATION",
+                    "STATE_TRANSITION",
+                    "TERMINAL",
+                }
+                and (
+                    event.get("state") == derived_state
+                    or (event.get("payload") or {}).get("state") == derived_state
+                )
+                for event in events
+            )
+            if not later_decision:
+                # Released headless caches still need the old WAL guarantee:
+                # a durable dispatch whose final cache save was interrupted is
+                # pending.  Restrict this migration rule to stale ACTIVE so
+                # stable BLOCKED/WAITING_HUMAN legacy phases remain untouched.
+                recovered_status = "WAITING_MODEL"
+        elif state_changed or tail_transition_sequence:
+            recovered_status = "ACTIVE"
+        if recovered_status is not None and run.get("status") != recovered_status:
+            run["status"] = recovered_status
+            changed = True
+
+    if events:
+        verified_head = {
+            "sequence": int(events[-1]["sequence"]),
+            "event_hash": str(events[-1]["event_hash"]),
+        }
+        if run.get("applied_event_head") != verified_head:
+            run["applied_event_head"] = verified_head
+            changed = True
 
     if changed:
-        run["updated_at"] = utc_now()
         errors = validate_instance_schema(run, "run.schema.json")
         if errors:
             raise FlowError("Recovered run cache is invalid", EXIT_INTEGRITY, errors)
-        write_json(directory / "run.json", run)
     return changed
 
 
@@ -1236,10 +1538,13 @@ def load_run(run_id: str) -> tuple[Path, dict[str, Any]]:
     errors = validate_instance_schema(run, "run.schema.json")
     if errors:
         raise FlowError(f"Run schema failed: {errors[0]}", EXIT_INTEGRITY, errors)
-    ok, error, derived_state = verify_event_log(directory, run)
+    ok, error, derived_state, events = verify_event_log(directory, run)
     if not ok:
         raise FlowError(f"Run event log failed integrity: {error}", EXIT_INTEGRITY)
-    roll_forward_run_cache(directory, run, derived_state)
+    # Recovery is deliberately observer-pure.  A status/watch call may run
+    # while another process owns the mutation lock; it must not overwrite the
+    # writer's richer cache with a stale projection.
+    roll_forward_run_cache(directory, run, derived_state, events)
     return directory, run
 
 
@@ -1259,6 +1564,8 @@ def lock_namespace() -> str:
 def run_lock(directory: Path, run: dict[str, Any]) -> Iterator[None]:
     lock_path = directory / ".lock"
     recovered = None
+    persisted_cache = load_json(directory / "run.json")
+    migrate_event_head = not isinstance(persisted_cache.get("applied_event_head"), dict)
     try:
         descriptor = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
     except FileExistsError as exc:
@@ -1288,9 +1595,44 @@ def run_lock(directory: Path, run: dict[str, Any]) -> Iterator[None]:
     try:
         os.write(descriptor, canonical_json({"pid": os.getpid(), "namespace": lock_namespace(), "created_at": utc_now()}))
         os.close(descriptor)
+        # The caller's pre-lock snapshot is advisory only.  Refresh it in
+        # place after ownership so every mutation starts from one freshly
+        # verified, event-folded view without breaking references held by the
+        # caller.
+        fresh_directory, fresh_run = load_run(str(run["run_id"]))
+        if fresh_directory.resolve() != directory.resolve():
+            raise FlowError("Run lock resolved a different run directory", EXIT_INTEGRITY)
+        run.clear()
+        run.update(fresh_run)
+        if migrate_event_head and run.get("applied_event_head"):
+            # Establish the exact legacy baseline before permitting a new WAL
+            # append.  If the process dies after the next append, recovery can
+            # distinguish that unapplied tail from historical events whose
+            # cache-only phases must be preserved.
+            save_run(directory, run)
         yield
     finally:
         release_lock_file(lock_path)
+
+
+def persist_recovered_cache(directory: Path, run: dict[str, Any]) -> None:
+    """Serialize persistence of an observer-pure recovered run projection."""
+    lock_path = directory / ".lock"
+    owns_lock = False
+    if lock_path.is_file():
+        try:
+            lock = load_json(lock_path)
+            owns_lock = (
+                int(lock.get("pid", -1)) == os.getpid()
+                and str(lock.get("namespace", "")) == lock_namespace()
+            )
+        except (FlowError, TypeError, ValueError):
+            owns_lock = False
+    if owns_lock:
+        save_run(directory, run)
+        return
+    with run_lock(directory, run):
+        save_run(directory, run)
 
 
 def transition(directory: Path, run: dict[str, Any], new_state: str, actor: str, reason: str) -> None:
@@ -1301,13 +1643,37 @@ def transition(directory: Path, run: dict[str, Any], new_state: str, actor: str,
     save_run(directory, run)
 
 
-def record_artifact(directory: Path, run: dict[str, Any], path: Path, artifact_type: str, producer: dict[str, Any], visibility: str = "private", inputs: Iterable[str] = ()) -> dict[str, Any]:
+def record_artifact(
+    directory: Path,
+    run: dict[str, Any],
+    path: Path,
+    artifact_type: str,
+    producer: dict[str, Any],
+    visibility: str = "private",
+    inputs: Iterable[str] = (),
+    *,
+    expected_bytes: bytes | None = None,
+) -> dict[str, Any]:
     resolved = path.resolve()
     try:
         relative = resolved.relative_to(directory.resolve()).as_posix()
     except ValueError as exc:
         raise FlowError(f"Artifact must live inside its run: {path}") from exc
     data = resolved.read_bytes()
+    if expected_bytes is not None:
+        if data != expected_bytes:
+            raise FlowError(
+                "Artifact bytes changed before their immutable record was committed",
+                EXIT_INTEGRITY,
+                {
+                    "path": str(resolved),
+                    "expected_sha256": sha256_bytes(expected_bytes),
+                    "actual_sha256": sha256_bytes(data),
+                },
+            )
+        # Build the evidence record from the already accepted snapshot, not a
+        # later independent read that could attest different bytes.
+        data = expected_bytes
     artifact = {
         "artifact_schema_version": "1.0.0",
         "artifact_id": f"AR-{artifact_type}-{secrets.token_hex(4)}",
@@ -1574,12 +1940,84 @@ def write_gate_receipt(
     if errors:
         raise FlowError("Controller generated an invalid gate receipt", EXIT_INTEGRITY, errors)
     path = directory / "receipts" / f"{gate_id.lower()}-{len(list((directory / 'receipts').glob('*.json'))) + 1}.json"
-    write_json_immutable(path, receipt)
-    record_artifact(directory, run, path, f"gate-receipt:{gate_id}", {"actor": evaluator.get("type", "code")})
+    receipt_bytes = (json.dumps(receipt, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+    receipt_hash = sha256_bytes(receipt_bytes)
+    if task_binding:
+        # ARTIFACT_RECORDED is the gate decision's durable commit.  Persist a
+        # fail-closed phase with that artifact so a crash before GATE_RECORDED
+        # cannot leave the cache advertising a replayable model task.
+        run["status"] = "BLOCKED"
+    try:
+        immutable_write(path, receipt_bytes)
+        if not path.is_file() or sha256_path(path) != receipt_hash:
+            raise FlowError("Gate receipt changed after immutable creation", EXIT_INTEGRITY)
+        record_artifact(
+            directory,
+            run,
+            path,
+            f"gate-receipt:{gate_id}",
+            {"actor": evaluator.get("type", "code")},
+            expected_bytes=receipt_bytes,
+        )
+        if not path.is_file() or sha256_path(path) != receipt_hash:
+            raise FlowError("Gate receipt changed after artifact recording", EXIT_INTEGRITY)
+    except (FlowError, OSError) as exc:
+        try:
+            actual_hash = sha256_path(path) if path.is_file() else None
+        except OSError:
+            actual_hash = None
+        issue = {
+            "reason": "gate_receipt_evidence_changed_during_commit",
+            "gate_id": gate_id,
+            "path": str(path),
+            "expected_sha256": receipt_hash,
+            "actual_sha256": actual_hash,
+            "error": str(exc),
+        }
+        if task_binding:
+            block_attempt_reconciliation(
+                directory,
+                run,
+                str(task_binding["state"]),
+                int(task_binding["attempt"]),
+                str(task_binding["task_packet_sha256"]),
+                issue,
+            )
+        else:
+            run["status"] = "BLOCKED"
+            append_event(directory, run, "ESCALATION", "controller", {"state": run["state"], **issue})
+            save_run(directory, run)
+        raise FlowError("Gate receipt evidence changed during commit", EXIT_INTEGRITY, issue) from exc
     event_payload = {"gate_id": gate_id, "outcome": outcome, "findings": findings}
     if task_binding:
         event_payload.update(task_binding)
     append_event(directory, run, "GATE_RECORDED", evaluator.get("type", "code"), event_payload)
+    try:
+        committed_hash = sha256_path(path) if path.is_file() else None
+    except OSError:
+        committed_hash = None
+    if committed_hash != receipt_hash:
+        issue = {
+            "reason": "gate_receipt_changed_after_gate_event",
+            "gate_id": gate_id,
+            "path": str(path),
+            "expected_sha256": receipt_hash,
+            "actual_sha256": committed_hash,
+        }
+        if task_binding:
+            block_attempt_reconciliation(
+                directory,
+                run,
+                str(task_binding["state"]),
+                int(task_binding["attempt"]),
+                str(task_binding["task_packet_sha256"]),
+                issue,
+            )
+        else:
+            run["status"] = "BLOCKED"
+            append_event(directory, run, "ESCALATION", "controller", {"state": run["state"], **issue})
+            save_run(directory, run)
+        raise FlowError("Gate receipt changed after gate event", EXIT_INTEGRITY, issue)
     return path
 
 
@@ -1940,6 +2378,27 @@ def stage_output(state: str) -> tuple[str, str]:
     return mapping[state]
 
 
+def task_identity_payload(state: str, attempt: int, packet_sha256: str) -> dict[str, Any]:
+    return {
+        "state": state,
+        "attempt": attempt,
+        "task_packet_sha256": packet_sha256,
+    }
+
+
+def event_task_identity(event: dict[str, Any]) -> tuple[str, int, str] | None:
+    payload = event.get("payload", {}) if isinstance(event.get("payload"), dict) else {}
+    state = str(payload.get("state") or "")
+    packet_hash = str(payload.get("task_packet_sha256") or "")
+    try:
+        attempt = int(payload.get("attempt", 0))
+    except (TypeError, ValueError):
+        attempt = 0
+    if not state or attempt < 1 or not re.fullmatch(r"[0-9a-f]{64}", packet_hash):
+        return None
+    return state, attempt, packet_hash
+
+
 def stage_attempt_evidence(directory: Path, run: dict[str, Any], state: str) -> dict[str, int]:
     """Derive a monotonic attempt ordinal from durable execution evidence.
 
@@ -1952,9 +2411,12 @@ def stage_attempt_evidence(directory: Path, run: dict[str, Any], state: str) -> 
     """
     recorded_packet_attempts: list[int] = []
     dispatched_attempts: list[int] = []
-    receipt_attempts: list[int] = []
-    model_executions = 0
-    rejections = 0
+    receipt_attempts: set[int] = set()
+    execution_attempts: set[int] = set()
+    rejection_attempts: set[int] = set()
+    provider_failure_attempts: set[int] = set()
+    legacy_rejections = 0
+    durable_execution_numbers: set[int] = set()
     packet_pattern = re.compile(rf"^task-packet:{re.escape(state)}:(\d+)$")
     receipt_pattern = re.compile(rf"^model-call:{re.escape(state)}:(\d+)$")
     for event in _read_jsonl(directory / str(run["event_log"])):
@@ -1972,10 +2434,31 @@ def stage_attempt_evidence(directory: Path, run: dict[str, Any], state: str) -> 
             if packet_match:
                 recorded_packet_attempts.append(int(packet_match.group(1)))
             elif receipt_match:
-                model_executions += 1
-                receipt_attempts.append(int(receipt_match.group(1)))
+                attempt = int(receipt_match.group(1))
+                receipt_attempts.add(attempt)
+                execution_attempts.add(attempt)
+        elif event.get("type") == "MODEL_EXECUTION_STARTED":
+            identity = event_task_identity(event)
+            if identity and identity[0] == state:
+                execution_attempts.add(identity[1])
+                try:
+                    execution_number = int(payload.get("execution_number", 0))
+                except (TypeError, ValueError):
+                    execution_number = 0
+                if execution_number > 0:
+                    durable_execution_numbers.add(execution_number)
+        elif event.get("type") == "MODEL_ROUTE_FAILURE":
+            identity = event_task_identity(event)
+            if identity and identity[0] == state:
+                execution_attempts.add(identity[1])
+                provider_failure_attempts.add(identity[1])
         elif event.get("type") == "MODEL_OUTPUT_REJECTED" and payload.get("state") == state:
-            rejections += 1
+            identity = event_task_identity(event)
+            if identity:
+                execution_attempts.add(identity[1])
+                rejection_attempts.add(identity[1])
+            else:
+                legacy_rejections += 1
     _, output_filename = stage_output(state)
     raw_packet_attempts = {
         int(match.group(1))
@@ -1992,7 +2475,7 @@ def stage_attempt_evidence(directory: Path, run: dict[str, Any], state: str) -> 
         match = re.fullmatch(rf"model-call-{re.escape(state.lower())}-(\d+)\.json", path.name)
         if match:
             raw_output_attempts.add(int(match.group(1)))
-    model_executions += len(raw_output_attempts - set(receipt_attempts))
+    execution_attempts.update(raw_output_attempts)
     counter = int(run.get("attempts", {}).get(state, 0))
     dispatch_count = len(dispatched_attempts)
     ordinal = max(
@@ -2005,11 +2488,16 @@ def stage_attempt_evidence(directory: Path, run: dict[str, Any], state: str) -> 
         len(recorded_packet_attempts),
         len(raw_packet_attempts),
         dispatch_count,
-        model_executions,
-        rejections,
+        max(execution_attempts, default=0),
+        max(durable_execution_numbers, default=0),
+        legacy_rejections,
     )
     baseline = int(run.get("attempt_baselines", {}).get(state, 0))
-    execution_count = max(model_executions, rejections)
+    execution_count = max(
+        len(execution_attempts),
+        legacy_rejections,
+        max(durable_execution_numbers, default=0),
+    )
     return {
         "ordinal": ordinal,
         "window_baseline": baseline,
@@ -2018,8 +2506,9 @@ def stage_attempt_evidence(directory: Path, run: dict[str, Any], state: str) -> 
         "raw_packet_count": len(raw_packet_attempts),
         "dispatch_count": dispatch_count,
         "execution_count": execution_count,
-        "model_execution_count": model_executions,
-        "rejection_count": rejections,
+        "model_execution_count": len(execution_attempts),
+        "provider_failure_count": len(provider_failure_attempts),
+        "rejection_count": max(len(rejection_attempts), legacy_rejections),
     }
 
 
@@ -2030,6 +2519,50 @@ def reset_attempt_window(directory: Path, run: dict[str, Any], state: str) -> in
     run.setdefault("attempt_baselines", {})[state] = evidence["execution_count"]
     run.setdefault("attempts", {})[state] = max(int(run.get("attempts", {}).get(state, 0)), ordinal)
     return ordinal
+
+
+def latest_repair_source_epoch_sequence(events: list[dict[str, Any]], state: str) -> int:
+    return max(
+        (
+            int(event.get("sequence", 0))
+            for event in events
+            if event.get("type") == "REPAIR"
+            and str((event.get("payload") or {}).get("source_state") or "") == state
+        ),
+        default=0,
+    )
+
+
+def latest_repair_window_epoch_sequence(events: list[dict[str, Any]], state: str) -> int:
+    return max(
+        (
+            int(event.get("sequence", 0))
+            for event in events
+            if event.get("type") == "REPAIR"
+            and str((event.get("payload") or {}).get("repair_state") or event.get("state") or "") == state
+        ),
+        default=0,
+    )
+
+
+def artifact_record_sequence(events: list[dict[str, Any]], item: dict[str, Any]) -> int:
+    return max(
+        (
+            int(event.get("sequence", 0))
+            for event in events
+            if event.get("type") == "ARTIFACT_RECORDED"
+            and isinstance((event.get("payload") or {}).get("artifact"), dict)
+            and (
+                (event.get("payload") or {})["artifact"].get("artifact_id") == item.get("artifact_id")
+                or (
+                    (event.get("payload") or {})["artifact"].get("type") == item.get("type")
+                    and (event.get("payload") or {})["artifact"].get("path") == item.get("path")
+                    and (event.get("payload") or {})["artifact"].get("sha256") == item.get("sha256")
+                )
+            )
+        ),
+        default=0,
+    )
 
 
 def remember_repair_context(
@@ -2044,6 +2577,31 @@ def remember_repair_context(
         if isinstance(pending, dict) and pending.get("source_stage") == source_stage:
             run.pop("pending_repair", None)
 
+    pending = run.get("pending_repair")
+    current_events = _read_jsonl(directory / str(run["event_log"]))
+    current_epoch = latest_repair_window_epoch_sequence(current_events, source_stage)
+    current_gate_id = str(definition.get("gate") or "")
+    current_gate_item = artifact(run, f"gate-receipt:{current_gate_id}") if current_gate_id else None
+    has_new_gate_decision = bool(
+        current_gate_item
+        and artifact_record_sequence(current_events, current_gate_item) > current_epoch
+    )
+    if (
+        isinstance(pending, dict)
+        and pending.get("repair_state") == source_stage
+        and not has_new_gate_decision
+    ):
+        # A provider failure while executing a targeted repair has not resolved
+        # the rejected gate evidence.  Carry the already validated context
+        # forward explicitly into the next operator-authorized window.
+        stored = json.loads(json.dumps(pending))
+        validated, _ = repair_context_for_packet(directory, run, source_stage)
+        if validated is not None:
+            # Validation resolves paths for the outgoing packet copy.  Durable
+            # run/event state must retain canonical run-relative references.
+            run["pending_repair"] = stored
+            return stored
+
     if source_stage not in MODEL_STATES:
         omit_stale_context()
         return None
@@ -2052,6 +2610,12 @@ def remember_repair_context(
     gate_id = str(definition.get("gate") or "")
     gate_item = artifact(run, f"gate-receipt:{gate_id}") if gate_id else None
     if not rejected or not gate_item:
+        omit_stale_context()
+        return None
+    events = current_events
+    if artifact_record_sequence(events, gate_item) <= latest_repair_source_epoch_sequence(events, source_stage):
+        # The last gate rejection was already consumed by an explicit repair.
+        # Do not resurrect it when a later provider-only window exhausts.
         omit_stale_context()
         return None
     rejected_path = directory / safe_relative(str(rejected["path"]))
@@ -2137,6 +2701,81 @@ def remember_repair_context(
         context["task_binding"] = json.loads(json.dumps(task_binding))
     run["pending_repair"] = context
     return context
+
+
+def rejected_attempt_requires_repair_context(
+    directory: Path,
+    run: dict[str, Any],
+    source_stage: str,
+    gate_id: str,
+) -> bool:
+    """Return whether repair authorization must bind rejected gate evidence.
+
+    A provider/execution exhaustion has task packets but no rejected output or
+    gate decision, so an operator may open a fresh ordinary attempt window.
+    Once a non-PASS task-bound gate decision exists, however, losing any part
+    of its context must fail closed instead of silently downgrading to an
+    ordinary packet.
+    """
+    events = _read_jsonl(directory / str(run["event_log"]))
+    epoch_sequence = latest_repair_source_epoch_sequence(events, source_stage)
+    for event in events:
+        if int(event.get("sequence", 0)) <= epoch_sequence:
+            continue
+        payload = event.get("payload") if isinstance(event.get("payload"), dict) else {}
+        if event.get("type") == "MODEL_OUTPUT_REJECTED":
+            identity = event_task_identity(event)
+            if identity and identity[0] == source_stage:
+                return True
+        if (
+            event.get("type") == "GATE_RECORDED"
+            and payload.get("gate_id") == gate_id
+            and payload.get("outcome") != "PASS"
+            and payload.get("state") == source_stage
+        ):
+            try:
+                if int(payload.get("attempt", 0)) > 0 and re.fullmatch(
+                    r"[0-9a-f]{64}", str(payload.get("task_packet_sha256") or "")
+                ):
+                    return True
+            except (TypeError, ValueError):
+                return True
+    gate_item = artifact(run, f"gate-receipt:{gate_id}") if gate_id else None
+    if not gate_item:
+        return False
+    if artifact_record_sequence(events, gate_item) <= epoch_sequence:
+        return False
+    try:
+        gate_path = directory / safe_relative(str(gate_item.get("path", "")))
+    except FlowError:
+        return True
+    if not gate_path.is_file():
+        return True
+    try:
+        receipt = load_json(gate_path)
+    except (OSError, json.JSONDecodeError, FlowError):
+        return True
+    if receipt.get("outcome") == "PASS":
+        return False
+    binding = receipt.get("task_binding")
+    if isinstance(binding, dict):
+        return binding.get("state") == source_stage
+    if receipt.get("gate_receipt_schema_version") == "1.0.0":
+        packet_hashes = {
+            str(item.get("type")): str(item.get("sha256"))
+            for item in run.get("artifact_index", [])
+            if str(item.get("type", "")).startswith(f"task-packet:{source_stage}:")
+        }
+        exact = [
+            artifact_type
+            for artifact_type, packet_hash in packet_hashes.items()
+            if (receipt.get("artifact_hashes") or {}).get(artifact_type) == packet_hash
+        ]
+        # This predicate decides whether context is mandatory, not whether a
+        # legacy receipt can be unambiguously replayed.  Any relevant packet
+        # hash means a missing/ambiguous rejected output must fail closed.
+        return bool(exact)
+    return False
 
 
 def repair_context_for_packet(
@@ -2225,12 +2864,54 @@ def block_exhausted_stage(
         evidence["ordinal"],
     )
     remember_repair_context(directory, run, state, definition)
-    if run.get("status") != "BLOCKED":
+    events = _read_jsonl(directory / str(run["event_log"]))
+    latest_repair_sequence = max(
+        (
+            int(event.get("sequence", 0))
+            for event in events
+            if event.get("type") == "REPAIR"
+            and str((event.get("payload") or {}).get("repair_state") or event.get("state") or "") == state
+        ),
+        default=0,
+    )
+
+    def same_exhausted_window(event: dict[str, Any]) -> bool:
+        if event.get("type") != "ESCALATION":
+            return False
+        payload = event.get("payload") or {}
+        if (
+            payload.get("state") != state
+            or int(payload.get("attempts", -1)) != evidence["window_used"]
+            or int(payload.get("maximum", -1)) != int(definition.get("max_attempts", 1))
+            or not (
+                payload.get("reason") == "attempt_window_exhausted"
+                or "Repair attempts are exhausted" in str(payload.get("question", ""))
+            )
+        ):
+            return False
+        # New events carry a monotonic packet ordinal and execution baseline,
+        # which uniquely identify the bounded window.  A legacy escalation can
+        # suppress a duplicate only when no later REPAIR opened another epoch.
+        if payload.get("attempt_ordinal") is not None:
+            if int(payload.get("attempt_ordinal", -1)) != evidence["ordinal"]:
+                return False
+            if payload.get("window_baseline") is not None:
+                return int(payload.get("window_baseline", -1)) == evidence["window_baseline"]
+            return True
+        return int(event.get("sequence", 0)) > latest_repair_sequence
+
+    already_escalated = any(
+        same_exhausted_window(event)
+        for event in events
+    )
+    if not already_escalated:
         append_event(directory, run, "ESCALATION", "controller", {
             "state": state,
             "gate_id": definition.get("gate"),
+            "reason": "attempt_window_exhausted",
             "attempts": evidence["window_used"],
             "attempt_ordinal": evidence["ordinal"],
+            "window_baseline": evidence["window_baseline"],
             "model_execution_count": evidence["model_execution_count"],
             "rejection_count": evidence["rejection_count"],
             "maximum": int(definition.get("max_attempts", 1)),
@@ -2249,6 +2930,14 @@ def task_packet(
     allow_canary: bool = False,
 ) -> tuple[Path, dict[str, Any]]:
     state = run["state"]
+    if run.get("repair_recovery_error"):
+        run["status"] = "BLOCKED"
+        save_run(directory, run)
+        raise FlowError(
+            "Repair authorization could not be reconstructed from durable evidence",
+            EXIT_INTEGRITY,
+            run["repair_recovery_error"],
+        )
     definition = state_definition(state, run)
     artifact_type, filename = stage_output(state)
     attempt_evidence = stage_attempt_evidence(directory, run, state)
@@ -2258,9 +2947,25 @@ def task_packet(
     attempt = attempt_evidence["ordinal"] + 1
     failures_for_state = run.get("route_failures", {}).get(state, {})
     unrestricted_route = route_candidates(state)
+    durable_retry_candidates = [
+        json.loads(json.dumps(item))
+        for item in run.get("route_retry_candidates", {}).get(state, [])
+        if isinstance(item, dict) and item.get("eligible")
+    ] if not requested_route else []
+    retry_source_packet: dict[str, Any] | None = None
+    if durable_retry_candidates:
+        retry_source_item = latest_task_packet_item(directory, run, state)
+        if retry_source_item:
+            _, retry_source_packet, retry_source_issue = validate_recorded_task_packet(
+                directory,
+                run,
+                retry_source_item,
+            )
+            if retry_source_issue:
+                raise FlowError("Durable fallback source packet failed integrity", EXIT_INTEGRITY, retry_source_issue)
     eligible_route_keys = {
         f"{item.get('provider')}:{item.get('model')}"
-        for item in unrestricted_route.get("candidates", [])
+        for item in [*unrestricted_route.get("candidates", []), *durable_retry_candidates]
         if item.get("eligible")
     }
     failed_route_keys = {
@@ -2271,7 +2976,20 @@ def task_packet(
     # route without a prior failure when one exists, but never exclude every
     # eligible route and thereby prevent the remaining bounded executions.
     excluded = failed_route_keys if eligible_route_keys - failed_route_keys else set()
-    route = route_candidates(state, excluded) if excluded else unrestricted_route
+    eligible_retry_candidates = [
+        item for item in durable_retry_candidates
+        if f"{item.get('provider')}:{item.get('model')}" not in failed_route_keys
+    ]
+    if eligible_retry_candidates:
+        route = {
+            **unrestricted_route,
+            "candidates": eligible_retry_candidates,
+            "chosen": eligible_retry_candidates[0],
+            "fallbacks": eligible_retry_candidates[1:],
+            "reason": "fresh packet selected the next durable fallback from the consumed attempt",
+        }
+    else:
+        route = route_candidates(state, excluded) if excluded else unrestricted_route
     route = prefer_controller_route(run, state, route)
     route = pin_writing_route(run, state, route)
     if state in {"CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION", "EDITORIAL_QA"} and route.get("chosen"):
@@ -2386,8 +3104,19 @@ def task_packet(
             output_schema,
         )
     repair_context, repair_inputs = repair_context_for_packet(directory, run, state)
-    inputs = packet_inputs(directory, run, state)
-    inputs.extend(repair_inputs)
+    if retry_source_packet is not None:
+        # A fallback is a fresh execution identity over the exact immutable
+        # inputs of the consumed packet.  This also preserves compatibility
+        # with old packets whose declared input set predates current workflow
+        # requirements.
+        inputs = json.loads(json.dumps(retry_source_packet.get("inputs", [])))
+        for item in inputs:
+            path = Path(str(item.get("path", ""))).expanduser().resolve()
+            if not path.is_file() or sha256_path(path) != item.get("sha256"):
+                raise FlowError("Durable fallback source input changed", EXIT_INTEGRITY, item)
+    else:
+        inputs = packet_inputs(directory, run, state)
+        inputs.extend(repair_inputs)
     constraints = [rule_map[item] for item in stage_rules.get(state, [])]
     if repair_context:
         constraints.append(
@@ -2422,22 +3151,64 @@ def task_packet(
     if repair_context:
         packet["repair_context"] = repair_context
     path = directory / "tasks" / f"{state.lower()}-{attempt:02d}.json"
-    created = write_json_immutable(path, packet)
-    errors = validate_json_schema(path, "task-packet.schema.json")
+    errors = validate_instance_schema(packet, "task-packet.schema.json")
     if errors:
-        if created:
-            path.unlink(missing_ok=True)
         raise FlowError("Controller generated an invalid task packet", EXIT_INTEGRITY, errors)
-    record_artifact(directory, run, path, f"task-packet:{state}:{attempt}", {"actor": "controller", "version": CONTROLLER_VERSION})
+    packet_bytes = (json.dumps(packet, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+    packet_hash = sha256_bytes(packet_bytes)
+    try:
+        immutable_write(path, packet_bytes)
+        if not path.is_file() or sha256_path(path) != packet_hash:
+            raise FlowError("Task packet changed after immutable creation", EXIT_INTEGRITY)
+        record_artifact(
+            directory,
+            run,
+            path,
+            f"task-packet:{state}:{attempt}",
+            {"actor": "controller", "version": CONTROLLER_VERSION},
+            expected_bytes=packet_bytes,
+        )
+        if not path.is_file() or sha256_path(path) != packet_hash:
+            raise FlowError("Task packet changed after artifact recording", EXIT_INTEGRITY)
+    except (FlowError, OSError) as exc:
+        try:
+            actual_hash = sha256_path(path) if path.is_file() else None
+        except OSError:
+            actual_hash = None
+        issue = {
+            "reason": "task_packet_evidence_changed_during_commit",
+            "path": str(path),
+            "expected_sha256": packet_hash,
+            "actual_sha256": actual_hash,
+            "error": str(exc),
+        }
+        block_attempt_reconciliation(directory, run, state, attempt, packet_hash, issue)
+        raise FlowError("Task packet evidence changed during commit", EXIT_INTEGRITY, issue) from exc
+    # Keep the durable fallback chain through the packet-artifact crash
+    # boundary.  TASK_DISPATCHED, not file creation, consumes the candidate.
+    run.setdefault("route_retry_candidates", {}).pop(state, None)
     run["attempts"][state] = attempt
     run["status"] = "WAITING_MODEL"
     append_event(directory, run, "TASK_DISPATCHED", "controller", {
         "state": state,
         "attempt": attempt,
         "packet": path.relative_to(directory).as_posix(),
-        "task_packet_sha256": sha256_path(path),
+        "task_packet_sha256": packet_hash,
         "route": route,
     })
+    try:
+        dispatched_hash = sha256_path(path) if path.is_file() else None
+    except OSError:
+        dispatched_hash = None
+    if dispatched_hash != packet_hash:
+        issue = {
+            "reason": "task_packet_changed_after_dispatch",
+            "path": str(path),
+            "expected_sha256": packet_hash,
+            "actual_sha256": dispatched_hash,
+        }
+        block_attempt_reconciliation(directory, run, state, attempt, packet_hash, issue)
+        raise FlowError("Task packet changed after dispatch", EXIT_INTEGRITY, issue)
     save_run(directory, run)
     return path, packet
 
@@ -2619,6 +3390,13 @@ def invoke_route(route: dict[str, Any], packet_path: Path, packet: dict[str, Any
         raw = output_text_from_response(kind, response)
         transport = {"kind": kind, "response_id": response.get("id"), "usage": response.get("usage") or response.get("usageMetadata")}
     cleaned = clean_model_output(raw, str(expected.get("format")))
+    if kind == "command" and output_path.is_file():
+        # Command adapters may write compact JSON while returning its
+        # canonicalized representation.  Normalize those uncommitted bytes
+        # atomically here so the execution boundary can require literal byte
+        # identity.  A crash before this rewrite leaves uncommitted evidence
+        # that recovery preserves and abandons under a fresh ordinal.
+        atomic_write(output_path, cleaned.encode("utf-8"))
     elapsed_ms = round((time.monotonic() - started) * 1000)
     return cleaned, {"provider": route["provider"], "model": route["model"], "model_version": route.get("model_version"), "elapsed_ms": elapsed_ms, "transport": transport}
 
@@ -2748,6 +3526,23 @@ def task_packet_gate_consumed(
     return False
 
 
+def task_packet_lifecycle_events(
+    directory: Path,
+    run: dict[str, Any],
+    state: str,
+    attempt: int,
+    packet_sha256: str,
+    dispatch_sequence: int,
+) -> list[dict[str, Any]]:
+    identity = (state, attempt, packet_sha256)
+    return [
+        event
+        for event in _read_jsonl(directory / str(run["event_log"]))
+        if int(event.get("sequence", 0)) > dispatch_sequence
+        and event_task_identity(event) == identity
+    ]
+
+
 def validated_model_call_item(
     directory: Path,
     run: dict[str, Any],
@@ -2786,10 +3581,13 @@ def validated_gate_receipt_for_attempt(
     state: str,
     attempt: int,
     packet_sha256: str,
+    dispatch_sequence: int,
 ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     """Find a durable gate receipt committed for one exact task identity."""
     gate_id = str(state_definition(state, run).get("gate") or "")
     for event in reversed(_read_jsonl(directory / str(run["event_log"]))):
+        if int(event.get("sequence", 0)) <= dispatch_sequence:
+            continue
         if event.get("type") != "ARTIFACT_RECORDED":
             continue
         payload = event.get("payload", {}) if isinstance(event.get("payload"), dict) else {}
@@ -2806,7 +3604,33 @@ def validated_gate_receipt_for_attempt(
         receipt = load_json(path)
         binding = receipt.get("task_binding")
         if not isinstance(binding, dict):
-            continue
+            packet_type = f"task-packet:{state}:{attempt}"
+            packet_hashes = {
+                str(value)
+                for key, value in (receipt.get("artifact_hashes") or {}).items()
+                if key == packet_type
+            }
+            recorded_hashes = {
+                str(candidate.get("sha256"))
+                for prior_event in _read_jsonl(directory / str(run["event_log"]))
+                if prior_event.get("type") == "ARTIFACT_RECORDED"
+                for candidate in [(prior_event.get("payload") or {}).get("artifact", {})]
+                if candidate.get("type") == packet_type
+            }
+            if (
+                receipt.get("gate_receipt_schema_version") == "1.0.0"
+                and receipt.get("run_id") == run.get("run_id")
+                and receipt.get("gate_id") == gate_id
+                and packet_hashes == {packet_sha256}
+                and recorded_hashes == {packet_sha256}
+            ):
+                return {"item": item, "path": str(path), "receipt": receipt, "legacy_binding": True}, None
+            return None, {
+                "reason": "legacy_gate_receipt_is_not_uniquely_bound",
+                "path": str(path),
+                "state": state,
+                "attempt": attempt,
+            }
         try:
             bound_attempt = int(binding.get("attempt", 0))
         except (TypeError, ValueError):
@@ -2860,12 +3684,48 @@ def abandon_cached_packet(
     item: dict[str, Any],
     details: dict[str, Any],
 ) -> None:
-    append_event(directory, run, "RETRY", "controller", {
-        "state": state,
-        "task_packet_artifact_id": item.get("artifact_id"),
-        **details,
-    })
+    match = re.fullmatch(rf"task-packet:{re.escape(state)}:(\d+)", str(item.get("type", "")))
+    if not match or not re.fullmatch(r"[0-9a-f]{64}", str(item.get("sha256", ""))):
+        raise FlowError("Cannot abandon a task packet without its exact identity", EXIT_INTEGRITY, item)
+    identity = task_identity_payload(state, int(match.group(1)), str(item["sha256"]))
+    duplicate = any(
+        event.get("type") == "RETRY"
+        and event_task_identity(event) == (state, identity["attempt"], identity["task_packet_sha256"])
+        for event in _read_jsonl(directory / str(run["event_log"]))
+    )
+    if not duplicate:
+        append_event(directory, run, "RETRY", "controller", {
+            **identity,
+            "task_packet_artifact_id": item.get("artifact_id"),
+            **details,
+        })
     run["status"] = "ACTIVE"
+    save_run(directory, run)
+
+
+def block_attempt_reconciliation(
+    directory: Path,
+    run: dict[str, Any],
+    state: str,
+    attempt: int,
+    packet_sha256: str,
+    details: dict[str, Any],
+) -> None:
+    """Fail closed once for a committed decision that cannot be replayed."""
+    identity = task_identity_payload(state, attempt, packet_sha256)
+    already_escalated = any(
+        event.get("type") == "ESCALATION"
+        and event_task_identity(event) == (state, attempt, packet_sha256)
+        and (event.get("payload") or {}).get("reason") == details.get("reason")
+        for event in _read_jsonl(directory / str(run["event_log"]))
+    )
+    if not already_escalated:
+        append_event(directory, run, "ESCALATION", "controller", {
+            **identity,
+            "gate_id": state_definition(state, run).get("gate"),
+            **details,
+        })
+    run["status"] = "BLOCKED"
     save_run(directory, run)
 
 
@@ -2877,6 +3737,12 @@ def current_packet(
     allow_canary: bool = False,
 ) -> tuple[Path, dict[str, Any]]:
     if run.get("status") == "BLOCKED":
+        # load_run deliberately recovers in memory only.  current_packet is a
+        # mutation boundary, so make a recovered BLOCKED decision durable
+        # under the run lock before returning it to the caller.
+        cached = load_json(directory / "run.json")
+        if cached.get("status") != "BLOCKED":
+            persist_recovered_cache(directory, run)
         definition = state_definition(run["state"], run)
         raise FlowError(
             f"{run['state']} is blocked and requires an explicit repair",
@@ -2905,6 +3771,7 @@ def current_packet(
                 raise FlowError("Recorded task packet failed integrity validation", EXIT_INTEGRITY, issue)
             assert path is not None and packet is not None
             attempt = int(packet["attempt"])
+            packet_hash = sha256_path(path)
             dispatch_sequence = task_packet_dispatch_sequence(directory, run, run["state"], attempt, path)
             if dispatch_sequence is None:
                 issue = {"reason": "task_packet_was_not_durably_dispatched", "attempt": attempt}
@@ -2921,46 +3788,33 @@ def current_packet(
                 run,
                 run["state"],
                 attempt,
-                sha256_path(path),
+                packet_hash,
                 dispatch_sequence,
             ):
                 issue = {
                     "reason": "task_packet_gate_already_recorded",
-                    "attempt": attempt,
                     "dispatch_sequence": dispatch_sequence,
                 }
                 # The recorded gate is the decision commit for this attempt.  A
                 # stale cache must never turn it into another execution.  Full
                 # outcome reconciliation is operator-visible; block safely if
                 # no later transition was durably completed.
-                run["status"] = "BLOCKED"
-                append_event(directory, run, "ESCALATION", "controller", {
-                    "state": run["state"],
-                    "gate_id": state_definition(run["state"], run).get("gate"),
-                    **issue,
-                })
-                save_run(directory, run)
+                block_attempt_reconciliation(directory, run, run["state"], attempt, packet_hash, issue)
                 raise FlowError("Task packet gate outcome is already recorded and requires reconciliation", EXIT_WAITING, issue)
             committed_gate, gate_issue = validated_gate_receipt_for_attempt(
                 directory,
                 run,
                 run["state"],
                 attempt,
-                sha256_path(path),
+                packet_hash,
+                dispatch_sequence,
             )
             if gate_issue or committed_gate:
                 issue = gate_issue or {
                     "reason": "task_packet_gate_receipt_requires_reconciliation",
-                    "attempt": attempt,
                     "gate_receipt": committed_gate["path"],
                 }
-                run["status"] = "BLOCKED"
-                append_event(directory, run, "ESCALATION", "controller", {
-                    "state": run["state"],
-                    "gate_id": state_definition(run["state"], run).get("gate"),
-                    **issue,
-                })
-                save_run(directory, run)
+                block_attempt_reconciliation(directory, run, run["state"], attempt, packet_hash, issue)
                 raise FlowError("Task packet has a committed gate receipt requiring reconciliation", EXIT_WAITING, issue)
             model_call, receipt_issue = validated_model_call_item(directory, run, run["state"], attempt, path)
             if receipt_issue:
@@ -2985,12 +3839,37 @@ def current_packet(
                         {"recorded_route": chosen_key, "requested_route": requested_route},
                     )
                 return path, packet
+            lifecycle = task_packet_lifecycle_events(
+                directory,
+                run,
+                run["state"],
+                attempt,
+                packet_hash,
+                dispatch_sequence,
+            )
+            lifecycle_types = {str(event.get("type")) for event in lifecycle}
+            if lifecycle_types & {"MODEL_EXECUTION_STARTED", "MODEL_ROUTE_FAILURE", "RETRY"}:
+                if "RETRY" not in lifecycle_types:
+                    abandon_cached_packet(directory, run, run["state"], item, {
+                        "reason": "recovered_consumed_execution",
+                        "prior_event_types": sorted(lifecycle_types),
+                    })
+                else:
+                    run["status"] = "ACTIVE"
+                    save_run(directory, run)
+                return task_packet(directory, run, requested_route=requested_route, allow_canary=allow_canary)
             if not requested_route:
                 return path, packet
             chosen = packet.get("selected_route", {}).get("chosen") or {}
             chosen_key = f"{chosen.get('provider')}:{chosen.get('model')}"
             if chosen_key == requested_route and bool(chosen.get("canary_execution")) == bool(allow_canary):
                 return path, packet
+            abandon_cached_packet(directory, run, run["state"], item, {
+                "reason": "route_refresh",
+                "recorded_route": chosen_key,
+                "requested_route": requested_route,
+            })
+            return task_packet(directory, run, requested_route=requested_route, allow_canary=allow_canary)
     return task_packet(directory, run, requested_route=requested_route, allow_canary=allow_canary)
 
 
@@ -3053,151 +3932,293 @@ def update_writing_provenance(
 
 def command_execute_stage(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
-    if run["state"] not in MODEL_STATES:
-        raise FlowError(f"State {run['state']} is deterministic or complete and cannot invoke a model")
-    definition = state_definition(run["state"], run)
-    evidence = stage_attempt_evidence(directory, run, run["state"])
-    if run.get("status") != "WAITING_MODEL" and evidence["window_used"] >= int(definition.get("max_attempts", 1)):
-        block_exhausted_stage(directory, run, run["state"], definition)
-        raise FlowError(
-            f"{run['state']} exhausted its bounded attempts and requires repair",
-            EXIT_WAITING,
-            next_state_payload(directory, run),
-        )
     if args.canary and not args.route:
         raise FlowError("--canary requires an exact --route PROVIDER:MODEL", EXIT_USAGE)
-    packet_path, packet = current_packet(
-        directory,
-        run,
-        requested_route=args.route,
-        allow_canary=bool(args.canary),
-    )
-    resumable, resume_issue = resumable_model_output(directory, run, packet_path, packet)
-    if resume_issue:
-        run["status"] = "BLOCKED"
-        append_event(directory, run, "ESCALATION", "controller", {
-            "state": run["state"],
-            "gate_id": definition.get("gate"),
-            **resume_issue,
-        })
-        save_run(directory, run)
-        raise FlowError("Recorded model-call evidence failed integrity validation", EXIT_INTEGRITY, resume_issue)
-    if resumable:
-        output_path = resumable["output_path"]
-        receipt = resumable["model_call"]["receipt"]
-        command = [sys.executable, str(SCRIPT_PATH), "submit", run["run_id"], "--stage", run["state"], "--file", str(output_path), "--json"]
-        result = subprocess.run(command, capture_output=True, text=True)
-        try:
-            submission = json.loads(result.stdout)
-        except json.JSONDecodeError:
-            submission = {"raw_stdout": result.stdout, "stderr": result.stderr}
-        emit({
-            "ok": result.returncode in {EXIT_OK, EXIT_WAITING},
-            "resumed_recorded_model_call": True,
-            "model_call": receipt,
-            "submission": submission,
-        }, args.json)
-        return result.returncode
+    resumed = False
+    output_path: Path | None = None
+    receipt: dict[str, Any] | None = None
+    submission_state: str | None = None
 
-    # Bytes created before their ARTIFACT_RECORDED commit are crash evidence,
-    # not an invitation to overwrite or reinvoke the same ordinal.  Preserve
-    # them and advance to a fresh immutable attempt; the raw output/receipt also
-    # counts toward the stage execution bound.
-    expected_output = Path(str(packet["expected_outputs"][0]["path"])).expanduser().resolve()
-    raw_receipt = directory / "receipts" / f"model-call-{run['state'].lower()}-{int(packet['attempt']):02d}.json"
-    if expected_output.exists() or raw_receipt.exists():
-        item = latest_task_packet_item(directory, run, run["state"])
-        assert item is not None
-        abandon_cached_packet(directory, run, run["state"], item, {
-            "reason": "uncommitted_attempt_bytes_preserved",
-            "attempt": int(packet["attempt"]),
-            "output_present": expected_output.exists(),
-            "receipt_present": raw_receipt.exists(),
-        })
-        packet_path, packet = current_packet(
-            directory,
-            run,
-            requested_route=args.route,
-            allow_canary=bool(args.canary),
-        )
-    route_set = packet["selected_route"]
-    routes = [route_set.get("chosen"), *route_set.get("fallbacks", [])]
-    routes = [item for item in routes if isinstance(item, dict)]
-    if args.route:
-        chosen = route_set.get("chosen") or {}
-        chosen_key = f"{chosen.get('provider')}:{chosen.get('model')}"
-        if chosen_key != args.route:
-            raise FlowError("Hash-bound task packet does not select the requested route", EXIT_INTEGRITY, route_set)
-        routes = [chosen]
-    controller_routes = [item for item in routes if item.get("kind") != "agent-hosted"]
-    if not controller_routes:
-        raise FlowError("No controller-hosted route is eligible; the active host must perform the task packet", EXIT_WAITING, {"task_packet": str(packet_path), "submission_command": ["article-flow", "submit", run["run_id"], "--stage", run["state"], "--file", packet["expected_outputs"][0]["path"]]})
-    failures = []
-    for route in controller_routes:
-        try:
-            output, call = invoke_route(route, packet_path, packet)
-            output_path = Path(packet["expected_outputs"][0]["path"])
-            if output_path.exists():
-                # A command provider may write the packet-bound destination
-                # itself.  Validate that those immutable bytes are the exact
-                # semantic output returned by the adapter, then preserve them.
-                existing_text = output_path.read_text(encoding="utf-8")
-                expected_format = str(packet["expected_outputs"][0].get("format"))
-                if clean_model_output(existing_text, expected_format) != output:
-                    raise FlowError(
-                        "Provider wrote output bytes that disagree with its returned output",
-                        EXIT_INTEGRITY,
-                        {"path": str(output_path)},
-                    )
-            else:
-                immutable_write(output_path, output.encode("utf-8"))
+    # The lock covers packet resolution, the durable execution claim, provider
+    # invocation, and receipt commit.  The submit subprocess runs after release
+    # because it takes the same lock and independently revalidates the identity.
+    with run_lock(directory, run):
+        if run["state"] not in MODEL_STATES:
+            raise FlowError(f"State {run['state']} is deterministic or complete and cannot invoke a model")
+        while True:
+            state = str(run["state"])
+            definition = state_definition(state, run)
+            evidence = stage_attempt_evidence(directory, run, state)
+            if run.get("status") != "WAITING_MODEL" and evidence["window_used"] >= int(definition.get("max_attempts", 1)):
+                block_exhausted_stage(directory, run, state, definition)
+                raise FlowError(
+                    f"{state} exhausted its bounded attempts and requires repair",
+                    EXIT_WAITING,
+                    next_state_payload(directory, run),
+                )
+
+            packet_path, packet = current_packet(
+                directory,
+                run,
+                requested_route=args.route,
+                allow_canary=bool(args.canary),
+            )
+            attempt = int(packet["attempt"])
+            packet_bytes = (json.dumps(packet, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+            packet_hash = sha256_bytes(packet_bytes)
+
+            def require_exact_packet(reason: str) -> None:
+                try:
+                    actual_bytes = packet_path.read_bytes()
+                    actual_hash = sha256_bytes(actual_bytes)
+                except OSError:
+                    actual_bytes = None
+                    actual_hash = None
+                if actual_bytes != packet_bytes:
+                    issue = {
+                        "reason": reason,
+                        "path": str(packet_path),
+                        "expected_sha256": packet_hash,
+                        "actual_sha256": actual_hash,
+                    }
+                    block_attempt_reconciliation(directory, run, state, attempt, packet_hash, issue)
+                    raise FlowError("Task packet changed across model execution", EXIT_INTEGRITY, issue)
+
+            require_exact_packet("task_packet_changed_before_execution")
+            resumable, resume_issue = resumable_model_output(directory, run, packet_path, packet)
+            require_exact_packet("task_packet_changed_during_receipt_resume")
+            if resume_issue:
+                block_attempt_reconciliation(directory, run, state, attempt, packet_hash, resume_issue)
+                raise FlowError("Recorded model-call evidence failed integrity validation", EXIT_INTEGRITY, resume_issue)
+            if resumable:
+                output_path = resumable["output_path"]
+                receipt = resumable["model_call"]["receipt"]
+                submission_state = state
+                resumed = True
+                break
+
+            expected_output = Path(str(packet["expected_outputs"][0]["path"])).expanduser().resolve()
+            raw_receipt = directory / "receipts" / f"model-call-{state.lower()}-{attempt:02d}.json"
+            if expected_output.exists() or raw_receipt.exists():
+                item = latest_task_packet_item(directory, run, state)
+                if not item:
+                    raise FlowError("Attempt bytes exist without a recorded task packet", EXIT_INTEGRITY)
+                abandon_cached_packet(directory, run, state, item, {
+                    "reason": "uncommitted_attempt_bytes_preserved",
+                    "output_present": expected_output.exists(),
+                    "receipt_present": raw_receipt.exists(),
+                })
+                continue
+
+            route_set = packet["selected_route"]
+            route = route_set.get("chosen") if isinstance(route_set.get("chosen"), dict) else None
+            if args.route:
+                chosen_key = f"{(route or {}).get('provider')}:{(route or {}).get('model')}"
+                if chosen_key != args.route:
+                    raise FlowError("Hash-bound task packet does not select the requested route", EXIT_INTEGRITY, route_set)
+            if not route or route.get("kind") == "agent-hosted":
+                raise FlowError(
+                    "No controller-hosted route is eligible; the active host must perform the task packet",
+                    EXIT_WAITING,
+                    {
+                        "task_packet": str(packet_path),
+                        "submission_command": [
+                            "article-flow", "submit", run["run_id"], "--stage", state,
+                            "--file", packet["expected_outputs"][0]["path"],
+                        ],
+                    },
+                )
+
+            # Recheck immediately before each route.  A provider invocation is
+            # not allowed to begin unless this claim fits in the current bounded
+            # window, and the fsynced claim itself consumes that slot.
+            evidence = stage_attempt_evidence(directory, run, state)
+            maximum = int(definition.get("max_attempts", 1))
+            if evidence["window_used"] >= maximum:
+                block_exhausted_stage(directory, run, state, definition)
+                raise FlowError(f"{state} exhausted its bounded attempts and requires repair", EXIT_WAITING)
+            execution_number = int(evidence["execution_count"]) + 1
+            identity = task_identity_payload(state, attempt, packet_hash)
+            append_event(directory, run, "MODEL_EXECUTION_STARTED", "controller", {
+                **identity,
+                "execution_number": execution_number,
+                "route": route,
+            })
+            save_run(directory, run)
+
+            try:
+                output, call = invoke_route(route, packet_path, packet)
+            except FlowError as exc:
+                require_exact_packet("task_packet_changed_during_failed_execution")
+                key = f"{route.get('provider')}:{route.get('model')}"
+                stage_failures = run.setdefault("route_failures", {}).setdefault(state, {})
+                failure_count = int(stage_failures.get(key, 0)) + 1
+                stage_failures[key] = failure_count
+                remaining_routes = [
+                    json.loads(json.dumps(candidate))
+                    for candidate in route_set.get("fallbacks", [])
+                    if isinstance(candidate, dict)
+                    and candidate.get("eligible")
+                    and (candidate.get("provider"), candidate.get("model"))
+                    != (route.get("provider"), route.get("model"))
+                ]
+                if remaining_routes:
+                    run.setdefault("route_retry_candidates", {})[state] = remaining_routes
+                else:
+                    run.setdefault("route_retry_candidates", {}).pop(state, None)
+                append_event(directory, run, "MODEL_ROUTE_FAILURE", "controller", {
+                    **identity,
+                    "execution_number": execution_number,
+                    "route": route,
+                    "failure_count": failure_count,
+                    "remaining_routes": remaining_routes,
+                    "error": str(exc),
+                    "details": exc.details,
+                })
+                item = latest_task_packet_item(directory, run, state)
+                if not item:
+                    raise FlowError("Provider failure lost its task packet identity", EXIT_INTEGRITY) from exc
+                abandon_cached_packet(directory, run, state, item, {
+                    "reason": "provider_failure",
+                    "route": {"provider": route.get("provider"), "model": route.get("model")},
+                })
+                evidence = stage_attempt_evidence(directory, run, state)
+                if evidence["window_used"] >= maximum:
+                    block_exhausted_stage(directory, run, state, definition)
+                    raise FlowError("Every bounded provider execution failed", EXIT_WAITING, {
+                        "state": state,
+                        "attempts": evidence["window_used"],
+                        "maximum": maximum,
+                    }) from exc
+                continue
+
+            require_exact_packet("task_packet_changed_during_execution")
+            output_path = Path(str(packet["expected_outputs"][0]["path"])).expanduser().resolve()
+            output_bytes = output.encode("utf-8")
+            output_hash = sha256_bytes(output_bytes)
+            try:
+                immutable_write(output_path, output_bytes)
+            except (FlowError, OSError) as exc:
+                try:
+                    existing_hash = sha256_path(output_path) if output_path.is_file() else None
+                except OSError:
+                    existing_hash = None
+                issue = {
+                    "reason": "provider_output_bytes_disagree",
+                    "path": str(output_path),
+                    "existing_sha256": existing_hash,
+                    "returned_sha256": output_hash,
+                    "error": str(exc),
+                }
+                block_attempt_reconciliation(directory, run, state, attempt, packet_hash, issue)
+                raise FlowError(
+                    "Provider output bytes disagree with the immutable attempt output",
+                    EXIT_INTEGRITY,
+                    issue,
+                ) from exc
+            try:
+                committed_output_hash = sha256_path(output_path) if output_path.is_file() else None
+            except OSError:
+                committed_output_hash = None
+            if committed_output_hash != output_hash:
+                issue = {
+                    "reason": "provider_output_changed_before_receipt",
+                    "path": str(output_path),
+                    "expected_sha256": output_hash,
+                    "actual_sha256": committed_output_hash,
+                }
+                block_attempt_reconciliation(directory, run, state, attempt, packet_hash, issue)
+                raise FlowError("Provider output changed before receipt commit", EXIT_INTEGRITY, issue)
             receipt = {
                 "model_call_receipt_schema_version": "1.0.0",
                 "run_id": run["run_id"],
-                "stage": run["state"],
-                "attempt": packet["attempt"],
-                "packet_sha256": sha256_path(packet_path),
-                "output_sha256": sha256_path(output_path),
+                "stage": state,
+                "attempt": attempt,
+                "packet_sha256": packet_hash,
+                "output_sha256": output_hash,
                 "selection_reason": route_set.get("reason"),
                 "route": call,
                 "canary_execution": bool(route.get("canary_execution")),
                 "created_at": utc_now(),
             }
-            receipt_path = directory / "receipts" / f"model-call-{run['state'].lower()}-{packet['attempt']:02d}.json"
-            write_json_immutable(receipt_path, receipt)
-            record_artifact(directory, run, receipt_path, f"model-call:{run['state']}:{packet['attempt']}", {"actor": "controller", "version": CONTROLLER_VERSION})
-            command = [sys.executable, str(SCRIPT_PATH), "submit", run["run_id"], "--stage", run["state"], "--file", str(output_path), "--json"]
-            result = subprocess.run(command, capture_output=True, text=True)
+            receipt_path = directory / "receipts" / f"model-call-{state.lower()}-{attempt:02d}.json"
+            receipt_bytes = (json.dumps(receipt, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+            receipt_hash = sha256_bytes(receipt_bytes)
             try:
-                submission = json.loads(result.stdout)
-            except json.JSONDecodeError:
-                submission = {"raw_stdout": result.stdout, "stderr": result.stderr}
-            emit({"ok": result.returncode in {EXIT_OK, EXIT_WAITING}, "model_call": receipt, "submission": submission}, args.json)
-            return result.returncode
-        except FlowError as exc:
-            failures.append({"provider": route.get("provider"), "model": route.get("model"), "error": str(exc), "details": exc.details})
-            append_event(directory, run, "MODEL_ROUTE_FAILURE", "controller", failures[-1])
-            key = f"{route.get('provider')}:{route.get('model')}"
-            stage_failures = run.setdefault("route_failures", {}).setdefault(run["state"], {})
-            stage_failures[key] = int(stage_failures.get(key, 0)) + 1
-            failed_output = Path(str(packet["expected_outputs"][0]["path"])).expanduser().resolve()
-            failed_receipt = directory / "receipts" / f"model-call-{run['state'].lower()}-{int(packet['attempt']):02d}.json"
-            if failed_output.exists() or failed_receipt.exists():
-                item = latest_task_packet_item(directory, run, run["state"])
-                if item:
-                    abandon_cached_packet(directory, run, run["state"], item, {
-                        "reason": "failed_route_left_immutable_attempt_bytes",
-                        "attempt": int(packet["attempt"]),
-                        "output_present": failed_output.exists(),
-                        "receipt_present": failed_receipt.exists(),
-                    })
-                raise FlowError(
-                    "A failed route left attempt-bound bytes; they were preserved and no fallback reused the ordinal",
-                    EXIT_FAILED,
-                    failures,
+                immutable_write(receipt_path, receipt_bytes)
+                if not receipt_path.is_file() or sha256_path(receipt_path) != receipt_hash:
+                    raise FlowError("Model-call receipt changed after immutable creation", EXIT_INTEGRITY)
+                record_artifact(
+                    directory,
+                    run,
+                    receipt_path,
+                    f"model-call:{state}:{attempt}",
+                    {"actor": "controller", "version": CONTROLLER_VERSION},
+                    expected_bytes=receipt_bytes,
                 )
-    save_run(directory, run)
-    raise FlowError("Every eligible controller-hosted route failed", EXIT_FAILED, failures)
+                final_receipt_hash = sha256_path(receipt_path) if receipt_path.is_file() else None
+                final_output_hash = sha256_path(output_path) if output_path.is_file() else None
+            except (FlowError, OSError) as exc:
+                try:
+                    actual_receipt_hash = sha256_path(receipt_path) if receipt_path.is_file() else None
+                except OSError:
+                    actual_receipt_hash = None
+                try:
+                    actual_output_hash = sha256_path(output_path) if output_path.is_file() else None
+                except OSError:
+                    actual_output_hash = None
+                issue = {
+                    "reason": "model_call_evidence_changed_during_commit",
+                    "receipt_path": str(receipt_path),
+                    "expected_receipt_sha256": receipt_hash,
+                    "actual_receipt_sha256": actual_receipt_hash,
+                    "output_path": str(output_path),
+                    "expected_output_sha256": output_hash,
+                    "actual_output_sha256": actual_output_hash,
+                    "error": str(exc),
+                }
+                block_attempt_reconciliation(directory, run, state, attempt, packet_hash, issue)
+                raise FlowError("Model-call evidence changed during commit", EXIT_INTEGRITY, issue) from exc
+            if final_receipt_hash != receipt_hash or final_output_hash != output_hash:
+                issue = {
+                    "reason": "model_call_evidence_changed_after_record",
+                    "receipt_path": str(receipt_path),
+                    "expected_receipt_sha256": receipt_hash,
+                    "actual_receipt_sha256": final_receipt_hash,
+                    "output_path": str(output_path),
+                    "expected_output_sha256": output_hash,
+                    "actual_output_sha256": final_output_hash,
+                }
+                block_attempt_reconciliation(directory, run, state, attempt, packet_hash, issue)
+                raise FlowError("Model-call evidence changed after record", EXIT_INTEGRITY, issue)
+            require_exact_packet("task_packet_changed_before_receipt_release")
+            submission_state = state
+            break
+
+    assert output_path is not None and receipt is not None and submission_state is not None
+    command = [
+        sys.executable,
+        str(SCRIPT_PATH),
+        "submit",
+        args.run_id,
+        "--stage",
+        submission_state,
+        "--file",
+        str(output_path),
+        "--json",
+    ]
+    result = subprocess.run(command, capture_output=True, text=True)
+    try:
+        submission = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        submission = {"raw_stdout": result.stdout, "stderr": result.stderr}
+    emit({
+        "ok": result.returncode in {EXIT_OK, EXIT_WAITING},
+        "resumed_recorded_model_call": resumed,
+        "model_call": receipt,
+        "submission": submission,
+    }, args.json)
+    return result.returncode
 
 
 def find_locked_tokens(text: str) -> dict[str, list[str]]:
@@ -3575,6 +4596,206 @@ def _learning_candidate(candidate: dict[str, Any]) -> dict[str, str]:
     }
 
 
+VOICE_CANDIDATE_ARTIFACT_TYPE = "voice-probe-candidates"
+
+
+def _probe_holds_no_selection(path: Path, item: dict[str, Any]) -> bool:
+    """True when these exact recorded bytes are still a pre-decision probe."""
+    try:
+        if not path.is_file() or sha256_path(path) != item.get("sha256"):
+            return False
+        value = load_json(path)
+    except (FlowError, OSError):
+        return False
+    return isinstance(value, dict) and value.get("operator_selection") is None
+
+
+def voice_candidate_probe(
+    directory: Path,
+    run: dict[str, Any],
+    events: list[dict[str, Any]] | None = None,
+) -> tuple[dict[str, Any] | None, Path | None]:
+    """Resolve the code-validated three-candidate probe.
+
+    The approved probe is recorded over the ``voice-probe`` type so voice
+    learning keeps reading exactly one selection-bearing artifact.  That
+    overwrite used to be the only surviving record, so a crash between the
+    durable selection and its state transition left the candidate authority
+    unreachable and made every retry fail ``operator_selection_authority``.
+    The candidate bytes are now preserved under their own type before the
+    overwrite: prefer that record, fall back to a ``voice-probe`` entry that
+    still carries no selection, and finally recover the overwritten record
+    from the immutable event log for runs stored before this change.
+    """
+    preserved = artifact(run, VOICE_CANDIDATE_ARTIFACT_TYPE)
+    if preserved:
+        return preserved, directory / preserved["path"]
+    item = artifact(run, "voice-probe")
+    if item and _probe_holds_no_selection(directory / item["path"], item):
+        return item, directory / item["path"]
+    if events is None:
+        verified, _, _, events = verify_event_log(directory, run)
+        if not verified:
+            return None, None
+    for event in reversed(events):
+        if event.get("type") != "ARTIFACT_RECORDED":
+            continue
+        payload = event.get("payload") if isinstance(event.get("payload"), dict) else {}
+        recorded = payload.get("artifact")
+        if not isinstance(recorded, dict) or recorded.get("type") != "voice-probe":
+            continue
+        try:
+            recovered = (directory / safe_relative(str(recorded.get("path", "")))).resolve()
+            recovered.relative_to(directory.resolve())
+        except (FlowError, ValueError):
+            continue
+        if _probe_holds_no_selection(recovered, recorded):
+            return recorded, recovered
+    return None, None
+
+
+def preserve_voice_candidate_probe(
+    directory: Path,
+    run: dict[str, Any],
+    item: dict[str, Any],
+    path: Path,
+) -> None:
+    """Record the three-candidate probe under its own immutable type.
+
+    This runs before the approved probe overwrites the ``voice-probe`` record,
+    so the code-validated candidate authority survives every later crash.
+    """
+    if artifact(run, VOICE_CANDIDATE_ARTIFACT_TYPE):
+        return
+    try:
+        candidate_bytes = path.read_bytes()
+    except OSError as exc:
+        raise FlowError(
+            "Voice candidate probe could not be read for preservation",
+            EXIT_INTEGRITY,
+            {"path": str(path)},
+        ) from exc
+    if sha256_bytes(candidate_bytes) != item.get("sha256"):
+        raise FlowError(
+            "Voice candidate probe changed before its authority was preserved",
+            EXIT_INTEGRITY,
+            {
+                "path": str(path),
+                "expected_sha256": item.get("sha256"),
+                "actual_sha256": sha256_bytes(candidate_bytes),
+            },
+        )
+    record_artifact(
+        directory,
+        run,
+        path,
+        VOICE_CANDIDATE_ARTIFACT_TYPE,
+        {"actor": "controller", "version": CONTROLLER_VERSION},
+        inputs=[str(item["artifact_id"])] if item.get("artifact_id") else [],
+        expected_bytes=candidate_bytes,
+    )
+
+
+def committed_voice_selection(
+    directory: Path,
+    run: dict[str, Any],
+    events: list[dict[str, Any]] | None = None,
+) -> dict[str, Any] | None:
+    """Return a human voice decision that is durable but not yet transitioned.
+
+    ``VOICE_SELECTION_RECORDED`` and the passing ``G-VOICE-PROBE`` receipt are
+    both appended before the state transition, so a crash in that window leaves
+    a committed human decision behind a run still parked in ``VOICE_PROBE``.
+    That pair is the commitment and the missing transition is the only
+    unfinished work; any later ``STATE_TRANSITION`` means the commitment
+    already completed and there is nothing left to reconcile.
+    """
+    if not is_v3_run(run) or run.get("state") != "VOICE_PROBE":
+        return None
+    if events is None:
+        verified, _, _, events = verify_event_log(directory, run)
+        if not verified:
+            return None
+    pending: dict[str, Any] | None = None
+    for event in events:
+        kind = event.get("type")
+        payload = event.get("payload") if isinstance(event.get("payload"), dict) else {}
+        if kind == "VOICE_SELECTION_RECORDED":
+            pending = {
+                "candidate_id": str(payload.get("candidate_id") or ""),
+                "voice_probe_sha256": str(payload.get("voice_probe_sha256") or ""),
+                "selection_sequence": int(event.get("sequence", 0)),
+                "gate_sequence": None,
+            }
+        elif kind == "GATE_RECORDED" and payload.get("gate_id") == "G-VOICE-PROBE":
+            if pending is None:
+                continue
+            if payload.get("outcome") == "PASS":
+                pending["gate_sequence"] = int(event.get("sequence", 0))
+            else:
+                pending = None
+        elif kind == "STATE_TRANSITION":
+            pending = None
+    if pending is None or pending["gate_sequence"] is None or not pending["candidate_id"]:
+        return None
+    return pending
+
+
+def finish_committed_voice_selection(
+    directory: Path,
+    run: dict[str, Any],
+    committed: dict[str, Any],
+) -> None:
+    """Complete exactly the interrupted transition and add no new evidence."""
+    definition = state_definition(run["state"], run)
+    transition(
+        directory,
+        run,
+        definition["next_on_pass"],
+        "controller",
+        "Completed the interrupted transition for committed voice selection "
+        + str(committed["candidate_id"]),
+    )
+
+
+def reconcile_committed_voice_selection(
+    directory: Path,
+    run: dict[str, Any],
+    args: argparse.Namespace,
+) -> dict[str, Any] | None:
+    """Resolve a retry of an already committed voice decision, or fail closed."""
+    if str(args.gate_id) != "G-VOICE-PROBE":
+        return None
+    committed = committed_voice_selection(directory, run)
+    if committed is None:
+        return None
+    if args.outcome != "PASS":
+        raise FlowError(
+            "The operator's voice selection is already committed and cannot be replaced at this gate",
+            EXIT_APPROVAL,
+            committed,
+        )
+    if str(getattr(args, "selection", None) or "") != committed["candidate_id"]:
+        raise FlowError(
+            "A different voice candidate is already committed for this run",
+            EXIT_APPROVAL,
+            {
+                "committed_candidate_id": committed["candidate_id"],
+                "requested_candidate_id": getattr(args, "selection", None),
+            },
+        )
+    finish_committed_voice_selection(directory, run, committed)
+    next_command = ["article-flow", "advance", run["run_id"]] if automation_enabled(run) else ["article-flow", "next", run["run_id"]]
+    return {
+        "ok": True,
+        "outcome": "PASS",
+        "state": run["state"],
+        "approval_id": None,
+        "reconciled_voice_selection": committed["candidate_id"],
+        "next_command": next_command,
+    }
+
+
 def apply_voice_learning(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
     """Promote one operator selection into a reversible provisional runtime overlay."""
     if not is_v3_run(run) or run.get("state") != "VOICE_LEARNING":
@@ -3824,6 +5045,18 @@ def next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
     if run.get("status") == "BLOCKED":
         definition = state_definition(state, run)
         return {"action": "repair_required", "run_id": run["run_id"], "state": state, "gate": definition.get("gate"), "command": ["article-flow", "repair", run["run_id"], definition.get("gate")]}
+    if is_v3_run(run) and state == "VOICE_PROBE":
+        committed = committed_voice_selection(directory, run)
+        if committed is not None:
+            # The human already decided.  Only the interrupted transition is
+            # outstanding, so never re-ask and never re-enter WAITING_HUMAN.
+            return {
+                "action": "run_command",
+                "run_id": run["run_id"],
+                "state": state,
+                "committed_voice_selection": committed["candidate_id"],
+                "command": ["article-flow", "choose-voice", run["run_id"], committed["candidate_id"]],
+            }
     review_artifact = {
         "INTENT_REVIEW": "intent-candidate",
         "ARTICLE_RECIPE": "article-recipe",
@@ -4166,8 +5399,7 @@ def command_submit(args: argparse.Namespace) -> int:
         raise FlowError(f"Submission file does not exist: {source}")
     artifact_type, filename = stage_output(args.stage)
     with run_lock(directory, run):
-        _, run = load_run(args.run_id)
-        if run["state"] != args.stage or run.get("status") != "WAITING_MODEL":
+        if run["state"] != args.stage:
             raise FlowError(
                 f"Submission for {args.stage} is stale or the recorded task is no longer waiting for a model",
                 EXIT_INTEGRITY,
@@ -4178,8 +5410,37 @@ def command_submit(args: argparse.Namespace) -> int:
             raise FlowError(f"No dispatched task packet exists for {args.stage}", EXIT_INTEGRITY)
         packet_path, packet_value, packet_issue = validate_recorded_task_packet(directory, run, packet_item)
         if packet_issue or packet_path is None or packet_value is None:
+            packet_match = re.fullmatch(
+                rf"task-packet:{re.escape(args.stage)}:(\d+)",
+                str(packet_item.get("type", "")),
+            )
+            recorded_hash = str(packet_item.get("sha256", ""))
+            if packet_match and re.fullmatch(r"[0-9a-f]{64}", recorded_hash):
+                block_attempt_reconciliation(
+                    directory,
+                    run,
+                    args.stage,
+                    int(packet_match.group(1)),
+                    recorded_hash,
+                    packet_issue or {"reason": "recorded_task_packet_unreadable"},
+                )
             raise FlowError("Recorded task packet failed integrity validation", EXIT_INTEGRITY, packet_issue)
         attempt = int(packet_value["attempt"])
+        packet_bytes = (json.dumps(packet_value, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+        packet_hash = sha256_bytes(packet_bytes)
+        try:
+            current_packet_bytes = packet_path.read_bytes()
+        except OSError:
+            current_packet_bytes = None
+        if current_packet_bytes != packet_bytes or packet_item.get("sha256") != packet_hash:
+            issue = {
+                "reason": "task_packet_changed_before_submission",
+                "path": str(packet_path),
+                "expected_sha256": packet_hash,
+                "actual_sha256": sha256_bytes(current_packet_bytes) if isinstance(current_packet_bytes, bytes) else None,
+            }
+            block_attempt_reconciliation(directory, run, args.stage, attempt, packet_hash, issue)
+            raise FlowError("Task packet changed before submission", EXIT_INTEGRITY, issue)
         if int(run.get("attempts", {}).get(args.stage, 0)) != attempt:
             raise FlowError(
                 "Submission attempt does not match the current monotonic task attempt",
@@ -4187,25 +5448,36 @@ def command_submit(args: argparse.Namespace) -> int:
                 {"packet_attempt": attempt, "run_attempt": run.get("attempts", {}).get(args.stage)},
             )
         dispatch_sequence = task_packet_dispatch_sequence(directory, run, args.stage, attempt, packet_path)
-        if dispatch_sequence is None or task_packet_gate_consumed(
+        if dispatch_sequence is None:
+            issue = {"reason": "task_packet_was_not_durably_dispatched", "attempt": attempt}
+            block_attempt_reconciliation(directory, run, args.stage, attempt, packet_hash, issue)
+            raise FlowError("Task packet was never durably dispatched", EXIT_INTEGRITY, issue)
+        if task_packet_gate_consumed(
             directory,
             run,
             args.stage,
             attempt,
-            sha256_path(packet_path),
+            packet_hash,
             dispatch_sequence,
         ):
+            issue = {
+                "reason": "task_packet_gate_already_recorded",
+                "attempt": attempt,
+                "dispatch_sequence": dispatch_sequence,
+            }
+            block_attempt_reconciliation(directory, run, args.stage, attempt, packet_hash, issue)
             raise FlowError(
-                "Task packet was never dispatched or its gate outcome was already recorded",
-                EXIT_INTEGRITY,
-                {"attempt": attempt, "dispatch_sequence": dispatch_sequence},
+                "Task packet gate outcome is already recorded and cannot be replayed",
+                EXIT_WAITING,
+                issue,
             )
         committed_gate, gate_issue = validated_gate_receipt_for_attempt(
             directory,
             run,
             args.stage,
             attempt,
-            sha256_path(packet_path),
+            packet_hash,
+            dispatch_sequence,
         )
         if gate_issue or committed_gate:
             issue = gate_issue or {
@@ -4213,16 +5485,21 @@ def command_submit(args: argparse.Namespace) -> int:
                 "attempt": attempt,
                 "gate_receipt": committed_gate["path"],
             }
-            run["status"] = "BLOCKED"
-            append_event(directory, run, "ESCALATION", "controller", {
-                "state": args.stage,
-                "gate_id": state_definition(args.stage, run).get("gate"),
-                **issue,
-            })
-            save_run(directory, run)
+            block_attempt_reconciliation(directory, run, args.stage, attempt, packet_hash, issue)
             raise FlowError("Submission gate receipt is already committed and cannot be replayed", EXIT_WAITING, issue)
+        if run.get("status") != "WAITING_MODEL":
+            # Gate evidence is checked first so a cache reconstructed as
+            # BLOCKED is durably reconciled instead of merely rejected while
+            # run.json remains WAITING_MODEL.  Other stale statuses have no
+            # decision to replay and are rejected without mutation.
+            raise FlowError(
+                f"Submission for {args.stage} is stale or the recorded task is no longer waiting for a model",
+                EXIT_INTEGRITY,
+                {"state": run["state"], "status": run.get("status")},
+            )
         model_call, receipt_issue = validated_model_call_item(directory, run, args.stage, attempt, packet_path)
         if receipt_issue:
+            block_attempt_reconciliation(directory, run, args.stage, attempt, packet_hash, receipt_issue)
             raise FlowError("Recorded model-call receipt failed integrity validation", EXIT_INTEGRITY, receipt_issue)
         expected_output = Path(packet_value["expected_outputs"][0]["path"]).expanduser().resolve()
         submissions_root = (directory / "submissions").resolve()
@@ -4243,25 +5520,161 @@ def command_submit(args: argparse.Namespace) -> int:
                 EXIT_INTEGRITY,
                 {"source": str(source), "expected_output": str(expected_output), "attempt": attempt},
             )
-        if model_call and model_call["receipt"].get("output_sha256") != sha256_path(source):
+        # Bind validation and the accepted artifact to one byte snapshot.  A
+        # second path read after hashing creates a TOCTOU window in which the
+        # receipt can validate one file while different bytes are copied.
+        try:
+            source_bytes = source.read_bytes()
+        except OSError as exc:
+            issue = {
+                "reason": "submission_bytes_unreadable",
+                "path": str(source),
+                "attempt": attempt,
+                "error": str(exc),
+            }
+            block_attempt_reconciliation(directory, run, args.stage, attempt, packet_hash, issue)
+            raise FlowError("Submission bytes could not be read", EXIT_INTEGRITY, issue) from exc
+        source_hash = sha256_bytes(source_bytes)
+        if model_call and model_call["receipt"].get("output_sha256") != source_hash:
+            issue = {
+                "reason": "submission_bytes_changed_after_model_call",
+                "expected_sha256": model_call["receipt"].get("output_sha256"),
+                "actual_sha256": source_hash,
+                "attempt": attempt,
+            }
+            block_attempt_reconciliation(directory, run, args.stage, attempt, packet_hash, issue)
             raise FlowError(
                 "Submission bytes do not match the recorded model-call output",
                 EXIT_INTEGRITY,
-                {
-                    "expected_sha256": model_call["receipt"].get("output_sha256"),
-                    "actual_sha256": sha256_path(source),
-                    "attempt": attempt,
-                },
+                issue,
             )
         destination = directory / "artifacts" / f"{attempt:02d}-{filename}"
+        declared_inputs: list[tuple[Path, str, str]] = []
         for item in packet_value.get("inputs", []):
             input_path = Path(item["path"])
-            actual_hash = sha256_path(input_path) if input_path.is_file() else None
+            try:
+                input_bytes = input_path.read_bytes()
+                actual_hash = sha256_bytes(input_bytes)
+            except OSError:
+                actual_hash = None
             if actual_hash != item["sha256"]:
-                raise FlowError(f"Task input changed before submission: {item['id']}", EXIT_INTEGRITY, {"expected_sha256": item["sha256"], "actual_sha256": actual_hash, "path": str(input_path)})
-        if source != destination.resolve():
-            immutable_write(destination, source.read_bytes())
+                issue = {
+                    "reason": "task_input_changed_before_submission",
+                    "input_id": item["id"],
+                    "expected_sha256": item["sha256"],
+                    "actual_sha256": actual_hash,
+                    "path": str(input_path),
+                }
+                block_attempt_reconciliation(directory, run, args.stage, attempt, packet_hash, issue)
+                raise FlowError(f"Task input changed before submission: {item['id']}", EXIT_INTEGRITY, issue)
+            declared_inputs.append((input_path, str(item["sha256"]), str(item["id"])))
+        try:
+            immutable_write(destination, source_bytes)
+        except (FlowError, OSError) as exc:
+            try:
+                existing_hash = sha256_path(destination) if destination.is_file() else None
+            except OSError:
+                existing_hash = None
+            issue = {
+                "reason": "accepted_attempt_destination_bytes_disagree",
+                "path": str(destination),
+                "existing_sha256": existing_hash,
+                "submitted_sha256": source_hash,
+                "error": str(exc),
+            }
+            block_attempt_reconciliation(directory, run, args.stage, attempt, packet_hash, issue)
+            raise FlowError(
+                "Accepted attempt destination already contains different immutable bytes",
+                EXIT_INTEGRITY,
+                issue,
+            ) from exc
         outcome, findings = automatic_gate(directory, run, args.stage, destination)
+        try:
+            accepted_hash = sha256_path(destination) if destination.is_file() else None
+        except OSError:
+            accepted_hash = None
+        if accepted_hash != source_hash:
+            issue = {
+                "reason": "accepted_attempt_destination_changed_during_gate",
+                "path": str(destination),
+                "expected_sha256": source_hash,
+                "actual_sha256": accepted_hash,
+            }
+            block_attempt_reconciliation(directory, run, args.stage, attempt, packet_hash, issue)
+            raise FlowError(
+                "Accepted attempt destination changed during gate evaluation",
+                EXIT_INTEGRITY,
+                issue,
+            )
+
+        def require_submit_evidence(reason: str) -> None:
+            mismatch: dict[str, Any] | None = None
+            try:
+                observed_packet_bytes = packet_path.read_bytes()
+            except OSError:
+                observed_packet_bytes = None
+            if observed_packet_bytes != packet_bytes:
+                mismatch = {
+                    "evidence": "task_packet",
+                    "path": str(packet_path),
+                    "expected_sha256": packet_hash,
+                    "actual_sha256": sha256_bytes(observed_packet_bytes) if isinstance(observed_packet_bytes, bytes) else None,
+                }
+            if mismatch is None and model_call:
+                receipt_path = Path(str(model_call["path"]))
+                try:
+                    actual_receipt_hash = sha256_path(receipt_path) if receipt_path.is_file() else None
+                except OSError:
+                    actual_receipt_hash = None
+                expected_receipt_hash = str(model_call["item"].get("sha256") or "")
+                if actual_receipt_hash != expected_receipt_hash:
+                    mismatch = {
+                        "evidence": "model_call_receipt",
+                        "path": str(receipt_path),
+                        "expected_sha256": expected_receipt_hash,
+                        "actual_sha256": actual_receipt_hash,
+                    }
+            # The model output file is deliberately not re-read here.  Its
+            # authority was consumed by the single snapshot above, which the
+            # model-call receipt validated and which was committed verbatim to
+            # the immutable destination.  Re-reading that path would reopen the
+            # exact TOCTOU window the snapshot exists to close, and would let a
+            # post-commit write to a transient model scratch file invalidate an
+            # attempt whose accepted bytes are already immutable.  The accepted
+            # copy below is the evidence that must not change.
+            if mismatch is None:
+                try:
+                    actual_destination_hash = sha256_path(destination) if destination.is_file() else None
+                except OSError:
+                    actual_destination_hash = None
+                if actual_destination_hash != source_hash:
+                    mismatch = {
+                        "evidence": "accepted_output",
+                        "path": str(destination),
+                        "expected_sha256": source_hash,
+                        "actual_sha256": actual_destination_hash,
+                    }
+            if mismatch is None:
+                for input_path, expected_input_hash, input_id in declared_inputs:
+                    try:
+                        actual_input_hash = sha256_path(input_path) if input_path.is_file() else None
+                    except OSError:
+                        actual_input_hash = None
+                    if actual_input_hash != expected_input_hash:
+                        mismatch = {
+                            "evidence": "task_input",
+                            "input_id": input_id,
+                            "path": str(input_path),
+                            "expected_sha256": expected_input_hash,
+                            "actual_sha256": actual_input_hash,
+                        }
+                        break
+            if mismatch is not None:
+                issue = {"reason": reason, **mismatch}
+                block_attempt_reconciliation(directory, run, args.stage, attempt, packet_hash, issue)
+                raise FlowError("Attempt evidence changed during submission", EXIT_INTEGRITY, issue)
+
+        require_submit_evidence("attempt_evidence_changed_after_gate")
         packet_route = latest_model_call_route(directory, run, args.stage, attempt)
         if packet_route is None and packet_item:
             packet_route = packet_value.get("selected_route", {}).get("chosen")
@@ -4270,13 +5683,49 @@ def command_submit(args: argparse.Namespace) -> int:
             run,
             lambda item: item.get("type") == artifact_type
             and item.get("path") == destination.relative_to(directory).as_posix()
-            and item.get("sha256") == sha256_path(destination),
+            and item.get("sha256") == source_hash,
         )
-        if existing_output:
-            run["artifact_index"] = [item for item in run["artifact_index"] if item.get("type") != artifact_type]
-            run["artifact_index"].append(existing_output)
-        else:
-            record_artifact(directory, run, destination, artifact_type, {"actor": "model_or_host", "route": packet_route}, inputs=[item["artifact_id"] for item in run["artifact_index"]])
+        try:
+            if destination.read_bytes() != source_bytes:
+                raise FlowError("Accepted output changed before artifact recording", EXIT_INTEGRITY)
+            if existing_output:
+                run["artifact_index"] = [item for item in run["artifact_index"] if item.get("type") != artifact_type]
+                run["artifact_index"].append(existing_output)
+            else:
+                record_artifact(
+                    directory,
+                    run,
+                    destination,
+                    artifact_type,
+                    {"actor": "model_or_host", "route": packet_route},
+                    inputs=[item["artifact_id"] for item in run["artifact_index"]],
+                    expected_bytes=source_bytes,
+                )
+            recorded_hash = sha256_path(destination) if destination.is_file() else None
+        except (FlowError, OSError) as exc:
+            try:
+                recorded_hash = sha256_path(destination) if destination.is_file() else None
+            except OSError:
+                recorded_hash = None
+            issue = {
+                "reason": "accepted_attempt_destination_changed_before_record",
+                "path": str(destination),
+                "expected_sha256": source_hash,
+                "actual_sha256": recorded_hash,
+                "error": str(exc),
+            }
+            block_attempt_reconciliation(directory, run, args.stage, attempt, packet_hash, issue)
+            raise FlowError("Accepted attempt changed before artifact recording", EXIT_INTEGRITY, issue) from exc
+        if recorded_hash != source_hash:
+            issue = {
+                "reason": "accepted_attempt_destination_changed_after_record",
+                "path": str(destination),
+                "expected_sha256": source_hash,
+                "actual_sha256": recorded_hash,
+            }
+            block_attempt_reconciliation(directory, run, args.stage, attempt, packet_hash, issue)
+            raise FlowError("Accepted attempt changed after artifact recording", EXIT_INTEGRITY, issue)
+        require_submit_evidence("attempt_evidence_changed_after_artifact_record")
         if args.stage == "CLAIM_VERIFICATION" and outcome == "PASS":
             lock_verified_fields(directory, run, destination)
         definition = state_definition(args.stage, run)
@@ -4307,8 +5756,9 @@ def command_submit(args: argparse.Namespace) -> int:
             definition.get("repair_state"),
             task_state=args.stage,
             task_attempt=attempt,
-            task_packet_sha256=sha256_path(packet_path),
+            task_packet_sha256=packet_hash,
         )
+        require_submit_evidence("attempt_evidence_changed_after_gate_receipt")
         if outcome != "PASS":
             if packet_route:
                 key = f"{packet_route.get('provider')}:{packet_route.get('model')}"
@@ -4317,26 +5767,47 @@ def command_submit(args: argparse.Namespace) -> int:
                 append_event(directory, run, "MODEL_OUTPUT_REJECTED", "controller", {
                     "state": args.stage,
                     "attempt": attempt,
-                    "task_packet_sha256": sha256_path(packet_path),
+                    "task_packet_sha256": packet_hash,
                     "route": packet_route,
                     "failure_count": stage_failures[key],
                     "findings": findings,
                 })
-            remember_repair_context(directory, run, args.stage, definition)
+            repair_context = remember_repair_context(directory, run, args.stage, definition)
+            if is_v3_run(run) and repair_context is None:
+                block_attempt_reconciliation(
+                    directory,
+                    run,
+                    args.stage,
+                    attempt,
+                    sha256_path(packet_path),
+                    {"reason": "automatic_repair_context_unavailable"},
+                )
+                raise FlowError(
+                    "Automatic repair could not bind the rejected output and gate findings",
+                    EXIT_INTEGRITY,
+                )
             attempt_evidence = stage_attempt_evidence(directory, run, args.stage)
             attempts_used = attempt_evidence["window_used"]
             maximum = int(definition.get("max_attempts", 1))
             if automation_enabled(run) and attempts_used < maximum and definition.get("repair_state") in MODEL_STATES:
                 append_event(directory, run, "REPAIR", "controller", {
                     "gate_id": definition["gate"],
+                    "source_state": args.stage,
                     "findings": findings,
                     "repair_state": definition["repair_state"],
                     "attempt": attempt_evidence["ordinal"],
+                    "attempt_ordinal_baseline": int(run.get("attempts", {}).get(args.stage, 0)),
+                    "execution_count_baseline": int(run.get("attempt_baselines", {}).get(definition["repair_state"], 0)),
                     "attempts_in_window": attempts_used,
                     "maximum": maximum,
                     "gate_receipt": gate_receipt_path.relative_to(directory).as_posix(),
+                    "repair_context": repair_context,
+                    "repair_context_required": True,
+                    "clear_route_failures": False,
                 })
+                require_submit_evidence("attempt_evidence_changed_before_repair_transition")
                 transition(directory, run, definition["repair_state"], "controller", f"Automatic targeted repair after {definition['gate']}")
+                require_submit_evidence("attempt_evidence_changed_after_repair_transition")
                 payload = {
                     "ok": False,
                     "outcome": outcome,
@@ -4368,16 +5839,23 @@ def command_submit(args: argparse.Namespace) -> int:
                     "cleared_failure_count": prior_failures,
                 })
         update_writing_provenance(directory, run, args.stage, packet_route)
+        require_submit_evidence("attempt_evidence_changed_before_pass_transition")
         if policy_review:
             approve_review_artifact(directory, run, args.stage, actor="policy")
+            require_submit_evidence("attempt_evidence_changed_after_policy_approval")
             transition(directory, run, definition["next_on_pass"], "policy", f"Policy approved validated {args.stage} artifact")
+            require_submit_evidence("attempt_evidence_changed_after_pass_transition")
             payload = {"ok": True, "outcome": "PASS", "state": run["state"], "next_command": ["article-flow", "advance", run["run_id"]]}
         elif args.stage in REVIEW_STATES:
+            require_submit_evidence("attempt_evidence_changed_before_review_hold")
             run["status"] = "WAITING_HUMAN"
             save_run(directory, run)
+            require_submit_evidence("attempt_evidence_changed_after_review_hold")
             payload = next_state_payload(directory, run)
         else:
+            require_submit_evidence("attempt_evidence_changed_before_pass_transition")
             transition(directory, run, definition["next_on_pass"], "controller", f"{definition['gate']} passed")
+            require_submit_evidence("attempt_evidence_changed_after_pass_transition")
             payload = {"ok": True, "outcome": "PASS", "state": run["state"], "next_command": ["article-flow", "next", run["run_id"]]}
     emit(payload, args.json)
     return EXIT_WAITING if payload.get("action") == "human_decision" else EXIT_OK
@@ -4469,6 +5947,15 @@ def command_gate(args: argparse.Namespace) -> int:
         definition = state_definition(run["state"], run)
         if args.gate_id != definition.get("gate"):
             raise FlowError(f"Gate {args.gate_id} no longer controls current state {run['state']}", EXIT_WAITING)
+        if is_v3_run(run) and run["state"] == "VOICE_PROBE":
+            # A durable selection plus its passing receipt is the human's
+            # committed decision.  Retrying it must finish the interrupted
+            # transition rather than re-approve a probe that now carries the
+            # choice, and a conflicting retry must fail closed.
+            reconciled = reconcile_committed_voice_selection(directory, run, args)
+            if reconciled is not None:
+                emit(reconciled, args.json)
+                return EXIT_OK
         findings = []
         if args.finding:
             findings.append({"criterion": "operator_review", "artifact": args.artifact or "current", "location": None, "finding": args.finding, "repair_instruction": args.finding})
@@ -4494,12 +5981,25 @@ def command_gate(args: argparse.Namespace) -> int:
                 "EDITORIAL_QA": ("editorial-qa", "editorial-qa"),
             }
             candidate_type, approved_type = type_map[run["state"]]
-            candidate_path = Path(args.artifact).resolve() if args.artifact else artifact_path(directory, run, candidate_type)
+            voice_gate = run["state"] == "VOICE_PROBE" and is_v3_run(run)
+            recorded_item: dict[str, Any] | None = None
+            recorded_path: Path | None = None
+            if voice_gate:
+                # The candidate authority is the three-candidate probe, which
+                # may already have been superseded on the ``voice-probe`` type
+                # by an approved copy from an interrupted decision.
+                recorded_item, recorded_path = voice_candidate_probe(directory, run)
+                if recorded_item is None or recorded_path is None:
+                    # Fall back to the recorded probe so a tampered or missing
+                    # artifact is reported by the precise check below instead
+                    # of as a generic missing candidate.
+                    recorded_item = artifact(run, candidate_type)
+                    recorded_path = artifact_path(directory, run, candidate_type)
+            default_path = recorded_path if voice_gate else artifact_path(directory, run, candidate_type)
+            candidate_path = Path(args.artifact).resolve() if args.artifact else default_path
             if not candidate_path or not candidate_path.is_file():
                 raise FlowError(f"Candidate artifact is missing for {run['state']}")
-            if run["state"] == "VOICE_PROBE" and is_v3_run(run):
-                recorded_item = artifact(run, candidate_type)
-                recorded_path = artifact_path(directory, run, candidate_type)
+            if voice_gate:
                 if not recorded_item or not recorded_path or candidate_path.resolve() != recorded_path.resolve():
                     raise FlowError("Voice selection must use the controller-recorded probe artifact", EXIT_APPROVAL)
                 if sha256_path(recorded_path) != recorded_item.get("sha256"):
@@ -4507,6 +6007,7 @@ def command_gate(args: argparse.Namespace) -> int:
                 probe_outcome, probe_findings = automatic_gate(directory, run, "VOICE_PROBE", recorded_path)
                 if probe_outcome != "PASS":
                     raise FlowError("Recorded voice probe no longer passes its code-owned checks", EXIT_INTEGRITY, probe_findings)
+                preserve_voice_candidate_probe(directory, run, recorded_item, recorded_path)
             approved_path = directory / "artifacts" / f"approved-{approved_type}{candidate_path.suffix}"
             if run["state"] == "VOICE_PROBE":
                 if not args.selection or (not is_v3_run(run) and not args.feedback):
@@ -4545,8 +6046,45 @@ def command_gate(args: argparse.Namespace) -> int:
             transition(directory, run, definition["next_on_pass"], "operator", f"Operator confirmed {args.gate_id}")
         elif args.outcome == "REPAIR":
             repair_state = definition["repair_state"]
-            remember_repair_context(directory, run, run["state"], definition)
+            source_state = run["state"]
+            repair_context = remember_repair_context(directory, run, source_state, definition)
+            context_required = bool(
+                is_v3_run(run)
+                and (
+                    repair_context is not None
+                    or rejected_attempt_requires_repair_context(
+                        directory,
+                        run,
+                        source_state,
+                        str(args.gate_id),
+                    )
+                )
+            )
+            if context_required and repair_context is None:
+                run["status"] = "BLOCKED"
+                save_run(directory, run)
+                raise FlowError(
+                    "Operator repair could not bind the rejected artifact and gate receipt",
+                    EXIT_INTEGRITY,
+                )
             baseline = reset_attempt_window(directory, run, repair_state)
+            execution_baseline = int(run.get("attempt_baselines", {}).get(repair_state, 0))
+            repair_event_source_state = str(
+                repair_context.get("source_stage")
+                if isinstance(repair_context, dict)
+                else source_state
+            )
+            append_event(directory, run, "REPAIR", "operator", {
+                "gate_id": args.gate_id,
+                "finding": args.finding,
+                "source_state": repair_event_source_state,
+                "repair_state": repair_state,
+                "attempt_ordinal_baseline": baseline,
+                "execution_count_baseline": execution_baseline,
+                "repair_context": repair_context,
+                "repair_context_required": context_required,
+                "clear_route_failures": True,
+            })
             run.setdefault("route_failures", {}).pop(repair_state, None)
             transition(directory, run, repair_state, "operator", (args.finding or "Operator requested repair") + f"; next bounded window begins after attempt {baseline}")
         elif args.outcome == "TERMINAL":
@@ -4572,13 +6110,48 @@ def command_repair(args: argparse.Namespace) -> int:
     if not repair_state:
         raise FlowError(f"No repair state declared for {run['state']}")
     with run_lock(directory, run):
-        remember_repair_context(directory, run, run["state"], definition)
+        definition = state_definition(run["state"], run)
+        if args.gate_id != definition.get("gate"):
+            raise FlowError(f"Gate {args.gate_id} no longer controls current state {run['state']}", EXIT_WAITING)
+        repair_state = str(definition.get("repair_state") or "")
+        source_state = run["state"]
+        repair_context = remember_repair_context(directory, run, source_state, definition)
+        context_required = bool(
+            is_v3_run(run)
+            and (
+                repair_context is not None
+                or rejected_attempt_requires_repair_context(
+                    directory,
+                    run,
+                    source_state,
+                    str(args.gate_id),
+                )
+            )
+        )
+        if context_required and repair_context is None:
+            run["status"] = "BLOCKED"
+            save_run(directory, run)
+            raise FlowError(
+                "Repair authorization could not bind the rejected artifact and gate receipt",
+                EXIT_INTEGRITY,
+            )
         baseline = reset_attempt_window(directory, run, repair_state)
+        execution_baseline = int(run.get("attempt_baselines", {}).get(repair_state, 0))
+        repair_event_source_state = str(
+            repair_context.get("source_stage")
+            if isinstance(repair_context, dict)
+            else source_state
+        )
         append_event(directory, run, "REPAIR", "operator_or_controller", {
             "gate_id": args.gate_id,
             "finding": args.finding,
+            "source_state": repair_event_source_state,
             "repair_state": repair_state,
-            "attempt_baseline": baseline,
+            "attempt_ordinal_baseline": baseline,
+            "execution_count_baseline": execution_baseline,
+            "repair_context": repair_context,
+            "repair_context_required": context_required,
+            "clear_route_failures": True,
         })
         run.setdefault("route_failures", {}).pop(repair_state, None)
         transition(directory, run, repair_state, "controller", (args.finding or f"Repair requested by {args.gate_id}") + f"; next bounded window begins after attempt {baseline}")
@@ -5957,25 +7530,59 @@ def command_advance(args: argparse.Namespace) -> int:
             emit(payload, args.json)
             return EXIT_OK if state == "COMPLETE" else EXIT_FAILED
         if run.get("status") == "BLOCKED":
+            if state in MODEL_STATES:
+                # Observer recovery is intentionally pure.  Advance is a
+                # mutating command, so reconcile the attempt boundary and
+                # persist the recovered BLOCKED projection while serialized.
+                with run_lock(directory, run):
+                    definition = state_definition(run["state"], run)
+                    evidence = stage_attempt_evidence(directory, run, run["state"])
+                    if evidence["window_used"] >= int(definition.get("max_attempts", 1)):
+                        block_exhausted_stage(directory, run, run["state"], definition)
+                    else:
+                        save_run(directory, run)
+                directory, run = load_run(args.run_id)
             payload = {**next_state_payload(directory, run), "ok": False, "progress": progress}
             emit(payload, args.json)
             return EXIT_WAITING
+        if state == "VOICE_PROBE" and is_v3_run(run) and committed_voice_selection(directory, run):
+            # Finish the crashed commit under the lock instead of presenting
+            # the decision again or dispatching another probe task.
+            with run_lock(directory, run):
+                _, locked = load_run(args.run_id)
+                relocked = committed_voice_selection(directory, locked)
+                if relocked is not None:
+                    finish_committed_voice_selection(directory, locked, relocked)
+                    progress.append({
+                        "state": state,
+                        "command": "voice-selection-reconciled",
+                        "candidate_id": relocked["candidate_id"],
+                    })
+            continue
         if state == "VOICE_PROBE" and artifact(run, "voice-probe"):
             payload = {**next_state_payload(directory, run), "ok": True, "progress": progress}
             emit(payload, args.json)
             return EXIT_WAITING
         if state in MODEL_STATES:
-            definition = state_definition(state, run)
-            evidence = stage_attempt_evidence(directory, run, state)
-            if run.get("status") != "WAITING_MODEL" and evidence["window_used"] >= int(definition.get("max_attempts", 1)):
-                block_exhausted_stage(directory, run, state, definition)
-                progress.append({
-                    "state": state,
-                    "command": "attempt-boundary",
-                    "attempts": evidence["window_used"],
-                    "attempt_ordinal": evidence["ordinal"],
-                    "maximum": int(definition.get("max_attempts", 1)),
-                })
+            boundary: dict[str, Any] | None = None
+            with run_lock(directory, run):
+                definition = state_definition(run["state"], run)
+                evidence = stage_attempt_evidence(directory, run, run["state"])
+                if (
+                    run.get("status") != "WAITING_MODEL"
+                    and evidence["window_used"] >= int(definition.get("max_attempts", 1))
+                ):
+                    block_exhausted_stage(directory, run, run["state"], definition)
+                    boundary = {
+                        "state": run["state"],
+                        "command": "attempt-boundary",
+                        "attempts": evidence["window_used"],
+                        "attempt_ordinal": evidence["ordinal"],
+                        "maximum": int(definition.get("max_attempts", 1)),
+                    }
+            if boundary is not None:
+                progress.append(boundary)
+                directory, run = load_run(args.run_id)
                 payload = {**next_state_payload(directory, run), "ok": False, "progress": progress}
                 emit(payload, args.json)
                 return EXIT_WAITING

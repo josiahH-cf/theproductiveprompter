@@ -557,6 +557,42 @@ class RepairAttemptBoundRegressionTests(TemporaryRuntime):
         af.transition(directory, run, "RESEARCH", "test", "Exercise the evidence repair boundary")
         return run_id, directory
 
+    def post_edit_repair_run(self, label):
+        run_id = self.start(label)
+        directory, run = af.load_run(run_id)
+        for artifact_type in ("verified-claim-ledger", "article-recipe", "voice-learning", "voice-profile", "locked-fields"):
+            if not af.artifact(run, artifact_type):
+                self.record_json(directory, run, artifact_type, {"fixture": artifact_type})
+        for artifact_type in ("article", "draft", "naturalization-directive"):
+            if not af.artifact(run, artifact_type):
+                self.record_text(directory, run, artifact_type, f"{artifact_type} fixture\n")
+        run.setdefault("model_experiment", {}).update({
+            "provider_id": "fixture",
+            "assigned_model_id": "fixture-model",
+            "active_model_id": "fixture-model",
+        })
+        af.transition(directory, run, "POST_EDIT_CLAIM_VERIFICATION", "test", "seed cross-stage repair context")
+        with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)):
+            _, packet = af.task_packet(directory, run)
+        output = Path(packet["expected_outputs"][0]["path"])
+        af.write_json(output, {"attempt": packet["attempt"]})
+        with (
+            mock.patch.object(af, "automatic_gate", return_value=("REPAIR", [self.finding(packet["attempt"])])),
+            mock.patch.object(af, "emit"),
+        ):
+            self.assertEqual(
+                af.command_submit(namespace(
+                    run_id=run_id,
+                    stage="POST_EDIT_CLAIM_VERIFICATION",
+                    file=str(output),
+                )),
+                af.EXIT_OK,
+            )
+        directory, run = af.load_run(run_id)
+        self.assertEqual(run["state"], "EDIT")
+        self.assertEqual(run["pending_repair"]["source_stage"], "POST_EDIT_CLAIM_VERIFICATION")
+        return run_id, directory, run, json.loads(json.dumps(run["pending_repair"]))
+
     @staticmethod
     def finding(number):
         return {
@@ -876,6 +912,45 @@ class RepairAttemptBoundRegressionTests(TemporaryRuntime):
         repair_without_context["task_packet_schema_version"] = "1.1.0"
         self.assertTrue(af.validate_instance_schema(repair_without_context, "task-packet.schema.json"))
 
+    def test_ambiguous_v10_repair_receipt_with_missing_rejected_bytes_fails_closed(self):
+        run_id = self.start("A legacy human repair receipt cannot lose its rejected bytes.")
+        directory, run = af.load_run(run_id)
+        self.record_json(directory, run, "intent", {"reader_job": "Understand fail-closed repair."})
+        self.record_json(directory, run, "claim-ledger", {"claims": []})
+        af.transition(directory, run, "ARTICLE_RECIPE", "test", "exercise legacy repair ambiguity")
+        with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)):
+            af.task_packet(directory, run)
+            first_item = af.latest_task_packet_item(directory, run, "ARTICLE_RECIPE")
+            af.abandon_cached_packet(directory, run, "ARTICLE_RECIPE", first_item, {"reason": "fixture_refresh"})
+            af.task_packet(directory, run)
+        rejected = directory / "artifacts" / "02-article-recipe.json"
+        af.write_json(rejected, {"rejected": True})
+        af.record_artifact(directory, run, rejected, "article-recipe", {"actor": "test"})
+        receipt_path = af.write_gate_receipt(
+            directory,
+            run,
+            "G-RECIPE-FIT",
+            "REPAIR",
+            [self.finding(2)],
+            {"type": "human", "identity": "operator"},
+            "ARTICLE_RECIPE",
+        )
+        receipt = af.load_json(receipt_path)
+        self.assertEqual(receipt["gate_receipt_schema_version"], "1.0.0")
+        self.assertEqual(
+            len([key for key in receipt["artifact_hashes"] if key.startswith("task-packet:ARTICLE_RECIPE:")]),
+            2,
+        )
+        rejected.unlink()
+        with self.assertRaises(af.FlowError) as caught:
+            af.command_repair(namespace(run_id=run_id, gate_id="G-RECIPE-FIT", finding=None))
+        self.assertEqual(caught.exception.code, af.EXIT_INTEGRITY)
+        self.assertEqual(af.load_json(directory / "run.json")["status"], "BLOCKED")
+        self.assertFalse(any(
+            event["type"] == "REPAIR"
+            for event in af._read_jsonl(directory / "events.jsonl")
+        ))
+
     def test_shifting_findings_get_three_immutable_hash_bound_attempts_then_block(self):
         run_id, directory = self.research_run()
         packets = []
@@ -1034,6 +1109,1089 @@ class RepairAttemptBoundRegressionTests(TemporaryRuntime):
         self.assertEqual(resumed["repair_context"]["findings"][0]["location"], "claim:CL-004")
         self.assertEqual(packet_path.name, "research-05.json")
         self.assertEqual(af.load_json(output_path)["marker"], "latest-overwritten-legacy-output")
+
+    def test_concurrent_execute_claims_once_and_preserves_the_event_chain(self):
+        run_id = self.start("Concurrent execution must have one external owner.")
+        started = threading.Event()
+        release = threading.Event()
+        invocations = 0
+
+        def invoke(_route, _packet_path, _packet):
+            nonlocal invocations
+            invocations += 1
+            started.set()
+            self.assertTrue(release.wait(5))
+            return '{"fixture": true}\n', {"provider": "fixture", "model": "fixture-model"}
+
+        completed = subprocess.CompletedProcess([], af.EXIT_WAITING, '{"ok": false}\n', "")
+        with (
+            mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)),
+            mock.patch.object(af, "invoke_route", side_effect=invoke),
+            mock.patch.object(af.subprocess, "run", return_value=completed),
+            mock.patch.object(af, "emit"),
+        ):
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                first = pool.submit(
+                    af.command_execute_stage,
+                    namespace(run_id=run_id, route=None, canary=False),
+                )
+                self.assertTrue(started.wait(5))
+                with self.assertRaises(af.FlowError):
+                    af.command_execute_stage(namespace(run_id=run_id, route=None, canary=False))
+                release.set()
+                self.assertEqual(first.result(timeout=10), af.EXIT_WAITING)
+
+        self.assertEqual(invocations, 1)
+        directory, run = af.load_run(run_id)
+        claims = [event for event in af._read_jsonl(directory / run["event_log"]) if event["type"] == "MODEL_EXECUTION_STARTED"]
+        self.assertEqual(len(claims), 1)
+        self.assertEqual(claims[0]["payload"]["execution_number"], 1)
+        self.assertTrue(af.verify_event_log(directory, run)[0])
+
+    def test_provider_failures_consume_two_unique_bound_executions(self):
+        run_id = self.start("Every failed provider call must consume the bounded window.")
+        with (
+            mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)),
+            mock.patch.object(af, "invoke_route", side_effect=af.FlowError("fixture provider failed")) as invoke,
+            mock.patch.object(af, "emit"),
+        ):
+            with self.assertRaises(af.FlowError) as caught:
+                af.command_execute_stage(namespace(run_id=run_id, route=None, canary=False))
+        self.assertEqual(caught.exception.code, af.EXIT_WAITING)
+        self.assertEqual(invoke.call_count, 2)
+        directory, run = af.load_run(run_id)
+        events = af._read_jsonl(directory / run["event_log"])
+        claims = [event["payload"] for event in events if event["type"] == "MODEL_EXECUTION_STARTED"]
+        failures = [event["payload"] for event in events if event["type"] == "MODEL_ROUTE_FAILURE"]
+        retries = [event["payload"] for event in events if event["type"] == "RETRY"]
+        self.assertEqual([item["attempt"] for item in claims], [1, 2])
+        self.assertEqual([item["execution_number"] for item in claims], [1, 2])
+        self.assertEqual([item["attempt"] for item in failures], [1, 2])
+        self.assertEqual([item["attempt"] for item in retries], [1, 2])
+        self.assertEqual(run["status"], "BLOCKED")
+        self.assertEqual(af.stage_attempt_evidence(directory, run, "RESEARCH_PLAN")["window_used"], 2)
+        with (
+            mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)),
+            mock.patch.object(af, "emit"),
+        ):
+            self.assertEqual(
+                af.command_repair(namespace(run_id=run_id, gate_id="G-RESEARCH-PLAN", finding=None)),
+                af.EXIT_OK,
+            )
+            directory, repaired_run = af.load_run(run_id)
+            _, repaired_packet = af.task_packet(directory, repaired_run)
+        self.assertEqual(repaired_packet["attempt"], 3)
+        self.assertEqual(repaired_packet["task_packet_schema_version"], "1.0.0")
+        self.assertNotIn("repair_context", repaired_packet)
+
+    def test_provider_exhaustion_carries_unresolved_repair_context_through_crash(self):
+        run_id = self.start("A failed repair provider must not lose the rejected gate context.")
+        completed = subprocess.CompletedProcess([], af.EXIT_WAITING, '{"ok": false}\n', "")
+        with (
+            mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)),
+            mock.patch.object(
+                af,
+                "invoke_route",
+                return_value=('{"attempt": 1}\n', {"provider": "fixture", "model": "fixture-model"}),
+            ),
+            mock.patch.object(af.subprocess, "run", return_value=completed),
+            mock.patch.object(af, "emit"),
+        ):
+            self.assertEqual(
+                af.command_execute_stage(namespace(run_id=run_id, route=None, canary=False)),
+                af.EXIT_WAITING,
+            )
+        directory, run = af.load_run(run_id)
+        first_packet_item = af.latest_task_packet_item(directory, run, "RESEARCH_PLAN")
+        _, first_packet, issue = af.validate_recorded_task_packet(directory, run, first_packet_item)
+        self.assertIsNone(issue)
+        with (
+            mock.patch.object(af, "automatic_gate", return_value=("REPAIR", [self.finding(1)])),
+            mock.patch.object(af, "emit"),
+        ):
+            self.assertEqual(
+                af.command_submit(namespace(
+                    run_id=run_id,
+                    stage="RESEARCH_PLAN",
+                    file=first_packet["expected_outputs"][0]["path"],
+                )),
+                af.EXIT_OK,
+            )
+        original_context = af.load_run(run_id)[1]["pending_repair"]
+        with (
+            mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)),
+            mock.patch.object(af, "invoke_route", side_effect=af.FlowError("repair provider failed")),
+            mock.patch.object(af, "emit"),
+        ):
+            with self.assertRaises(af.FlowError) as caught:
+                af.command_execute_stage(namespace(run_id=run_id, route=None, canary=False))
+        self.assertEqual(caught.exception.code, af.EXIT_WAITING)
+        self.assertEqual(af.load_run(run_id)[1]["pending_repair"], original_context)
+
+        real_save = af.save_run
+
+        def crash_after_repair_transition(save_directory, save_value):
+            tail = af._read_jsonl(save_directory / save_value["event_log"])[-1]
+            if tail["type"] == "STATE_TRANSITION" and "next bounded window" in tail["payload"].get("reason", ""):
+                raise RuntimeError("crash after carried repair transition")
+            return real_save(save_directory, save_value)
+
+        with mock.patch.object(af, "save_run", side_effect=crash_after_repair_transition):
+            with self.assertRaisesRegex(RuntimeError, "carried repair"):
+                af.command_repair(namespace(run_id=run_id, gate_id="G-RESEARCH-PLAN", finding=None))
+        directory, recovered = af.load_run(run_id)
+        operator_repair = next(
+            event for event in reversed(af._read_jsonl(directory / recovered["event_log"]))
+            if event["type"] == "REPAIR" and event["actor"] == "operator_or_controller"
+        )
+        self.assertTrue(operator_repair["payload"]["repair_context_required"])
+        self.assertEqual(operator_repair["payload"]["repair_context"], original_context)
+        self.assertEqual(recovered["pending_repair"], original_context)
+        self.assertFalse(Path(operator_repair["payload"]["repair_context"]["rejected_output"]["path"]).is_absolute())
+        self.assertFalse(Path(operator_repair["payload"]["repair_context"]["gate_receipt"]["path"]).is_absolute())
+        with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)):
+            _, packet = af.task_packet(directory, recovered)
+        self.assertEqual(packet["task_packet_schema_version"], "1.1.0")
+        self.assertEqual(packet["repair_context"]["source_stage"], original_context["source_stage"])
+        self.assertEqual(packet["repair_context"]["findings"], original_context["findings"])
+        self.assertEqual(
+            packet["repair_context"]["rejected_output"]["sha256"],
+            original_context["rejected_output"]["sha256"],
+        )
+        self.assertEqual(
+            packet["repair_context"]["gate_receipt"]["sha256"],
+            original_context["gate_receipt"]["sha256"],
+        )
+
+    def test_cross_stage_provider_exhaustion_carries_context_through_crash(self):
+        run_id, directory, _, original_context = self.post_edit_repair_run(
+            "Cross-stage provider exhaustion must carry its unresolved context."
+        )
+        with (
+            mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)),
+            mock.patch.object(af, "invoke_route", side_effect=af.FlowError("edit repair provider failed")),
+            mock.patch.object(af, "emit"),
+        ):
+            with self.assertRaises(af.FlowError) as caught:
+                af.command_execute_stage(namespace(run_id=run_id, route=None, canary=False))
+        self.assertEqual(caught.exception.code, af.EXIT_WAITING)
+        definition = af.state_definition("EDIT", af.load_run(run_id)[1])
+        real_save = af.save_run
+
+        def crash_after_cross_stage_repair(save_directory, save_value):
+            tail = af._read_jsonl(save_directory / save_value["event_log"])[-1]
+            if tail["type"] == "STATE_TRANSITION" and "next bounded window" in tail["payload"].get("reason", ""):
+                raise RuntimeError("crash after cross-stage carried repair")
+            return real_save(save_directory, save_value)
+
+        with mock.patch.object(af, "save_run", side_effect=crash_after_cross_stage_repair):
+            with self.assertRaisesRegex(RuntimeError, "cross-stage carried"):
+                af.command_repair(namespace(run_id=run_id, gate_id=definition["gate"], finding=None))
+        directory, recovered = af.load_run(run_id)
+        self.assertNotIn("repair_recovery_error", recovered)
+        self.assertEqual(recovered["pending_repair"], original_context)
+        repair_event = next(
+            event for event in reversed(af._read_jsonl(directory / recovered["event_log"]))
+            if event["type"] == "REPAIR" and event["actor"] == "operator_or_controller"
+        )
+        self.assertEqual(repair_event["payload"]["source_state"], "POST_EDIT_CLAIM_VERIFICATION")
+        self.assertEqual(repair_event["payload"]["repair_state"], "EDIT")
+        self.assertTrue(repair_event["payload"]["repair_context_required"])
+        self.assertEqual(repair_event["payload"]["repair_context"], original_context)
+        with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)):
+            _, packet = af.task_packet(directory, recovered)
+        self.assertEqual(packet["task_packet_schema_version"], "1.1.0")
+        self.assertEqual(packet["repair_context"]["source_stage"], "POST_EDIT_CLAIM_VERIFICATION")
+
+    def test_completed_cross_stage_context_is_not_resurrected_by_provider_exhaustion(self):
+        run_id, directory, _, _ = self.post_edit_repair_run(
+            "A completed cross-stage repair must not contaminate a later provider-only window."
+        )
+        completed = subprocess.CompletedProcess([], af.EXIT_WAITING, '{"ok": false}\n', "")
+        with (
+            mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)),
+            mock.patch.object(
+                af,
+                "invoke_route",
+                return_value=("Edited article fixture.\n", {"provider": "fixture", "model": "fixture-model"}),
+            ),
+            mock.patch.object(af.subprocess, "run", return_value=completed),
+            mock.patch.object(af, "emit"),
+        ):
+            self.assertEqual(
+                af.command_execute_stage(namespace(run_id=run_id, route=None, canary=False)),
+                af.EXIT_WAITING,
+            )
+        directory, edit_run = af.load_run(run_id)
+        edit_item = af.latest_task_packet_item(directory, edit_run, "EDIT")
+        _, edit_packet, issue = af.validate_recorded_task_packet(directory, edit_run, edit_item)
+        self.assertIsNone(issue)
+        with (
+            mock.patch.object(af, "automatic_gate", return_value=("PASS", [])),
+            mock.patch.object(af, "emit"),
+        ):
+            self.assertEqual(
+                af.command_submit(namespace(
+                    run_id=run_id,
+                    stage="EDIT",
+                    file=edit_packet["expected_outputs"][0]["path"],
+                )),
+                af.EXIT_OK,
+            )
+        directory, returned = af.load_run(run_id)
+        self.assertEqual(returned["state"], "POST_EDIT_CLAIM_VERIFICATION")
+        self.assertNotIn("pending_repair", returned)
+        with (
+            mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)),
+            mock.patch.object(af, "invoke_route", side_effect=af.FlowError("later provider-only failure")),
+            mock.patch.object(af, "emit"),
+        ):
+            with self.assertRaises(af.FlowError) as caught:
+                af.command_execute_stage(namespace(run_id=run_id, route=None, canary=False))
+        self.assertEqual(caught.exception.code, af.EXIT_WAITING)
+        directory, blocked = af.load_run(run_id)
+        self.assertNotIn("pending_repair", blocked)
+        definition = af.state_definition("POST_EDIT_CLAIM_VERIFICATION", blocked)
+        with mock.patch.object(af, "emit"):
+            self.assertEqual(
+                af.command_repair(namespace(run_id=run_id, gate_id=definition["gate"], finding=None)),
+                af.EXIT_OK,
+            )
+        directory, repaired = af.load_run(run_id)
+        latest_repair = next(
+            event for event in reversed(af._read_jsonl(directory / repaired["event_log"]))
+            if event["type"] == "REPAIR" and event["actor"] == "operator_or_controller"
+        )
+        self.assertFalse(latest_repair["payload"]["repair_context_required"])
+        self.assertIsNone(latest_repair["payload"]["repair_context"])
+        with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)):
+            _, packet = af.task_packet(directory, repaired)
+        self.assertEqual(packet["task_packet_schema_version"], "1.0.0")
+        self.assertNotIn("repair_context", packet)
+
+    def test_fallback_chain_survives_packet_artifact_crash_before_dispatch(self):
+        run_id = self.start("A fallback packet crash must retain its exact next route.")
+        primary_set = self.route_set("RESEARCH_PLAN")
+        primary = primary_set["chosen"]
+        fallback = {**primary, "model": "zz-fallback-model"}
+        routes = {
+            **primary_set,
+            "candidates": [primary, fallback],
+            "chosen": primary,
+            "fallbacks": [fallback],
+        }
+        real_save = af.save_run
+
+        def crash_after_fallback_artifact(save_directory, save_value):
+            tail = af._read_jsonl(save_directory / save_value["event_log"])[-1]
+            item = (tail.get("payload") or {}).get("artifact", {})
+            if tail["type"] == "ARTIFACT_RECORDED" and item.get("type") == "task-packet:RESEARCH_PLAN:2":
+                raise RuntimeError("crash after fallback packet artifact")
+            return real_save(save_directory, save_value)
+
+        with (
+            mock.patch.object(af, "route_candidates", return_value=routes),
+            mock.patch.object(af, "invoke_route", side_effect=af.FlowError("primary failed")),
+            mock.patch.object(af, "save_run", side_effect=crash_after_fallback_artifact),
+            mock.patch.object(af, "emit"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "fallback packet artifact"):
+                af.command_execute_stage(namespace(run_id=run_id, route=None, canary=False))
+        directory, recovered = af.load_run(run_id)
+        self.assertEqual(
+            recovered["route_retry_candidates"]["RESEARCH_PLAN"][0]["model"],
+            "zz-fallback-model",
+        )
+        events = af._read_jsonl(directory / recovered["event_log"])
+        self.assertFalse(any(
+            event["type"] == "TASK_DISPATCHED" and event["payload"].get("attempt") == 2
+            for event in events
+        ))
+        with mock.patch.object(af, "route_candidates", return_value=routes):
+            _, replacement = af.task_packet(directory, recovered)
+        self.assertEqual(replacement["attempt"], 3)
+        self.assertEqual(replacement["selected_route"]["chosen"]["model"], "zz-fallback-model")
+
+    def test_crashed_execution_claim_is_abandoned_before_a_fresh_attempt(self):
+        run_id = self.start("A provider crash cannot reuse its claimed packet.")
+        calls = 0
+
+        def invoke(_route, _packet_path, packet):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                raise RuntimeError("provider process disappeared after invocation began")
+            return json.dumps({"attempt": packet["attempt"]}) + "\n", {"provider": "fixture", "model": "fixture-model"}
+
+        completed = subprocess.CompletedProcess([], af.EXIT_WAITING, '{"ok": false}\n', "")
+        with (
+            mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)),
+            mock.patch.object(af, "invoke_route", side_effect=invoke),
+            mock.patch.object(af.subprocess, "run", return_value=completed),
+            mock.patch.object(af, "emit"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "disappeared"):
+                af.command_execute_stage(namespace(run_id=run_id, route=None, canary=False))
+            self.assertEqual(
+                af.command_execute_stage(namespace(run_id=run_id, route=None, canary=False)),
+                af.EXIT_WAITING,
+            )
+        self.assertEqual(calls, 2)
+        directory, run = af.load_run(run_id)
+        events = af._read_jsonl(directory / run["event_log"])
+        claims = [event["payload"] for event in events if event["type"] == "MODEL_EXECUTION_STARTED"]
+        retries = [event["payload"] for event in events if event["type"] == "RETRY"]
+        self.assertEqual([item["attempt"] for item in claims], [1, 2])
+        self.assertEqual([item["attempt"] for item in retries], [1])
+        self.assertTrue((directory / "tasks" / "research_plan-01.json").is_file())
+        self.assertTrue((directory / "tasks" / "research_plan-02.json").is_file())
+
+    def test_repair_transition_crash_recovers_same_stage_v11_context(self):
+        run_id = self.start("Recover a same-stage repair authorization from the WAL.")
+        directory, run = af.load_run(run_id)
+        with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)):
+            _, packet = af.task_packet(directory, run)
+        output = Path(packet["expected_outputs"][0]["path"])
+        af.write_json(output, {"attempt": 1})
+        real_save = af.save_run
+
+        def crash_after_transition(save_directory, save_value):
+            tail = af._read_jsonl(save_directory / save_value["event_log"])[-1]
+            if tail["type"] == "STATE_TRANSITION" and "Automatic targeted repair" in tail["payload"].get("reason", ""):
+                raise RuntimeError("crash after repair transition")
+            return real_save(save_directory, save_value)
+
+        with (
+            mock.patch.object(af, "automatic_gate", return_value=("REPAIR", [self.finding(1)])),
+            mock.patch.object(af, "save_run", side_effect=crash_after_transition),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "repair transition"):
+                af.command_submit(namespace(run_id=run_id, stage="RESEARCH_PLAN", file=str(output)))
+        directory, recovered = af.load_run(run_id)
+        self.assertEqual(recovered["state"], "RESEARCH_PLAN")
+        self.assertEqual(recovered["pending_repair"]["source_stage"], "RESEARCH_PLAN")
+        with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)):
+            _, repaired = af.task_packet(directory, recovered)
+        self.assertEqual(repaired["task_packet_schema_version"], "1.1.0")
+        self.assertEqual(repaired["repair_context"]["failed_attempt"], 1)
+        self.assertEqual(repaired["repair_context"]["findings"], [self.finding(1)])
+        self.assertEqual(
+            af.sha256_path(Path(repaired["repair_context"]["rejected_output"]["path"])),
+            repaired["repair_context"]["rejected_output"]["sha256"],
+        )
+
+    def test_repair_transition_crash_recovers_cross_stage_v11_context(self):
+        run_id = self.start("Recover a cross-stage repair authorization from the WAL.")
+        directory, run = af.load_run(run_id)
+        for artifact_type in ("verified-claim-ledger", "article-recipe", "voice-learning", "voice-profile", "locked-fields"):
+            if not af.artifact(run, artifact_type):
+                self.record_json(directory, run, artifact_type, {"fixture": artifact_type})
+        for artifact_type in ("article", "draft", "naturalization-directive"):
+            if not af.artifact(run, artifact_type):
+                self.record_text(directory, run, artifact_type, f"{artifact_type} fixture\n")
+        run.setdefault("model_experiment", {}).update({
+            "provider_id": "fixture",
+            "assigned_model_id": "fixture-model",
+            "active_model_id": "fixture-model",
+        })
+        af.transition(directory, run, "POST_EDIT_CLAIM_VERIFICATION", "test", "exercise cross-stage repair recovery")
+        with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)):
+            _, packet = af.task_packet(directory, run)
+        output = Path(packet["expected_outputs"][0]["path"])
+        af.write_json(output, {"attempt": 1})
+        real_save = af.save_run
+
+        def crash_after_transition(save_directory, save_value):
+            tail = af._read_jsonl(save_directory / save_value["event_log"])[-1]
+            if tail["type"] == "STATE_TRANSITION" and tail["payload"].get("to") == "EDIT":
+                raise RuntimeError("crash after cross-stage repair transition")
+            return real_save(save_directory, save_value)
+
+        with (
+            mock.patch.object(af, "automatic_gate", return_value=("REPAIR", [self.finding(1)])),
+            mock.patch.object(af, "save_run", side_effect=crash_after_transition),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "cross-stage"):
+                af.command_submit(namespace(run_id=run_id, stage="POST_EDIT_CLAIM_VERIFICATION", file=str(output)))
+        directory, recovered = af.load_run(run_id)
+        self.assertEqual(recovered["state"], "EDIT")
+        self.assertEqual(recovered["pending_repair"]["source_stage"], "POST_EDIT_CLAIM_VERIFICATION")
+        self.assertEqual(recovered["pending_repair"]["repair_state"], "EDIT")
+        with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)):
+            _, repaired = af.task_packet(directory, recovered)
+        self.assertEqual(repaired["task_packet_schema_version"], "1.1.0")
+        self.assertEqual(repaired["repair_context"]["task_binding"]["attempt"], 1)
+
+    def test_duplicate_submit_after_committed_gate_durably_blocks_once(self):
+        run_id, directory = self.research_run()
+        with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)):
+            packet_path, packet = af.task_packet(directory, af.load_run(run_id)[1])
+        output = Path(packet["expected_outputs"][0]["path"])
+        af.write_json(output, {"attempt": 1})
+        _, run = af.load_run(run_id)
+        real_append = af.append_event
+
+        def crash_before_gate(event_directory, event_run, event_type, actor, payload):
+            if event_type == "GATE_RECORDED":
+                raise RuntimeError("gate event crash")
+            return real_append(event_directory, event_run, event_type, actor, payload)
+
+        with mock.patch.object(af, "append_event", side_effect=crash_before_gate):
+            with self.assertRaisesRegex(RuntimeError, "gate event"):
+                af.write_gate_receipt(
+                    directory,
+                    run,
+                    "G-EVIDENCE-COVERAGE",
+                    "REPAIR",
+                    [self.finding(1)],
+                    {"type": "code", "version": "test"},
+                    "RESEARCH",
+                    task_state="RESEARCH",
+                    task_attempt=1,
+                    task_packet_sha256=af.sha256_path(packet_path),
+                )
+        for _ in range(2):
+            with self.assertRaises(af.FlowError) as caught:
+                af.command_submit(namespace(run_id=run_id, stage="RESEARCH", file=str(output)))
+            self.assertEqual(caught.exception.code, af.EXIT_WAITING)
+        raw = af.load_json(directory / "run.json")
+        self.assertEqual(raw["status"], "BLOCKED")
+        escalations = [event for event in af._read_jsonl(directory / raw["event_log"]) if event["type"] == "ESCALATION"]
+        self.assertEqual(len(escalations), 1)
+        self.assertEqual(escalations[0]["payload"]["task_packet_sha256"], af.sha256_path(packet_path))
+
+    def test_submit_attempt_integrity_failures_durably_block(self):
+        def pending_model_call(label):
+            run_id = self.start(f"Submit integrity fixture: {label}.")
+            completed = subprocess.CompletedProcess([], af.EXIT_WAITING, '{"ok": false}\n', "")
+            with (
+                mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)),
+                mock.patch.object(
+                    af,
+                    "invoke_route",
+                    return_value=('{}\n', {"provider": "fixture", "model": "fixture-model"}),
+                ),
+                mock.patch.object(af.subprocess, "run", return_value=completed),
+                mock.patch.object(af, "emit"),
+            ):
+                self.assertEqual(
+                    af.command_execute_stage(namespace(run_id=run_id, route=None, canary=False)),
+                    af.EXIT_WAITING,
+                )
+            directory, run = af.load_run(run_id)
+            packet_item = af.latest_task_packet_item(directory, run, "RESEARCH_PLAN")
+            packet_path, packet, issue = af.validate_recorded_task_packet(directory, run, packet_item)
+            self.assertIsNone(issue)
+            return run_id, directory, run, packet_path, packet
+
+        for failure in ("packet", "receipt", "source", "destination"):
+            with self.subTest(failure=failure):
+                run_id, directory, run, packet_path, packet = pending_model_call(failure)
+                source = Path(packet["expected_outputs"][0]["path"])
+                if failure == "packet":
+                    packet_path.write_bytes(packet_path.read_bytes() + b" ")
+                elif failure == "receipt":
+                    receipt = directory / "receipts" / "model-call-research_plan-01.json"
+                    receipt.write_bytes(receipt.read_bytes() + b" ")
+                elif failure == "source":
+                    source.write_bytes(b'{"changed": true}\n')
+                else:
+                    (directory / "artifacts" / "01-research-plan.json").write_bytes(b'{"different": true}\n')
+                with self.assertRaises(af.FlowError) as caught:
+                    af.command_submit(namespace(run_id=run_id, stage="RESEARCH_PLAN", file=str(source)))
+                self.assertEqual(caught.exception.code, af.EXIT_INTEGRITY)
+                raw = af.load_json(directory / "run.json")
+                self.assertEqual(raw["status"], "BLOCKED")
+                escalations = [
+                    event for event in af._read_jsonl(directory / raw["event_log"])
+                    if event["type"] == "ESCALATION"
+                ]
+                self.assertEqual(len(escalations), 1)
+                self.assertEqual(escalations[0]["payload"]["attempt"], 1)
+
+    def test_submit_copies_the_same_source_snapshot_bound_by_the_receipt(self):
+        run_id = self.start("Submission must not switch bytes after receipt validation.")
+        completed = subprocess.CompletedProcess([], af.EXIT_WAITING, '{"ok": false}\n', "")
+        trusted = b'{"trusted": true}\n'
+        with (
+            mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)),
+            mock.patch.object(
+                af,
+                "invoke_route",
+                return_value=(trusted.decode("utf-8"), {"provider": "fixture", "model": "fixture-model"}),
+            ),
+            mock.patch.object(af.subprocess, "run", return_value=completed),
+            mock.patch.object(af, "emit"),
+        ):
+            self.assertEqual(
+                af.command_execute_stage(namespace(run_id=run_id, route=None, canary=False)),
+                af.EXIT_WAITING,
+            )
+        directory, run = af.load_run(run_id)
+        packet_item = af.latest_task_packet_item(directory, run, "RESEARCH_PLAN")
+        _, packet, issue = af.validate_recorded_task_packet(directory, run, packet_item)
+        self.assertIsNone(issue)
+        source = Path(packet["expected_outputs"][0]["path"])
+        tampered = b'{"tampered": true}\n'
+        original_read_bytes = Path.read_bytes
+        swapped = False
+
+        def swap_source_after_snapshot(path):
+            nonlocal swapped
+            value = original_read_bytes(path)
+            if not swapped and path.resolve() == source.resolve():
+                swapped = True
+                path.write_bytes(tampered)
+            return value
+
+        with (
+            mock.patch.object(Path, "read_bytes", new=swap_source_after_snapshot),
+            mock.patch.object(af, "automatic_gate", return_value=("PASS", [])),
+            mock.patch.object(af, "emit"),
+        ):
+            af.command_submit(namespace(run_id=run_id, stage="RESEARCH_PLAN", file=str(source)))
+        self.assertTrue(swapped)
+        destination = directory / "artifacts" / "01-research-plan.json"
+        self.assertEqual(destination.read_bytes(), trusted)
+        self.assertEqual(source.read_bytes(), tampered)
+        accepted = next(item for item in af.load_run(run_id)[1]["artifact_index"] if item["type"] == "research-plan")
+        self.assertEqual(accepted["sha256"], af.sha256_bytes(trusted))
+
+    def test_submit_blocks_destination_create_race_and_gate_time_mutation(self):
+        def pending_model_call(label):
+            run_id = self.start(f"Destination integrity fixture: {label}.")
+            completed = subprocess.CompletedProcess([], af.EXIT_WAITING, '{"ok": false}\n', "")
+            with (
+                mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)),
+                mock.patch.object(
+                    af,
+                    "invoke_route",
+                    return_value=('{"trusted": true}\n', {"provider": "fixture", "model": "fixture-model"}),
+                ),
+                mock.patch.object(af.subprocess, "run", return_value=completed),
+                mock.patch.object(af, "emit"),
+            ):
+                af.command_execute_stage(namespace(run_id=run_id, route=None, canary=False))
+            directory, run = af.load_run(run_id)
+            packet_item = af.latest_task_packet_item(directory, run, "RESEARCH_PLAN")
+            _, packet, issue = af.validate_recorded_task_packet(directory, run, packet_item)
+            self.assertIsNone(issue)
+            return run_id, directory, Path(packet["expected_outputs"][0]["path"])
+
+        run_id, directory, source = pending_model_call("create race")
+        destination = directory / "artifacts" / "01-research-plan.json"
+        real_immutable_write = af.immutable_write
+        collided = False
+
+        def create_conflict(path, data):
+            nonlocal collided
+            if path == destination and not collided:
+                collided = True
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(b'{"raced": true}\n')
+            return real_immutable_write(path, data)
+
+        with mock.patch.object(af, "immutable_write", side_effect=create_conflict):
+            with self.assertRaises(af.FlowError) as caught:
+                af.command_submit(namespace(run_id=run_id, stage="RESEARCH_PLAN", file=str(source)))
+        self.assertEqual(caught.exception.code, af.EXIT_INTEGRITY)
+        self.assertTrue(collided)
+        self.assertEqual(af.load_json(directory / "run.json")["status"], "BLOCKED")
+
+        run_id, directory, source = pending_model_call("gate mutation")
+        destination = directory / "artifacts" / "01-research-plan.json"
+
+        def mutate_during_gate(_directory, _run, _stage, path):
+            self.assertEqual(path, destination)
+            path.write_bytes(b'{"mutated_during_gate": true}\n')
+            return "PASS", []
+
+        with mock.patch.object(af, "automatic_gate", side_effect=mutate_during_gate):
+            with self.assertRaises(af.FlowError) as caught:
+                af.command_submit(namespace(run_id=run_id, stage="RESEARCH_PLAN", file=str(source)))
+        self.assertEqual(caught.exception.code, af.EXIT_INTEGRITY)
+        self.assertEqual(af.load_json(directory / "run.json")["status"], "BLOCKED")
+
+        run_id, directory, source = pending_model_call("record boundary mutation")
+        destination = directory / "artifacts" / "01-research-plan.json"
+
+        def mutate_before_record(_directory, _run, _stage, _attempt):
+            destination.write_bytes(b'{"mutated_before_record": true}\n')
+            return {"provider": "fixture", "model": "fixture-model"}
+
+        with (
+            mock.patch.object(af, "automatic_gate", return_value=("PASS", [])),
+            mock.patch.object(af, "latest_model_call_route", side_effect=mutate_before_record),
+        ):
+            with self.assertRaises(af.FlowError) as caught:
+                af.command_submit(namespace(run_id=run_id, stage="RESEARCH_PLAN", file=str(source)))
+        self.assertEqual(caught.exception.code, af.EXIT_INTEGRITY)
+        self.assertEqual(af.load_json(directory / "run.json")["status"], "BLOCKED")
+        self.assertFalse(any(
+            event["type"] == "ARTIFACT_RECORDED"
+            and (event["payload"].get("artifact") or {}).get("type") == "research-plan"
+            for event in af._read_jsonl(directory / "events.jsonl")
+        ))
+
+        for boundary in ("packet", "input"):
+            with self.subTest(boundary=boundary):
+                run_id, directory, source = pending_model_call(f"gate-time {boundary} mutation")
+                current_run = af.load_run(run_id)[1]
+                packet_item = af.latest_task_packet_item(directory, current_run, "RESEARCH_PLAN")
+                packet_path, packet, issue = af.validate_recorded_task_packet(directory, current_run, packet_item)
+                self.assertIsNone(issue)
+
+                def mutate_attempt_evidence(_directory, _run, _stage, _destination):
+                    if boundary == "packet":
+                        swapped = af.load_json(packet_path)
+                        swapped["objective"] = "Gate-time swapped objective."
+                        af.write_json(packet_path, swapped)
+                    else:
+                        input_path = Path(packet["inputs"][0]["path"])
+                        input_path.write_bytes(input_path.read_bytes() + b"\nmutated during gate\n")
+                    return "PASS", []
+
+                with mock.patch.object(af, "automatic_gate", side_effect=mutate_attempt_evidence):
+                    with self.assertRaises(af.FlowError) as caught:
+                        af.command_submit(namespace(run_id=run_id, stage="RESEARCH_PLAN", file=str(source)))
+                self.assertEqual(caught.exception.code, af.EXIT_INTEGRITY)
+                self.assertEqual(af.load_json(directory / "run.json")["status"], "BLOCKED")
+                self.assertFalse(any(
+                    event["type"] == "GATE_RECORDED"
+                    and event["payload"].get("gate_id") == "G-RESEARCH-PLAN"
+                    for event in af._read_jsonl(directory / "events.jsonl")
+                ))
+
+    def test_legacy_v10_gate_receipt_uses_only_an_exact_unique_packet_hash(self):
+        run_id, directory = self.research_run()
+        with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)):
+            packet_path, _ = af.task_packet(directory, af.load_run(run_id)[1])
+        _, run = af.load_run(run_id)
+        real_append = af.append_event
+
+        def crash_before_gate(event_directory, event_run, event_type, actor, payload):
+            if event_type == "GATE_RECORDED":
+                raise RuntimeError("legacy gate event crash")
+            return real_append(event_directory, event_run, event_type, actor, payload)
+
+        with mock.patch.object(af, "append_event", side_effect=crash_before_gate):
+            with self.assertRaisesRegex(RuntimeError, "legacy gate"):
+                af.write_gate_receipt(
+                    directory,
+                    run,
+                    "G-EVIDENCE-COVERAGE",
+                    "REPAIR",
+                    [self.finding(1)],
+                    {"type": "code", "version": "legacy"},
+                    "RESEARCH",
+                )
+        receipt = next((directory / "receipts").glob("g-evidence-coverage-*.json"))
+        self.assertEqual(af.load_json(receipt)["gate_receipt_schema_version"], "1.0.0")
+        with self.assertRaises(af.FlowError) as caught:
+            af.current_packet(*af.load_run(run_id))
+        self.assertEqual(caught.exception.code, af.EXIT_WAITING)
+        self.assertEqual(af.load_json(directory / "run.json")["status"], "BLOCKED")
+        self.assertFalse((directory / "tasks" / "research-02.json").exists())
+        self.assertEqual(
+            af.load_json(receipt)["artifact_hashes"]["task-packet:RESEARCH:1"],
+            af.sha256_path(packet_path),
+        )
+
+    def test_observer_load_does_not_write_or_drop_a_writer_tail(self):
+        run_id = self.start("A watcher cannot overwrite an in-flight writer cache.")
+        directory, run = af.load_run(run_id)
+        with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)):
+            packet_path, packet = af.task_packet(directory, run)
+        started = threading.Event()
+        release = threading.Event()
+
+        def writer():
+            writer_directory, writer_run = af.load_run(run_id)
+            with af.run_lock(writer_directory, writer_run):
+                identity = af.task_identity_payload("RESEARCH_PLAN", 1, af.sha256_path(packet_path))
+                route = packet["selected_route"]["chosen"]
+                writer_run.setdefault("route_failures", {}).setdefault("RESEARCH_PLAN", {})["fixture:fixture-model"] = 1
+                af.append_event(writer_directory, writer_run, "MODEL_ROUTE_FAILURE", "controller", {
+                    **identity,
+                    "execution_number": 1,
+                    "route": route,
+                    "failure_count": 1,
+                    "error": "fixture",
+                    "details": None,
+                })
+                started.set()
+                self.assertTrue(release.wait(5))
+                af.save_run(writer_directory, writer_run)
+
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(writer)
+            self.assertTrue(started.wait(5))
+            before = (directory / "run.json").read_bytes()
+            _, observed = af.load_run(run_id)
+            self.assertEqual(observed["route_failures"]["RESEARCH_PLAN"]["fixture:fixture-model"], 1)
+            self.assertEqual((directory / "run.json").read_bytes(), before)
+            release.set()
+            future.result(timeout=10)
+        _, final = af.load_run(run_id)
+        self.assertEqual(final["route_failures"]["RESEARCH_PLAN"]["fixture:fixture-model"], 1)
+
+    def test_headless_legacy_waiting_human_cache_is_preserved_then_migrated(self):
+        run_id = self.start("Legacy cache-only holds must remain stable.")
+        directory, run = af.load_run(run_id)
+        run["status"] = "WAITING_HUMAN"
+        af.save_run(directory, run)
+        raw = af.load_json(directory / "run.json")
+        raw.pop("applied_event_head", None)
+        af.write_json(directory / "run.json", raw)
+        before = (directory / "run.json").read_bytes()
+        _, observed = af.load_run(run_id)
+        self.assertEqual(observed["status"], "WAITING_HUMAN")
+        self.assertEqual((directory / "run.json").read_bytes(), before)
+        with af.run_lock(directory, observed):
+            pass
+        migrated = af.load_json(directory / "run.json")
+        self.assertEqual(migrated["status"], "WAITING_HUMAN")
+        self.assertIn("applied_event_head", migrated)
+
+    def test_headless_legacy_crash_reuses_its_durable_pending_dispatch(self):
+        run_id = self.start("A pre-head dispatch crash must not mint a duplicate packet.")
+        directory, run = af.load_run(run_id)
+        with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)):
+            first_path, first_packet = af.task_packet(directory, run)
+        raw = af.load_json(directory / "run.json")
+        raw["status"] = "ACTIVE"
+        raw["attempts"]["RESEARCH_PLAN"] = 0
+        raw.pop("applied_event_head", None)
+        af.write_json(directory / "run.json", raw)
+        directory, recovered = af.load_run(run_id)
+        self.assertEqual(recovered["status"], "WAITING_MODEL")
+        self.assertEqual(recovered["attempts"]["RESEARCH_PLAN"], 1)
+        with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)):
+            current_path, current_packet = af.current_packet(directory, recovered)
+        self.assertEqual(current_path, first_path)
+        self.assertEqual(current_packet["attempt"], first_packet["attempt"])
+        self.assertFalse((directory / "tasks" / "research_plan-02.json").exists())
+
+    def test_headless_legacy_route_state_remains_cache_authoritative(self):
+        run_id = self.start("Legacy automatic repair must preserve cached route failures.")
+        directory, run = af.load_run(run_id)
+        route = {"provider": "legacy", "model": "model"}
+        af.append_event(directory, run, "MODEL_OUTPUT_REJECTED", "controller", {
+            "state": "RESEARCH_PLAN",
+            "route": route,
+            "failure_count": 1,
+            "findings": [self.finding(1)],
+        })
+        af.append_event(directory, run, "REPAIR", "controller", {
+            "source_state": "RESEARCH_PLAN",
+            "repair_state": "RESEARCH_PLAN",
+            "attempts_in_window": 1,
+        })
+        run["route_failures"] = {"RESEARCH_PLAN": {"legacy:model": 1}}
+        af.save_run(directory, run)
+        raw = af.load_json(directory / "run.json")
+        raw.pop("applied_event_head", None)
+        af.write_json(directory / "run.json", raw)
+        self.assertEqual(
+            af.load_run(run_id)[1]["route_failures"],
+            {"RESEARCH_PLAN": {"legacy:model": 1}},
+        )
+
+        run_id = self.start("Legacy human repair must not resurrect cleared route failures.")
+        directory, run = af.load_run(run_id)
+        af.append_event(directory, run, "MODEL_OUTPUT_REJECTED", "controller", {
+            "state": "RESEARCH_PLAN",
+            "route": route,
+            "failure_count": 1,
+            "findings": [self.finding(1)],
+        })
+        af.append_event(directory, run, "GATE_RECORDED", "operator", {
+            "state": "RESEARCH_PLAN",
+            "gate_id": "G-RESEARCH-PLAN",
+            "outcome": "REPAIR",
+        })
+        run["route_failures"] = {}
+        af.save_run(directory, run)
+        raw = af.load_json(directory / "run.json")
+        raw.pop("applied_event_head", None)
+        af.write_json(directory / "run.json", raw)
+        self.assertEqual(af.load_run(run_id)[1]["route_failures"], {})
+
+    def test_exhaustion_escalation_is_idempotent_only_within_one_repair_window(self):
+        run_id = self.start("Each bounded repair window needs its own exhaustion record.")
+        directory, run = af.load_run(run_id)
+        definition = dict(af.state_definition("RESEARCH_PLAN", run))
+        definition["max_attempts"] = 2
+        for failure_count in (1, 2):
+            af.append_event(directory, run, "MODEL_OUTPUT_REJECTED", "legacy", {
+                "state": "RESEARCH_PLAN",
+                "failure_count": failure_count,
+                "findings": [self.finding(failure_count)],
+            })
+        af.block_exhausted_stage(directory, run, "RESEARCH_PLAN", definition)
+        af.block_exhausted_stage(directory, run, "RESEARCH_PLAN", definition)
+        baseline_ordinal = af.reset_attempt_window(directory, run, "RESEARCH_PLAN")
+        execution_baseline = run["attempt_baselines"]["RESEARCH_PLAN"]
+        af.append_event(directory, run, "REPAIR", "operator", {
+            "source_state": "RESEARCH_PLAN",
+            "repair_state": "RESEARCH_PLAN",
+            "attempt_ordinal_baseline": baseline_ordinal,
+            "execution_count_baseline": execution_baseline,
+            "repair_context": None,
+            "repair_context_required": False,
+            "clear_route_failures": True,
+        })
+        af.transition(directory, run, "RESEARCH_PLAN", "operator", "open the second bounded repair window")
+        for failure_count in (3, 4):
+            af.append_event(directory, run, "MODEL_OUTPUT_REJECTED", "legacy", {
+                "state": "RESEARCH_PLAN",
+                "failure_count": failure_count,
+                "findings": [self.finding(failure_count)],
+            })
+        af.block_exhausted_stage(directory, run, "RESEARCH_PLAN", definition)
+        af.block_exhausted_stage(directory, run, "RESEARCH_PLAN", definition)
+        escalations = [
+            event for event in af._read_jsonl(directory / run["event_log"])
+            if event["type"] == "ESCALATION"
+            and event["payload"].get("reason") == "attempt_window_exhausted"
+        ]
+        self.assertEqual(len(escalations), 2)
+        self.assertEqual([event["payload"]["attempt_ordinal"] for event in escalations], [2, 4])
+        self.assertEqual([event["payload"]["window_baseline"] for event in escalations], [0, 2])
+
+    def test_legacy_rejections_compose_with_new_execution_numbers_after_repair(self):
+        run_id = self.start("Legacy lower bounds must compose with new exact claims.")
+        directory, run = af.load_run(run_id)
+        for failure_count in range(1, 5):
+            af.append_event(directory, run, "MODEL_OUTPUT_REJECTED", "legacy", {
+                "state": "RESEARCH_PLAN",
+                "failure_count": failure_count,
+                "findings": [self.finding(failure_count)],
+            })
+        baseline = af.reset_attempt_window(directory, run, "RESEARCH_PLAN")
+        self.assertEqual(baseline, 4)
+        af.append_event(directory, run, "REPAIR", "operator", {
+            "gate_id": "G-RESEARCH-PLAN",
+            "source_state": "RESEARCH_PLAN",
+            "repair_state": "RESEARCH_PLAN",
+            "attempt_ordinal_baseline": 4,
+            "execution_count_baseline": 4,
+            "repair_context": None,
+            "repair_context_required": False,
+            "clear_route_failures": True,
+        })
+        af.transition(directory, run, "RESEARCH_PLAN", "operator", "new bounded repair window")
+        with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)):
+            packet_path, packet = af.task_packet(directory, run)
+        self.assertEqual(packet["attempt"], 5)
+        af.append_event(directory, run, "MODEL_EXECUTION_STARTED", "controller", {
+            **af.task_identity_payload("RESEARCH_PLAN", 5, af.sha256_path(packet_path)),
+            "execution_number": 5,
+            "route": packet["selected_route"]["chosen"],
+        })
+        af.save_run(directory, run)
+        evidence = af.stage_attempt_evidence(directory, run, "RESEARCH_PLAN")
+        self.assertEqual(evidence["execution_count"], 5)
+        self.assertEqual(evidence["window_baseline"], 4)
+        self.assertEqual(evidence["window_used"], 1)
+
+    def test_operator_repair_crash_recovers_distinct_ordinal_and_execution_baselines(self):
+        run_id = self.start("Repair recovery must not confuse packet ordinals with executions.")
+        directory, run = af.load_run(run_id)
+        packets = []
+        with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)):
+            for index in range(4):
+                if index:
+                    item = af.latest_task_packet_item(directory, run, "RESEARCH_PLAN")
+                    af.abandon_cached_packet(directory, run, "RESEARCH_PLAN", item, {"reason": "test_route_refresh"})
+                packet_path, packet = af.task_packet(directory, run)
+                packets.append((packet_path, packet))
+        for execution_number, (packet_path, packet) in enumerate(packets[:2], start=1):
+            af.append_event(directory, run, "MODEL_EXECUTION_STARTED", "controller", {
+                **af.task_identity_payload("RESEARCH_PLAN", packet["attempt"], af.sha256_path(packet_path)),
+                "execution_number": execution_number,
+                "route": packet["selected_route"]["chosen"],
+            })
+        rejected = directory / "artifacts" / "ordinal-four-rejected-plan.json"
+        af.write_json(rejected, {"rejected": True})
+        af.record_artifact(directory, run, rejected, "research-plan", {"actor": "test"})
+        latest_path, latest_packet = packets[-1]
+        af.write_gate_receipt(
+            directory,
+            run,
+            "G-RESEARCH-PLAN",
+            "REPAIR",
+            [self.finding(4)],
+            {"type": "code", "version": "test"},
+            "RESEARCH_PLAN",
+            task_state="RESEARCH_PLAN",
+            task_attempt=4,
+            task_packet_sha256=af.sha256_path(latest_path),
+        )
+        run["status"] = "BLOCKED"
+        af.save_run(directory, run)
+        before = af.stage_attempt_evidence(directory, run, "RESEARCH_PLAN")
+        self.assertEqual((before["ordinal"], before["execution_count"]), (4, 2))
+        real_save = af.save_run
+
+        def crash_after_transition(save_directory, save_value):
+            tail = af._read_jsonl(save_directory / save_value["event_log"])[-1]
+            if tail["type"] == "STATE_TRANSITION" and "next bounded window" in tail["payload"].get("reason", ""):
+                raise RuntimeError("crash after operator repair transition")
+            return real_save(save_directory, save_value)
+
+        with mock.patch.object(af, "save_run", side_effect=crash_after_transition):
+            with self.assertRaisesRegex(RuntimeError, "operator repair"):
+                af.command_repair(namespace(run_id=run_id, gate_id="G-RESEARCH-PLAN", finding=None))
+        directory, recovered = af.load_run(run_id)
+        self.assertEqual(recovered["attempt_baselines"]["RESEARCH_PLAN"], 2)
+        repair_event = next(
+            event for event in reversed(af._read_jsonl(directory / recovered["event_log"]))
+            if event["type"] == "REPAIR"
+        )
+        self.assertEqual(repair_event["payload"]["attempt_ordinal_baseline"], 4)
+        self.assertEqual(repair_event["payload"]["execution_count_baseline"], 2)
+        with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)):
+            _, repaired = af.task_packet(directory, recovered)
+        self.assertEqual(repaired["attempt"], 5)
+        self.assertEqual(repaired["task_packet_schema_version"], "1.1.0")
+
+    def test_provider_written_output_must_match_returned_bytes_exactly(self):
+        run_id = self.start("Semantically equal bytes are not immutable evidence.")
+
+        def invoke(_route, _packet_path, packet):
+            Path(packet["expected_outputs"][0]["path"]).write_bytes(b'{"same":true}\n')
+            return '{\n  "same": true\n}\n', {"provider": "fixture", "model": "fixture-model"}
+
+        with (
+            mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)),
+            mock.patch.object(af, "invoke_route", side_effect=invoke),
+            mock.patch.object(af, "emit"),
+        ):
+            with self.assertRaises(af.FlowError) as caught:
+                af.command_execute_stage(namespace(run_id=run_id, route=None, canary=False))
+        self.assertEqual(caught.exception.code, af.EXIT_INTEGRITY)
+        directory, run = af.load_run(run_id)
+        self.assertEqual(run["status"], "BLOCKED")
+        self.assertFalse(any(item["type"].startswith("model-call:") for item in run["artifact_index"]))
+
+    def test_execute_stage_rejects_output_and_receipt_swaps_during_commit(self):
+        for boundary in ("packet", "output", "receipt"):
+            with self.subTest(boundary=boundary):
+                run_id = self.start(f"Model-call {boundary} commit bytes must remain exact.")
+                directory, _ = af.load_run(run_id)
+                trusted = b'{"trusted": true}\n'
+                tampered = b'{"tampered": true}\n'
+                output_path = None
+                real_immutable_write = af.immutable_write
+                real_record_artifact = af.record_artifact
+                real_current_packet = af.current_packet
+
+                def swap_packet_before_hash(*args, **kwargs):
+                    path, packet = real_current_packet(*args, **kwargs)
+                    if boundary == "packet":
+                        swapped = af.load_json(path)
+                        swapped["objective"] = "Instructions swapped after task_packet returned."
+                        af.write_json(path, swapped)
+                    return path, packet
+
+                def invoke(_route, _packet_path, packet):
+                    nonlocal output_path
+                    output_path = Path(packet["expected_outputs"][0]["path"])
+                    return trusted.decode("utf-8"), {"provider": "fixture", "model": "fixture-model"}
+
+                def mutate_after_output_write(path, data):
+                    result = real_immutable_write(path, data)
+                    if boundary == "output" and path.parent.name == "submissions":
+                        path.write_bytes(tampered)
+                    return result
+
+                def swap_receipt_and_output(*args, **kwargs):
+                    path = args[2]
+                    artifact_type = args[3]
+                    if boundary == "receipt" and artifact_type.startswith("model-call:"):
+                        self.assertIsNotNone(output_path)
+                        output_path.write_bytes(tampered)
+                        swapped_receipt = af.load_json(path)
+                        swapped_receipt["output_sha256"] = af.sha256_bytes(tampered)
+                        af.write_json(path, swapped_receipt)
+                    return real_record_artifact(*args, **kwargs)
+
+                with (
+                    mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)),
+                    mock.patch.object(af, "current_packet", side_effect=swap_packet_before_hash),
+                    mock.patch.object(af, "invoke_route", side_effect=invoke),
+                    mock.patch.object(af, "immutable_write", side_effect=mutate_after_output_write),
+                    mock.patch.object(af, "record_artifact", side_effect=swap_receipt_and_output),
+                    mock.patch.object(af, "emit"),
+                ):
+                    with self.assertRaises(af.FlowError) as caught:
+                        af.command_execute_stage(namespace(run_id=run_id, route=None, canary=False))
+                self.assertEqual(caught.exception.code, af.EXIT_INTEGRITY)
+                _, blocked = af.load_run(run_id)
+                self.assertEqual(blocked["status"], "BLOCKED")
+                self.assertFalse(any(item["type"].startswith("model-call:") for item in blocked["artifact_index"]))
+
+    def test_task_packet_and_gate_receipt_reject_schema_valid_commit_swaps(self):
+        run_id = self.start("Task packet commit bytes must stay canonical.")
+        directory, run = af.load_run(run_id)
+        real_record_artifact = af.record_artifact
+
+        def swap_task_packet(*args, **kwargs):
+            path = args[2]
+            artifact_type = args[3]
+            if artifact_type.startswith("task-packet:"):
+                swapped = af.load_json(path)
+                swapped["objective"] = "Swapped instructions must never become durable evidence."
+                af.write_json(path, swapped)
+            return real_record_artifact(*args, **kwargs)
+
+        with (
+            mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)),
+            mock.patch.object(af, "record_artifact", side_effect=swap_task_packet),
+        ):
+            with self.assertRaises(af.FlowError) as caught:
+                af.task_packet(directory, run)
+        self.assertEqual(caught.exception.code, af.EXIT_INTEGRITY)
+        self.assertEqual(af.load_json(directory / "run.json")["status"], "BLOCKED")
+        self.assertFalse(any(event["type"] == "TASK_DISPATCHED" for event in af._read_jsonl(directory / "events.jsonl")))
+
+        run_id = self.start("Gate receipt commit bytes must stay canonical.")
+        directory, run = af.load_run(run_id)
+        with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)):
+            packet_path, packet = af.task_packet(directory, run)
+
+        def swap_gate_receipt(*args, **kwargs):
+            path = args[2]
+            artifact_type = args[3]
+            if artifact_type.startswith("gate-receipt:"):
+                swapped = af.load_json(path)
+                swapped["outcome"] = "REPAIR"
+                swapped["findings"] = [self.finding(1)]
+                af.write_json(path, swapped)
+            return real_record_artifact(*args, **kwargs)
+
+        with mock.patch.object(af, "record_artifact", side_effect=swap_gate_receipt):
+            with self.assertRaises(af.FlowError) as caught:
+                af.write_gate_receipt(
+                    directory,
+                    run,
+                    "G-RESEARCH-PLAN",
+                    "PASS",
+                    [],
+                    {"type": "code", "version": "test"},
+                    "RESEARCH_PLAN",
+                    task_state="RESEARCH_PLAN",
+                    task_attempt=packet["attempt"],
+                    task_packet_sha256=af.sha256_path(packet_path),
+                )
+        self.assertEqual(caught.exception.code, af.EXIT_INTEGRITY)
+        self.assertEqual(af.load_json(directory / "run.json")["status"], "BLOCKED")
+        self.assertFalse(any(
+            event["type"] == "GATE_RECORDED"
+            and event["payload"].get("gate_id") == "G-RESEARCH-PLAN"
+            for event in af._read_jsonl(directory / "events.jsonl")
+        ))
 
 
 class InstallationRegressionTests(TemporaryRuntime):
@@ -1288,10 +2446,11 @@ class ModelRotationTests(TemporaryRuntime):
             "transport": {"kind": "codex-cli", "exit_code": 0},
         }
         def submit_in_process(command, **kwargs):
+            submitted_output = Path(command[command.index("--file") + 1])
             stream = io.StringIO()
             with contextlib.redirect_stdout(stream):
                 return_code = af.command_submit(
-                    namespace(run_id=run_id, stage="DRAFT", file=str(output_path))
+                    namespace(run_id=run_id, stage="DRAFT", file=str(submitted_output))
                 )
             return subprocess.CompletedProcess(
                 args=command,
@@ -1594,6 +2753,26 @@ class PacketRoutingRegressionTests(TemporaryRuntime):
             selected = refreshed["selected_route"]["chosen"]
             self.assertEqual((selected["provider"], selected["model"]), ("fixture-command", "canary-model"))
             self.assertTrue(selected["canary_execution"])
+            lifecycle = af._read_jsonl(directory / run["event_log"])
+            dispatches = {
+                (
+                    event["payload"]["state"],
+                    event["payload"]["attempt"],
+                    event["payload"]["task_packet_sha256"],
+                )
+                for event in lifecycle
+                if event["type"] == "TASK_DISPATCHED"
+            }
+            abandoned = {
+                af.event_task_identity(event)
+                for event in lifecycle
+                if event["type"] == "RETRY"
+            }
+            self.assertIn(("RESEARCH_PLAN", cached["attempt"], af.sha256_path(cached_path)), abandoned)
+            self.assertEqual(
+                dispatches - abandoned,
+                {("RESEARCH_PLAN", refreshed["attempt"], af.sha256_path(refreshed_path))},
+            )
 
             _, current = af.load_run(run_id)
             same_path, same_packet = af.current_packet(
@@ -1604,6 +2783,10 @@ class PacketRoutingRegressionTests(TemporaryRuntime):
             )
             self.assertEqual(same_path, refreshed_path)
             self.assertEqual(same_packet["attempt"], refreshed["attempt"])
+            self.assertEqual(
+                len([event for event in af._read_jsonl(directory / run["event_log"]) if event["type"] == "RETRY"]),
+                1,
+            )
 
             with (
                 mock.patch.object(af, "invoke_route", return_value=(output, call_receipt)) as invoked,
@@ -1789,6 +2972,166 @@ class VoiceLearningTests(TemporaryRuntime):
             if event.get("type") == "VOICE_SELECTION_RECORDED"
         ]
         self.assertEqual(len(selection_events), 1)
+
+    def crash_after_committed_voice_selection(self, selection="A"):
+        """Commit the human choice durably, then die before the transition."""
+        run_id, directory, _, probe_path, _ = self.prepare_voice_choice()
+        candidate_bytes = probe_path.read_bytes()
+        with (
+            mock.patch.object(af, "transition", side_effect=RuntimeError("crash before voice transition")),
+            mock.patch.object(af, "emit"),
+        ):
+            with self.assertRaises(RuntimeError):
+                af.command_gate(namespace(
+                    run_id=run_id,
+                    gate_id="G-VOICE-PROBE",
+                    outcome="PASS",
+                    finding=None,
+                    artifact=None,
+                    selection=selection,
+                    feedback=None,
+                ))
+        directory, crashed = af.load_run(run_id)
+        self.assertEqual(crashed["state"], "VOICE_PROBE")
+        return run_id, directory, crashed, probe_path, candidate_bytes
+
+    def voice_event_counts(self, directory):
+        events = af._read_jsonl(directory / "events.jsonl")
+        return events, {
+            "selection": [
+                event for event in events
+                if event["type"] == "VOICE_SELECTION_RECORDED"
+            ],
+            "gate_pass": [
+                event for event in events
+                if event["type"] == "GATE_RECORDED"
+                and event["payload"].get("gate_id") == "G-VOICE-PROBE"
+                and event["payload"].get("outcome") == "PASS"
+            ],
+            "transition": [
+                event for event in events
+                if event["type"] == "STATE_TRANSITION"
+                and event["payload"].get("to") == "VOICE_LEARNING"
+            ],
+            "probe_dispatch": [
+                event for event in events
+                if event["type"] == "TASK_DISPATCHED"
+                and event["payload"].get("state") == "VOICE_PROBE"
+            ],
+            "learning": [
+                event for event in events
+                if event["type"] == "VOICE_LEARNING_APPLIED"
+            ],
+        }
+
+    def test_committed_voice_selection_survives_a_crash_before_its_transition(self):
+        run_id, directory, crashed, probe_path, candidate_bytes = self.crash_after_committed_voice_selection("A")
+
+        verified, error, _, _ = af.verify_event_log(directory, crashed)
+        self.assertTrue(verified, error)
+        _, counts = self.voice_event_counts(directory)
+        self.assertEqual(len(counts["selection"]), 1)
+        self.assertEqual(len(counts["gate_pass"]), 1)
+        self.assertEqual(counts["transition"], [])
+
+        # The code-validated candidate authority is preserved beside, not
+        # replaced by, the approved probe.
+        candidate_item, candidate_path = af.voice_candidate_probe(directory, crashed)
+        self.assertIsNotNone(candidate_item)
+        self.assertEqual(candidate_path.read_bytes(), candidate_bytes)
+        self.assertIsNone(af.load_json(candidate_path)["operator_selection"])
+        self.assertEqual(
+            [item["candidate_id"] for item in af.load_json(candidate_path)["candidates"]],
+            ["A", "B", "C"],
+        )
+        approved = af.load_json(af.artifact_path(directory, crashed, "voice-probe"))
+        self.assertEqual(approved["operator_selection"]["candidate_id"], "A")
+
+        committed = af.committed_voice_selection(directory, crashed)
+        self.assertEqual(committed["candidate_id"], "A")
+
+        # The controller must not re-ask a question the human already answered.
+        payload = af.next_state_payload(directory, crashed)
+        self.assertEqual(payload["action"], "run_command")
+        self.assertEqual(payload["committed_voice_selection"], "A")
+        self.assertNotEqual(af.load_json(directory / "run.json")["status"], "WAITING_HUMAN")
+
+        # A conflicting retry fails closed and appends nothing.
+        events_before = af._read_jsonl(directory / "events.jsonl")
+        with mock.patch.object(af, "emit"):
+            with self.assertRaises(af.FlowError) as conflict:
+                af.command_gate(namespace(
+                    run_id=run_id,
+                    gate_id="G-VOICE-PROBE",
+                    outcome="PASS",
+                    finding=None,
+                    artifact=None,
+                    selection="B",
+                    feedback=None,
+                ))
+        self.assertEqual(conflict.exception.code, af.EXIT_APPROVAL)
+        self.assertEqual(af.load_run(run_id)[1]["state"], "VOICE_PROBE")
+        self.assertEqual(af._read_jsonl(directory / "events.jsonl"), events_before)
+
+        # Retrying the committed choice completes exactly one transition.
+        with mock.patch.object(af, "emit"):
+            self.assertEqual(
+                af.command_choose_voice(namespace(
+                    run_id=run_id, candidate_id="A", feedback=None, auto=False,
+                )),
+                af.EXIT_OK,
+            )
+        directory, reconciled = af.load_run(run_id)
+        self.assertEqual(reconciled["state"], "VOICE_LEARNING")
+        verified, error, _, _ = af.verify_event_log(directory, reconciled)
+        self.assertTrue(verified, error)
+        _, counts = self.voice_event_counts(directory)
+        self.assertEqual(len(counts["selection"]), 1)
+        self.assertEqual(len(counts["gate_pass"]), 1)
+        self.assertEqual(len(counts["transition"]), 1)
+        self.assertEqual(counts["probe_dispatch"], [])
+
+        # Learning still runs exactly once off the single approved probe.
+        af.apply_voice_learning(directory, reconciled)
+        _, counts = self.voice_event_counts(directory)
+        self.assertEqual(len(counts["learning"]), 1)
+
+    def test_advance_reconciles_a_crashed_voice_commit_without_redispatch(self):
+        run_id, directory, _, _, _ = self.crash_after_committed_voice_selection("C")
+        with mock.patch.object(af, "emit"):
+            self.assertEqual(
+                af.command_advance(namespace(run_id=run_id, max_steps=1)),
+                af.EXIT_WAITING,
+            )
+        directory, advanced = af.load_run(run_id)
+        self.assertEqual(advanced["state"], "VOICE_LEARNING")
+        verified, error, _, _ = af.verify_event_log(directory, advanced)
+        self.assertTrue(verified, error)
+        _, counts = self.voice_event_counts(directory)
+        self.assertEqual(len(counts["selection"]), 1)
+        self.assertEqual(len(counts["transition"]), 1)
+        self.assertEqual(counts["probe_dispatch"], [])
+        self.assertIsNone(af.committed_voice_selection(directory, advanced))
+
+    def test_legacy_overwritten_probe_recovers_its_candidate_authority(self):
+        """Runs stored before candidate preservation must still reconcile."""
+        run_id, directory, crashed, _, candidate_bytes = self.crash_after_committed_voice_selection("B")
+        # Simulate a run whose cache predates the preserved candidate record.
+        stripped = af.load_json(directory / "run.json")
+        stripped["artifact_index"] = [
+            item for item in stripped["artifact_index"]
+            if item["type"] != af.VOICE_CANDIDATE_ARTIFACT_TYPE
+        ]
+        af.write_json(directory / "run.json", stripped)
+        directory, legacy = af.load_run(run_id)
+        legacy["artifact_index"] = [
+            item for item in legacy["artifact_index"]
+            if item["type"] != af.VOICE_CANDIDATE_ARTIFACT_TYPE
+        ]
+        candidate_item, candidate_path = af.voice_candidate_probe(directory, legacy)
+        self.assertIsNotNone(candidate_item)
+        self.assertEqual(candidate_path.read_bytes(), candidate_bytes)
+        self.assertEqual(af.committed_voice_selection(directory, legacy)["candidate_id"], "B")
 
     def test_selection_learning_is_immediate_idempotent_and_rollback_preserves_evidence(self):
         baseline_path = SPEC_ROOT / "profiles" / "voice-profile.v1.json"
