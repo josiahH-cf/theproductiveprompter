@@ -2,6 +2,7 @@
   "data": {
     "user": {
       "pinnedItems": {
+        "totalCount": 4,
         "nodes": [
           {
             "__typename": "Repository",
@@ -42,26 +43,6 @@
             "stargazerCount": 1,
             "forkCount": 2,
             "updatedAt": "2026-06-01T00:00:00Z"
-          },
-          {
-            "__typename": "Repository",
-            "name": "epsilon-unicode",
-            "description": "Unicode stays readable: café, 雲, and 🔐.",
-            "url": "https://github.com/josiahH-cf/epsilon-unicode",
-            "primaryLanguage": {"name": "C++"},
-            "stargazerCount": 999,
-            "forkCount": 111,
-            "updatedAt": "2026-05-20T09:08:07Z"
-          },
-          {
-            "__typename": "Repository",
-            "name": "zeta-last",
-            "description": "Last in API order; must remain last after generation.",
-            "url": "https://github.com/josiahH-cf/zeta-last",
-            "primaryLanguage": {"name": "Shell"},
-            "stargazerCount": 6,
-            "forkCount": 4,
-            "updatedAt": "2026-01-02T03:04:05Z"
           }
         ]
       }

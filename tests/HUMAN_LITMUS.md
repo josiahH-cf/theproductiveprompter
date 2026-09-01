@@ -23,11 +23,11 @@ telemetry site in a new browser tab and leaves this site open in the original ta
 - Model verdict: PASS - why: The browser observed a separate page target while the original site target remained open, and all 12 nav copies carry the protected new-tab attributes; ARCH-2 and BEH-3 pass.
 - Human verdict: PASS | FAIL - why:
 
-### Projects shows the pinned GitHub six
-**If this was built correctly:** The Projects page lists the owner's six pinned
+### Projects shows the pinned GitHub four
+**If this was built correctly:** The Projects page lists the owner's four pinned
 GitHub repositories in a clean, easy-to-read layout, each clickable through to
 GitHub, and it reflects the current pins rather than a stale hand-typed list.
-- Model verdict: FAIL - why: The six-card generator and start-of-run seed are deterministic, styled, linked, and safe, but a fresh authenticated GitHub GraphQL query now exposes only four pins. The strict refresh correctly refuses to fabricate two repositories, so current-six accuracy cannot be certified until six pins exist again or the requirement changes.
+- Model verdict: PASS - why: The owner confirmed four pins are intentional; an authenticated GitHub GraphQL response and the generated page both contain espansr, theproductiveprompter, agent-telemetry, and fedramp-20x-experiment in API order, and BEH-4 passes.
 - Human verdict: PASS | FAIL - why:
 
 ### Reach Out combines a short About with contact

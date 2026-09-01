@@ -33,9 +33,11 @@ TESTS = Path(__file__).resolve().parent
 TEMPLATE = ROOT / "Article-Spec-Pack-v1/publication/templates/article.html"
 CONFIG = ROOT / "Article-Spec-Pack-v1/publication/theproductiveprompter.json"
 PROJECT_FIXTURE = TESTS / "fixtures/pinned_projects_graphql.json"
+PROJECT_LIVE_SNAPSHOT = TESTS / "fixtures/pinned_projects_start_snapshot.json"
 PRESERVATION_FIXTURE = TESTS / "fixtures/preservation_baseline.json"
 PROJECT_START = "<!-- PINNED_PROJECTS_START -->"
 PROJECT_END = "<!-- PINNED_PROJECTS_END -->"
+EXPECTED_PROJECT_COUNT = 4
 ARTICLE_MARKERS = (
     "<!-- ARTICLE_FLOW_LATEST_START -->",
     "<!-- ARTICLE_FLOW_LATEST_END -->",
@@ -312,8 +314,12 @@ def check_arch_3() -> str:
         else:
             project_tree = parse_html_text(marker_region(text, PROJECT_START, PROJECT_END))
             project_cards = elements(project_tree, cls="project-card")
-            if len(project_cards) != 6:
-                issues.append(f"projects.html marker region renders {len(project_cards)} cards instead of 6")
+            rendered_projects = []
+            if len(project_cards) != EXPECTED_PROJECT_COUNT:
+                issues.append(
+                    f"projects.html marker region renders {len(project_cards)} cards "
+                    f"instead of {EXPECTED_PROJECT_COUNT}"
+                )
             for index, card in enumerate(project_cards, start=1):
                 classes = (card.attrs.get("class") or "").split()
                 anchors = elements(card, tag="a")
@@ -325,11 +331,41 @@ def check_arch_3() -> str:
                     issues.append(f"projects.html card {index} has nonconforming ARIA statistics")
                 if not any((anchor.attrs.get("href") or "").startswith("https://github.com/josiahH-cf/") for anchor in anchors):
                     issues.append(f"projects.html card {index} lacks an explicit owner repository link")
+                title_links = [
+                    anchor
+                    for title in elements(card, cls="project-card__title")
+                    for anchor in elements(title, tag="a")
+                ]
+                if len(title_links) == 1:
+                    rendered_projects.append(
+                        {
+                            "name": normalized(text_content(title_links[0])).removesuffix("↗").strip(),
+                            "url": title_links[0].attrs.get("href"),
+                        }
+                    )
+                else:
+                    issues.append(f"projects.html card {index} lacks one title link")
+            try:
+                live_snapshot = json.loads(PROJECT_LIVE_SNAPSHOT.read_text(encoding="utf-8"))
+                pinned_items = live_snapshot["data"]["user"]["pinnedItems"]
+                expected_projects = [
+                    {"name": node["name"], "url": node["url"]}
+                    for node in pinned_items["nodes"]
+                ]
+                if pinned_items.get("totalCount") != EXPECTED_PROJECT_COUNT:
+                    issues.append("authenticated pin snapshot does not report four projects")
+                if rendered_projects != expected_projects:
+                    issues.append(
+                        f"projects.html order/content {rendered_projects!r} differs from authenticated snapshot {expected_projects!r}"
+                    )
+            except (OSError, json.JSONDecodeError, KeyError, TypeError) as exc:
+                issues.append(f"authenticated pin snapshot is unreadable: {exc}")
     if CONFIG.is_file():
         try:
             config = json.loads(CONFIG.read_text(encoding="utf-8"))
             expected = {
                 "target_schema_version": "1.1.0",
+                "pinned_projects_count": EXPECTED_PROJECT_COUNT,
                 "pinned_projects_file": "projects.html",
                 "pinned_projects_start_marker": PROJECT_START,
                 "pinned_projects_end_marker": PROJECT_END,
@@ -343,7 +379,7 @@ def check_arch_3() -> str:
     for token in (
         "GITHUB_TOKEN", "api.github.com/graphql", "josiahH-cf", "pinnedItems", "name",
         "description", "url", "primaryLanguage", "stargazerCount", "forkCount", "updatedAt",
-        "--response-file", "--target", "--json",
+        "totalCount", "MAX_PINNED_ITEMS = 6", "--response-file", "--target", "--json",
     ):
         if token not in generator_text:
             issues.append(f"generator lacks {token!r}")
@@ -369,7 +405,10 @@ def check_arch_3() -> str:
     if leaked:
         issues.append(f"client token reference in {', '.join(leaked)}")
     require_no_issues("marker-driven GraphQL generator and isolated scheduled workflow", issues)
-    return "projects markers, schema 1.1.0 generator contract, fail-closed schedule, token isolation, and verified Pages build are present"
+    return (
+        f"projects markers, schema 1.1.0 four-project generator contract, fail-closed schedule, "
+        "token isolation, and verified Pages build are present"
+    )
 
 
 def reach_out_issues() -> list[str]:
@@ -599,14 +638,18 @@ def check_beh_4() -> str:
         target.write_bytes(shell.encode("utf-8"))
         completed = run_generator(PROJECT_FIXTURE, target)
         if completed.returncode != 0:
-            fail("generator exit 0 for fixed six-node fixture", f"exit {completed.returncode}", completed.stderr or completed.stdout)
+            fail(
+                f"generator exit 0 for fixed {EXPECTED_PROJECT_COUNT}-node fixture",
+                f"exit {completed.returncode}",
+                completed.stderr or completed.stdout,
+            )
         output = target.read_text(encoding="utf-8")
         if not output.startswith("prefix sentinel\n" + PROJECT_START) or not output.endswith(PROJECT_END + "\nsuffix sentinel\n"):
             issues.append("generator changed bytes outside the marker region")
         region = marker_region(output, PROJECT_START, PROJECT_END)
         tree = parse_html_text(region)
         cards = elements(tree, cls="project-card")
-        if len(cards) != 6:
+        if len(cards) != EXPECTED_PROJECT_COUNT:
             issues.append(f"generated {len(cards)} project cards")
         for index, card in enumerate(cards, start=1):
             required_classes = (
@@ -655,7 +698,10 @@ def check_beh_4() -> str:
         invalid_cases = []
         variants = {
             "GraphQL errors": {"errors": [{"message": "fixture rejection"}]},
+            "three nodes": copy.deepcopy(fixture),
             "five nodes": copy.deepcopy(fixture),
+            "totalCount mismatch": copy.deepcopy(fixture),
+            "non-integer totalCount": copy.deepcopy(fixture),
             "duplicate node": copy.deepcopy(fixture),
             "malformed URL": copy.deepcopy(fixture),
             "name URL mismatch": copy.deepcopy(fixture),
@@ -663,8 +709,16 @@ def check_beh_4() -> str:
             "negative count": copy.deepcopy(fixture),
             "malformed timestamp": copy.deepcopy(fixture),
         }
-        variants["five nodes"]["data"]["user"]["pinnedItems"]["nodes"] = copy.deepcopy(nodes[:5])
-        variants["duplicate node"]["data"]["user"]["pinnedItems"]["nodes"][5] = copy.deepcopy(nodes[0])
+        variants["three nodes"]["data"]["user"]["pinnedItems"]["totalCount"] = 3
+        variants["three nodes"]["data"]["user"]["pinnedItems"]["nodes"] = copy.deepcopy(nodes[:3])
+        fifth = copy.deepcopy(nodes[0])
+        fifth["name"] = "epsilon-overflow"
+        fifth["url"] = "https://github.com/josiahH-cf/epsilon-overflow"
+        variants["five nodes"]["data"]["user"]["pinnedItems"]["totalCount"] = 5
+        variants["five nodes"]["data"]["user"]["pinnedItems"]["nodes"].append(fifth)
+        variants["totalCount mismatch"]["data"]["user"]["pinnedItems"]["nodes"] = copy.deepcopy(nodes[:3])
+        variants["non-integer totalCount"]["data"]["user"]["pinnedItems"]["totalCount"] = "4"
+        variants["duplicate node"]["data"]["user"]["pinnedItems"]["nodes"][EXPECTED_PROJECT_COUNT - 1] = copy.deepcopy(nodes[0])
         variants["malformed URL"]["data"]["user"]["pinnedItems"]["nodes"][0]["url"] = "javascript:alert(1)"
         variants["name URL mismatch"]["data"]["user"]["pinnedItems"]["nodes"][0]["name"] = "different-name"
         variants["dot-segment repository"]["data"]["user"]["pinnedItems"]["nodes"][0]["name"] = ".."
@@ -693,8 +747,14 @@ def check_beh_4() -> str:
                 invalid_targets.append(label)
         if invalid_targets:
             issues.append(f"invalid marker layouts accepted or rewritten: {', '.join(invalid_targets)}")
-    require_no_issues("six ordered escaped styled cards, exact outside bytes, and atomic hostile-input rejection", issues)
-    return "hostile fixture generated six styled cards; CRLF/LF bytes were stable and ten invalid cases were rejected atomically"
+    require_no_issues(
+        f"{EXPECTED_PROJECT_COUNT} ordered escaped styled cards, exact outside bytes, and atomic hostile-input rejection",
+        issues,
+    )
+    return (
+        f"hostile fixture generated {EXPECTED_PROJECT_COUNT} styled cards; "
+        "CRLF/LF bytes were stable and thirteen invalid cases were rejected atomically"
+    )
 
 
 def check_beh_5() -> str:
