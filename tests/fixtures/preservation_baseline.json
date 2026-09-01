@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "captured_from": "cea8d57e41404c7f48fd0f6e3ed21465700b2f43",
+  "feed_sha256_lf": "da1dbe81502ebd7118815c27dee1eb584c8404b6a6396001d19d2dca76c218b5",
+  "exclusions": [
+    "index.html#about",
+    "index.html#contact",
+    "index.html#projects"
+  ],
+  "external_links": {
+    "index.html": [
+      "https://github.com/josiahH-cf",
+      "https://www.linkedin.com/in/josiahhunter/"
+    ],
+    "docs/apple-is-not-positioned-for-future-endeavors.html": [
+      "https://machinelearning.apple.com/research/introducing-third-generation-of-apple-foundation-models",
+      "https://www.anthropic.com/claude/fable",
+      "https://www.apple.com/newsroom/2026/06/apple-aids-app-development-with-new-intelligence-frameworks-and-advanced-tools/",
+      "https://www.apple.com/newsroom/2026/06/apple-unveils-next-generation-of-apple-intelligence-siri-ai-and-more/",
+      "https://www.sec.gov/Archives/edgar/data/320193/000032019325000079/aapl-20250927.htm"
+    ],
+    "docs/article.html": [
+      "https://github.com/josiahH-cf",
+      "https://www.linkedin.com/in/josiahhunter/"
+    ],
+    "docs/context-plus-prompt-anything-a-computer-can-do.html": [
+      "https://arxiv.org/abs/2210.03629",
+      "https://openai.com/business/guides-and-resources/a-practical-guide-to-building-ai-agents/",
+      "https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents"
+    ],
+    "docs/from-idea-to-verified-url.html": [
+      "https://aclanthology.org/2025.findings-acl.900/",
+      "https://aclanthology.org/2025.findings-emnlp.532/",
+      "https://aclanthology.org/N19-1049/",
+      "https://arxiv.org/abs/2406.07791",
+      "https://developer.wordpress.org/rest-api/reference/posts/",
+      "https://developers.google.com/search/docs/appearance/structured-data/article",
+      "https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics",
+      "https://github.com/josiahH-cf",
+      "https://github.com/josiahH-cf/theproductiveprompter/blob/main/docs/article.html",
+      "https://github.com/josiahH-cf/theproductiveprompter/tree/main/Article-Spec-Pack-v1",
+      "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices",
+      "https://styleguide.mailchimp.com/voice-and-tone/",
+      "https://www.anthropic.com/engineering/building-effective-agents",
+      "https://www.linkedin.com/in/josiahhunter/",
+      "https://www.rfc-editor.org/rfc/rfc9110.html#name-idempotent-methods"
+    ],
+    "docs/the-machine-did-exactly-what-you-asked.html": [
+      "https://deepmind.google/discover/blog/specification-gaming-the-flip-side-of-ai-ingenuity/",
+      "https://en.wikipedia.org/wiki/Goodhart%27s_law",
+      "https://openai.com/index/faulty-reward-functions/",
+      "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices"
+    ],
+    "docs/why-i-measure-my-ai-assisted-engineering.html": [
+      "https://github.com/josiahH-cf/agent-telemetry/blob/main/AGENTS.md",
+      "https://josiahh-cf.github.io/agent-telemetry/",
+      "https://josiahh-cf.github.io/agent-telemetry/data/machine/MANIFEST.json",
+      "https://josiahh-cf.github.io/agent-telemetry/data/machine/metrics.jsonl",
+      "https://openai.com/api/pricing/",
+      "https://platform.claude.com/docs/en/about-claude/pricing"
+    ]
+  }
+}

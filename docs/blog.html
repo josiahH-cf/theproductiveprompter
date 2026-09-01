@@ -31,14 +31,6 @@
             margin-bottom: var(--spacing-sm);
         }
 
-        .blog-page__subtitle {
-            font-size: 1.15rem;
-            color: var(--color-text-secondary);
-            max-width: 760px;
-            margin: 0 auto;
-            line-height: 1.7;
-        }
-
         .blog-section-title {
             font-size: 1.25rem;
             color: var(--color-heading);
@@ -60,57 +52,29 @@
             text-decoration: underline;
         }
 
-        .blog-section-note {
-            color: var(--color-text-secondary);
-            line-height: 1.7;
-            margin: calc(var(--spacing-sm) * -1) 0 var(--spacing-md);
-        }
     </style>
 </head>
 <body>
     <nav class="nav" id="nav">
         <div class="nav__container">
-            <a href="../index.html#hero" class="nav__logo">JH</a>
+            <a href="/" class="nav__logo" aria-label="Josiah Hunter home">JH</a>
             <ul class="nav__menu" id="navMenu">
-                <li class="nav__item">
-                    <a href="../index.html#blog" class="nav__link">
-                        <span class="nav__number">01.</span> Blog
-                    </a>
-                </li>
-                <li class="nav__item">
-                    <a href="../index.html#projects" class="nav__link">
-                        <span class="nav__number">02.</span> Projects
-                    </a>
-                </li>
-                <li class="nav__item">
-                    <a href="../index.html#about" class="nav__link">
-                        <span class="nav__number">03.</span> About
-                    </a>
-                </li>
-                <li class="nav__item">
-                    <a href="../index.html#contact" class="nav__link">
-                        <span class="nav__number">04.</span> Contact
-                    </a>
-                </li>
+                <li class="nav__item"><a href="/docs/blog.html" class="nav__link"><span class="nav__number">01.</span> Blog</a></li>
+                <li class="nav__item"><a href="/projects.html" class="nav__link"><span class="nav__number">02.</span> Projects</a></li>
+                <li class="nav__item"><a href="/reach-out.html" class="nav__link"><span class="nav__number">03.</span> Reach Out</a></li>
+                <li class="nav__item"><a href="https://josiahh-cf.github.io/agent-telemetry/" class="nav__link" target="_blank" rel="noopener noreferrer" aria-label="Agent Telemetry (opens in a new tab)"><span class="nav__number">04.</span> Agent Telemetry <span class="nav__external" aria-hidden="true">↗</span></a></li>
             </ul>
-            <button class="nav__toggle" id="navToggle" aria-label="Toggle navigation">
-                <span class="nav__toggle-line"></span>
-                <span class="nav__toggle-line"></span>
-                <span class="nav__toggle-line"></span>
-            </button>
+            <button class="nav__toggle" id="navToggle" type="button" aria-label="Toggle navigation" aria-controls="navMenu" aria-expanded="false"><span class="nav__toggle-line"></span><span class="nav__toggle-line"></span><span class="nav__toggle-line"></span></button>
         </div>
     </nav>
 
     <section class="blog-page">
         <div class="container">
-            <a href="../index.html#blog" class="back-link">← Back to Home</a>
+            <a href="/" class="back-link">← Back to Home</a>
 
             <div class="blog-page__header">
                 <span class="blog-page__emoji">📝</span>
                 <h1 class="blog-page__title">Blog</h1>
-                <p class="blog-page__subtitle">
-                    Writing projects, completed series, and standalone entries.
-                </p>
             </div>
 
             <h2 class="blog-section-title">Latest writing</h2>
@@ -184,7 +148,6 @@
             </div>
 
             <h2 class="blog-section-title">Completed series archive</h2>
-            <p class="blog-section-note">Completed means shelved together, not removed. The full series and its original article links remain public.</p>
             <div class="campaign-banner" data-href="31-days-of-ai.html">
                 <div class="campaign-banner__header">
                     <h3 class="campaign-banner__title">
@@ -192,11 +155,6 @@
                         <span class="campaign-banner__badge">Completed · Dec 2025</span>
                     </h3>
                     <span class="campaign-banner__counter">31 entries · all visible</span>
-                </div>
-                <div class="campaign-banner__content">
-                    <p class="campaign-banner__desc">
-                        A month-long writing project about practical AI use, prompting systems, evaluation, and workflow design.
-                    </p>
                 </div>
                 <div class="campaign-banner__actions">
                     <a href="31-days-of-ai.html" class="campaign-banner__link">Browse the complete series →</a>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="About Josiah Hunter and ways to get in touch.">
+    <title>Reach Out | Josiah Hunter</title>
+    <link rel="canonical" href="https://theproductiveprompter.com/reach-out.html">
+    <link rel="alternate" type="application/rss+xml" title="The Productive Prompter" href="https://theproductiveprompter.com/feed.xml">
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/script.js" defer></script>
+</head>
+<body>
+    <nav class="nav" id="nav">
+        <div class="nav__container">
+            <a href="/" class="nav__logo" aria-label="Josiah Hunter home">JH</a>
+            <ul class="nav__menu" id="navMenu">
+                <li class="nav__item"><a href="/docs/blog.html" class="nav__link"><span class="nav__number">01.</span> Blog</a></li>
+                <li class="nav__item"><a href="/projects.html" class="nav__link"><span class="nav__number">02.</span> Projects</a></li>
+                <li class="nav__item"><a href="/reach-out.html" class="nav__link"><span class="nav__number">03.</span> Reach Out</a></li>
+                <li class="nav__item"><a href="https://josiahh-cf.github.io/agent-telemetry/" class="nav__link" target="_blank" rel="noopener noreferrer" aria-label="Agent Telemetry (opens in a new tab)"><span class="nav__number">04.</span> Agent Telemetry <span class="nav__external" aria-hidden="true">↗</span></a></li>
+            </ul>
+            <button class="nav__toggle" id="navToggle" type="button" aria-label="Toggle navigation" aria-controls="navMenu" aria-expanded="false"><span class="nav__toggle-line"></span><span class="nav__toggle-line"></span><span class="nav__toggle-line"></span></button>
+        </div>
+    </nav>
+
+    <main class="page-shell reach-out-page" id="main-content">
+        <div class="container">
+            <header class="page-header fade-in">
+                <p class="page-header__eyebrow">About + Contact</p>
+                <h1 class="page-header__title">Reach Out</h1>
+            </header>
+
+            <section class="reach-out__about" aria-labelledby="about-heading">
+                <h2 id="about-heading" class="section-heading"><span class="section-heading__number">01.</span><span class="section-heading__text">About</span></h2>
+                <p class="reach-out__intro">I'm a senior security engineer at Coalfire shifting into full time AI engineering, and I've spent years building secure cloud and AI systems on AWS, GCP, and Azure. I love talking about AI, security, cloud, or just human stuff, so let's grab a coffee and chat.</p>
+                <div class="about__details">
+                    <div class="detail-card"><h3 class="detail-card__heading">Role</h3><p class="detail-card__text"><a class="detail-card__external-link" href="https://www.coalfire.com/" target="_blank" rel="noopener noreferrer" aria-label="Senior Security Engineer at Coalfire (opens in a new tab)">Senior Security Engineer at Coalfire</a></p></div>
+                    <div class="detail-card"><h3 class="detail-card__heading">Focus</h3><p class="detail-card__text">AI Systems, Cloud Security, DevSecOps</p></div>
+                    <div class="detail-card"><h3 class="detail-card__heading">Platforms</h3><p class="detail-card__text">AWS, GCP, Azure</p></div>
+                    <div class="detail-card"><h3 class="detail-card__heading">Expertise</h3><p class="detail-card__text">Python, Terraform, LLM APIs, RAG</p></div>
+                </div>
+            </section>
+
+            <section class="reach-out__contact" aria-labelledby="contact-heading">
+                <h2 id="contact-heading" class="section-heading"><span class="section-heading__number">02.</span><span class="section-heading__text">Contact</span></h2>
+                <div class="contact__content">
+                    <form class="contact-form" id="contactForm">
+                        <div class="contact-form__group">
+                            <label for="name" class="contact-form__label">Name <span class="contact-form__required">required</span></label>
+                            <input type="text" id="name" name="name" class="contact-form__input" autocomplete="name" required>
+                        </div>
+                        <div class="contact-form__group">
+                            <label for="email" class="contact-form__label">Email <span class="contact-form__required">required</span></label>
+                            <input type="email" id="email" name="email" class="contact-form__input" autocomplete="email" required>
+                        </div>
+                        <div class="contact-form__group">
+                            <label for="message" class="contact-form__label">Message <span class="contact-form__required">required</span></label>
+                            <textarea id="message" name="message" class="contact-form__textarea" rows="6" required></textarea>
+                        </div>
+                        <button type="submit" class="contact-form__submit" id="contactSubmit" disabled>Send Message</button>
+                        <p class="contact-form__status" id="contactFormStatus" aria-live="polite">The contact form is not configured yet. <a href="mailto:josiah.hunter.it@gmail.com">Email me directly instead.</a></p>
+                    </form>
+
+                    <div class="contact__links" role="group" aria-label="Direct contact links">
+                        <a href="mailto:josiah.hunter.it@gmail.com" class="contact__link">Email</a>
+                        <a href="https://github.com/josiahH-cf" class="contact__link" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+                        <a href="https://www.linkedin.com/in/josiahhunter/" class="contact__link" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container"><div class="footer__content"><p class="footer__text">&copy; 2026 Josiah Hunter.</p><a href="/" class="footer__back-to-top">Home</a></div></div>
+    </footer>
+</body>
+</html>

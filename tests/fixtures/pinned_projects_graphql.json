@@ -1,0 +1,70 @@
+{
+  "data": {
+    "user": {
+      "pinnedItems": {
+        "nodes": [
+          {
+            "__typename": "Repository",
+            "name": "alpha-secure",
+            "description": "Security checks for <script>window.fixturePwned = true</script> & hardened defaults.",
+            "url": "https://github.com/josiahH-cf/alpha-secure",
+            "primaryLanguage": {"name": "Python"},
+            "stargazerCount": 17,
+            "forkCount": 3,
+            "updatedAt": "2026-08-31T23:59:58Z"
+          },
+          {
+            "__typename": "Repository",
+            "name": "beta-cloud",
+            "description": "Cloud automation with \"quoted\" values and an apostrophe: owner's choice.",
+            "url": "https://github.com/josiahH-cf/beta-cloud",
+            "primaryLanguage": {"name": "HCL"},
+            "stargazerCount": 0,
+            "forkCount": 0,
+            "updatedAt": "2026-08-30T12:00:00Z"
+          },
+          {
+            "__typename": "Repository",
+            "name": "gamma-ai",
+            "description": "RAG, agents, and A/B evaluation > guesswork.",
+            "url": "https://github.com/josiahH-cf/gamma-ai",
+            "primaryLanguage": {"name": "TypeScript"},
+            "stargazerCount": 214,
+            "forkCount": 29,
+            "updatedAt": "2026-07-04T05:06:07Z"
+          },
+          {
+            "__typename": "Repository",
+            "name": "delta-null",
+            "description": null,
+            "url": "https://github.com/josiahH-cf/delta-null",
+            "primaryLanguage": null,
+            "stargazerCount": 1,
+            "forkCount": 2,
+            "updatedAt": "2026-06-01T00:00:00Z"
+          },
+          {
+            "__typename": "Repository",
+            "name": "epsilon-unicode",
+            "description": "Unicode stays readable: café, 雲, and 🔐.",
+            "url": "https://github.com/josiahH-cf/epsilon-unicode",
+            "primaryLanguage": {"name": "C++"},
+            "stargazerCount": 999,
+            "forkCount": 111,
+            "updatedAt": "2026-05-20T09:08:07Z"
+          },
+          {
+            "__typename": "Repository",
+            "name": "zeta-last",
+            "description": "Last in API order; must remain last after generation.",
+            "url": "https://github.com/josiahH-cf/zeta-last",
+            "primaryLanguage": {"name": "Shell"},
+            "stargazerCount": 6,
+            "forkCount": 4,
+            "updatedAt": "2026-01-02T03:04:05Z"
+          }
+        ]
+      }
+    }
+  }
+}

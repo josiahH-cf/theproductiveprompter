@@ -1,7 +1,6 @@
 /**
  * Portfolio Site JavaScript
- * Handles navigation, smooth scrolling, active section highlighting, 
- * scroll animations, and form submission
+ * Handles navigation, smooth scrolling, scroll animations, and form submission
  */
 
 // ===================================
@@ -13,20 +12,69 @@ const navMenu = document.getElementById('navMenu');
 const navToggle = document.getElementById('navToggle');
 const navLinks = document.querySelectorAll('.nav__link');
 
-// Toggle mobile menu
-if (navToggle) {
+function setMobileMenuOpen(isOpen) {
+    if (!navMenu || !navToggle) {
+        return;
+    }
+
+    navMenu.classList.toggle('active', isOpen);
+    navToggle.classList.toggle('active', isOpen);
+    navToggle.setAttribute('aria-expanded', String(isOpen));
+
+    if (isOpen) {
+        navMenu.querySelector('.nav__link[href]')?.focus();
+    } else if (navMenu.contains(document.activeElement)) {
+        navToggle.focus();
+    }
+}
+
+// Toggle mobile menu.
+if (navMenu && navToggle) {
+    setMobileMenuOpen(false);
+
     navToggle.addEventListener('click', () => {
-        navMenu.classList.toggle('active');
-        navToggle.classList.toggle('active');
+        setMobileMenuOpen(!navMenu.classList.contains('active'));
     });
 }
 
-// Close mobile menu when a link is clicked
+// Close mobile menu when a link is clicked.
 navLinks.forEach(link => {
     link.addEventListener('click', () => {
-        navMenu.classList.remove('active');
-        navToggle.classList.remove('active');
+        setMobileMenuOpen(false);
     });
+});
+
+// Let keyboard users dismiss the menu and return to its trigger.
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && navMenu?.classList.contains('active')) {
+        setMobileMenuOpen(false);
+        navToggle?.focus();
+    }
+});
+
+// Mark the canonical nav link for the current page, independent of scroll.
+const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
+
+navLinks.forEach(link => {
+    let isCurrent = false;
+
+    try {
+        const linkPath = new URL(link.href, window.location.href).pathname.replace(/\/+$/, '') || '/';
+        isCurrent = (
+            (currentPath.startsWith('/docs/') && linkPath === '/docs/blog.html') ||
+            (currentPath === '/projects.html' && linkPath === '/projects.html') ||
+            (currentPath === '/reach-out.html' && linkPath === '/reach-out.html')
+        );
+    } catch {
+        isCurrent = false;
+    }
+
+    link.classList.toggle('active', isCurrent);
+    if (isCurrent) {
+        link.setAttribute('aria-current', 'page');
+    } else {
+        link.removeAttribute('aria-current');
+    }
 });
 
 // ===================================
@@ -58,7 +106,7 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         const targetElement = document.getElementById(elementId);
         if (targetElement) {
             e.preventDefault();
-            const navHeight = nav.offsetHeight;
+            const navHeight = nav ? nav.offsetHeight : 0;
             const targetPosition = targetElement.offsetTop - navHeight;
             
             window.scrollTo({
@@ -149,46 +197,6 @@ if (document.readyState === 'loading') {
 }
 
 // ===================================
-// Active Section Highlighting
-// ===================================
-
-/**
- * Highlight the nav link corresponding to the current section in viewport
- * Uses Intersection Observer API for efficient scroll tracking
- */
-const sections = document.querySelectorAll('section[id]');
-
-const observerOptions = {
-    root: null,
-    rootMargin: '-20% 0px -70% 0px', // Triggers when section is roughly centered
-    threshold: 0
-};
-
-const sectionObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            const sectionId = entry.target.getAttribute('id');
-            
-            // Remove active class from all links
-            navLinks.forEach(link => {
-                link.classList.remove('active');
-            });
-            
-            // Add active class to current section's link
-            const activeLink = document.querySelector(`.nav__link[href="#${sectionId}"]`);
-            if (activeLink) {
-                activeLink.classList.add('active');
-            }
-        }
-    });
-}, observerOptions);
-
-// Observe all sections
-sections.forEach(section => {
-    sectionObserver.observe(section);
-});
-
-// ===================================
 // Scroll Animations (Reveal on Scroll)
 // ===================================
 
@@ -272,94 +280,130 @@ clickableElements.forEach(element => {
 });
 
 // ===================================
-// Hide/Show Navigation on Scroll
-// ===================================
-
-/**
- * Hide nav when scrolling down, show when scrolling up
- * Improves content visibility and UX
- */
-let lastScrollTop = 0;
-const scrollThreshold = 100; // Only trigger after scrolling this many pixels
-
-window.addEventListener('scroll', () => {
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    
-    // Only apply hide/show logic after scrolling past threshold
-    if (scrollTop > scrollThreshold) {
-        if (scrollTop > lastScrollTop) {
-            // Scrolling down - hide nav
-            nav.classList.add('hidden');
-        } else {
-            // Scrolling up - show nav
-            nav.classList.remove('hidden');
-        }
-    } else {
-        // At top of page - always show nav
-        nav.classList.remove('hidden');
-    }
-    
-    lastScrollTop = scrollTop;
-});
-
-// ===================================
 // Contact Form Handling
 // ===================================
 
-/**
- * Handle contact form submission
- * Since this is a static site, we show a success message
- * In production, you'd integrate with a form service (Formspree, Netlify Forms, etc.)
- */
+// Replace this value with the HTTPS endpoint supplied by the form-forwarding service.
+const CONTACT_FORM_ENDPOINT = 'PASTE_FORM_FORWARDING_ENDPOINT_HERE';
 const contactForm = document.getElementById('contactForm');
-const successMessage = document.getElementById('successMessage');
+const contactSubmit = contactForm?.querySelector('button[type="submit"], input[type="submit"]');
+const contactStatus = document.getElementById('contactFormStatus') ||
+    document.getElementById('contactStatus') ||
+    document.querySelector('[aria-live]');
 
-if (contactForm) {
-    contactForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        
-        // Get form data
-        const formData = new FormData(contactForm);
-        const name = formData.get('name');
-        const email = formData.get('email');
-        const message = formData.get('message');
-        
-        // Basic validation (HTML5 handles this, but extra check doesn't hurt)
-        if (name && email && message) {
-            // Show success message
-            showSuccessMessage();
-            
-            // Reset form
-            contactForm.reset();
-            
-            // In a real implementation, you would send the data to a backend or service:
-            // Example with Formspree:
-            // fetch('https://formspree.io/f/YOUR_FORM_ID', {
-            //     method: 'POST',
-            //     body: formData,
-            //     headers: {
-            //         'Accept': 'application/json'
-            //     }
-            // }).then(response => {
-            //     if (response.ok) {
-            //         showSuccessMessage();
-            //         contactForm.reset();
-            //     }
-            // });
+function getContactEndpoint() {
+    try {
+        const endpoint = new URL(CONTACT_FORM_ENDPOINT);
+        if (endpoint.protocol !== 'https:' || CONTACT_FORM_ENDPOINT.startsWith('PASTE_')) {
+            return null;
         }
-    });
+        return endpoint.href;
+    } catch {
+        return null;
+    }
 }
 
-/**
- * Display success message temporarily
- */
-function showSuccessMessage() {
-    successMessage.classList.add('show');
-    
-    // Hide message after 4 seconds
-    setTimeout(() => {
-        successMessage.classList.remove('show');
-    }, 4000);
+function getDirectEmailHref() {
+    return document.querySelector('a[href^="mailto:"]')?.getAttribute('href') ||
+        'mailto:josiah.hunter.it@gmail.com';
+}
+
+function setContactStatus(message, fallbackLabel = '', state = '') {
+    if (!contactStatus) {
+        return;
+    }
+
+    if (state) {
+        contactStatus.dataset.state = state;
+    } else {
+        delete contactStatus.dataset.state;
+    }
+    contactStatus.replaceChildren(document.createTextNode(message));
+
+    if (fallbackLabel) {
+        const fallbackLink = document.createElement('a');
+        fallbackLink.href = getDirectEmailHref();
+        fallbackLink.textContent = fallbackLabel;
+        contactStatus.append(fallbackLink);
+    }
+}
+
+function showContactFallback() {
+    setContactStatus(
+        'The contact form is not configured yet. ',
+        'Email me directly instead.',
+        'fallback'
+    );
+}
+
+function showContactError() {
+    setContactStatus(
+        "I couldn't send your message. Please try again or ",
+        'email me directly.',
+        'error'
+    );
+}
+
+if (contactForm) {
+    const contactEndpoint = getContactEndpoint();
+    let isSubmitting = false;
+
+    if (contactSubmit) {
+        contactSubmit.disabled = !contactEndpoint;
+    }
+
+    if (contactEndpoint) {
+        setContactStatus('');
+    } else {
+        showContactFallback();
+    }
+
+    contactForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        if (!contactEndpoint) {
+            showContactFallback();
+            return;
+        }
+
+        if (isSubmitting || !contactForm.reportValidity()) {
+            return;
+        }
+
+        isSubmitting = true;
+        contactForm.setAttribute('aria-busy', 'true');
+        if (contactSubmit) {
+            contactSubmit.disabled = true;
+            contactSubmit.classList.add('is-pending');
+        }
+        setContactStatus('Sending your message…', '', 'pending');
+
+        try {
+            const response = await fetch(contactEndpoint, {
+                method: 'POST',
+                body: new FormData(contactForm),
+                headers: {
+                    Accept: 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Contact form request failed with HTTP ${response.status}`);
+            }
+
+            contactForm.reset();
+            setContactStatus('Thanks for reaching out. Your message was sent.', '', 'success');
+        } catch {
+            showContactError();
+        } finally {
+            isSubmitting = false;
+            contactForm.removeAttribute('aria-busy');
+            if (contactSubmit) {
+                contactSubmit.disabled = false;
+                contactSubmit.classList.remove('is-pending');
+            }
+        }
+    });
 }
 
 // ===================================
