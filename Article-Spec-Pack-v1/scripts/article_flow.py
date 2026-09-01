@@ -1764,6 +1764,183 @@ def stage_output(state: str) -> tuple[str, str]:
     return mapping[state]
 
 
+def stage_attempt_evidence(directory: Path, run: dict[str, Any], state: str) -> dict[str, int]:
+    """Derive a monotonic attempt ordinal from durable execution evidence.
+
+    Older controllers could reuse one task packet after a same-state repair, so
+    ``run.attempts`` and the packet suffix alone are not sufficient evidence of
+    how many model executions occurred.  Count durable dispatches, model-call
+    receipts, and gate rejections as independent lower bounds and use the
+    greatest value.  This both repairs stale counters and keeps future artifact
+    paths monotonic.
+    """
+    dispatched_attempts: list[int] = []
+    receipt_attempts: list[int] = []
+    model_executions = 0
+    rejections = 0
+    receipt_pattern = re.compile(rf"^model-call:{re.escape(state)}:(\d+)$")
+    for event in _read_jsonl(directory / str(run["event_log"])):
+        payload = event.get("payload", {}) if isinstance(event.get("payload"), dict) else {}
+        if event.get("type") == "TASK_DISPATCHED" and payload.get("state") == state:
+            try:
+                dispatched_attempts.append(int(payload.get("attempt", 0)))
+            except (TypeError, ValueError):
+                continue
+        elif event.get("type") == "ARTIFACT_RECORDED":
+            recorded = payload.get("artifact", {}) if isinstance(payload.get("artifact"), dict) else {}
+            match = receipt_pattern.fullmatch(str(recorded.get("type", "")))
+            if match:
+                model_executions += 1
+                receipt_attempts.append(int(match.group(1)))
+        elif event.get("type") == "MODEL_OUTPUT_REJECTED" and payload.get("state") == state:
+            rejections += 1
+    counter = int(run.get("attempts", {}).get(state, 0))
+    dispatch_count = len(dispatched_attempts)
+    ordinal = max(
+        counter,
+        max(dispatched_attempts, default=0),
+        max(receipt_attempts, default=0),
+        dispatch_count,
+        model_executions,
+        rejections,
+    )
+    baseline = int(run.get("attempt_baselines", {}).get(state, 0))
+    return {
+        "ordinal": ordinal,
+        "window_baseline": baseline,
+        "window_used": max(0, ordinal - baseline),
+        "dispatch_count": dispatch_count,
+        "model_execution_count": model_executions,
+        "rejection_count": rejections,
+    }
+
+
+def reset_attempt_window(directory: Path, run: dict[str, Any], state: str) -> int:
+    """Authorize a new bounded repair window without reusing artifact paths."""
+    ordinal = stage_attempt_evidence(directory, run, state)["ordinal"]
+    run.setdefault("attempt_baselines", {})[state] = ordinal
+    run.setdefault("attempts", {})[state] = max(int(run.get("attempts", {}).get(state, 0)), ordinal)
+    return ordinal
+
+
+def remember_repair_context(
+    directory: Path,
+    run: dict[str, Any],
+    source_stage: str,
+    definition: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Persist the latest rejected bytes and normalized gate findings for repair."""
+    if source_stage not in MODEL_STATES:
+        return None
+    artifact_type, _ = stage_output(source_stage)
+    rejected = artifact(run, artifact_type)
+    gate_id = str(definition.get("gate") or "")
+    gate_item = artifact(run, f"gate-receipt:{gate_id}") if gate_id else None
+    if not rejected or not gate_item:
+        return None
+    rejected_path = directory / safe_relative(str(rejected["path"]))
+    gate_path = directory / safe_relative(str(gate_item["path"]))
+    if not rejected_path.is_file() or not gate_path.is_file():
+        return None
+    if sha256_path(rejected_path) != rejected.get("sha256") or sha256_path(gate_path) != gate_item.get("sha256"):
+        raise FlowError("Rejected output or gate receipt changed before repair context was recorded", EXIT_INTEGRITY)
+    receipt = load_json(gate_path)
+    if receipt.get("outcome") == "PASS" or receipt.get("gate_id") != gate_id:
+        return None
+    evidence = stage_attempt_evidence(directory, run, source_stage)
+    failed_attempt = evidence["ordinal"]
+    context = {
+        "context_type": "targeted_gate_repair",
+        "source_stage": source_stage,
+        "repair_state": definition.get("repair_state"),
+        "failed_attempt": failed_attempt,
+        "maximum_attempts": int(definition.get("max_attempts", 1)),
+        "rejected_output": {
+            "input_id": f"rejected-output:{source_stage}:{failed_attempt}",
+            "artifact_type": artifact_type,
+            "path": str(rejected["path"]),
+            "sha256": str(rejected["sha256"]),
+        },
+        "gate_receipt": {
+            "input_id": f"gate-receipt:{gate_id}:{failed_attempt}",
+            "gate_id": gate_id,
+            "path": str(gate_item["path"]),
+            "sha256": str(gate_item["sha256"]),
+        },
+        "findings": receipt.get("findings", []),
+    }
+    run["pending_repair"] = context
+    return context
+
+
+def repair_context_for_packet(
+    directory: Path,
+    run: dict[str, Any],
+    state: str,
+) -> tuple[dict[str, Any] | None, list[dict[str, str]]]:
+    """Resolve and verify pending repair evidence for one new task packet."""
+    stored = run.get("pending_repair")
+    if not isinstance(stored, dict) or stored.get("repair_state") != state:
+        return None, []
+    context = json.loads(json.dumps(stored))
+    inputs: list[dict[str, str]] = []
+    for key in ("rejected_output", "gate_receipt"):
+        reference = context.get(key)
+        if not isinstance(reference, dict):
+            raise FlowError(f"Pending repair context lacks {key}", EXIT_INTEGRITY)
+        relative = safe_relative(str(reference.get("path", "")))
+        path = (directory / relative).resolve()
+        try:
+            path.relative_to(directory.resolve())
+        except ValueError as exc:
+            raise FlowError("Pending repair context escapes its run directory", EXIT_INTEGRITY) from exc
+        if not path.is_file() or sha256_path(path) != reference.get("sha256"):
+            raise FlowError(f"Pending repair {key} changed before task dispatch", EXIT_INTEGRITY)
+        reference["path"] = str(path)
+        inputs.append({
+            "id": str(reference["input_id"]),
+            "path": str(path),
+            "sha256": str(reference["sha256"]),
+        })
+    receipt = load_json(Path(context["gate_receipt"]["path"]))
+    if (
+        receipt.get("gate_id") != context["gate_receipt"].get("gate_id")
+        or receipt.get("outcome") == "PASS"
+        or receipt.get("findings") != context.get("findings")
+    ):
+        raise FlowError("Pending repair findings no longer match their hash-bound gate receipt", EXIT_INTEGRITY)
+    return context, inputs
+
+
+def block_exhausted_stage(
+    directory: Path,
+    run: dict[str, Any],
+    state: str,
+    definition: dict[str, Any],
+) -> dict[str, int]:
+    """Persist an auditable, resumable stop at a stage's declared boundary."""
+    evidence = stage_attempt_evidence(directory, run, state)
+    run.setdefault("attempts", {})[state] = max(
+        int(run.get("attempts", {}).get(state, 0)),
+        evidence["ordinal"],
+    )
+    remember_repair_context(directory, run, state, definition)
+    if run.get("status") != "BLOCKED":
+        append_event(directory, run, "ESCALATION", "controller", {
+            "state": state,
+            "gate_id": definition.get("gate"),
+            "attempts": evidence["window_used"],
+            "attempt_ordinal": evidence["ordinal"],
+            "model_execution_count": evidence["model_execution_count"],
+            "rejection_count": evidence["rejection_count"],
+            "maximum": int(definition.get("max_attempts", 1)),
+            "question": "Repair attempts are exhausted. Review the latest rejected output and gate findings before authorizing another bounded repair window.",
+        })
+    run["status"] = "BLOCKED"
+    save_run(directory, run)
+    return evidence
+
+
 def task_packet(
     directory: Path,
     run: dict[str, Any],
@@ -1774,17 +1951,11 @@ def task_packet(
     state = run["state"]
     definition = state_definition(state, run)
     artifact_type, filename = stage_output(state)
-    attempt = int(run["attempts"].get(state, 0)) + 1
-    if attempt > int(definition.get("max_attempts", 1)):
-        run["status"] = "WAITING_HUMAN"
-        append_event(directory, run, "ESCALATION", "controller", {
-            "state": state,
-            "attempts": attempt - 1,
-            "maximum": definition.get("max_attempts"),
-            "question": "Should this run stop, change route, or receive an operator-approved exception?",
-        })
-        save_run(directory, run)
+    attempt_evidence = stage_attempt_evidence(directory, run, state)
+    if attempt_evidence["window_used"] >= int(definition.get("max_attempts", 1)):
+        block_exhausted_stage(directory, run, state, definition)
         raise FlowError(f"{state} exhausted its bounded attempts and requires an operator decision", EXIT_WAITING)
+    attempt = attempt_evidence["ordinal"] + 1
     failures_for_state = run.get("route_failures", {}).get(state, {})
     fallback_threshold = max(1, int(definition.get("max_attempts", 1)) - 1)
     excluded = {key for key, count in failures_for_state.items() if int(count) >= fallback_threshold}
@@ -1902,6 +2073,14 @@ def task_packet(
             ),
             output_schema,
         )
+    repair_context, repair_inputs = repair_context_for_packet(directory, run, state)
+    inputs = packet_inputs(directory, run, state)
+    inputs.extend(repair_inputs)
+    constraints = [rule_map[item] for item in stage_rules.get(state, [])]
+    if repair_context:
+        constraints.append(
+            "This is a targeted repair. Resolve every hash-bound gate finding in repair_context while preserving unaffected verified content."
+        )
     packet = {
         "task_packet_schema_version": "1.0.0",
         "workflow_version": run["workflow_version"],
@@ -1909,12 +2088,13 @@ def task_packet(
         "stage": state,
         "attempt": attempt,
         "objective": definition["objective"],
-        "inputs": packet_inputs(directory, run, state),
+        "inputs": inputs,
+        "repair_context": repair_context,
         "reader_job": reader_job,
         "article_recipe": recipe,
         "allowed_tools": allowed_tools,
         "side_effect_policy": definition["side_effect_class"],
-        "constraints": [rule_map[item] for item in stage_rules.get(state, [])],
+        "constraints": constraints,
         "expected_outputs": [{
             "artifact_type": artifact_type,
             "path": str(output_path),
@@ -2130,17 +2310,32 @@ def current_packet(
     requested_route: str | None = None,
     allow_canary: bool = False,
 ) -> tuple[Path, dict[str, Any]]:
-    prefix = f"task-packet:{run['state']}:"
-    item = next((entry for entry in reversed(run.get("artifact_index", [])) if str(entry.get("type", "")).startswith(prefix)), None)
-    if item:
-        path = directory / item["path"]
-        packet = load_json(path)
-        if not requested_route:
-            return path, packet
-        chosen = packet.get("selected_route", {}).get("chosen") or {}
-        chosen_key = f"{chosen.get('provider')}:{chosen.get('model')}"
-        if chosen_key == requested_route and bool(chosen.get("canary_execution")) == bool(allow_canary):
-            return path, packet
+    if run.get("status") == "BLOCKED":
+        definition = state_definition(run["state"], run)
+        raise FlowError(
+            f"{run['state']} is blocked and requires an explicit repair",
+            EXIT_WAITING,
+            {
+                "action": "repair_required",
+                "gate": definition.get("gate"),
+                "command": ["article-flow", "repair", run["run_id"], definition.get("gate")],
+            },
+        )
+    # Only a genuinely pending model task may reuse its exact packet.  A gate
+    # repair transitions the run back to ACTIVE, which must mint the next
+    # monotonic attempt and preserve the rejected packet and output unchanged.
+    if run.get("status") == "WAITING_MODEL":
+        prefix = f"task-packet:{run['state']}:"
+        item = next((entry for entry in reversed(run.get("artifact_index", [])) if str(entry.get("type", "")).startswith(prefix)), None)
+        if item:
+            path = directory / item["path"]
+            packet = load_json(path)
+            if not requested_route:
+                return path, packet
+            chosen = packet.get("selected_route", {}).get("chosen") or {}
+            chosen_key = f"{chosen.get('provider')}:{chosen.get('model')}"
+            if chosen_key == requested_route and bool(chosen.get("canary_execution")) == bool(allow_canary):
+                return path, packet
     return task_packet(directory, run, requested_route=requested_route, allow_canary=allow_canary)
 
 
@@ -2196,6 +2391,15 @@ def command_execute_stage(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
     if run["state"] not in MODEL_STATES:
         raise FlowError(f"State {run['state']} is deterministic or complete and cannot invoke a model")
+    definition = state_definition(run["state"], run)
+    evidence = stage_attempt_evidence(directory, run, run["state"])
+    if run.get("status") != "WAITING_MODEL" and evidence["window_used"] >= int(definition.get("max_attempts", 1)):
+        block_exhausted_stage(directory, run, run["state"], definition)
+        raise FlowError(
+            f"{run['state']} exhausted its bounded attempts and requires repair",
+            EXIT_WAITING,
+            next_state_payload(directory, run),
+        )
     if args.canary and not args.route:
         raise FlowError("--canary requires an exact --route PROVIDER:MODEL", EXIT_USAGE)
     packet_path, packet = current_packet(
@@ -3021,6 +3225,7 @@ def command_start(args: argparse.Namespace) -> int:
         "event_log": "events.jsonl",
         "artifact_index": [],
         "attempts": {},
+        "attempt_baselines": {},
         "lock": None,
         "run_overrides": {
             "intent_approval": "policy",
@@ -3241,22 +3446,26 @@ def command_submit(args: argparse.Namespace) -> int:
             if policy_review
             else {"type": "code", "version": CONTROLLER_VERSION}
         )
-        write_gate_receipt(directory, run, definition["gate"], recorded_outcome, review_findings, evaluator, definition.get("repair_state"))
+        gate_receipt_path = write_gate_receipt(directory, run, definition["gate"], recorded_outcome, review_findings, evaluator, definition.get("repair_state"))
         if outcome != "PASS":
             if packet_route:
                 key = f"{packet_route.get('provider')}:{packet_route.get('model')}"
                 stage_failures = run.setdefault("route_failures", {}).setdefault(args.stage, {})
                 stage_failures[key] = int(stage_failures.get(key, 0)) + 1
                 append_event(directory, run, "MODEL_OUTPUT_REJECTED", "controller", {"state": args.stage, "route": packet_route, "failure_count": stage_failures[key], "findings": findings})
-            attempts_used = int(run.get("attempts", {}).get(args.stage, 0))
+            remember_repair_context(directory, run, args.stage, definition)
+            attempt_evidence = stage_attempt_evidence(directory, run, args.stage)
+            attempts_used = attempt_evidence["window_used"]
             maximum = int(definition.get("max_attempts", 1))
             if automation_enabled(run) and attempts_used < maximum and definition.get("repair_state") in MODEL_STATES:
                 append_event(directory, run, "REPAIR", "controller", {
                     "gate_id": definition["gate"],
                     "findings": findings,
                     "repair_state": definition["repair_state"],
-                    "attempt": attempts_used,
+                    "attempt": attempt_evidence["ordinal"],
+                    "attempts_in_window": attempts_used,
                     "maximum": maximum,
+                    "gate_receipt": gate_receipt_path.relative_to(directory).as_posix(),
                 })
                 transition(directory, run, definition["repair_state"], "controller", f"Automatic targeted repair after {definition['gate']}")
                 payload = {
@@ -3268,11 +3477,17 @@ def command_submit(args: argparse.Namespace) -> int:
                 }
                 emit(payload, args.json)
                 return EXIT_OK
-            run["status"] = "BLOCKED"
-            save_run(directory, run)
+            if automation_enabled(run) and attempts_used >= maximum:
+                block_exhausted_stage(directory, run, args.stage, definition)
+            else:
+                run["status"] = "BLOCKED"
+                save_run(directory, run)
             payload = {"ok": False, "outcome": outcome, "state": run["state"], "findings": findings, "repair_command": ["article-flow", "repair", run["run_id"], definition["gate"]]}
             emit(payload, args.json)
             return EXIT_FAILED
+        pending_repair = run.get("pending_repair")
+        if isinstance(pending_repair, dict) and pending_repair.get("repair_state") == args.stage:
+            run.pop("pending_repair", None)
         if packet_route:
             key = f"{packet_route.get('provider')}:{packet_route.get('model')}"
             stage_failures = run.setdefault("route_failures", {}).setdefault(args.stage, {})
@@ -3453,9 +3668,10 @@ def command_gate(args: argparse.Namespace) -> int:
             transition(directory, run, definition["next_on_pass"], "operator", f"Operator confirmed {args.gate_id}")
         elif args.outcome == "REPAIR":
             repair_state = definition["repair_state"]
-            run.setdefault("attempts", {})[repair_state] = 0
+            remember_repair_context(directory, run, run["state"], definition)
+            baseline = reset_attempt_window(directory, run, repair_state)
             run.setdefault("route_failures", {}).pop(repair_state, None)
-            transition(directory, run, repair_state, "operator", args.finding or "Operator requested repair")
+            transition(directory, run, repair_state, "operator", (args.finding or "Operator requested repair") + f"; next bounded window begins after attempt {baseline}")
         elif args.outcome == "TERMINAL":
             transition(directory, run, "TERMINAL", "operator", args.finding or "Operator ended run")
         else:
@@ -3479,10 +3695,16 @@ def command_repair(args: argparse.Namespace) -> int:
     if not repair_state:
         raise FlowError(f"No repair state declared for {run['state']}")
     with run_lock(directory, run):
-        append_event(directory, run, "REPAIR", "operator_or_controller", {"gate_id": args.gate_id, "finding": args.finding, "repair_state": repair_state})
-        run.setdefault("attempts", {})[repair_state] = 0
+        remember_repair_context(directory, run, run["state"], definition)
+        baseline = reset_attempt_window(directory, run, repair_state)
+        append_event(directory, run, "REPAIR", "operator_or_controller", {
+            "gate_id": args.gate_id,
+            "finding": args.finding,
+            "repair_state": repair_state,
+            "attempt_baseline": baseline,
+        })
         run.setdefault("route_failures", {}).pop(repair_state, None)
-        transition(directory, run, repair_state, "controller", args.finding or f"Repair requested by {args.gate_id}")
+        transition(directory, run, repair_state, "controller", (args.finding or f"Repair requested by {args.gate_id}") + f"; next bounded window begins after attempt {baseline}")
     emit({"ok": True, "state": run["state"], "next_command": ["article-flow", "next", run["run_id"]]}, args.json)
     return EXIT_OK
 
@@ -4866,6 +5088,20 @@ def command_advance(args: argparse.Namespace) -> int:
             emit(payload, args.json)
             return EXIT_WAITING
         if state in MODEL_STATES:
+            definition = state_definition(state, run)
+            evidence = stage_attempt_evidence(directory, run, state)
+            if run.get("status") != "WAITING_MODEL" and evidence["window_used"] >= int(definition.get("max_attempts", 1)):
+                block_exhausted_stage(directory, run, state, definition)
+                progress.append({
+                    "state": state,
+                    "command": "attempt-boundary",
+                    "attempts": evidence["window_used"],
+                    "attempt_ordinal": evidence["ordinal"],
+                    "maximum": int(definition.get("max_attempts", 1)),
+                })
+                payload = {**next_state_payload(directory, run), "ok": False, "progress": progress}
+                emit(payload, args.json)
+                return EXIT_WAITING
             code, result = _silent_command(command_execute_stage, argparse.Namespace(
                 run_id=run["run_id"], route=None, canary=False, json=True,
             ))
@@ -4877,6 +5113,10 @@ def command_advance(args: argparse.Namespace) -> int:
                 return EXIT_WAITING
             if code not in {EXIT_OK}:
                 directory, run = load_run(args.run_id)
+                if run.get("status") == "BLOCKED":
+                    payload = {**next_state_payload(directory, run), "ok": False, "progress": progress, "result": result}
+                    emit(payload, args.json)
+                    return EXIT_WAITING
                 payload = {"ok": False, "action": "blocked", "run_id": run["run_id"], "state": run["state"], "progress": progress, "result": result}
                 emit(payload, args.json)
                 return code

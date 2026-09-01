@@ -522,6 +522,203 @@ class PublicationTargetLockRegressionTests(TemporaryRuntime):
         self.assertTrue(observed["locked_during_cleanup"])
         self.assertTrue((directory / "publication" / "incomplete.json").is_file())
         self.assertFalse(af.publication_target_lock_path(repository, target).exists())
+class RepairAttemptBoundRegressionTests(TemporaryRuntime):
+    @staticmethod
+    def route_set(stage):
+        chosen = {
+            "provider": "fixture",
+            "model": "fixture-model",
+            "model_version": "test",
+            "eligible": True,
+            "exclusion_reason": None,
+            "capability_assumptions": [],
+            "evaluation_score": None,
+            "kind": "command",
+            "privacy": "test",
+            "locality": "local",
+            "cost_class": "test",
+            "latency_class": "test",
+            "canary_status": "passed",
+        }
+        return {
+            "stage": stage,
+            "required_capabilities": sorted(af.STAGE_CAPABILITIES.get(stage, set())),
+            "candidates": [chosen],
+            "chosen": chosen,
+            "fallbacks": [],
+            "reason": "fixture repair route",
+            "configuration_path": "test",
+        }
+
+    def research_run(self):
+        run_id = self.start("A bounded evidence repair should never reuse an attempt.")
+        directory, run = af.load_run(run_id)
+        self.record_json(directory, run, "research-plan", {"fixture": True})
+        af.transition(directory, run, "RESEARCH", "test", "Exercise the evidence repair boundary")
+        return run_id, directory
+
+    @staticmethod
+    def finding(number):
+        return {
+            "criterion": "claim_disposition",
+            "artifact": "claim-ledger",
+            "location": f"claim:CL-{number:03d}",
+            "finding": f"Claim CL-{number:03d} still needs a disposition.",
+            "repair_instruction": "Mark the claim supported, qualified, or omitted with evidence.",
+        }
+
+    def test_shifting_findings_get_three_immutable_hash_bound_attempts_then_block(self):
+        run_id, directory = self.research_run()
+        packets = []
+        gate_calls = 0
+
+        def shifting_gate(_directory, _run, _stage, _destination):
+            nonlocal gate_calls
+            gate_calls += 1
+            return "REPAIR", [self.finding(gate_calls)]
+
+        def execute_fixture(args):
+            current_directory, run = af.load_run(args.run_id)
+            packet_path, packet = af.current_packet(current_directory, run)
+            packets.append(json.loads(json.dumps(packet)))
+            output_path = Path(packet["expected_outputs"][0]["path"])
+            af.write_json(output_path, {"attempt": packet["attempt"], "marker": f"immutable-{packet['attempt']}"})
+            route = packet["selected_route"]["chosen"]
+            receipt_path = current_directory / "receipts" / f"model-call-research-{packet['attempt']:02d}.json"
+            af.write_json(receipt_path, {
+                "stage": "RESEARCH",
+                "attempt": packet["attempt"],
+                "packet_sha256": af.sha256_path(packet_path),
+                "output_sha256": af.sha256_path(output_path),
+                "route": {"provider": route["provider"], "model": route["model"]},
+            })
+            af.record_artifact(
+                current_directory,
+                run,
+                receipt_path,
+                f"model-call:RESEARCH:{packet['attempt']}",
+                {"actor": "test"},
+            )
+            return af.command_submit(namespace(
+                run_id=args.run_id,
+                stage="RESEARCH",
+                file=str(output_path),
+            ))
+
+        with (
+            mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)),
+            mock.patch.object(af, "automatic_gate", side_effect=shifting_gate),
+            mock.patch.object(af, "command_execute_stage", side_effect=execute_fixture) as execute,
+        ):
+            code, blocked = call(af.command_advance, run_id=run_id)
+            self.assertEqual(code, af.EXIT_WAITING, blocked)
+            self.assertEqual(blocked["action"], "repair_required")
+            self.assertEqual(blocked["gate"], "G-EVIDENCE-COVERAGE")
+            self.assertEqual(execute.call_count, 3)
+
+            code, still_blocked = call(af.command_advance, run_id=run_id)
+            self.assertEqual(code, af.EXIT_WAITING, still_blocked)
+            self.assertEqual(still_blocked["action"], "repair_required")
+            self.assertEqual(execute.call_count, 3)
+
+        self.assertEqual([packet["attempt"] for packet in packets], [1, 2, 3])
+        self.assertIsNone(packets[0]["repair_context"])
+        for packet, prior_attempt in zip(packets[1:], (1, 2)):
+            context = packet["repair_context"]
+            self.assertEqual(context["failed_attempt"], prior_attempt)
+            self.assertEqual(context["findings"][0]["location"], f"claim:CL-{prior_attempt:03d}")
+            references = {item["id"]: item for item in packet["inputs"]}
+            for key in ("rejected_output", "gate_receipt"):
+                reference = context[key]
+                self.assertIn(reference["input_id"], references)
+                self.assertEqual(references[reference["input_id"]]["sha256"], reference["sha256"])
+                self.assertEqual(af.sha256_path(Path(reference["path"])), reference["sha256"])
+
+        for attempt in (1, 2, 3):
+            self.assertEqual(
+                af.load_json(directory / "artifacts" / f"{attempt:02d}-claim-ledger.json"),
+                {"attempt": attempt, "marker": f"immutable-{attempt}"},
+            )
+            self.assertTrue((directory / "tasks" / f"research-{attempt:02d}.json").is_file())
+            self.assertTrue((directory / "submissions" / f"{attempt:02d}-claim-ledger.json").is_file())
+            self.assertTrue((directory / "receipts" / f"model-call-research-{attempt:02d}.json").is_file())
+        self.assertEqual(len(list((directory / "receipts").glob("g-evidence-coverage-*.json"))), 3)
+
+        _, run = af.load_run(run_id)
+        self.assertEqual(run["status"], "BLOCKED")
+        self.assertEqual(run["attempts"]["RESEARCH"], 3)
+        events = af._read_jsonl(directory / "events.jsonl")
+        rejected = [event for event in events if event["type"] == "MODEL_OUTPUT_REJECTED"]
+        self.assertEqual([event["payload"]["findings"][0]["location"] for event in rejected], [
+            "claim:CL-001",
+            "claim:CL-002",
+            "claim:CL-003",
+        ])
+        repairs = [event for event in events if event["type"] == "REPAIR" and event["actor"] == "controller"]
+        self.assertEqual(len(repairs), 2)
+        escalations = [event for event in events if event["type"] == "ESCALATION"]
+        self.assertEqual(len(escalations), 1)
+        self.assertEqual(escalations[0]["payload"]["maximum"], 3)
+
+        with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)):
+            code, repaired = call(af.command_repair, run_id=run_id, gate_id="G-EVIDENCE-COVERAGE", finding=None)
+            self.assertEqual(code, af.EXIT_OK, repaired)
+            current_directory, run = af.load_run(run_id)
+            packet_path, packet = af.task_packet(current_directory, run)
+        self.assertEqual(packet["attempt"], 4)
+        self.assertEqual(packet["repair_context"]["failed_attempt"], 3)
+        self.assertEqual(packet["repair_context"]["findings"][0]["location"], "claim:CL-003")
+        self.assertEqual(packet_path.name, "research-04.json")
+
+    def test_stale_attempt_counter_uses_four_rejections_and_blocks_before_execution(self):
+        run_id, directory = self.research_run()
+        with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)):
+            _, packet = af.task_packet(directory, af.load_run(run_id)[1])
+        output_path = directory / "artifacts" / "01-claim-ledger.json"
+        af.write_json(output_path, {"attempt": 1, "marker": "latest-overwritten-legacy-output"})
+        _, run = af.load_run(run_id)
+        af.record_artifact(directory, run, output_path, "claim-ledger", {"actor": "test"})
+        af.write_gate_receipt(
+            directory,
+            run,
+            "G-EVIDENCE-COVERAGE",
+            "REPAIR",
+            [self.finding(4)],
+            {"type": "code", "version": "legacy-test"},
+            "RESEARCH",
+        )
+        for failure_count in range(1, 5):
+            af.append_event(directory, run, "MODEL_OUTPUT_REJECTED", "controller", {
+                "state": "RESEARCH",
+                "route": packet["selected_route"]["chosen"],
+                "failure_count": failure_count,
+                "findings": [self.finding(failure_count)],
+            })
+        run["attempts"]["RESEARCH"] = 1
+        run["status"] = "ACTIVE"
+        af.save_run(directory, run)
+
+        with mock.patch.object(af, "command_execute_stage", side_effect=AssertionError("a fifth execution was launched")) as execute:
+            code, blocked = call(af.command_advance, run_id=run_id)
+        self.assertEqual(code, af.EXIT_WAITING, blocked)
+        self.assertEqual(blocked["action"], "repair_required")
+        execute.assert_not_called()
+        _, run = af.load_run(run_id)
+        self.assertEqual(run["status"], "BLOCKED")
+        self.assertEqual(run["attempts"]["RESEARCH"], 4)
+        self.assertEqual(run["pending_repair"]["failed_attempt"], 4)
+        self.assertEqual(run["pending_repair"]["findings"][0]["location"], "claim:CL-004")
+
+        with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)):
+            code, _ = call(af.command_repair, run_id=run_id, gate_id="G-EVIDENCE-COVERAGE", finding=None)
+            self.assertEqual(code, af.EXIT_OK)
+            current_directory, run = af.load_run(run_id)
+            packet_path, resumed = af.task_packet(current_directory, run)
+        self.assertEqual(resumed["attempt"], 5)
+        self.assertEqual(resumed["repair_context"]["failed_attempt"], 4)
+        self.assertEqual(resumed["repair_context"]["findings"][0]["location"], "claim:CL-004")
+        self.assertEqual(packet_path.name, "research-05.json")
+        self.assertEqual(af.load_json(output_path)["marker"], "latest-overwritten-legacy-output")
 
 
 class InstallationRegressionTests(TemporaryRuntime):
