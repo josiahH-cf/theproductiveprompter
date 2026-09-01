@@ -218,6 +218,14 @@ class ProcessLivenessRegressionTests(unittest.TestCase):
         with mock.patch.object(af.os, "kill", side_effect=AssertionError("os.kill would broadcast CTRL_C_EVENT")):
             self.assertTrue(af.process_is_alive(os.getpid()))
 
+    def test_lock_release_retries_a_transient_windows_sharing_violation(self):
+        path = mock.Mock()
+        path.unlink.side_effect = [PermissionError("sharing violation"), None]
+        with mock.patch.object(af.time, "sleep") as pause:
+            af.release_lock_file(path)
+        self.assertEqual(path.unlink.call_count, 2)
+        pause.assert_called_once_with(0.01)
+
 
 class InstallationRegressionTests(TemporaryRuntime):
     def install_fixture(self, label):

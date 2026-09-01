@@ -596,6 +596,19 @@ def process_is_alive(pid: int) -> bool:
     return True
 
 
+def release_lock_file(path: Path, *, wait_seconds: float = 1.0) -> None:
+    """Remove an owned lock after transient Windows reader handles close."""
+    deadline = time.monotonic() + wait_seconds
+    while True:
+        try:
+            path.unlink(missing_ok=True)
+            return
+        except PermissionError:
+            if time.monotonic() >= deadline:
+                raise
+            time.sleep(0.01)
+
+
 @contextlib.contextmanager
 def shared_lock(path: Path, *, stale_seconds: int = 3600, wait_seconds: float = 15.0) -> Iterator[None]:
     """Cross-host, crash-recoverable lock for rotation and voice state."""
@@ -640,7 +653,7 @@ def shared_lock(path: Path, *, stale_seconds: int = 3600, wait_seconds: float = 
     finally:
         if descriptor is not None:
             os.close(descriptor)
-        path.unlink(missing_ok=True)
+        release_lock_file(path)
 
 
 def public_model_name(model_id: str) -> str:
@@ -1011,7 +1024,7 @@ def run_lock(directory: Path, run: dict[str, Any]) -> Iterator[None]:
         os.close(descriptor)
         yield
     finally:
-        lock_path.unlink(missing_ok=True)
+        release_lock_file(lock_path)
 
 
 def transition(directory: Path, run: dict[str, Any], new_state: str, actor: str, reason: str) -> None:
