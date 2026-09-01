@@ -3480,6 +3480,49 @@ class NoPublishAutomationTests(TemporaryRuntime):
         self.assertIn("live-verification", artifact_types)
 
 
+class SourceResolutionRegressionTests(TemporaryRuntime):
+    def test_malformed_source_url_fails_closed_instead_of_crashing(self):
+        """A model may join several URLs into one source field.
+
+        ``urlopen`` raises ``http.client.InvalidURL`` for that, which derives
+        from ``ValueError`` rather than ``OSError``, so it used to escape
+        ``fetch_url`` and abort the whole run with an unhandled traceback.
+        """
+        joined = "https://example.com/a ; https://example.com/b"
+        status, body, headers = af.fetch_url(joined, timeout=1)
+        self.assertEqual(status, -1)
+        self.assertEqual(body, b"")
+        self.assertEqual(headers, {})
+        self.assertEqual(af.fetch_url("not-a-url", timeout=1)[0], -1)
+
+        run_id = self.start()
+        directory, run = af.load_run(run_id)
+        run["state"] = "CLAIM_VERIFICATION"
+        ledger = self.runtime / "malformed-source-ledger.json"
+        ledger.write_text(json.dumps({
+            "claim_ledger_schema_version": "1.0.0",
+            "run_id": run_id,
+            "generated_at": af.utc_now(),
+            "claims": [{
+                "claim_id": "C1", "exact_claim": "A joined-source claim.", "class": "fact", "risk": "medium",
+                "source_tier": "primary", "source_url_or_local_id": joined,
+                "source_title_and_publisher": "Example", "exact_locator_or_supporting_excerpt": "Supporting text",
+                "checked_at": af.utc_now(), "freshness_horizon": "one year", "contradiction_status": "none_found",
+                "allowed_wording": "A joined-source claim.", "confidence": 0.8, "disposition": "use",
+            }],
+        }), encoding="utf-8")
+        outcome, findings = af.automatic_gate(directory, run, "CLAIM_VERIFICATION", ledger)
+        self.assertEqual(outcome, "REPAIR", findings)
+        resolution = [item for item in findings if item["criterion"] == "source_resolution"]
+        self.assertEqual(len(resolution), 1, findings)
+        self.assertIn("not a single well-formed URL", resolution[0]["finding"])
+
+        # An unreachable host stays transport-impossible and is still accepted.
+        with mock.patch.object(af, "fetch_url", return_value=(0, b"", {})):
+            outcome, findings = af.automatic_gate(directory, run, "CLAIM_VERIFICATION", ledger)
+        self.assertNotIn("source_resolution", {item["criterion"] for item in findings})
+
+
 class StyleDefenseTests(TemporaryRuntime):
     def make_package(self, *, title="Root Relative Test", description="A direct test of packaged links."):
         package_root = self.root / "package"

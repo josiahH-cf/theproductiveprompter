@@ -10,6 +10,7 @@ import errno
 import functools
 import hashlib
 import html
+import http.client
 import io
 import json
 import os
@@ -4308,7 +4309,12 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
                     if state in {"CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION"} and source.startswith(("http://", "https://")):
                         status, _, _ = fetch_url(source, timeout=15)
                         if not (200 <= status < 400 or status in {0, 401, 403, 429, 999}):
-                            findings.append({"criterion": "source_resolution", "artifact": str(submission), "location": str(claim.get("claim_id")), "finding": f"Source URL did not resolve during independent verification (HTTP {status}).", "repair_instruction": "Repair the source, use another direct source, qualify/omit, or escalate."})
+                            detail = (
+                                "is not a single well-formed URL"
+                                if status < 0
+                                else f"did not resolve during independent verification (HTTP {status})"
+                            )
+                            findings.append({"criterion": "source_resolution", "artifact": str(submission), "location": str(claim.get("claim_id")), "finding": f"Source URL {detail}.", "repair_instruction": "Give exactly one direct source URL for this claim, use another direct source, qualify/omit, or escalate."})
         if state == "VOICE_PROBE":
             candidates = [str(item.get("candidate_id")) for item in value.get("candidates", []) if isinstance(item, dict)]
             orders = value.get("comparison_orders", [])
@@ -7359,14 +7365,25 @@ def command_deployment_attest(args: argparse.Namespace) -> int:
 
 
 def fetch_url(url: str, timeout: int = 30) -> tuple[int, bytes, dict[str, str]]:
-    request = urllib.request.Request(url, headers={"User-Agent": f"article-flow/{CONTROLLER_VERSION}"})
     try:
+        request = urllib.request.Request(url, headers={"User-Agent": f"article-flow/{CONTROLLER_VERSION}"})
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return int(response.status), response.read(), {key.lower(): value for key, value in response.headers.items()}
     except urllib.error.HTTPError as exc:
         return int(exc.code), exc.read(), {key.lower(): value for key, value in exc.headers.items()}
     except (urllib.error.URLError, TimeoutError):
         return 0, b"", {}
+    except (ValueError, http.client.HTTPException):
+        # A malformed target (unknown scheme, embedded whitespace, or several
+        # URLs joined into one field) fails before any socket work: Request
+        # raises ValueError for an unknown scheme, and urlopen raises
+        # http.client.InvalidURL, which derives from HTTPException and not from
+        # OSError or ValueError.  Both escaped the handlers above and aborted
+        # the caller with an unhandled traceback.  Zero is reserved for a
+        # genuinely unreachable host and is accepted by the evidence gate, so a
+        # distinct negative status is required to keep a broken source from
+        # being misreported as transport-impossible.
+        return -1, b"", {}
 
 
 def command_verify_live(args: argparse.Namespace) -> int:
