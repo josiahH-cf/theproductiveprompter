@@ -1,6 +1,18 @@
 {
   "data": {
     "user": {
+      "contributionsCollection": {
+        "startedAt": "2026-01-01T00:00:00Z",
+        "endedAt": "2026-12-31T23:59:59Z",
+        "contributionCalendar": {
+          "totalContributions": 1485
+        },
+        "totalCommitContributions": 1343,
+        "totalIssueContributions": 5,
+        "totalPullRequestContributions": 125,
+        "totalPullRequestReviewContributions": 0,
+        "totalRepositoriesWithContributedCommits": 13
+      },
       "pinnedItems": {
         "totalCount": 4,
         "nodes": [

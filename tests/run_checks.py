@@ -22,7 +22,7 @@ import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Callable, Iterable
 from urllib.parse import parse_qs, unquote, urlsplit
 import xml.etree.ElementTree as ET
@@ -37,7 +37,21 @@ PROJECT_LIVE_SNAPSHOT = TESTS / "fixtures/pinned_projects_start_snapshot.json"
 PRESERVATION_FIXTURE = TESTS / "fixtures/preservation_baseline.json"
 PROJECT_START = "<!-- PINNED_PROJECTS_START -->"
 PROJECT_END = "<!-- PINNED_PROJECTS_END -->"
+ACTIVITY_START = "<!-- GITHUB_ACTIVITY_START -->"
+ACTIVITY_END = "<!-- GITHUB_ACTIVITY_END -->"
+ACTIVITY_AS_OF = "2026-09-01T13:02:35Z"
+ACTIVITY_FROM = "2026-01-01T00:00:00Z"
+ACTIVITY_TO = "2026-12-31T23:59:59Z"
+DASHBOARD_URL = "https://github.com/josiahH-cf"
 EXPECTED_PROJECT_COUNT = 4
+EXPECTED_ACTIVITY = {
+    "contributions": 1485,
+    "commits": 1343,
+    "pull-requests": 125,
+    "issues": 5,
+    "code-reviews": 0,
+    "repositories": 13,
+}
 ARTICLE_MARKERS = (
     "<!-- ARTICLE_FLOW_LATEST_START -->",
     "<!-- ARTICLE_FLOW_LATEST_END -->",
@@ -360,15 +374,66 @@ def check_arch_3() -> str:
                     )
             except (OSError, json.JSONDecodeError, KeyError, TypeError) as exc:
                 issues.append(f"authenticated pin snapshot is unreadable: {exc}")
+        if text.count(ACTIVITY_START) != 1 or text.count(ACTIVITY_END) != 1 or text.index(ACTIVITY_START) >= text.index(ACTIVITY_END):
+            issues.append("projects.html lacks one ordered GitHub-activity marker pair")
+        else:
+            activity_tree = parse_html_text(marker_region(text, ACTIVITY_START, ACTIVITY_END))
+            headings = elements(activity_tree, tag="h2", cls="github-activity__title")
+            years = elements(activity_tree, tag="time", cls="github-activity__year")
+            statuses = elements(activity_tree, cls="github-activity__status")
+            stat_lists = elements(activity_tree, tag="dl", cls="github-activity__stats")
+            metrics = elements(activity_tree, cls="github-activity-stat")
+            metric_keys = [item.attrs.get("data-github-metric") for item in metrics]
+            rendered_year = years[0].attrs.get("datetime") if len(years) == 1 else ""
+            if not re.fullmatch(r"\d{4}", rendered_year or "") or len(headings) != 1 or text_content(headings[0]) != f"{rendered_year} GitHub activity":
+                issues.append("projects.html lacks a coherent generated current-year activity heading")
+            else:
+                now = datetime.now(timezone.utc)
+                allowed_years = {now.year}
+                if now.month == 1 and now.day == 1:
+                    allowed_years.add(now.year - 1)
+                if int(rendered_year) not in allowed_years:
+                    issues.append(
+                        f"projects.html activity year {rendered_year} is outside the daily rollover window"
+                    )
+            if len(statuses) != 1 or "year-to-date public contribution totals" not in text_content(statuses[0]).casefold() or "refreshed daily" not in text_content(statuses[0]).casefold():
+                issues.append("projects.html lacks the year-to-date public scope and daily refresh cadence")
+            if len(stat_lists) != 1 or len(metrics) != len(EXPECTED_ACTIVITY) or metric_keys != list(EXPECTED_ACTIVITY):
+                issues.append("projects.html lacks the six ordered GitHub activity metrics")
+            else:
+                for metric in EXPECTED_ACTIVITY:
+                    item = metrics[metric_keys.index(metric)]
+                    values = elements(item, tag="dd", cls="github-activity-stat__value")
+                    labels = elements(item, tag="dt", cls="github-activity-stat__label")
+                    if len(values) != 1 or not re.fullmatch(r"\d{1,3}(?:,\d{3})*", normalized(text_content(values[0]))) or len(labels) != 1:
+                        issues.append(f"projects.html has an invalid {metric} activity metric")
+        full_tree = parse_html_text(text)
+        dashboard_links = [
+            item for item in elements(full_tree, tag="a", cls="github-dashboard-cta")
+            if item.attrs.get("href") == DASHBOARD_URL
+        ]
+        if len(dashboard_links) != 1:
+            issues.append("projects.html lacks one exact full GitHub dashboard CTA")
+        else:
+            dashboard = dashboard_links[0]
+            rel_tokens = set((dashboard.attrs.get("rel") or "").split())
+            accessible = normalized((dashboard.attrs.get("aria-label") or "") + " " + text_content(dashboard)).casefold()
+            if dashboard.attrs.get("target") != "_blank" or not {"noopener", "noreferrer"}.issubset(rel_tokens):
+                issues.append("GitHub dashboard CTA lacks protected new-tab attributes")
+            if "github activity dashboard" not in accessible or "new tab" not in accessible:
+                issues.append("GitHub dashboard CTA lacks descriptive new-tab text")
     if CONFIG.is_file():
         try:
             config = json.loads(CONFIG.read_text(encoding="utf-8"))
             expected = {
-                "target_schema_version": "1.1.0",
+                "target_schema_version": "1.2.0",
                 "pinned_projects_count": EXPECTED_PROJECT_COUNT,
                 "pinned_projects_file": "projects.html",
                 "pinned_projects_start_marker": PROJECT_START,
                 "pinned_projects_end_marker": PROJECT_END,
+                "github_activity_start_marker": ACTIVITY_START,
+                "github_activity_end_marker": ACTIVITY_END,
+                "github_activity_profile_url": DASHBOARD_URL,
             }
             for key, value in expected.items():
                 if config.get(key) != value:
@@ -379,10 +444,15 @@ def check_arch_3() -> str:
     for token in (
         "GITHUB_TOKEN", "api.github.com/graphql", "josiahH-cf", "pinnedItems", "name",
         "description", "url", "primaryLanguage", "stargazerCount", "forkCount", "updatedAt",
-        "totalCount", "MAX_PINNED_ITEMS = 6", "--response-file", "--target", "--json",
+        "totalCount", "contributionsCollection", "totalContributions", "totalCommitContributions",
+        "totalIssueContributions", "totalPullRequestContributions",
+        "totalPullRequestReviewContributions", "totalRepositoriesWithContributedCommits",
+        "MAX_PINNED_ITEMS = 6", "--response-file", "--target", "--as-of", "--json",
     ):
         if token not in generator_text:
             issues.append(f"generator lacks {token!r}")
+    if generator_text.count("atomic_write(target, updated.encode") != 1:
+        issues.append("generator does not have exactly one final atomic target write")
     workflow_text = workflow.read_text(encoding="utf-8") if workflow.is_file() else ""
     workflow_expectations = {
         "daily cron 06:17 UTC": re.search(r"cron\s*:\s*[\"']?17\s+6\s+\*\s+\*\s+\*", workflow_text),
@@ -392,7 +462,9 @@ def check_arch_3() -> str:
         "checkout v7": "actions/checkout@v7" in workflow_text,
         "refresh concurrency": "refresh-pinned-projects" in workflow_text and bool(re.search(r"cancel-in-progress\s*:\s*false", workflow_text)),
         "secret token mapping": "GITHUB_TOKEN" in workflow_text and "secrets.GITHUB_TOKEN" in workflow_text,
-        "generator invocation": "refresh_pinned_projects.py" in workflow_text,
+        "single generator invocation": workflow_text.count("python3 .github/scripts/refresh_pinned_projects.py --json") == 1,
+        "single-page staging scope": "git add -- projects.html" in workflow_text,
+        "activity refresh naming": "GitHub projects and activity" in workflow_text,
         "fail-closed shell guard": "set -euo pipefail" in workflow_text and "release_names=\"$(" in workflow_text and "asset_names=\"$(" in workflow_text,
         "stale checkout guard": "git rev-parse origin/main" in workflow_text and "origin/main moved" in workflow_text,
         "explicit Pages build and verification": "--method POST" in workflow_text and "pages/builds" in workflow_text and "pages/builds/latest" in workflow_text and 'latest_status" == "built"' in workflow_text and 'latest_status" == "errored"' in workflow_text,
@@ -404,10 +476,10 @@ def check_arch_3() -> str:
     leaked = [rel(path) for path in client_files if path.is_file() and "GITHUB_TOKEN" in path.read_text(encoding="utf-8")]
     if leaked:
         issues.append(f"client token reference in {', '.join(leaked)}")
-    require_no_issues("marker-driven GraphQL generator and isolated scheduled workflow", issues)
+    require_no_issues("marker-driven GitHub pins/activity generator and isolated scheduled workflow", issues)
     return (
-        f"projects markers, schema 1.1.0 four-project generator contract, fail-closed schedule, "
-        "token isolation, and verified Pages build are present"
+        f"project/activity markers, schema 1.2.0 four-project and current-year activity contract, "
+        "fail-closed schedule, token isolation, and verified Pages build are present"
     )
 
 
@@ -617,10 +689,13 @@ def check_arch_8() -> str:
     return f"valid XML; sitemap has {len(locs)} URLs including both new pages"
 
 
-def run_generator(response: Path, target: Path) -> subprocess.CompletedProcess[str]:
+def run_generator(
+    response: Path, target: Path, as_of: str = ACTIVITY_AS_OF
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [sys.executable, str(ROOT / ".github/scripts/refresh_pinned_projects.py"),
-         "--response-file", str(response), "--target", str(target), "--json"],
+         "--response-file", str(response), "--target", str(target),
+         "--as-of", as_of, "--json"],
         cwd=ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30,
     )
 
@@ -631,7 +706,11 @@ def check_beh_4() -> str:
         fail("runnable pinned-project generator", "generator is missing")
     fixture = json.loads(PROJECT_FIXTURE.read_text(encoding="utf-8"))
     nodes = fixture["data"]["user"]["pinnedItems"]["nodes"]
-    shell = "prefix sentinel\n" + PROJECT_START + "\nold cards\n" + PROJECT_END + "\nsuffix sentinel\n"
+    shell = (
+        "prefix sentinel\n" + PROJECT_START + "\nold cards\n" + PROJECT_END
+        + "\nbetween sentinel\n" + ACTIVITY_START + "\nold activity\n"
+        + ACTIVITY_END + "\nsuffix sentinel\n"
+    )
     issues = []
     with tempfile.TemporaryDirectory(prefix="pinned-project-check-") as tmp:
         target = Path(tmp) / "projects.html"
@@ -644,8 +723,12 @@ def check_beh_4() -> str:
                 completed.stderr or completed.stdout,
             )
         output = target.read_text(encoding="utf-8")
-        if not output.startswith("prefix sentinel\n" + PROJECT_START) or not output.endswith(PROJECT_END + "\nsuffix sentinel\n"):
-            issues.append("generator changed bytes outside the marker region")
+        if (
+            not output.startswith("prefix sentinel\n" + PROJECT_START)
+            or PROJECT_END + "\nbetween sentinel\n" + ACTIVITY_START not in output
+            or not output.endswith(ACTIVITY_END + "\nsuffix sentinel\n")
+        ):
+            issues.append("generator changed bytes outside the two marker regions")
         region = marker_region(output, PROJECT_START, PROJECT_END)
         tree = parse_html_text(region)
         cards = elements(tree, cls="project-card")
@@ -676,17 +759,46 @@ def check_beh_4() -> str:
             issues.append("adversarial description was not HTML-escaped")
         if "No description provided." not in text_content(tree) or "Not specified" not in text_content(tree):
             issues.append("null description/language fallbacks are absent")
+        activity_region = marker_region(output, ACTIVITY_START, ACTIVITY_END)
+        activity_tree = parse_html_text(activity_region)
+        activity_headings = elements(activity_tree, tag="h2", cls="github-activity__title")
+        activity_years = elements(activity_tree, tag="time", cls="github-activity__year")
+        activity_statuses = elements(activity_tree, cls="github-activity__status")
+        activity_metrics = elements(activity_tree, cls="github-activity-stat")
+        if len(activity_headings) != 1 or text_content(activity_headings[0]) != "2026 GitHub activity":
+            issues.append("generated activity heading does not use the fixture year")
+        if len(activity_years) != 1 or activity_years[0].attrs.get("datetime") != "2026":
+            issues.append("generated activity year does not match --as-of")
+        if len(activity_statuses) != 1 or "year-to-date public contribution totals" not in text_content(activity_statuses[0]).casefold() or "refreshed daily" not in text_content(activity_statuses[0]).casefold():
+            issues.append("generated activity scope/cadence status is absent")
+        actual_activity = {}
+        for item in activity_metrics:
+            key = item.attrs.get("data-github-metric")
+            values = elements(item, tag="dd", cls="github-activity-stat__value")
+            if key and len(values) == 1:
+                actual_activity[key] = normalized(text_content(values[0]))
+        expected_activity = {key: f"{value:,}" for key, value in EXPECTED_ACTIVITY.items()}
+        if actual_activity != expected_activity:
+            issues.append(f"generated activity values {actual_activity!r} differ from {expected_activity!r}")
+        try:
+            result_payload = json.loads(completed.stdout)
+        except json.JSONDecodeError:
+            result_payload = {}
+        if result_payload.get("activity_year") != 2026 or result_payload.get("activity_total") != EXPECTED_ACTIVITY["contributions"]:
+            issues.append("machine-readable generator result lacks activity year/total")
         crlf_shell = (
             b"prefix sentinel\r\n" + PROJECT_START.encode() + b"\r\nold cards\r\n"
-            + PROJECT_END.encode() + b"\r\nsuffix sentinel\r\n"
+            + PROJECT_END.encode() + b"\r\nbetween sentinel\r\n" + ACTIVITY_START.encode()
+            + b"\r\nold activity\r\n" + ACTIVITY_END.encode() + b"\r\nsuffix sentinel\r\n"
         )
         target.write_bytes(crlf_shell)
         crlf_run = run_generator(PROJECT_FIXTURE, target)
         crlf_output = target.read_bytes()
         expected_prefix = b"prefix sentinel\r\n" + PROJECT_START.encode()
-        expected_suffix = PROJECT_END.encode() + b"\r\nsuffix sentinel\r\n"
-        if crlf_run.returncode != 0 or not crlf_output.startswith(expected_prefix) or not crlf_output.endswith(expected_suffix):
-            issues.append("CRLF bytes outside the marker region were not preserved")
+        expected_middle = PROJECT_END.encode() + b"\r\nbetween sentinel\r\n" + ACTIVITY_START.encode()
+        expected_suffix = ACTIVITY_END.encode() + b"\r\nsuffix sentinel\r\n"
+        if crlf_run.returncode != 0 or not crlf_output.startswith(expected_prefix) or expected_middle not in crlf_output or not crlf_output.endswith(expected_suffix):
+            issues.append("CRLF bytes outside the marker regions were not preserved")
         target.write_bytes(shell.encode("utf-8"))
         completed = run_generator(PROJECT_FIXTURE, target)
         if completed.returncode != 0:
@@ -695,9 +807,41 @@ def check_beh_4() -> str:
         rerun = run_generator(PROJECT_FIXTURE, target)
         if rerun.returncode != 0 or target.read_bytes() != before:
             issues.append("identical input did not produce byte-stable output")
+        same_year_rerun = run_generator(
+            PROJECT_FIXTURE, target, "2026-12-30T23:59:58Z"
+        )
+        if same_year_rerun.returncode != 0 or target.read_bytes() != before:
+            issues.append("a different --as-of time in the same year changed generated bytes")
+        rollover = copy.deepcopy(fixture)
+        rollover_activity = rollover["data"]["user"]["contributionsCollection"]
+        rollover_activity["startedAt"] = "2027-01-01T00:00:00Z"
+        rollover_activity["endedAt"] = "2027-12-31T23:59:59Z"
+        rollover_activity["contributionCalendar"]["totalContributions"] = 0
+        for key in (
+            "totalCommitContributions", "totalIssueContributions",
+            "totalPullRequestContributions", "totalPullRequestReviewContributions",
+            "totalRepositoriesWithContributedCommits",
+        ):
+            rollover_activity[key] = 0
+        rollover_response = Path(tmp) / "rollover.json"
+        rollover_response.write_text(json.dumps(rollover), encoding="utf-8")
+        target.write_bytes(shell.encode("utf-8"))
+        rollover_run = run_generator(rollover_response, target, "2027-01-01T00:01:00Z")
+        rollover_output = target.read_text(encoding="utf-8")
+        rollover_region = marker_region(rollover_output, ACTIVITY_START, ACTIVITY_END)
+        rollover_headings = elements(
+            parse_html_text(rollover_region), tag="h2", cls="github-activity__title"
+        )
+        if rollover_run.returncode != 0 or len(rollover_headings) != 1 or text_content(rollover_headings[0]) != "2027 GitHub activity":
+            issues.append(
+                "January 1 rollover did not switch the activity year deterministically: "
+                + normalized(rollover_run.stderr or rollover_run.stdout)[-300:]
+            )
         invalid_cases = []
         variants = {
             "GraphQL errors": {"errors": [{"message": "fixture rejection"}]},
+            "partial GraphQL errors": copy.deepcopy(fixture),
+            "null user": {"data": {"user": None}},
             "three nodes": copy.deepcopy(fixture),
             "five nodes": copy.deepcopy(fixture),
             "totalCount mismatch": copy.deepcopy(fixture),
@@ -708,7 +852,18 @@ def check_beh_4() -> str:
             "dot-segment repository": copy.deepcopy(fixture),
             "negative count": copy.deepcopy(fixture),
             "malformed timestamp": copy.deepcopy(fixture),
+            "missing activity collection": copy.deepcopy(fixture),
+            "missing contribution calendar": copy.deepcopy(fixture),
+            "negative activity total": copy.deepcopy(fixture),
+            "boolean commit total": copy.deepcopy(fixture),
+            "malformed activity start": copy.deepcopy(fixture),
+            "wrong activity year start": copy.deepcopy(fixture),
+            "mismatched activity end": copy.deepcopy(fixture),
+            "non-UTC activity start": copy.deepcopy(fixture),
+            "string review total": copy.deepcopy(fixture),
+            "missing repository total": copy.deepcopy(fixture),
         }
+        variants["partial GraphQL errors"]["errors"] = [{"message": "partial data is unsafe"}]
         variants["three nodes"]["data"]["user"]["pinnedItems"]["totalCount"] = 3
         variants["three nodes"]["data"]["user"]["pinnedItems"]["nodes"] = copy.deepcopy(nodes[:3])
         fifth = copy.deepcopy(nodes[0])
@@ -725,6 +880,16 @@ def check_beh_4() -> str:
         variants["dot-segment repository"]["data"]["user"]["pinnedItems"]["nodes"][0]["url"] = "https://github.com/josiahH-cf/.."
         variants["negative count"]["data"]["user"]["pinnedItems"]["nodes"][0]["forkCount"] = -1
         variants["malformed timestamp"]["data"]["user"]["pinnedItems"]["nodes"][0]["updatedAt"] = "yesterday"
+        variants["missing activity collection"]["data"]["user"].pop("contributionsCollection")
+        variants["missing contribution calendar"]["data"]["user"]["contributionsCollection"].pop("contributionCalendar")
+        variants["negative activity total"]["data"]["user"]["contributionsCollection"]["contributionCalendar"]["totalContributions"] = -1
+        variants["boolean commit total"]["data"]["user"]["contributionsCollection"]["totalCommitContributions"] = True
+        variants["malformed activity start"]["data"]["user"]["contributionsCollection"]["startedAt"] = "this year"
+        variants["wrong activity year start"]["data"]["user"]["contributionsCollection"]["startedAt"] = "2025-01-01T00:00:00Z"
+        variants["mismatched activity end"]["data"]["user"]["contributionsCollection"]["endedAt"] = "2026-12-31T23:59:58Z"
+        variants["non-UTC activity start"]["data"]["user"]["contributionsCollection"]["startedAt"] = "2026-01-01T01:00:00+01:00"
+        variants["string review total"]["data"]["user"]["contributionsCollection"]["totalPullRequestReviewContributions"] = "0"
+        variants["missing repository total"]["data"]["user"]["contributionsCollection"].pop("totalRepositoriesWithContributedCommits")
         for label, payload in variants.items():
             response = Path(tmp) / f"invalid-{len(invalid_cases)}.json"
             response.write_text(json.dumps(payload), encoding="utf-8")
@@ -734,10 +899,50 @@ def check_beh_4() -> str:
                 invalid_cases.append(label)
         if invalid_cases:
             issues.append(f"invalid input accepted or rewrote target: {', '.join(invalid_cases)}")
+        invalid_as_of = []
+        for label, value in {
+            "malformed --as-of": "today",
+            "non-UTC --as-of": "2026-09-01T14:02:35+01:00",
+        }.items():
+            target.write_bytes(shell.encode("utf-8"))
+            rejected = run_generator(PROJECT_FIXTURE, target, value)
+            if rejected.returncode == 0 or target.read_bytes() != shell.encode("utf-8"):
+                invalid_as_of.append(label)
+        if invalid_as_of:
+            issues.append(f"invalid time controls accepted or rewrote target: {', '.join(invalid_as_of)}")
         invalid_targets = []
         marker_variants = {
-            "out-of-order markers": "prefix\n" + PROJECT_END + "\nold\n" + PROJECT_START + "\nsuffix\n",
-            "duplicate start marker": "prefix\n" + PROJECT_START + "\n" + PROJECT_START + "\n" + PROJECT_END + "\nsuffix\n",
+            "out-of-order project markers": (
+                "prefix\n" + PROJECT_END + "\nold\n" + PROJECT_START + "\n"
+                + ACTIVITY_START + "\nold\n" + ACTIVITY_END + "\nsuffix\n"
+            ),
+            "duplicate project start marker": (
+                "prefix\n" + PROJECT_START + "\n" + PROJECT_START + "\n" + PROJECT_END
+                + "\n" + ACTIVITY_START + "\nold\n" + ACTIVITY_END + "\nsuffix\n"
+            ),
+            "out-of-order activity markers": (
+                "prefix\n" + PROJECT_START + "\nold\n" + PROJECT_END + "\n"
+                + ACTIVITY_END + "\nold\n" + ACTIVITY_START + "\nsuffix\n"
+            ),
+            "duplicate activity start marker": (
+                "prefix\n" + PROJECT_START + "\nold\n" + PROJECT_END + "\n"
+                + ACTIVITY_START + "\n" + ACTIVITY_START + "\n" + ACTIVITY_END + "\nsuffix\n"
+            ),
+            "missing activity markers": (
+                "prefix\n" + PROJECT_START + "\nold\n" + PROJECT_END + "\nsuffix\n"
+            ),
+            "nested marker regions": (
+                "prefix\n" + PROJECT_START + "\n" + ACTIVITY_START + "\nold\n"
+                + PROJECT_END + "\n" + ACTIVITY_END + "\nsuffix\n"
+            ),
+            "activity region before projects": (
+                "prefix\n" + ACTIVITY_START + "\nold\n" + ACTIVITY_END + "\n"
+                + PROJECT_START + "\nold\n" + PROJECT_END + "\nsuffix\n"
+            ),
+            "duplicate activity end marker": (
+                "prefix\n" + PROJECT_START + "\nold\n" + PROJECT_END + "\n"
+                + ACTIVITY_START + "\nold\n" + ACTIVITY_END + "\n" + ACTIVITY_END + "\nsuffix\n"
+            ),
         }
         for label, malformed_target in marker_variants.items():
             original = malformed_target.encode("utf-8")
@@ -748,12 +953,12 @@ def check_beh_4() -> str:
         if invalid_targets:
             issues.append(f"invalid marker layouts accepted or rewritten: {', '.join(invalid_targets)}")
     require_no_issues(
-        f"{EXPECTED_PROJECT_COUNT} ordered escaped styled cards, exact outside bytes, and atomic hostile-input rejection",
+        f"{EXPECTED_PROJECT_COUNT} ordered escaped cards plus current-year activity, exact outside bytes, and atomic hostile-input rejection",
         issues,
     )
     return (
-        f"hostile fixture generated {EXPECTED_PROJECT_COUNT} styled cards; "
-        "CRLF/LF bytes were stable and thirteen invalid cases were rejected atomically"
+        f"hostile fixture generated {EXPECTED_PROJECT_COUNT} styled cards and six activity metrics; "
+        "CRLF/LF bytes, idempotence, year rollover, and invalid-input atomicity passed"
     )
 
 
@@ -815,8 +1020,8 @@ def check_pres_2() -> str:
         expected_count = 2 if "LATEST" in marker else 1
         if combined.count(marker) != expected_count:
             issues.append(f"Article Flow marker {marker} occurs {combined.count(marker)} times; expected {expected_count}")
-    if PROJECT_START in ARTICLE_MARKERS or PROJECT_END in ARTICLE_MARKERS:
-        issues.append("pinned-project markers collide with Article Flow markers")
+    if any(marker in ARTICLE_MARKERS for marker in (PROJECT_START, PROJECT_END, ACTIVITY_START, ACTIVITY_END)):
+        issues.append("GitHub refresh markers collide with Article Flow markers")
     completed = subprocess.run(
         [sys.executable, "-m", "unittest", "discover", "-s", "Article-Spec-Pack-v1/tests", "-p", "test_article_flow.py"],
         cwd=ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=180,
@@ -902,6 +1107,7 @@ BROWSER_IDS = {
     "BEH-3": ("behavior", "Telemetry opens a new tab"),
     "BEH-6": ("behavior", "Contact delivery states"),
     "BEH-9": ("behavior", "Hero fits the viewport"),
+    "BEH-10": ("behavior", "GitHub activity and dashboard CTA"),
     "PRES-3": ("preservation", "31 Days fixed-clock reveal"),
     "PRES-4": ("preservation", "Mobile menu"),
     "PRES-5": ("preservation", "Reveal and reduced motion"),

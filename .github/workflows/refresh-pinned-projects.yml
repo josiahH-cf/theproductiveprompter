@@ -1,4 +1,4 @@
-name: Refresh pinned projects
+name: Refresh GitHub projects and activity
 
 "on":
   schedule:
@@ -27,16 +27,16 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Refresh the marker-owned project cards
+      - name: Refresh the marker-owned GitHub projects and activity
         run: python3 .github/scripts/refresh_pinned_projects.py --json
 
-      - name: Commit a safe refresh when pins changed
+      - name: Commit a safe refresh when GitHub data changed
         shell: bash
         run: |
           set -euo pipefail
 
           if git diff --quiet -- projects.html; then
-            echo "Pinned project cards are already current."
+            echo "GitHub projects and activity are already current."
             exit 0
           fi
 
@@ -76,7 +76,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -- projects.html
-          git commit -m "Refresh pinned GitHub projects"
+          git commit -m "Refresh GitHub projects and activity"
           commit_sha="$(git rev-parse HEAD)"
           git push origin HEAD:main
 
@@ -96,16 +96,16 @@ jobs:
             )"; then
               IFS=$'\t' read -r latest_status latest_commit latest_error <<< "$latest_build"
               if [[ "$latest_commit" == "$commit_sha" && "$latest_status" == "built" ]]; then
-                echo "GitHub Pages built pinned-project commit $commit_sha."
+                echo "GitHub Pages built GitHub data commit $commit_sha."
                 exit 0
               fi
               if [[ "$latest_commit" == "$commit_sha" && "$latest_status" == "errored" ]]; then
-                echo "GitHub Pages failed pinned-project commit $commit_sha: $latest_error" >&2
+                echo "GitHub Pages failed GitHub data commit $commit_sha: $latest_error" >&2
                 exit 1
               fi
             fi
             sleep 15
           done
 
-          echo "GitHub Pages did not build pinned-project commit $commit_sha within 25 minutes (latest commit=$latest_commit status=$latest_status)." >&2
+          echo "GitHub Pages did not build GitHub data commit $commit_sha within 25 minutes (latest commit=$latest_commit status=$latest_status)." >&2
           exit 1
