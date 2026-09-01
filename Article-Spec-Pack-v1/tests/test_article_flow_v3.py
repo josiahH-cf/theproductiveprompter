@@ -362,14 +362,16 @@ class InstallationRegressionTests(TemporaryRuntime):
         ):
             healthy = af.installation_health()
             self.assertTrue(healthy["ok"], healthy)
-            self.assertEqual({item["host"] for item in healthy["checks"]}, {"wsl", "windows"})
+            expected_hosts = {"windows"} if os.name == "nt" else {"wsl", "windows"}
+            self.assertEqual({item["host"] for item in healthy["checks"]}, expected_hosts)
 
-            repo_line = f"export ARTICLE_FLOW_REPO_ROOT={af.shlex.quote(str(publication))}\n".encode("utf-8")
-            af.atomic_write(wsl_launcher, wsl_launcher_bytes.replace(repo_line, b""))
-            missing = af.installation_health()
-            missing_by_host = {item["host"]: item for item in missing["checks"]}
-            self.assertFalse(missing_by_host["wsl"]["launcher_agrees"])
-            self.assertTrue(missing_by_host["windows"]["launcher_agrees"])
+            if os.name != "nt":
+                repo_line = f"export ARTICLE_FLOW_REPO_ROOT={af.shlex.quote(str(publication))}\n".encode("utf-8")
+                af.atomic_write(wsl_launcher, wsl_launcher_bytes.replace(repo_line, b""))
+                missing = af.installation_health()
+                missing_by_host = {item["host"]: item for item in missing["checks"]}
+                self.assertFalse(missing_by_host["wsl"]["launcher_agrees"])
+                self.assertTrue(missing_by_host["windows"]["launcher_agrees"])
 
             af.atomic_write(wsl_launcher, wsl_launcher_bytes)
             windows_repo_line = (
@@ -383,7 +385,8 @@ class InstallationRegressionTests(TemporaryRuntime):
             af.atomic_write(windows_launcher, altered_launcher)
             altered = af.installation_health()
             altered_by_host = {item["host"]: item for item in altered["checks"]}
-            self.assertTrue(altered_by_host["wsl"]["launcher_agrees"])
+            if os.name != "nt":
+                self.assertTrue(altered_by_host["wsl"]["launcher_agrees"])
             self.assertFalse(altered_by_host["windows"]["launcher_agrees"])
 
 
