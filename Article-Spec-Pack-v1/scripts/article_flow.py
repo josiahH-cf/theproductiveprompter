@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import datetime as dt
+import errno
 import functools
 import hashlib
 import html
@@ -609,51 +610,166 @@ def release_lock_file(path: Path, *, wait_seconds: float = 1.0) -> None:
             time.sleep(0.01)
 
 
-@contextlib.contextmanager
-def shared_lock(path: Path, *, stale_seconds: int = 3600, wait_seconds: float = 15.0) -> Iterator[None]:
-    """Cross-host, crash-recoverable lock for rotation and voice state."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    descriptor: int | None = None
-    deadline = time.monotonic() + wait_seconds
-    while descriptor is None:
-        try:
-            descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-        except FileExistsError as exc:
-            try:
-                value = load_json(path)
-            except FlowError:
-                value = {}
-            created = value.get("created_at")
-            try:
-                age = (dt.datetime.now(dt.timezone.utc) - parse_time(str(created))).total_seconds() if created else time.time() - path.stat().st_mtime
-            except (OSError, ValueError):
-                age = 0
-            same_namespace = value.get("namespace") == lock_namespace()
-            alive = False
-            if same_namespace and int(value.get("pid", -1)) > 0:
-                alive = process_is_alive(int(value["pid"]))
-            has_owner = bool(value.get("namespace") and int(value.get("pid", -1)) > 0)
-            fresh_unknown_owner = not has_owner and age <= min(stale_seconds, 2)
-            cross_host_fresh = has_owner and not same_namespace and age <= stale_seconds
-            if alive or fresh_unknown_owner or cross_host_fresh:
-                if time.monotonic() >= deadline:
-                    raise FlowError(f"Timed out waiting for shared Article Flow state: {path}") from exc
-                time.sleep(0.02)
-                continue
-            recovered = path.with_name(f"{path.name}.recovered-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%SZ')}")
-            try:
-                path.replace(recovered)
-            except FileNotFoundError:
-                continue
+def valid_lock_owner(value: Any) -> bool:
+    if not isinstance(value, dict):
+        return False
+    pid = value.get("pid")
+    token = value.get("token")
+    namespace = value.get("namespace")
+    created_at = value.get("created_at")
+    if isinstance(pid, bool) or not isinstance(pid, int) or pid <= 0:
+        return False
+    if not isinstance(namespace, str) or not namespace:
+        return False
+    if not isinstance(token, str) or not re.fullmatch(r"[0-9a-f]{32}", token):
+        return False
+    if not isinstance(created_at, str):
+        return False
     try:
-        os.write(descriptor, canonical_json({"pid": os.getpid(), "namespace": lock_namespace(), "created_at": utc_now()}))
-        os.close(descriptor)
-        descriptor = None
+        parse_time(created_at)
+    except ValueError:
+        return False
+    return True
+
+
+def read_lock_owner(path: Path) -> tuple[str, dict[str, Any] | None]:
+    try:
+        raw = path.read_bytes()
+    except FileNotFoundError:
+        return "missing", None
+    except OSError:
+        return "unreadable", None
+    try:
+        value = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return "malformed", None
+    if not valid_lock_owner(value):
+        return "malformed", value if isinstance(value, dict) else None
+    return "valid", value
+
+
+def publish_lock_owner(path: Path, owner: dict[str, Any]) -> bool:
+    """Atomically expose a fully written owner record without replacing a lock."""
+    if not valid_lock_owner(owner):
+        raise FlowError("Refusing to publish an invalid lock owner record", EXIT_INTEGRITY, owner)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        return False
+    descriptor, temp_name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.owner-")
+    temp_path = Path(temp_name)
+    try:
+        handle = os.fdopen(descriptor, "wb")
+        descriptor = -1
+        with handle:
+            handle.write(canonical_json(owner))
+            handle.flush()
+            os.fsync(handle.fileno())
+        try:
+            # A same-directory hard link is an atomic no-replace publication on
+            # both NTFS/Windows and POSIX filesystems. Contenders can therefore
+            # observe either no owner or one complete owner, never partial bytes.
+            os.link(temp_path, path)
+        except OSError as exc:
+            if isinstance(exc, FileExistsError) or exc.errno == errno.EEXIST or getattr(exc, "winerror", None) == 183:
+                return False
+            raise FlowError(f"Cannot atomically publish shared lock owner: {path}: {exc}", EXIT_INTEGRITY) from exc
+        return True
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
+        release_lock_file(temp_path)
+
+
+def release_owned_lock_file(path: Path, token: str, *, wait_seconds: float = 1.0) -> bool:
+    """Release only the lock that still contains this acquisition's token."""
+    deadline = time.monotonic() + wait_seconds
+    while True:
+        status, owner = read_lock_owner(path)
+        if status != "valid" or owner is None or owner.get("token") != token:
+            return False
+        try:
+            path.unlink()
+            return True
+        except FileNotFoundError:
+            return False
+        except PermissionError:
+            if time.monotonic() >= deadline:
+                raise
+            time.sleep(0.01)
+
+
+def recover_dead_same_namespace_lock(path: Path, owner: dict[str, Any], deadline: float) -> bool:
+    """Elect one contender to recover an owner whose local PID is proven dead."""
+    prior_token = str(owner["token"])
+    recovery_path = path.with_name(f".{path.name}.recover-{prior_token}")
+    recovery_token = secrets.token_hex(16)
+    recovery_owner = {
+        "pid": os.getpid(),
+        "namespace": lock_namespace(),
+        "created_at": utc_now(),
+        "token": recovery_token,
+    }
+    if not publish_lock_owner(recovery_path, recovery_owner):
+        if time.monotonic() >= deadline:
+            raise FlowError(
+                f"Timed out waiting for shared Article Flow lock recovery: {path}",
+                details={"lock": str(path), "recovery_lock": str(recovery_path)},
+            )
+        return False
+    try:
+        status, current = read_lock_owner(path)
+        if status != "valid" or current is None or current.get("token") != prior_token:
+            return True
+        if current.get("namespace") != lock_namespace() or process_is_alive(int(current["pid"])):
+            return True
+        recovered = path.with_name(f"{path.name}.recovered-{prior_token}")
+        try:
+            path.replace(recovered)
+        except FileNotFoundError:
+            pass
+        return True
+    finally:
+        if not release_owned_lock_file(recovery_path, recovery_token):
+            raise FlowError("Shared lock recovery ownership changed unexpectedly", EXIT_INTEGRITY, {"lock": str(recovery_path)})
+
+
+@contextlib.contextmanager
+def shared_lock(path: Path, *, stale_seconds: int | None = None, wait_seconds: float = 15.0) -> Iterator[None]:
+    """Cross-host lock with conservative recovery and token-checked release."""
+    del stale_seconds  # Kept as a source-compatible argument; age never proves ownership loss.
+    token = secrets.token_hex(16)
+    owner = {
+        "pid": os.getpid(),
+        "namespace": lock_namespace(),
+        "created_at": utc_now(),
+        "token": token,
+    }
+    deadline = time.monotonic() + wait_seconds
+    while not publish_lock_owner(path, owner):
+        status, current = read_lock_owner(path)
+        reason = "owner record is incomplete or malformed and requires manual recovery"
+        if status == "missing":
+            continue
+        if status == "valid" and current is not None:
+            if current["namespace"] != lock_namespace():
+                reason = "cross-host ownership cannot be proven dead and requires manual recovery"
+            elif process_is_alive(int(current["pid"])):
+                reason = "the owning process is still alive"
+            else:
+                if recover_dead_same_namespace_lock(path, current, deadline):
+                    continue
+                reason = "another process is recovering the proven-dead owner"
+        if time.monotonic() >= deadline:
+            raise FlowError(
+                f"Timed out waiting for shared Article Flow state: {path}; {reason}",
+                details={"lock": str(path), "reason": reason, "owner": current},
+            )
+        time.sleep(0.02)
+    try:
         yield
     finally:
-        if descriptor is not None:
-            os.close(descriptor)
-        release_lock_file(path)
+        if not release_owned_lock_file(path, token):
+            raise FlowError("Shared lock ownership changed before release; successor was preserved", EXIT_INTEGRITY, {"lock": str(path), "token": token})
 
 
 def public_model_name(model_id: str) -> str:
@@ -4189,30 +4305,97 @@ def publication_push_preflight(repository: Path, target: dict[str, Any]) -> dict
     }
 
 
+def normalize_git_remote_url(value: str, *, repository: Path) -> str:
+    """Normalize equivalent Windows, WSL, SSH, and HTTPS Git remote forms."""
+    raw = value.strip().replace("\\", "/")
+    if not raw:
+        raise FlowError("Publication remote URL is empty", EXIT_INTEGRITY)
+
+    def normalized_local(path_value: str) -> str:
+        file_drive_match = re.fullmatch(r"/([A-Za-z]):(?:/(.*))?", path_value)
+        if file_drive_match:
+            path_value = f"{file_drive_match.group(1)}:/{file_drive_match.group(2) or ''}"
+        drive_match = re.fullmatch(r"([A-Za-z]):(?:/(.*))?", path_value)
+        if drive_match:
+            suffix = (drive_match.group(2) or "").rstrip("/")
+            if suffix.lower().endswith(".git"):
+                suffix = suffix[:-4]
+            return f"file:///{drive_match.group(1).lower()}:/{suffix.lower()}"
+        wsl_match = re.fullmatch(r"/mnt/([A-Za-z])(?:/(.*))?", path_value)
+        if wsl_match:
+            suffix = (wsl_match.group(2) or "").rstrip("/")
+            if suffix.lower().endswith(".git"):
+                suffix = suffix[:-4]
+            return f"file:///{wsl_match.group(1).lower()}:/{suffix.lower()}"
+        local = Path(path_value)
+        if not local.is_absolute():
+            local = repository / local
+        normalized = local.resolve().as_posix().rstrip("/")
+        if normalized.lower().endswith(".git"):
+            normalized = normalized[:-4]
+        return f"file://{normalized}"
+
+    if re.match(r"^[A-Za-z]:/", raw) or raw.startswith(("/", "./", "../")):
+        return normalized_local(raw)
+    scp = re.fullmatch(r"(?:[^/@]+@)?([^/:]+):(.+)", raw) if "://" not in raw else None
+    if scp:
+        host = scp.group(1).lower()
+        remote_path = scp.group(2).strip("/")
+        if remote_path.lower().endswith(".git"):
+            remote_path = remote_path[:-4]
+        return f"git://{host}/{remote_path}"
+    parsed = urllib.parse.urlsplit(raw)
+    if parsed.scheme.lower() == "file":
+        return normalized_local(urllib.parse.unquote(parsed.path))
+    if not parsed.hostname:
+        return normalized_local(raw)
+    host = parsed.hostname.lower()
+    port = f":{parsed.port}" if parsed.port else ""
+    remote_path = urllib.parse.unquote(parsed.path).strip("/")
+    if remote_path.lower().endswith(".git"):
+        remote_path = remote_path[:-4]
+    return f"git://{host}{port}/{remote_path}"
+
+
+def publication_target_identity(repository: Path, target: dict[str, Any]) -> dict[str, str]:
+    remote_name = str(target.get("deployment", {}).get("remote", "")).strip()
+    branch = str(target.get("publication_branch", "")).strip()
+    if not remote_name or not branch:
+        raise FlowError("Publication target is missing its remote or branch", EXIT_INTEGRITY)
+    remote_url = str(git(["remote", "get-url", "--push", remote_name], cwd=repository)).strip()
+    return {
+        "remote_url": normalize_git_remote_url(remote_url, repository=repository),
+        "publication_branch": branch,
+    }
+
+
 def publication_target_lock_path(repository: Path, target: dict[str, Any]) -> Path:
     """Return one host-neutral lock path for a configured publication target."""
-    identity = {
-        "target_id": str(target.get("target_id", "unknown-target")),
-        "publication_branch": str(target.get("publication_branch", "")),
-        "canonical_url": str(target.get("canonical_url", "")),
-    }
-    digest = sha256_bytes(canonical_json(identity))[:16]
-    filename = f"{slugify(identity['target_id'], 48)}-{digest}.lock"
+    identity = publication_target_identity(repository, target)
+    digest = sha256_bytes(canonical_json(identity))[:24]
+    filename = f"target-{digest}.lock"
     shared_root = (shared_state_root() / "locks" / "publication").resolve()
     repository_root = repository.resolve()
     try:
         shared_root.relative_to(repository_root)
     except ValueError:
         return shared_root / filename
+    raise FlowError(
+        "Shared Article Flow state must be outside the publication checkout before publishing",
+        EXIT_INTEGRITY,
+        {"shared_state_root": str(shared_state_root()), "publication_repository": str(repository_root)},
+    )
 
-    # A custom shared-state location may accidentally live in the publication
-    # worktree. Keep lock bytes out of the indexable tree by falling back to the
-    # repository's common git directory.
-    common_dir_value = str(git(["rev-parse", "--git-common-dir"], cwd=repository)).strip()
-    common_dir = Path(common_dir_value)
-    if not common_dir.is_absolute():
-        common_dir = repository / common_dir
-    return common_dir.resolve() / "article-flow" / "publication-locks" / filename
+
+def publication_lock_wait_seconds() -> float:
+    configured = os.environ.get("ARTICLE_FLOW_PUBLICATION_LOCK_WAIT_SECONDS", "300")
+    try:
+        value = float(configured)
+    except ValueError as exc:
+        raise FlowError("ARTICLE_FLOW_PUBLICATION_LOCK_WAIT_SECONDS must be a number", EXIT_USAGE) from exc
+    if not 0 < value <= 3600:
+        raise FlowError("ARTICLE_FLOW_PUBLICATION_LOCK_WAIT_SECONDS must be greater than 0 and at most 3600", EXIT_USAGE)
+    return value
 
 
 @contextlib.contextmanager
@@ -4220,11 +4403,11 @@ def publication_target_lock(
     repository: Path,
     target: dict[str, Any],
     *,
-    wait_seconds: float = 15.0,
+    wait_seconds: float | None = None,
 ) -> Iterator[Path]:
     """Serialize publication mutations across runs and Windows/WSL hosts."""
     path = publication_target_lock_path(repository, target)
-    with shared_lock(path, stale_seconds=6 * 3600, wait_seconds=wait_seconds):
+    with shared_lock(path, wait_seconds=publication_lock_wait_seconds() if wait_seconds is None else wait_seconds):
         yield path
 
 

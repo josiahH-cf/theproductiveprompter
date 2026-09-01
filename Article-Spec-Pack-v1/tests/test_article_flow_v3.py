@@ -237,7 +237,21 @@ class PublicationTargetLockRegressionTests(TemporaryRuntime):
         subprocess.run(["git", "-C", str(repository), "config", "user.name", "Test"], check=True)
         subprocess.run(["git", "-C", str(repository), "add", "index.html"], check=True)
         subprocess.run(["git", "-C", str(repository), "commit", "-qm", "base"], check=True)
+        subprocess.run([
+            "git", "-C", str(repository), "remote", "add", "origin",
+            "https://github.com/example/theproductiveprompter.git",
+        ], check=True)
         return repository
+
+    def owner_record(self, **values):
+        owner = {
+            "pid": os.getpid(),
+            "namespace": af.lock_namespace(),
+            "created_at": af.utc_now(),
+            "token": "a" * 32,
+        }
+        owner.update(values)
+        return owner
 
     def publishable_run(self, repository, filename, contents):
         run_id = self.start(f"Publish {filename} safely.")
@@ -293,8 +307,11 @@ class PublicationTargetLockRegressionTests(TemporaryRuntime):
         first_repository = self.publication_repository("first-publication-repo")
         second_repository = self.publication_repository("second-publication-repo")
         target = af.load_json(af.SPEC_ROOT / "publication" / "theproductiveprompter.json")
+        renamed_target = json.loads(json.dumps(target))
+        renamed_target["target_id"] = "renamed-local-label"
+        renamed_target["canonical_url"] = "https://changed.example/docs/{slug}.html"
         first_path = af.publication_target_lock_path(first_repository, target)
-        second_path = af.publication_target_lock_path(second_repository, target)
+        second_path = af.publication_target_lock_path(second_repository, renamed_target)
 
         self.assertEqual(first_path, second_path)
         with self.assertRaises(ValueError):
@@ -307,13 +324,111 @@ class PublicationTargetLockRegressionTests(TemporaryRuntime):
         self.assertIn("Timed out waiting", str(caught.exception))
         self.assertFalse(first_path.exists())
 
-    def test_shared_state_inside_checkout_falls_back_under_gitdir(self):
+    def test_shared_state_inside_checkout_is_rejected_instead_of_diverging_by_clone(self):
         repository = self.publication_repository()
         target = af.load_json(af.SPEC_ROOT / "publication" / "theproductiveprompter.json")
-        with mock.patch.object(af, "shared_state_root", return_value=repository / "runtime"):
-            path = af.publication_target_lock_path(repository, target)
-        git_directory = repository / ".git"
-        self.assertEqual(path.relative_to(git_directory).parts[:2], ("article-flow", "publication-locks"))
+        with (
+            mock.patch.object(af, "shared_state_root", return_value=repository / "runtime"),
+            self.assertRaises(af.FlowError) as caught,
+        ):
+            af.publication_target_lock_path(repository, target)
+        self.assertEqual(caught.exception.code, af.EXIT_INTEGRITY)
+        self.assertIn("outside the publication checkout", str(caught.exception))
+
+    def test_windows_and_wsl_remote_paths_normalize_to_one_identity(self):
+        repository = self.publication_repository()
+        windows = af.normalize_git_remote_url(
+            r"C:\Users\Josia\Documents\theproductiveprompter.git",
+            repository=repository,
+        )
+        wsl = af.normalize_git_remote_url(
+            "/mnt/c/Users/Josia/Documents/theproductiveprompter.git",
+            repository=repository,
+        )
+        self.assertEqual(windows, wsl)
+        self.assertEqual(windows, "file:///c:/users/josia/documents/theproductiveprompter")
+        https = af.normalize_git_remote_url(
+            "https://github.com/josiahH-cf/theproductiveprompter.git",
+            repository=repository,
+        )
+        ssh = af.normalize_git_remote_url(
+            "git@github.com:josiahH-cf/theproductiveprompter.git",
+            repository=repository,
+        )
+        self.assertEqual(https, ssh)
+
+    def test_partial_owner_record_is_never_stolen(self):
+        repository = self.publication_repository()
+        target = af.load_json(af.SPEC_ROOT / "publication" / "theproductiveprompter.json")
+        path = af.publication_target_lock_path(repository, target)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        partial = b'{"pid":'
+        path.write_bytes(partial)
+
+        with self.assertRaises(af.FlowError) as caught:
+            with af.publication_target_lock(repository, target, wait_seconds=0.05):
+                pass
+
+        self.assertIn("manual recovery", str(caught.exception))
+        self.assertEqual(path.read_bytes(), partial)
+        self.assertFalse(list(path.parent.glob(f"{path.name}.recovered-*")))
+        path.unlink()
+
+    def test_cross_host_owner_is_never_stolen_even_after_old_stale_horizon(self):
+        repository = self.publication_repository()
+        target = af.load_json(af.SPEC_ROOT / "publication" / "theproductiveprompter.json")
+        path = af.publication_target_lock_path(repository, target)
+        foreign = self.owner_record(
+            pid=99999999,
+            namespace="windows:other-host",
+            created_at="2000-01-01T00:00:00Z",
+            token="b" * 32,
+        )
+        af.atomic_write(path, af.canonical_json(foreign))
+
+        with self.assertRaises(af.FlowError) as caught:
+            with af.publication_target_lock(repository, target, wait_seconds=0.05):
+                pass
+
+        self.assertIn("cross-host ownership cannot be proven dead", str(caught.exception))
+        self.assertEqual(af.read_lock_owner(path), ("valid", foreign))
+        self.assertFalse(list(path.parent.glob(f"{path.name}.recovered-*")))
+        path.unlink()
+
+    def test_proven_dead_same_host_owner_is_recovered(self):
+        repository = self.publication_repository()
+        target = af.load_json(af.SPEC_ROOT / "publication" / "theproductiveprompter.json")
+        path = af.publication_target_lock_path(repository, target)
+        dead = self.owner_record(pid=99999999, created_at="2000-01-01T00:00:00Z", token="c" * 32)
+        af.atomic_write(path, af.canonical_json(dead))
+
+        with af.publication_target_lock(repository, target, wait_seconds=1):
+            status, current = af.read_lock_owner(path)
+            self.assertEqual(status, "valid")
+            self.assertNotEqual(current["token"], dead["token"])
+
+        recovered = path.with_name(f"{path.name}.recovered-{dead['token']}")
+        self.assertEqual(af.read_lock_owner(recovered), ("valid", dead))
+        self.assertFalse(path.exists())
+
+    def test_release_detects_aba_and_preserves_successor(self):
+        repository = self.publication_repository()
+        target = af.load_json(af.SPEC_ROOT / "publication" / "theproductiveprompter.json")
+        path = af.publication_target_lock_path(repository, target)
+        successor = self.owner_record(token="d" * 32)
+
+        with self.assertRaises(af.FlowError) as caught:
+            with af.publication_target_lock(repository, target, wait_seconds=0.05):
+                af.atomic_write(path, af.canonical_json(successor))
+
+        self.assertIn("successor was preserved", str(caught.exception))
+        self.assertEqual(af.read_lock_owner(path), ("valid", successor))
+        path.unlink()
+
+    def test_publication_lock_wait_covers_preflight_and_normal_push(self):
+        self.assertEqual(af.publication_lock_wait_seconds(), 300)
+        with mock.patch.dict(os.environ, {"ARTICLE_FLOW_PUBLICATION_LOCK_WAIT_SECONDS": "420"}, clear=False):
+            self.assertEqual(af.publication_lock_wait_seconds(), 420)
 
     def test_concurrent_runs_revalidate_base_only_after_target_lock(self):
         repository = self.publication_repository()
