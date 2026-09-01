@@ -901,6 +901,7 @@ BROWSER_IDS = {
     "BEH-2": ("behavior", "Internal nav changes documents"),
     "BEH-3": ("behavior", "Telemetry opens a new tab"),
     "BEH-6": ("behavior", "Contact delivery states"),
+    "BEH-9": ("behavior", "Hero fits the viewport"),
     "PRES-3": ("preservation", "31 Days fixed-clock reveal"),
     "PRES-4": ("preservation", "Mobile menu"),
     "PRES-5": ("preservation", "Reveal and reduced motion"),
