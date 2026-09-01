@@ -64,7 +64,7 @@ class AuthorityTests(unittest.TestCase):
         result = subprocess.run([sys.executable, str(SPEC_ROOT / "scripts" / "render_workflow_docs.py"), "--check"], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn("\u2014", (SPEC_ROOT / "1-Master" / "Article-Workflow-v2.md").read_text(encoding="utf-8"))
-        workflow = json.loads((SPEC_ROOT / "workflow" / "workflow.json").read_text())
+        workflow = json.loads((SPEC_ROOT / "workflow" / "workflow.json").read_text(encoding="utf-8"))
         self.assertTrue(workflow["authority"])
         self.assertEqual(workflow["precedence"], ["run_overrides", "approved_article_recipe", "workflow_schema", "house_policy", "examples"])
         rules = {item["id"]: item["text"] for item in workflow["rules"]}
@@ -72,7 +72,7 @@ class AuthorityTests(unittest.TestCase):
         self.assertIn("house bands are never pass/fail gates", rules["AF-LENGTH-001"])
         self.assertIn("Do not require a universal article skeleton", rules["AF-SHAPE-001"])
         self.assertIn("U+2014", rules["AF-CHAR-001"])
-        house_policy = json.loads((SPEC_ROOT / "workflow" / "house-policy.json").read_text())
+        house_policy = json.loads((SPEC_ROOT / "workflow" / "house-policy.json").read_text(encoding="utf-8"))
         configured_characters = {
             item["character"]: {"name": item["name"], "codepoint": item["codepoint"]}
             for item in house_policy["voice"]["forbidden_public_prose_characters"]
@@ -105,7 +105,7 @@ class AuthorityTests(unittest.TestCase):
         self.assertNotIn("adapters", help_text)
 
     def test_every_legacy_rule_document_has_machine_readable_redirect(self):
-        registry = json.loads((SPEC_ROOT / "workflow" / "document-registry.json").read_text())
+        registry = json.loads((SPEC_ROOT / "workflow" / "document-registry.json").read_text(encoding="utf-8"))
         for item in registry["non_authoritative_documents"]:
             text = (SPEC_ROOT / item["path"]).read_text(encoding="utf-8")[:800]
             self.assertIn("article_flow_authority: false", text, item["path"])
@@ -177,7 +177,7 @@ class ManifestTests(unittest.TestCase):
         self.assertIn("unexpected_protected_file", {item["kind"] for item in af.check_manifest("worktree")["failures"]})
 
     def test_algorithm_and_traversal_are_rejected(self):
-        manifest = json.loads((self.spec / "manifest.json").read_text())
+        manifest = json.loads((self.spec / "manifest.json").read_text(encoding="utf-8"))
         manifest["hash_algorithm"] = "md5"
         af.write_json(self.spec / "manifest.json", manifest)
         self.assertIn("hash_algorithm", {item["kind"] for item in af.check_manifest("worktree")["failures"]})
@@ -545,7 +545,7 @@ class RunAndSmokeTests(TemporaryRuntime):
         run_id = self.start()
         _, action = self.next(run_id)
         packet_path = Path(action["task_packet"])
-        packet = json.loads(packet_path.read_text())
+        packet = json.loads(packet_path.read_text(encoding="utf-8"))
         for field in ["workflow_version", "run_id", "stage", "attempt", "objective", "inputs", "reader_job", "article_recipe", "allowed_tools", "side_effect_policy", "constraints", "expected_outputs", "success_criteria", "non_authorities", "stop_conditions", "escalation_question"]:
             self.assertIn(field, packet)
         packet.pop("escalation_question")
@@ -567,7 +567,7 @@ class RunAndSmokeTests(TemporaryRuntime):
         af.write_json(directory / ".lock", {"pid": 99999999, "created_at": "2000-01-01T00:00:00Z"})
         with af.run_lock(directory, run):
             self.assertTrue((directory / ".lock").exists())
-            self.assertEqual(json.loads((directory / ".lock").read_text())["namespace"], af.lock_namespace())
+            self.assertEqual(json.loads((directory / ".lock").read_text(encoding="utf-8"))["namespace"], af.lock_namespace())
         self.assertTrue(list(directory.glob(".lock.recovered-*")))
         af.load_run(run_id)
 
@@ -588,7 +588,7 @@ class RunAndSmokeTests(TemporaryRuntime):
         self.assertEqual(code, af.EXIT_OK, payload)
         directory, run = af.load_run(run_id)
         self.assertEqual(run["state"], "PUBLISH_APPROVAL")
-        package = json.loads((directory / "package" / "package.json").read_text())
+        package = json.loads((directory / "package" / "package.json").read_text(encoding="utf-8"))
         self.assertEqual(package["canonical_article_file"], "public/article.md")
         self.assertTrue((directory / "package" / "site" / "docs" / "a-test-article.html").is_file())
         for surface in [directory / "package" / "site" / "docs" / "blog.html", directory / "package" / "site" / "feed.xml", directory / "package" / "site" / "sitemap.xml"]:
@@ -731,13 +731,13 @@ class GlobalCommandTests(TemporaryRuntime):
             hashes = {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in tracked}
             call(af.command_install, **vars(args))
             self.assertEqual(hashes, {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in tracked})
-            self.assertTrue(all("article-flow managed launcher" in path.read_text() for path in tracked))
+            self.assertTrue(all("article-flow managed launcher" in path.read_text(encoding="utf-8") for path in tracked))
             shared_runs_root = fake_windows / ".article-flow" / "runs"
-            self.assertIn("ARTICLE_FLOW_RUNS_ROOT=", tracked[0].read_text())
-            self.assertIn(str(shared_runs_root), tracked[0].read_text())
-            self.assertIn(f"ARTICLE_FLOW_RUNS_ROOT={af.windows_path(shared_runs_root)}", tracked[1].read_text())
-            self.assertEqual(json.loads((fake_home / ".local" / "share" / "article-flow" / "current.json").read_text())["captured_material_root"], str(shared_runs_root))
-            self.assertEqual(json.loads((fake_windows / ".article-flow" / "current.json").read_text())["captured_material_root"], af.windows_path(shared_runs_root))
+            self.assertIn("ARTICLE_FLOW_RUNS_ROOT=", tracked[0].read_text(encoding="utf-8"))
+            self.assertIn(str(shared_runs_root), tracked[0].read_text(encoding="utf-8"))
+            self.assertIn(f"ARTICLE_FLOW_RUNS_ROOT={af.windows_path(shared_runs_root)}", tracked[1].read_text(encoding="utf-8"))
+            self.assertEqual(json.loads((fake_home / ".local" / "share" / "article-flow" / "current.json").read_text(encoding="utf-8"))["captured_material_root"], str(shared_runs_root))
+            self.assertEqual(json.loads((fake_windows / ".article-flow" / "current.json").read_text(encoding="utf-8"))["captured_material_root"], af.windows_path(shared_runs_root))
             self.assertFalse((fake_home / ".local" / "share" / "article-flow" / "releases").exists())
             self.assertFalse((fake_windows / ".article-flow" / "releases").exists())
             installed_script = af.SCRIPT_PATH
@@ -764,7 +764,7 @@ class GlobalCommandTests(TemporaryRuntime):
                 text=True,
             )
             self.assertEqual(nested.returncode, 0, nested.stderr)
-            nested_record = json.loads((nested_runtime / "current.json").read_text())
+            nested_record = json.loads((nested_runtime / "current.json").read_text(encoding="utf-8"))
             self.assertTrue(nested_record["source_commit"])
             self.assertEqual(primary_wrapper_hash, hashlib.sha256(primary_wrapper.read_bytes()).hexdigest())
             self.assertTrue((nested_user_home / ".local" / "bin" / "article-flow").is_file())
@@ -868,7 +868,7 @@ class ProviderTests(TemporaryRuntime):
         _, run = af.load_run(run_id)
         self.assertEqual(run["state"], "RESEARCH")
         receipt = next(item for item in run["artifact_index"] if item["type"].startswith("model-call:"))
-        receipt_value = json.loads((af.run_dir(run_id) / receipt["path"]).read_text())
+        receipt_value = json.loads((af.run_dir(run_id) / receipt["path"]).read_text(encoding="utf-8"))
         self.assertNotIn("credential", json.dumps(receipt_value).lower())
 
     def test_required_canary_cannot_become_default_but_can_run_explicitly(self):

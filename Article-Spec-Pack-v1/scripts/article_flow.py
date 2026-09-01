@@ -553,6 +553,49 @@ def voice_state_root() -> Path:
     return shared_state_root() / "voice"
 
 
+def process_is_alive(pid: int) -> bool:
+    """Probe a lock owner's PID without emitting a Windows console event."""
+    if pid <= 0:
+        return False
+    if os.name == "nt":
+        import ctypes
+        from ctypes import wintypes
+
+        process_query_limited_information = 0x1000
+        still_active = 259
+        error_invalid_parameter = 87
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+        kernel32.OpenProcess.restype = wintypes.HANDLE
+        kernel32.GetExitCodeProcess.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+        kernel32.GetExitCodeProcess.restype = wintypes.BOOL
+        kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+        kernel32.CloseHandle.restype = wintypes.BOOL
+
+        handle = kernel32.OpenProcess(process_query_limited_information, False, pid)
+        if not handle:
+            # Invalid PID proves absence. Access-denied and unfamiliar failures
+            # are treated conservatively so a live owner's lock is not stolen.
+            return ctypes.get_last_error() != error_invalid_parameter
+        try:
+            exit_code = wintypes.DWORD()
+            if not kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code)):
+                return True
+            return exit_code.value == still_active
+        finally:
+            kernel32.CloseHandle(handle)
+
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except OSError:
+        return False
+    return True
+
+
 @contextlib.contextmanager
 def shared_lock(path: Path, *, stale_seconds: int = 3600, wait_seconds: float = 15.0) -> Iterator[None]:
     """Cross-host, crash-recoverable lock for rotation and voice state."""
@@ -575,11 +618,7 @@ def shared_lock(path: Path, *, stale_seconds: int = 3600, wait_seconds: float = 
             same_namespace = value.get("namespace") == lock_namespace()
             alive = False
             if same_namespace and int(value.get("pid", -1)) > 0:
-                try:
-                    os.kill(int(value["pid"]), 0)
-                    alive = True
-                except (OSError, ProcessLookupError):
-                    alive = False
+                alive = process_is_alive(int(value["pid"]))
             has_owner = bool(value.get("namespace") and int(value.get("pid", -1)) > 0)
             fresh_unknown_owner = not has_owner and age <= min(stale_seconds, 2)
             cross_host_fresh = has_owner and not same_namespace and age <= stale_seconds
@@ -955,11 +994,7 @@ def run_lock(directory: Path, run: dict[str, Any]) -> Iterator[None]:
         same_namespace = prior_namespace == current_namespace
         alive = False
         if same_namespace and pid > 0:
-            try:
-                os.kill(pid, 0)
-                alive = True
-            except (OSError, ProcessLookupError):
-                alive = False
+            alive = process_is_alive(pid)
         try:
             age_seconds = (dt.datetime.now(dt.timezone.utc) - parse_time(str(created))).total_seconds() if created else (time.time() - lock_path.stat().st_mtime)
         except (OSError, ValueError):

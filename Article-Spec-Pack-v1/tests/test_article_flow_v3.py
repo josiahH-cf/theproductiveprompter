@@ -212,6 +212,13 @@ class ActiveSessionRegressionTests(TemporaryRuntime):
         self.assertEqual(run["state"], "RESEARCH_PLAN")
 
 
+class ProcessLivenessRegressionTests(unittest.TestCase):
+    @unittest.skipUnless(os.name == "nt", "Windows uses a Win32 process probe")
+    def test_windows_pid_liveness_probe_never_uses_os_kill(self):
+        with mock.patch.object(af.os, "kill", side_effect=AssertionError("os.kill would broadcast CTRL_C_EVENT")):
+            self.assertTrue(af.process_is_alive(os.getpid()))
+
+
 class InstallationRegressionTests(TemporaryRuntime):
     def install_fixture(self, label):
         root = self.root / label
