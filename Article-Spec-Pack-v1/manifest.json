@@ -1,9 +1,9 @@
 {
   "manifest_schema_version": "2.0.0",
-  "workflow_version": "2.0.1",
+  "workflow_version": "3.0.0",
   "hash_algorithm": "sha256",
-  "generator_name_and_version": "article-flow 2.1.5",
-  "generated_at": "2026-09-01T12:32:34Z",
+  "generator_name_and_version": "article-flow 3.0.0",
+  "generated_at": "2026-09-01T13:02:32Z",
   "generated_from": "index",
   "files": [
     {
@@ -51,8 +51,8 @@
       "scope": "spec",
       "role": "documentation",
       "rule_set": "generated-workflow",
-      "sha256": "159c799c503c498ac4da4fd291aa603b67ead6385e6f5de84ad9112aa88301aa",
-      "byte_size": 12258
+      "sha256": "c2835844ed57eb5e5ced85f2d72cd4648b705b98d70de3a81068aa658ebc06bb",
+      "byte_size": 14731
     },
     {
       "path": "1-Master/Critic-Loop-(Single-Pass-Self-Check).md",
@@ -203,8 +203,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "evaluation",
-      "sha256": "af5128d4d82863bc03c190ba3152989b0cf79662c35ac60e0decd3731c3f464a",
-      "byte_size": 1785
+      "sha256": "998d74f7db69ba0f62c15c91af41d712f9c12c050988aea3cf5574968ae1dd91",
+      "byte_size": 4686
     },
     {
       "path": "evaluations/conformance-matrix.json",
@@ -235,8 +235,8 @@
       "scope": "spec",
       "role": "documentation",
       "rule_set": "evaluation",
-      "sha256": "16a20c84dc2df176d717aba5169c2d9f53f18e1a83c41ec9a927cdb52daa1f90",
-      "byte_size": 4233
+      "sha256": "477002d17177e4d6b247d91add60e1a881bec93ff1309fe989beeab0b713c5d7",
+      "byte_size": 6762
     },
     {
       "path": "evaluations/rubric.json",
@@ -339,8 +339,16 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "schemas",
-      "sha256": "83ebb876d0e4617f015cb7fe8c671f8af97b5f18bc67bedc415ad6a17f5177e7",
-      "byte_size": 1319
+      "sha256": "8538f98297fcc3899c8a1f60a3ca51025697445b5f2b0efb8878c6b897a08f59",
+      "byte_size": 1927
+    },
+    {
+      "path": "schemas/experiment-history.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "44a2360a9ce81de471d61f5e204dce92b5df281c50466b52b945bf741673e15e",
+      "byte_size": 2388
     },
     {
       "path": "schemas/gate-receipt.schema.json",
@@ -355,8 +363,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "schemas",
-      "sha256": "a6b430d0d3d48f9df5c8dc05ae08ea916888572989affc88a1e37ad6db2c16c4",
-      "byte_size": 754
+      "sha256": "d4ea5c0fc789b9f939926a0d321501b4539a471ab382ce063a99735c003aded0",
+      "byte_size": 13649
     },
     {
       "path": "schemas/intent.schema.json",
@@ -383,12 +391,20 @@
       "byte_size": 1341
     },
     {
+      "path": "schemas/model-assignment.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "5122292f4252daf95e04131b0ea04f429cd00d74c373fddbdb0107b3454a5c76",
+      "byte_size": 4320
+    },
+    {
       "path": "schemas/package.schema.json",
       "scope": "spec",
       "role": "runtime",
       "rule_set": "schemas",
-      "sha256": "0c010d40cbe3f6bc15b774516d9513558edf268fa558a52eecbefa8c0b74b024",
-      "byte_size": 845
+      "sha256": "ce7f3225b884afe81da6d1c765faaeebf30ccff9e208f201f0566fb7e6dc6ab3",
+      "byte_size": 2254
     },
     {
       "path": "schemas/protected-paths.schema.json",
@@ -403,8 +419,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "schemas",
-      "sha256": "f54f8304fa6417de7af338c7689c508f302330e6bd385308a876f53f4cd4dce9",
-      "byte_size": 1168
+      "sha256": "8aa92ac3929f65c561ba84a693a9712844a278ec8294c28dde1b122a3aeda356",
+      "byte_size": 4765
     },
     {
       "path": "schemas/publication-receipt.schema.json",
@@ -427,8 +443,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "schemas",
-      "sha256": "8729b6f6e09d77de932e39dd97a09ca4fb5fab482cf3703a612fc6bf4ce4050f",
-      "byte_size": 1180
+      "sha256": "f8e582d65c4db8454d3cf035b15a0367c849abaa5b31920067aa94a53abddfcc",
+      "byte_size": 2328
     },
     {
       "path": "schemas/task-packet.schema.json",
@@ -439,36 +455,60 @@
       "byte_size": 1889
     },
     {
+      "path": "schemas/voice-learning.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "a91c62175d18c8d23bdcbe5ea1a8e44f6c73ef106f864bf031816b24b0da11f7",
+      "byte_size": 5440
+    },
+    {
       "path": "schemas/voice-probe.schema.json",
       "scope": "spec",
       "role": "runtime",
       "rule_set": "schemas",
-      "sha256": "456d65552ec004df9066db5c375ad9ec065c2aaa97bbb34faa6cface8b9b1fcd",
-      "byte_size": 1264
+      "sha256": "e151012f35a470084316909645c4d4f0d3467dbf60e43b326f07e66de4c6fa6c",
+      "byte_size": 6144
+    },
+    {
+      "path": "schemas/voice-profile-pointer.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas",
+      "sha256": "8cea31bf11374fd2fcca6bb4490ef2916d8d9aaf6d5c7ade31c648c9c2298582",
+      "byte_size": 1039
     },
     {
       "path": "schemas/voice-profile.schema.json",
       "scope": "spec",
       "role": "runtime",
       "rule_set": "schemas",
-      "sha256": "f5c8dd1511726a81f9e5c3886bdd0239b88b57ae17e24464bb972089c2ff693c",
-      "byte_size": 1331
+      "sha256": "66b152b07ccb66c6d601a8a3d7d0b2e157eb21ddaee9782852d4735f0332f577",
+      "byte_size": 2959
     },
     {
       "path": "schemas/workflow.schema.json",
       "scope": "spec",
       "role": "runtime",
       "rule_set": "schemas",
-      "sha256": "df656308fb97fc8f44705d01510e5ea94d2eb9cf5501754deee3ddee2b047b4c",
-      "byte_size": 2705
+      "sha256": "be56457699f39bcd0e5fb50734b9878f6f9a787122cc94da619ce6f217e22571",
+      "byte_size": 5167
     },
     {
       "path": "scripts/article_flow.py",
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "d0a2e074bf3fe158b662984edde5cf29ce012aec2d54c50170d3858f5c7929d5",
-      "byte_size": 225190
+      "sha256": "6e7a5ed90a0603dbc3d66c0f5fbb582bdb3c4a41454bcb7b89409ac94fc0d689",
+      "byte_size": 319719
+    },
+    {
+      "path": "scripts/codex_exec_adapter.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "controller",
+      "sha256": "37492cf54f07260f9d3d84a901b590a83a63a6524efd56db1091b62a0e38c129",
+      "byte_size": 23329
     },
     {
       "path": "scripts/package_article.py",
@@ -491,8 +531,24 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "conformance",
-      "sha256": "673dc60c873692c0fef6d2de616613de414c17097324d33fc4648265af46ec7f",
-      "byte_size": 56837
+      "sha256": "e8ac5ac9779ad609a8044f0eae040365aa888a276a314afea74e08f3978ca61e",
+      "byte_size": 57458
+    },
+    {
+      "path": "tests/test_article_flow_v3.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "conformance",
+      "sha256": "1cfaaf2ed68c98d4afd9fea9deba20ea973a21139392a83ab3a8cd7306e69ae3",
+      "byte_size": 69725
+    },
+    {
+      "path": "tests/test_codex_exec_adapter.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "conformance",
+      "sha256": "48ee59bbe8830cb24a5ce4bd593f97f571381cad1f39397ce6e136ccfe1a2ddc",
+      "byte_size": 15370
     },
     {
       "path": "workflow/article-recipe.defaults.json",
@@ -507,32 +563,40 @@
       "scope": "spec",
       "role": "normative",
       "rule_set": "document-registry",
-      "sha256": "6d23815a0adb2ee8bf32c4ff5035119c558a44553cda204f49b82a59ccd5a8fb",
-      "byte_size": 4103
+      "sha256": "1e2794d05fa684c652df199a2940dec162a099ecddfdedd106ce8ba42dc7ae7a",
+      "byte_size": 4140
     },
     {
       "path": "workflow/house-policy.json",
       "scope": "spec",
       "role": "normative",
       "rule_set": "house-policy",
-      "sha256": "3dad38e25eda4362c3861c0c92f0619768aa98eec4a36ad6c446ffd96fe2f8b0",
-      "byte_size": 2653
+      "sha256": "a8de3c62fcdb3d6ac4e5ac1bbed83ff72e75374eaa003ba7f2950bb1445dbe63",
+      "byte_size": 8007
     },
     {
       "path": "workflow/protected-paths.json",
       "scope": "spec",
       "role": "runtime",
       "rule_set": "integrity",
-      "sha256": "63455cd64326582d7ae3655cd8853bed779adb2a9f2458b3b66c37b8e093309b",
-      "byte_size": 9985
+      "sha256": "15b2637aa43a5fd96f8aa648ed9461c10e60efda1d0c165a8f6de88bda077fa3",
+      "byte_size": 11123
     },
     {
       "path": "workflow/workflow.json",
       "scope": "spec",
       "role": "normative",
       "rule_set": "workflow",
-      "sha256": "45e1104fcf8f368f1a683787a28f5057334325e02d48f88073891f4c7eaad061",
-      "byte_size": 21274
+      "sha256": "1d19a4d2c34643067b2627cbb0ca69ffffe15c802e823e990b8b590e56d38f05",
+      "byte_size": 25308
+    },
+    {
+      "path": "workflow/workflow.v2.0.0.json",
+      "scope": "spec",
+      "role": "normative",
+      "rule_set": "workflow",
+      "sha256": "9e9ce804bd3087ecd1d7d107afdbd0c333fc997c3ae0c9db5858963a1c8b5d43",
+      "byte_size": 20905
     }
   ]
 }
