@@ -630,14 +630,20 @@ async function checkSocialAndClipboard(client, baseUrl) {
 
 async function checkHeroFit(client, baseUrl) {
   const failures = [];
+  const rectsOverlap = (a, b) => !!a && !!b
+    && Math.min(a.right, b.right) > Math.max(a.left, b.left) + 1
+    && Math.min(a.bottom, b.bottom) > Math.max(a.top, b.top) + 1;
   const viewports = [
     { label: 'desktop', width: 1440, height: 900, desktop: true },
+    { label: 'tall desktop', width: 1200, height: 1600, desktop: true },
     { label: 'laptop', width: 1366, height: 768, desktop: true },
     { label: 'scaled desktop', width: 1173, height: 579, desktop: true },
     { label: 'compact desktop', width: 1024, height: 600, desktop: true },
+    { label: 'desktop breakpoint', width: 901, height: 768, desktop: true },
     { label: 'narrow tablet', width: 820, height: 700, desktop: false },
     { label: 'tablet', width: 768, height: 1024, desktop: false },
     { label: 'mobile', width: 390, height: 844, desktop: false },
+    { label: 'narrow mobile', width: 375, height: 667, desktop: false },
     { label: 'small mobile', width: 320, height: 568, desktop: false },
   ];
   for (const viewport of viewports) {
@@ -664,11 +670,17 @@ async function checkHeroFit(client, baseUrl) {
       const overlap = (a, b) => !!a && !!b && Math.min(a.right, b.right) > Math.max(a.left, b.left) + 1 && Math.min(a.bottom, b.bottom) > Math.max(a.top, b.top) + 1;
       const hero = document.querySelector('.hero');
       const nav = document.querySelector('.nav');
+      const container = document.querySelector('.hero__container');
       const content = document.querySelector('.hero__content');
       const visual = document.querySelector('.hero__visual');
       const split = document.querySelector('.split-card');
+      const greeting = document.querySelector('.hero__greeting');
       const name = document.querySelector('.hero__name');
-      const tagline = document.querySelector('.hero__tagline');
+      const prompt = document.querySelector('.hero__conversation-prompt');
+      const topics = document.querySelector('ul.hero__topics');
+      const topicItems = [...(topics?.querySelectorAll('li.hero__topic') || [])];
+      const ctaGroup = document.querySelector('.hero__cta-group');
+      const socialGroup = document.querySelector('.hero__social');
       const sidebar = document.querySelector('.social-sidebar');
       const ctas = [...document.querySelectorAll('.hero__cta')];
       const socials = [...document.querySelectorAll('.hero__social-link')];
@@ -677,17 +689,38 @@ async function checkHeroFit(client, baseUrl) {
         href: link.href, target: link.target, rel: link.rel, ariaLabel: link.getAttribute('aria-label') || '',
         link: rect(link), icon: rect(link.querySelector('svg')),
       }));
-      const xClipped = [...document.querySelectorAll('.hero__content, .hero__visual, .split-card, .hero a')]
+      const ordered = [greeting, name, prompt, topics, ctaGroup, socialGroup];
+      const xClipped = [...document.querySelectorAll('.hero__content, .hero__visual, .split-card, .hero__topic, .hero a')]
         .map(element => ({ selector: element.className, rect: rect(element) }))
         .filter(item => item.rect && (item.rect.left < -1 || item.rect.right > innerWidth + 1));
       return {
         viewport: { width: innerWidth, height: innerHeight },
         horizontalOverflow: document.documentElement.scrollWidth - innerWidth,
-        hero: rect(hero), nav: rect(nav), content: rect(content), visual: rect(visual), split: rect(split),
+        hero: rect(hero), nav: rect(nav), container: rect(container), content: rect(content), visual: rect(visual), split: rect(split),
+        greeting: rect(greeting), name: rect(name), prompt: rect(prompt), topicsRect: rect(topics),
+        ctaGroup: rect(ctaGroup), socialGroup: rect(socialGroup),
         sidebarVisible: !!sidebar && getComputedStyle(sidebar).display !== 'none' && getComputedStyle(sidebar).visibility !== 'hidden',
-        nameLines: lineCount(name), taglineLines: lineCount(tagline),
-        nameFont: parseFloat(getComputedStyle(name).fontSize), taglineFont: parseFloat(getComputedStyle(tagline).fontSize),
-        ctas: ctas.map(rect), socials: socialData, xClipped,
+        nameText: name?.textContent.trim() || '', promptText: prompt?.textContent.trim() || '',
+        nameLines: lineCount(name), promptLines: lineCount(prompt),
+        nameFont: name ? parseFloat(getComputedStyle(name).fontSize) : 0,
+        topicListTag: topics?.tagName || '',
+        topicsLabel: topics?.getAttribute('aria-label') || '',
+        topics: topicItems.map(item => {
+          const label = item.querySelector('.hero__topic-label');
+          return {
+            tag: item.tagName, rect: rect(item),
+            emoji: item.querySelector('.hero__topic-emoji')?.textContent.trim() || '',
+            emojiHidden: item.querySelector('.hero__topic-emoji')?.getAttribute('aria-hidden') || '',
+            label: label?.textContent.trim() || '',
+            contentOverflow: Math.max(0, item.scrollWidth - item.clientWidth),
+            labelOverflow: label ? Math.max(0, label.scrollWidth - label.clientWidth) : 0,
+          };
+        }),
+        domOrdered: ordered.every(Boolean) && ordered.slice(0, -1).every((item, index) => !!(item.compareDocumentPosition(ordered[index + 1]) & Node.DOCUMENT_POSITION_FOLLOWING)),
+        containerContentLeft: container ? rect(container).left + parseFloat(getComputedStyle(container).paddingLeft) : 0,
+        containerContentRight: container ? rect(container).right - parseFloat(getComputedStyle(container).paddingRight) : 0,
+        gridColumnCount: container ? getComputedStyle(container).gridTemplateColumns.split(/\\s+/).filter(Boolean).length : 0,
+        ctas: ctas.map(item => ({ ...rect(item), lines: lineCount(item), contentOverflow: Math.max(0, item.scrollWidth - item.clientWidth) })), socials: socialData, xClipped,
         contentVisualOverlap: overlap(rect(content), rect(visual)),
         ctaOverlap: ctas.length === 2 && overlap(rect(ctas[0]), rect(ctas[1])),
         socialOverlap: socials.some((link, index) => socials.slice(index + 1).some(other => overlap(rect(link), rect(other)))),
@@ -695,8 +728,14 @@ async function checkHeroFit(client, baseUrl) {
       };
     })()`);
     const prefix = `${viewport.label} ${viewport.width}x${viewport.height}`;
+    const expectedTopics = JSON.stringify([['🔐', 'Security'], ['☁️', 'Cloud'], ['🧠', 'AI']]);
+    const actualTopics = JSON.stringify(state.topics.map(item => [item.emoji, item.label]));
     if (state.horizontalOverflow > 1 || state.xClipped.length || state.interactiveClipped.length) failures.push(`${prefix}: horizontal clipping/overflow ${JSON.stringify(state)}`);
     if (state.ctaOverlap || state.socialOverlap) failures.push(`${prefix}: hero actions overlap ${JSON.stringify(state)}`);
+    if (state.ctas.some(item => item.lines !== 1 || item.contentOverflow > 1)) failures.push(`${prefix}: CTA text wraps or clips ${JSON.stringify(state.ctas)}`);
+    if (state.nameText !== 'Josiah Hunter' || state.promptText !== 'I love to chat about...' || actualTopics !== expectedTopics || state.topicListTag !== 'UL' || state.topicsLabel !== 'Topics I love to chat about' || state.topics.some(item => item.tag !== 'LI' || item.emojiHidden !== 'true')) failures.push(`${prefix}: intro copy/topic semantics are wrong ${JSON.stringify({ name: state.nameText, prompt: state.promptText, topicsLabel: state.topicsLabel, topics: state.topics })}`);
+    if (!state.domOrdered || !state.name || !state.prompt || !state.topicsRect || !state.ctaGroup || !state.socialGroup || state.name.bottom > state.prompt.top + 1 || state.prompt.bottom > state.topicsRect.top + 1 || state.topicsRect.bottom > state.ctaGroup.top + 1 || state.ctaGroup.bottom > state.socialGroup.top + 1) failures.push(`${prefix}: intro hierarchy/order is not visually coherent ${JSON.stringify(state)}`);
+    if (state.topics.some(item => item.contentOverflow > 1 || item.labelOverflow > 1) || state.topics.some((item, index) => state.topics.slice(index + 1).some(other => rectsOverlap(item.rect, other.rect)))) failures.push(`${prefix}: topic tags overlap or contain clipped text ${JSON.stringify(state.topics)}`);
     if (state.socials.length !== 3 || state.socials.some(item => item.icon.width < 28 || item.icon.height < 28 || item.link.width < 44 || item.link.height < 44)) failures.push(`${prefix}: social icon/target sizing is too small ${JSON.stringify(state.socials)}`);
     const expectedHrefs = ['https://github.com/josiahH-cf', 'https://www.linkedin.com/in/josiahhunter/', `mailto:${EMAIL}`];
     if (state.socials.some((item, index) => !item.href.startsWith(expectedHrefs[index]))) failures.push(`${prefix}: social destinations changed ${JSON.stringify(state.socials)}`);
@@ -704,17 +743,25 @@ async function checkHeroFit(client, baseUrl) {
     if (state.socials.slice(0, 2).some(item => !item.ariaLabel.toLowerCase().includes('new tab'))) failures.push(`${prefix}: external social accessible name does not announce new-tab behavior`);
     if (viewport.desktop) {
       const lowest = Math.max(state.content.bottom, state.visual.bottom, ...state.ctas.map(value => value.bottom), ...state.socials.map(value => value.link.bottom));
-      if (state.nameLines !== 1 || state.taglineLines !== 1) failures.push(`${prefix}: desktop name/tagline wraps (${state.nameLines}/${state.taglineLines} lines)`);
-      if (state.nameFont > 64.1 || state.taglineFont > 36.1 || state.split.width > 360.1 || state.split.height > 360.1) failures.push(`${prefix}: type or visual exceeds compact bounds ${JSON.stringify({ nameFont: state.nameFont, taglineFont: state.taglineFont, split: state.split })}`);
+      if (state.gridColumnCount !== 2 || !state.container || Math.abs(state.content.left - state.containerContentLeft) > 1 || Math.abs(state.split.right - state.containerContentRight) > 1 || state.visual.left - state.content.right < 24 || state.content.width < state.container.width * 0.3 || state.visual.width < state.container.width * 0.3) failures.push(`${prefix}: desktop hero columns are not clearly aligned ${JSON.stringify({ container: state.container, containerContentLeft: state.containerContentLeft, containerContentRight: state.containerContentRight, content: state.content, visual: state.visual, split: state.split, gridColumnCount: state.gridColumnCount })}`);
+      if ([state.greeting, state.name, state.prompt, state.topicsRect, state.ctaGroup, state.socialGroup].some(value => Math.abs(value.left - state.content.left) > 1) || Math.abs((state.content.top + state.content.bottom) / 2 - (state.split.top + state.split.bottom) / 2) > 2) failures.push(`${prefix}: content groups or column centers are visibly ragged ${JSON.stringify({ content: state.content, greeting: state.greeting, name: state.name, prompt: state.prompt, topics: state.topicsRect, ctaGroup: state.ctaGroup, socialGroup: state.socialGroup, split: state.split })}`);
+      if (state.nameLines !== 1 || state.promptLines !== 1) failures.push(`${prefix}: desktop name/prompt wraps (${state.nameLines}/${state.promptLines} lines)`);
+      if (state.nameFont > 64.1 || state.split.width > 440.1 || state.split.height > 300.1) failures.push(`${prefix}: type or visual exceeds compact bounds ${JSON.stringify({ nameFont: state.nameFont, split: state.split })}`);
+      if (state.ctas.length !== 2 || Math.abs(state.ctas[0].top - state.ctas[1].top) > 1 || Math.abs(state.ctas[0].width - state.ctas[1].width) > 2 || Math.abs(state.ctas[0].height - state.ctas[1].height) > 1) failures.push(`${prefix}: CTA columns are not aligned/equal ${JSON.stringify(state.ctas)}`);
+      if (state.topics.length !== 3 || state.topics.some(item => item.rect.height < 40) || state.topics.some(item => Math.abs(item.rect.top - state.topics[0].rect.top) > 1 || Math.abs(item.rect.width - state.topics[0].rect.width) > 2)) failures.push(`${prefix}: desktop topic tags are not one equal row ${JSON.stringify(state.topics)}`);
       if (state.contentVisualOverlap) failures.push(`${prefix}: content and split card overlap`);
       if (viewport.height <= 700 && state.sidebarVisible) failures.push(`${prefix}: fixed social rail remains visible on a short screen`);
       if (Math.min(state.content.top, state.visual.top) < state.nav.bottom - 1 || lowest > state.viewport.height + 1) failures.push(`${prefix}: required hero content does not fit the first screen ${JSON.stringify({ nav: state.nav, content: state.content, visual: state.visual, lowest })}`);
-    } else if (state.hero.bottom + 1 < Math.max(state.content.bottom, state.visual.bottom)) {
-      failures.push(`${prefix}: responsive hero clips its stacked content`);
+      if (state.hero.height > 900 || Math.min(state.content.top, state.visual.top) - state.nav.bottom > 240) failures.push(`${prefix}: desktop hero has excessive whitespace ${JSON.stringify({ hero: state.hero, nav: state.nav, content: state.content, visual: state.visual })}`);
+    } else {
+      if (state.gridColumnCount !== 1 || state.visual.top < state.content.bottom + 20) failures.push(`${prefix}: responsive hero is not a clean stacked layout ${JSON.stringify({ content: state.content, visual: state.visual, gridColumnCount: state.gridColumnCount })}`);
+      const contentCenter = (state.content.left + state.content.right) / 2;
+      if ([state.topicsRect, state.ctaGroup, state.socialGroup, state.split].some(value => Math.abs((value.left + value.right) / 2 - contentCenter) > 2) || state.ctas.length !== 2 || Math.abs(state.ctas[0].width - state.ctas[1].width) > 2) failures.push(`${prefix}: responsive groups are not centered/equal ${JSON.stringify({ content: state.content, topics: state.topicsRect, ctaGroup: state.ctaGroup, ctas: state.ctas, socialGroup: state.socialGroup, split: state.split })}`);
+      if (state.hero.bottom + 1 < Math.max(state.content.bottom, state.visual.bottom)) failures.push(`${prefix}: responsive hero clips its stacked content`);
     }
   }
   await client.send('Emulation.clearDeviceMetricsOverride');
-  return result('BEH-9', failures, ['hero fit, single-line desktop branding, and enlarged social icons passed across eight viewports']);
+  return result('BEH-9', failures, ['natural intro hierarchy, aligned columns, tall-screen spacing, and enlarged social icons passed across eleven viewports']);
 }
 
 async function checkGitHubActivity(client, baseUrl) {

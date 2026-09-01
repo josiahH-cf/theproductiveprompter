@@ -67,6 +67,8 @@ EXPECTED_NAV = (
     ("Agent Telemetry", "https://josiahh-cf.github.io/agent-telemetry/"),
 )
 BRAND = "🔐Security | ☁️Cloud | 🧠AI"
+INTRO_PROMPT = "I love to chat about..."
+INTRO_TOPICS = (("🔐", "Security"), ("☁️", "Cloud"), ("🧠", "AI"))
 ABOUT = (
     "I'm a senior security engineer at Coalfire shifting into full time AI engineering, "
     "and I've spent years building secure cloud and AI systems on AWS, GCP, and Azure. "
@@ -645,18 +647,41 @@ def check_arch_7() -> str:
         for css_class in REMOVED_CLASSES:
             if css_class in content:
                 issues.append(f"{rel(path)} retains {css_class}")
-    tree = parse_html(ROOT / "index.html")
+    home = ROOT / "index.html"
+    home_source = home.read_text(encoding="utf-8")
+    tree = parse_html(home)
     titles = elements(tree, tag="title")
     if len(titles) != 1 or text_content(titles[0]) != f"Josiah Hunter | {BRAND}":
         issues.append("home title does not exactly match LinkedIn branding")
-    taglines = elements(tree, cls="hero__tagline")
-    if len(taglines) != 1 or text_content(taglines[0]) != BRAND:
-        issues.append("hero tagline does not exactly match branding")
+    names = elements(tree, tag="h1", cls="hero__name")
+    if len(names) != 1 or text_content(names[0]) != "Josiah Hunter":
+        issues.append("hero name is not exactly 'Josiah Hunter' without punctuation")
+    prompts = elements(tree, tag="p", cls="hero__conversation-prompt")
+    if len(prompts) != 1 or text_content(prompts[0]) != INTRO_PROMPT:
+        issues.append("hero conversation prompt is absent or inexact")
+    topic_lists = elements(tree, tag="ul", cls="hero__topics")
+    topics = elements(topic_lists[0], tag="li", cls="hero__topic") if len(topic_lists) == 1 else []
+    rendered_topics = []
+    for topic in topics:
+        emojis = elements(topic, cls="hero__topic-emoji")
+        labels = elements(topic, cls="hero__topic-label")
+        rendered_topics.append((text_content(emojis[0]) if len(emojis) == 1 else "", text_content(labels[0]) if len(labels) == 1 else ""))
+        if len(emojis) != 1 or emojis[0].attrs.get("aria-hidden") != "true":
+            issues.append("hero topic emoji is not decorative")
+    if rendered_topics != list(INTRO_TOPICS):
+        issues.append(f"hero topics {rendered_topics!r} do not match the requested ordered tags")
+    ordered_classes = (
+        "hero__greeting", "hero__name", "hero__conversation-prompt",
+        "hero__topics", "hero__cta-group", "hero__social",
+    )
+    positions = [home_source.find(f'class="{css_class}') for css_class in ordered_classes]
+    if any(position < 0 for position in positions) or positions != sorted(positions):
+        issues.append("hero greeting, name, prompt, topics, actions, and social links are out of order")
     descriptions = [item for item in elements(tree, tag="meta") if (item.attrs.get("name") or "").lower() == "description"]
     if len(descriptions) != 1 or descriptions[0].attrs.get("content") != f"Josiah Hunter | {BRAND}":
         issues.append("home meta description does not exactly match branding")
-    require_no_issues("exact branding and no enumerated subtext elements or styles", issues)
-    return "title/meta/tagline match and all enumerated declutter classes are absent"
+    require_no_issues("natural ordered hero intro, exact metadata branding, and no removed subtext", issues)
+    return "name/prompt/topic tags are ordered, metadata branding matches, and removed blurbs remain absent"
 
 
 def parse_xml(path: Path) -> ET.Element:
