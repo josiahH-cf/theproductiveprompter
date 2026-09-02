@@ -818,6 +818,33 @@ class RepairAttemptBoundRegressionTests(TemporaryRuntime):
         # ...but only for the stage it actually names.
         self.assertFalse(af.blocked_only_by_attempt_window(directory, exhausted, "EDIT"))
 
+    def test_every_controller_route_rejected_once_still_gets_the_next_attempt(self):
+        """An agent-hosted fallback is not an alternative under automation.
+
+        Each content rejection records a route failure. Once every capable
+        model had one, excluding them all left only the active-host route,
+        which execute-stage refuses to perform, so the stage stopped on a
+        fallback that cannot run. A stage repairing to another stage never has
+        its own route failures cleared either, so the stop was permanent.
+        """
+        run_id = self.start("Every controller route rejected once must still run.")
+        directory, run = af.load_run(run_id)
+        observed = []
+
+        def route_fixture(stage, excluded_routes=None):
+            observed.append(set(excluded_routes or set()))
+            return self.route_set(stage)
+
+        run.setdefault("route_failures", {})["RESEARCH_PLAN"] = {"fixture:fixture-model": 1}
+        af.save_run(directory, run)
+        directory, failed = af.load_run(run_id)
+        with mock.patch.object(af, "route_candidates", side_effect=route_fixture):
+            _, packet = af.task_packet(directory, failed)
+
+        # The only controller route is reused rather than excluded.
+        self.assertEqual(packet["selected_route"]["chosen"]["model"], "fixture-model")
+        self.assertNotIn({"fixture:fixture-model"}, observed)
+
     def test_stale_external_and_duplicate_submissions_are_rejected_before_write(self):
         run_id, directory = self.research_run()
         with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)):

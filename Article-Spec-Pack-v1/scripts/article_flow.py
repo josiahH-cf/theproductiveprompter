@@ -3031,7 +3031,20 @@ def task_packet(
     # Route fallback is independent from the stage execution bound. Prefer a
     # route without a prior failure when one exists, but never exclude every
     # eligible route and thereby prevent the remaining bounded executions.
-    excluded = failed_route_keys if eligible_route_keys - failed_route_keys else set()
+    # An agent-hosted route does not count as an alternative while automation
+    # is driving the run, because execute-stage refuses to perform a packet
+    # itself. Counting it meant a stage whose every controller route had one
+    # rejected output excluded them all and stopped on a fallback that cannot
+    # run, which is exactly the prevention this rule exists to avoid. The
+    # independence check below already discounts agent-hosted routes the same
+    # way.
+    controller_route_keys = {
+        f"{item.get('provider')}:{item.get('model')}"
+        for item in [*unrestricted_route.get("candidates", []), *durable_retry_candidates]
+        if item.get("eligible")
+        and (not automation_enabled(run) or item.get("kind") != "agent-hosted")
+    }
+    excluded = failed_route_keys if controller_route_keys - failed_route_keys else set()
     eligible_retry_candidates = [
         item for item in durable_retry_candidates
         if f"{item.get('provider')}:{item.get('model')}" not in failed_route_keys
