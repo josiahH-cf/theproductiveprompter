@@ -4794,6 +4794,11 @@ class WorkflowV31RegressionTests(TemporaryRuntime):
         self.assertIn('<img src="/assets/articles/example/diagram.svg" alt="Useful diagram"', rendered)
         self.assertNotIn("<script>alert", rendered)
         self.assertIn("&lt;script&gt;", rendered)
+        locked = af.find_locked_tokens(
+            "![Visual](/assets/articles/example/diagram.svg)\n\n"
+            "[Evidence](https://example.com/source)\n"
+        )
+        self.assertEqual(locked["markdown_links"], ["[Evidence](https://example.com/source)"])
 
     def test_visual_plan_renders_hash_bound_assets_and_advances(self):
         run_id = self.start("Explain why a product default can lag a model.")
@@ -4838,6 +4843,7 @@ class WorkflowV31RegressionTests(TemporaryRuntime):
         self.assertIn(asset["public_path"], visualized)
         self.assertNotIn("visual-gap.png", visualized)
         self.assertNotIn("model-authored placeholder", visualized)
+        self.assertEqual(af.materialize_manifest_visuals_markdown(visualized, manifest), visualized)
         body = af.inject_manifest_visuals(
             directory,
             run,

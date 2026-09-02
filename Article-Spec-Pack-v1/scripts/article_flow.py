@@ -4520,7 +4520,10 @@ def find_locked_tokens(text: str) -> dict[str, list[str]]:
         "numbers": r"(?<![A-Za-z])\d+(?:[.,]\d+)*(?:%|\b)",
         "dates": r"\b(?:19|20)\d{2}(?:-\d{2}-\d{2})?\b",
         "inline_code": r"`[^`\n]+`",
-        "markdown_links": r"\[[^\]]+\]\([^)]+\)",
+        # Image placement and targets are owned by the visual manifest. Keep
+        # evidence links locked, but do not make a model-guessed image path an
+        # immutable factual value.
+        "markdown_links": r"(?<!!)\[[^\]]+\]\([^)]+\)",
         "code_blocks": r"```[^\n]*\n.*?```",
         "direct_quotes": r"(?:^|\n)>[^\n]+",
     }
@@ -4929,11 +4932,12 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
             droppable = unverified_locked_urls(locked_record)
             draft_path = artifact_path(directory, run, "draft")
             if (
-                droppable
-                and draft_path
+                draft_path
                 and draft_path.is_file()
                 and sha256_path(draft_path) == locked_record.get("source_sha256")
             ):
+                # Recompute from the exact locked source so releases created
+                # before image links became manifest-owned migrate safely.
                 before = find_locked_tokens(
                     strip_citation_additions(draft_path.read_text(encoding="utf-8"), droppable)
                 )
@@ -7554,7 +7558,9 @@ def render_publication_files(directory: Path, run: dict[str, Any], package_root:
     target = load_json(SPEC_ROOT / "publication" / "theproductiveprompter.json")
     repository = publication_repo_root(required=True)
     template = (SPEC_ROOT / target["article_template"]).read_text(encoding="utf-8")
-    article_markdown = article_path.read_text(encoding="utf-8")
+    packaged_article_path = package_root / "public" / "article.md"
+    revision_article_path = packaged_article_path if packaged_article_path.is_file() else article_path
+    article_markdown = revision_article_path.read_text(encoding="utf-8")
     manifest_path = artifact_path(directory, run, "visual-manifest")
     if manifest_path:
         article_markdown = strip_planned_visual_blocks(article_markdown, load_json(manifest_path))
@@ -7570,7 +7576,7 @@ def render_publication_files(directory: Path, run: dict[str, Any], package_root:
             f"<p>Drafting model: {html.escape(', '.join(names))}</p></footer>"
         )
     canonical = target["canonical_url"].format(slug=metadata["slug"])
-    words = len(re.findall(r"\b\w+\b", article_path.read_text(encoding="utf-8")))
+    words = len(re.findall(r"\b\w+\b", article_markdown))
     reading_minutes = max(1, round(words / 230))
     replacements = {
         "{{TITLE}}": html.escape(metadata["title"]),
@@ -7590,7 +7596,7 @@ def render_publication_files(directory: Path, run: dict[str, Any], package_root:
             "narrative_person": metadata.get("narrative_person"),
         }, separators=(",", ":")), quote=True),
         "{{ARTICLE_BODY}}": body,
-        "{{ARTICLE_REVISION}}": sha256_path(article_path),
+        "{{ARTICLE_REVISION}}": sha256_path(revision_article_path),
     }
     rendered = template
     for key, value in replacements.items():
@@ -8077,7 +8083,18 @@ def command_package(args: argparse.Namespace) -> int:
         private_root = package_root / "private"
         public_root.mkdir(parents=True, exist_ok=True)
         private_root.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(article_path, public_root / "article.md")
+        visual_manifest_path = artifact_path(directory, run, "visual-manifest")
+        visual_manifest: dict[str, Any] | None = None
+        public_article_text = article_path.read_text(encoding="utf-8")
+        if is_v31_run(run):
+            if not visual_manifest_path:
+                raise FlowError("Workflow 3.1 packaging requires a rendered visual manifest", EXIT_INTEGRITY)
+            visual_findings = validate_visual_manifest(directory, run, visual_manifest_path)
+            if visual_findings:
+                raise FlowError("Workflow 3.1 visual manifest is invalid", EXIT_INTEGRITY, visual_findings)
+            visual_manifest = load_json(visual_manifest_path)
+            public_article_text = materialize_manifest_visuals_markdown(public_article_text, visual_manifest)
+        atomic_write(public_root / "article.md", public_article_text.encode("utf-8"))
         metadata = package_metadata(directory, run)
         write_json(public_root / "metadata.json", metadata)
         claim_path = artifact_path(directory, run, "post-edit-claim-ledger") or artifact_path(directory, run, "verified-claim-ledger")
@@ -8086,14 +8103,8 @@ def command_package(args: argparse.Namespace) -> int:
             ledger = load_json(claim_path)
             references["sources"] = sorted({claim.get("source_url_or_local_id") for claim in ledger.get("claims", []) if claim.get("source_url_or_local_id")})
         write_json(public_root / "references.json", references)
-        visual_manifest_path = artifact_path(directory, run, "visual-manifest")
         if is_v31_run(run):
-            if not visual_manifest_path:
-                raise FlowError("Workflow 3.1 packaging requires a rendered visual manifest", EXIT_INTEGRITY)
-            visual_findings = validate_visual_manifest(directory, run, visual_manifest_path)
-            if visual_findings:
-                raise FlowError("Workflow 3.1 visual manifest is invalid", EXIT_INTEGRITY, visual_findings)
-            visual_manifest = load_json(visual_manifest_path)
+            assert visual_manifest is not None
             for asset in visual_manifest.get("assets", []):
                 source = directory / safe_relative(str(asset["source_path"]))
                 destination = public_root / "assets" / f"{asset['visual_id']}.svg"
