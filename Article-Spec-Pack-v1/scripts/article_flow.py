@@ -106,6 +106,17 @@ STAGE_CAPABILITIES = {
 }
 LEGACY_WORKFLOW_VERSION = "2.0.0"
 V3_WRITING_STATES = {"DRAFT", "VOICE_PROBE", "EDIT"}
+# The article itself may only be replaced once it is packaged, but the brief's
+# public display text has no owning stage after BRIEF, so it stays correctable
+# for as long as the article is under review.
+ARTICLE_AMENDABLE_STATES = {"PACKAGE", "PUBLISH_APPROVAL"}
+DISPLAY_TEXT_AMENDABLE_STATES = {
+    "EDIT",
+    "POST_EDIT_CLAIM_VERIFICATION",
+    "EDITORIAL_QA",
+    "PACKAGE",
+    "PUBLISH_APPROVAL",
+}
 DEFAULT_DRAFT_MODEL_POOL = ["gpt-5.5", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"]
 EXIT_OK = 0
 EXIT_FAILED = 1
@@ -4488,6 +4499,17 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
                     findings.append({"criterion": "shared_verified_meaning", "artifact": str(submission), "location": "candidates.preserved_claim_ids", "finding": "Candidates do not preserve the same verified claim set.", "repair_instruction": "Hold meaning and claims constant; vary only the declared voice dimensions."})
                 if len(orders) != 2 or any(set(order) != set(candidate_ids) for order in orders if isinstance(order, list)) or (len(orders) == 2 and list(orders[1]) != list(reversed(orders[0]))):
                     findings.append({"criterion": "balanced_comparison_orders", "artifact": str(submission), "location": "comparison_orders", "finding": "Comparison orders must contain the same three IDs in forward and reverse order.", "repair_instruction": "Provide one order and its exact reverse."})
+        if state == "BRIEF":
+            # The brief owns the public title and description, and nothing
+            # downstream can repair them: editorial QA reports display-text
+            # problems but repairs to EDIT, which only rewrites the article.
+            # Catch them here, where the brief's own bounded window can.
+            for field in ("title", "description"):
+                display_text = str(value.get(field) or "")
+                for finding in forbidden_public_prose_character_findings(display_text):
+                    findings.append({**finding, "artifact": str(submission), "location": field})
+                for finding in style_phrase_findings(display_text, str(submission)):
+                    findings.append({**finding, "location": field})
         if state == "ARTICLE_RECIPE":
             if len(value.get("outline_candidates", [])) < 2:
                 findings.append({"criterion": "shape_candidates", "artifact": str(submission), "location": "outline_candidates", "finding": "Fewer than two meaningfully different shapes were considered.", "repair_instruction": "Compare at least two shapes against the reader job and available evidence."})
@@ -6888,11 +6910,17 @@ def copy_private_run_archive(directory: Path, private_root: Path) -> dict[str, A
 
 def command_amend(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
-    if run["state"] not in {"PACKAGE", "PUBLISH_APPROVAL"}:
-        raise FlowError(f"Amend requires PACKAGE or PUBLISH_APPROVAL, current state is {run['state']}")
     article_argument = getattr(args, "article", None)
     if args.title is None and args.description is None and article_argument is None:
         raise FlowError("Amend requires --title, --description, and/or --article", EXIT_USAGE)
+    if article_argument is not None and run["state"] not in ARTICLE_AMENDABLE_STATES:
+        raise FlowError(
+            f"Amending the article requires PACKAGE or PUBLISH_APPROVAL, current state is {run['state']}"
+        )
+    if (args.title is not None or args.description is not None) and run["state"] not in DISPLAY_TEXT_AMENDABLE_STATES:
+        raise FlowError(
+            f"Amending public display text requires an article under review, current state is {run['state']}"
+        )
     brief_path = artifact_path(directory, run, "brief")
     if not brief_path:
         raise FlowError("Approved brief is missing", EXIT_INTEGRITY)
@@ -6954,16 +6982,22 @@ def command_amend(args: argparse.Namespace) -> int:
             append_event(directory, run, "PUBLIC_ARTICLE_AMENDED", "operator", {"source_sha256": sha256_path(article_source)})
             write_gate_receipt(directory, run, "G-NATURALIZATION", "PASS", [], {"type": "code", "version": CONTROLLER_VERSION})
             transition(directory, run, "POST_EDIT_CLAIM_VERIFICATION", "operator", "Article prose changed; reverify post-edit claims and editorial QA")
-        elif changed and run["state"] != "PACKAGE":
+        elif changed and run["state"] == "PUBLISH_APPROVAL":
             transition(directory, run, "PACKAGE", "operator", "Public display text changed; rebuild the package")
         else:
+            # Before packaging the amended brief is simply read when the
+            # package is built, so the run stays where it is.  Advancing to
+            # PACKAGE from here would skip the very gate that asked for the
+            # change, including editorial QA.
             save_run(directory, run)
     if run["state"] == "POST_EDIT_CLAIM_VERIFICATION":
         next_command = ["article-flow", "next", run["run_id"]]
     elif run["state"] == "PACKAGE":
         next_command = ["article-flow", "package", run["run_id"]]
-    else:
+    elif run["state"] == "PUBLISH_APPROVAL":
         next_command = ["article-flow", "publish", "--plan", run["run_id"]]
+    else:
+        next_command = ["article-flow", "advance", run["run_id"]]
     emit({"ok": True, "changed": changed, "article_changed": article_changed, "state": run["state"], "next_command": next_command}, args.json)
     return EXIT_OK
 

@@ -3750,6 +3750,98 @@ class NaturalizationCitationLockTests(TemporaryRuntime):
         self.assertEqual([item["location"] for item in locked], ["urls"], findings)
 
 
+class DisplayTextAmendmentTests(TemporaryRuntime):
+    """The brief owns public display text and no later stage can repair it.
+
+    Editorial QA reports a bad title or description but repairs to EDIT, which
+    rewrites only the article, so the finding could never be cleared.
+    """
+
+    def brief_value(self, run_id, description):
+        return {
+            "brief_schema_version": "1.0.0",
+            "run_id": run_id,
+            "title": "Is the model limiting you, or the product around it",
+            "slug": "is-the-model-limiting-you",
+            "description": description,
+            "reader_job": "Recognize an inherited default.",
+            "scope": "Diagnosis only.",
+            "exclusions": [],
+            "claims_to_support": [],
+            "acceptance_criteria": ["Every required claim is argued."],
+        }
+
+    def test_brief_gate_rejects_forbidden_display_characters(self):
+        run_id = self.start("Display text is checked where it can still be repaired.")
+        directory, run = af.load_run(run_id)
+        path = self.root / "brief-with-em-dash.json"
+        af.write_json(path, self.brief_value(
+            run_id, "A teardown of inherited defaults—and the evidence needed."))
+        outcome, findings = af.automatic_gate(directory, run, "BRIEF", path)
+        self.assertEqual(outcome, "REPAIR")
+        display = [item for item in findings if item.get("location") == "description"]
+        self.assertTrue(display, findings)
+        self.assertIn("em dash", display[0]["finding"])
+
+    def test_brief_gate_passes_clean_display_text(self):
+        run_id = self.start("Clean display text passes the brief gate.")
+        directory, run = af.load_run(run_id)
+        path = self.root / "clean-brief.json"
+        af.write_json(path, self.brief_value(
+            run_id, "A teardown of inherited defaults, and the evidence needed."))
+        outcome, findings = af.automatic_gate(directory, run, "BRIEF", path)
+        self.assertEqual(outcome, "PASS", findings)
+
+    def amend_run(self, state):
+        run_id = self.start("Display text stays correctable while the article is reviewed.")
+        directory, run = af.load_run(run_id)
+        self.record_json(directory, run, "brief",
+                         self.brief_value(run_id, "Inherited defaults, and the evidence needed."),
+                         "brief.json")
+        self.record_text(directory, run, "article", "# Title\n\nBody text.\n", "article.md")
+        af.transition(directory, run, state, "test", "exercise display-text amendment")
+        return run_id, directory
+
+    def test_display_text_amendment_before_packaging_keeps_the_state(self):
+        run_id, directory = self.amend_run("EDITORIAL_QA")
+        with mock.patch.object(af, "emit"):
+            code = af.command_amend(namespace(
+                run_id=run_id, title=None, description="A clean replacement description.", article=None))
+        self.assertEqual(code, af.EXIT_OK)
+        _, after = af.load_run(run_id)
+        # Advancing to PACKAGE here would skip the gate that asked for the fix.
+        self.assertEqual(after["state"], "EDITORIAL_QA")
+        self.assertEqual(
+            af.json_artifact(directory, after, "brief")["description"],
+            "A clean replacement description.",
+        )
+
+    def test_article_amendment_still_requires_packaging(self):
+        run_id, _ = self.amend_run("EDITORIAL_QA")
+        replacement = self.root / "replacement-article.md"
+        replacement.write_text("# Title\n\nReplacement body.\n", encoding="utf-8")
+        with self.assertRaises(af.FlowError) as caught:
+            af.command_amend(namespace(
+                run_id=run_id, title=None, description=None, article=str(replacement)))
+        self.assertIn("PACKAGE", str(caught.exception))
+
+    def test_display_text_amendment_at_publish_approval_rebuilds_the_package(self):
+        run_id, _ = self.amend_run("PUBLISH_APPROVAL")
+        with mock.patch.object(af, "emit"):
+            af.command_amend(namespace(
+                run_id=run_id, title=None, description="Another clean description.", article=None))
+        _, after = af.load_run(run_id)
+        self.assertEqual(after["state"], "PACKAGE")
+
+    def test_amended_display_text_is_validated_before_it_is_recorded(self):
+        run_id, _ = self.amend_run("EDITORIAL_QA")
+        with self.assertRaises(af.FlowError) as caught:
+            af.command_amend(namespace(
+                run_id=run_id, title=None,
+                description="Still inherited defaults—and the evidence needed.", article=None))
+        self.assertEqual(caught.exception.code, af.EXIT_INTEGRITY)
+
+
 class StyleDefenseTests(TemporaryRuntime):
     def make_package(self, *, title="Root Relative Test", description="A direct test of packaged links."):
         package_root = self.root / "package"
