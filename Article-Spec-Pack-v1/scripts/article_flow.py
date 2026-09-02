@@ -6092,6 +6092,14 @@ def command_submit(args: argparse.Namespace) -> int:
                     "route": packet_route,
                     "cleared_failure_count": prior_failures,
                 })
+        # An accepted attempt closes this stage's bounded repair window.  The
+        # window bounds consecutive repairs of one piece of work, and the
+        # baseline is otherwise only advanced for a repair_state, so a stage
+        # that repairs to a different stage never had its own baseline moved:
+        # POST_EDIT_CLAIM_VERIFICATION and EDITORIAL_QA could each execute only
+        # max_attempts times in an entire run, and escalated with zero
+        # rejections once the article was rewritten that many times.
+        reset_attempt_window(directory, run, args.stage)
         update_writing_provenance(directory, run, args.stage, packet_route)
         require_submit_evidence("attempt_evidence_changed_before_pass_transition")
         if policy_review:

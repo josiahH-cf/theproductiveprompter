@@ -758,6 +758,37 @@ class RepairAttemptBoundRegressionTests(TemporaryRuntime):
         self.assertEqual(af.sha256_path(receipt_path), receipt_hash)
         self.assertFalse((directory / "tasks" / "research-02.json").exists())
 
+    def test_a_passing_gate_closes_the_stage_repair_window(self):
+        """A stage that repairs elsewhere must not exhaust by succeeding.
+
+        POST_EDIT_CLAIM_VERIFICATION and EDITORIAL_QA declare EDIT as their
+        repair state, so a repair never advances their own baseline. Without
+        closing the window on an accepted attempt they could execute only
+        max_attempts times in an entire run, and escalated as
+        attempt_window_exhausted with zero rejections once the article had been
+        rewritten that many times.
+        """
+        run_id = self.start("A passing attempt must not consume the repair window.")
+        directory, run = af.load_run(run_id)
+        with mock.patch.object(
+            af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)
+        ):
+            _, packet = af.task_packet(directory, af.load_run(run_id)[1])
+        output = Path(packet["expected_outputs"][0]["path"])
+        af.write_json(output, {"attempt": 1})
+
+        with mock.patch.object(af, "automatic_gate", return_value=("PASS", [])):
+            code, _ = call(af.command_submit, run_id=run_id, stage="RESEARCH_PLAN", file=str(output))
+        self.assertEqual(code, af.EXIT_OK)
+
+        directory, accepted = af.load_run(run_id)
+        evidence = af.stage_attempt_evidence(directory, accepted, "RESEARCH_PLAN")
+        self.assertEqual(evidence["window_used"], 0, evidence)
+        self.assertEqual(evidence["rejection_count"], 0, evidence)
+        self.assertEqual(
+            accepted["attempt_baselines"]["RESEARCH_PLAN"], evidence["execution_count"], evidence
+        )
+
     def test_stale_external_and_duplicate_submissions_are_rejected_before_write(self):
         run_id, directory = self.research_run()
         with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)):
