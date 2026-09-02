@@ -1,10 +1,11 @@
 ### The introduction feels natural and aligned
 **If this was built correctly:** The home introduction says "Josiah Hunter"
 without a period, follows it with "I love to chat about...", and presents Security,
-Cloud, and AI as three clear emoji tags. The intro and Writing/Code panel form
+Cloud, and AI as a plain, readable interests line that does not resemble a set of
+links. The intro and Writing/Code panel form
 deliberate columns without dropping far down on a tall screen, while the browser
 title keeps the emoji-bearing brand text.
-- Model verdict: PASS - why: ARCH-7 verifies the exact copy, punctuation, topic order, semantics, and metadata; BEH-9 verifies aligned desktop columns, responsive stacking, and bounded tall-screen spacing across eleven viewports.
+- Model verdict: PASS - why: ARCH-7 verifies the exact copy, punctuation, non-interactive topic semantics, and metadata; BEH-9 verifies transparent/borderless interest styling, aligned columns, responsive stacking, and bounded tall-screen spacing across eleven viewports.
 - Human verdict: PASS | FAIL - why:
 
 ### Navigation stays on screen while scrolling
@@ -28,8 +29,9 @@ telemetry site in a new browser tab and leaves this site open in the original ta
 ### Projects shows GitHub work and activity
 **If this was built correctly:** The Projects page lists the owner's intentional
 four pinned repositories, shows the current year's public activity totals, and
-ends with a large link to the full GitHub activity dashboard.
-- Model verdict: PASS - why: One authenticated GraphQL refresh generated the four pins and six current-year public activity metrics atomically; the exact protected dashboard link is prominent and responsive, and BEH-4 and BEH-10 pass.
+labels them "top projects." Three high-signal totals lead into a daily contribution
+rhythm graph, and the page ends with a large link to the full GitHub dashboard.
+- Model verdict: PASS - why: One GraphQL response atomically generates the intentional four pins, three headline metrics, and a 365/366-cell accessible heatmap; strict tests reconcile the graph to its total and verify the daily automation and responsive dashboard link in BEH-4 and BEH-10.
 - Human verdict: PASS | FAIL - why:
 
 ### Reach Out combines a short About with contact
@@ -40,15 +42,17 @@ through to coalfire.com, and a way to get in touch.
 - Human verdict: PASS | FAIL - why:
 
 ### The contact path actually works
-**If this was built correctly:** Sending a message genuinely delivers it and only
-then confirms success; if the sending endpoint is not configured yet, the page
-shows a working direct way to reach the owner instead of a fake "sent" message.
-- Model verdict: PASS - why: With the endpoint unset, submit is disabled and a working email fallback is visible; with a stubbed HTTPS endpoint, pending, 2xx-only success/reset, 5xx, and network-failure field retention all pass BEH-6.
+**If this was built correctly:** Completing the form opens a pre-addressed email
+draft with all fields intact, tells the visitor to review it and press Send in their
+email app, and never claims the message was delivered. Direct mail and copy-email
+fallbacks remain usable and honest.
+- Model verdict: PASS - why: BEH-6 verifies native validation, encoded subject/body content, retained fields, a retry link, zero network submission, normal mailto behavior, and accurate clipboard success/failure states.
 - Human verdict: PASS | FAIL - why:
 
 ### The site reads clean
 **If this was built correctly:** The "Built with HTML, CSS and JavaScript" footer
 line is gone and the small explanatory blurbs under headings are gone across the
-site, leaving a decluttered look.
-- Model verdict: PASS - why: Static and rendered-output checks find zero legacy footer-credit occurrences and none of the enumerated heading blurbs or orphan selectors; ARCH-6, ARCH-7, and BEH-7 pass.
+site, leaving a decluttered look. The home Blog is a compact three-card shelf with
+a playful one-line introduction and lightweight links to the full writing archive.
+- Model verdict: PASS - why: Static and rendered-output checks find zero legacy footer-credit occurrences and none of the enumerated heading blurbs; the branch diff leaves the generated marker content unchanged, PRES-1 keeps home/Blog card sequences aligned for future publications, and BEH-9 verifies the lighter 3/2/1-column home presentation across eleven viewports.
 - Human verdict: PASS | FAIL - why:

@@ -22,7 +22,7 @@ import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Callable, Iterable
 from urllib.parse import parse_qs, unquote, urlsplit
 import xml.etree.ElementTree as ET
@@ -48,9 +48,6 @@ EXPECTED_ACTIVITY = {
     "contributions": 1485,
     "commits": 1343,
     "pull-requests": 125,
-    "issues": 5,
-    "code-reviews": 0,
-    "repositories": 13,
 }
 ARTICLE_MARKERS = (
     "<!-- ARTICLE_FLOW_LATEST_START -->",
@@ -325,6 +322,27 @@ def check_arch_3() -> str:
             issues.append(f"missing {rel(path)}")
     if project.is_file():
         text = project.read_text(encoding="utf-8")
+        full_tree = parse_html_text(text)
+        page_headers = elements(full_tree, tag="header", cls="page-header")
+        if len(page_headers) != 1:
+            issues.append("projects.html lacks one page header")
+        else:
+            header_children = [
+                child for child in page_headers[0].children if isinstance(child, Element)
+            ]
+            h1_index = next(
+                (index for index, child in enumerate(header_children) if child.tag == "h1"),
+                -1,
+            )
+            subtitles = elements(page_headers[0], cls="projects-page__subtitle")
+            if (
+                len(subtitles) != 1
+                or text_content(subtitles[0]) != "top projects"
+                or h1_index < 0
+                or h1_index + 1 >= len(header_children)
+                or header_children[h1_index + 1] is not subtitles[0]
+            ):
+                issues.append("projects.html lacks the exact 'top projects' subtitle directly after its h1")
         if text.count(PROJECT_START) != 1 or text.count(PROJECT_END) != 1 or text.index(PROJECT_START) >= text.index(PROJECT_END):
             issues.append("projects.html lacks one ordered pinned-project marker pair")
         else:
@@ -383,8 +401,8 @@ def check_arch_3() -> str:
             headings = elements(activity_tree, tag="h2", cls="github-activity__title")
             years = elements(activity_tree, tag="time", cls="github-activity__year")
             statuses = elements(activity_tree, cls="github-activity__status")
-            stat_lists = elements(activity_tree, tag="dl", cls="github-activity__stats")
-            metrics = elements(activity_tree, cls="github-activity-stat")
+            stat_lists = elements(activity_tree, tag="dl", cls="github-activity__highlights")
+            metrics = elements(activity_tree, cls="github-activity-highlight")
             metric_keys = [item.attrs.get("data-github-metric") for item in metrics]
             rendered_year = years[0].attrs.get("datetime") if len(years) == 1 else ""
             if not re.fullmatch(r"\d{4}", rendered_year or "") or len(headings) != 1 or text_content(headings[0]) != f"{rendered_year} GitHub activity":
@@ -401,15 +419,80 @@ def check_arch_3() -> str:
             if len(statuses) != 1 or "year-to-date public contribution totals" not in text_content(statuses[0]).casefold() or "refreshed daily" not in text_content(statuses[0]).casefold():
                 issues.append("projects.html lacks the year-to-date public scope and daily refresh cadence")
             if len(stat_lists) != 1 or len(metrics) != len(EXPECTED_ACTIVITY) or metric_keys != list(EXPECTED_ACTIVITY):
-                issues.append("projects.html lacks the six ordered GitHub activity metrics")
+                issues.append("projects.html lacks the three ordered high-signal GitHub activity metrics")
             else:
                 for metric in EXPECTED_ACTIVITY:
                     item = metrics[metric_keys.index(metric)]
-                    values = elements(item, tag="dd", cls="github-activity-stat__value")
-                    labels = elements(item, tag="dt", cls="github-activity-stat__label")
+                    values = elements(item, tag="dd", cls="github-activity-highlight__value")
+                    labels = elements(item, tag="dt", cls="github-activity-highlight__label")
                     if len(values) != 1 or not re.fullmatch(r"\d{1,3}(?:,\d{3})*", normalized(text_content(values[0]))) or len(labels) != 1:
                         issues.append(f"projects.html has an invalid {metric} activity metric")
-        full_tree = parse_html_text(text)
+            figures = elements(activity_tree, tag="figure", cls="github-activity__rhythm")
+            calendars = elements(activity_tree, tag="svg", cls="github-activity-calendar")
+            days = elements(activity_tree, tag="rect", cls="github-activity-day")
+            legends = elements(activity_tree, cls="github-activity__legend")
+            if len(figures) != 1 or len(calendars) != 1:
+                issues.append("projects.html lacks one contribution-rhythm figure and SVG calendar")
+            else:
+                captions = elements(figures[0], tag="figcaption")
+                labelledby = (calendars[0].attrs.get("aria-labelledby") or "").split()
+                title_ids = {
+                    item.attrs.get("id") for item in elements(calendars[0], tag="title")
+                    if item.attrs.get("id")
+                }
+                desc_ids = {
+                    item.attrs.get("id") for item in elements(calendars[0], tag="desc")
+                    if item.attrs.get("id")
+                }
+                caption_ids = {item.attrs.get("id") for item in captions if item.attrs.get("id")}
+                if (
+                    len(captions) != 1
+                    or calendars[0].attrs.get("role") != "img"
+                    or not caption_ids
+                    or not title_ids
+                    or not desc_ids
+                    or not title_ids.issubset(set(labelledby))
+                    or not desc_ids.issubset(set(labelledby))
+                ):
+                    issues.append("GitHub rhythm figure/SVG lacks a complete accessible label contract")
+            expected_year = int(rendered_year) if re.fullmatch(r"\d{4}", rendered_year or "") else None
+            seen_dates: list[str] = []
+            day_total = 0
+            for day in days:
+                date_value = day.attrs.get("data-date") or ""
+                count_value = day.attrs.get("data-count") or ""
+                level_value = day.attrs.get("data-level") or ""
+                titles = elements(day, tag="title")
+                if (
+                    not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_value)
+                    or not re.fullmatch(r"\d+", count_value)
+                    or level_value not in {"0", "1", "2", "3", "4"}
+                    or f"github-activity-day--level-{level_value}" not in (day.attrs.get("class") or "").split()
+                    or len(titles) != 1
+                ):
+                    issues.append("GitHub activity calendar contains a malformed contribution day")
+                    continue
+                if expected_year is not None and not date_value.startswith(f"{expected_year:04d}-"):
+                    issues.append(f"GitHub activity calendar renders an out-of-year day {date_value}")
+                seen_dates.append(date_value)
+                day_total += int(count_value)
+            if not days or seen_dates != sorted(seen_dates) or len(seen_dates) != len(set(seen_dates)):
+                issues.append("GitHub activity calendar days are absent, duplicated, or out of order")
+            contribution_values = [
+                normalized(text_content(value)).replace(",", "")
+                for item in metrics if item.attrs.get("data-github-metric") == "contributions"
+                for value in elements(item, tag="dd", cls="github-activity-highlight__value")
+            ]
+            if len(contribution_values) == 1 and contribution_values[0].isdigit() and day_total != int(contribution_values[0]):
+                issues.append("GitHub activity calendar day counts do not reconcile to contributions")
+            legend_levels = {
+                item.attrs.get("data-level")
+                for legend in legends
+                for item in walk(legend)
+                if item.attrs.get("data-level") is not None
+            }
+            if len(legends) != 1 or legend_levels != {"0", "1", "2", "3", "4"}:
+                issues.append("GitHub activity calendar lacks a five-level legend")
         dashboard_links = [
             item for item in elements(full_tree, tag="a", cls="github-dashboard-cta")
             if item.attrs.get("href") == DASHBOARD_URL
@@ -449,6 +532,8 @@ def check_arch_3() -> str:
         "totalCount", "contributionsCollection", "totalContributions", "totalCommitContributions",
         "totalIssueContributions", "totalPullRequestContributions",
         "totalPullRequestReviewContributions", "totalRepositoriesWithContributedCommits",
+        "weeks", "firstDay", "contributionDays", "contributionCount", "contributionLevel",
+        "github-activity__highlights", "github-activity__rhythm", "github-activity-calendar",
         "MAX_PINNED_ITEMS = 6", "--response-file", "--target", "--as-of", "--json",
     ):
         if token not in generator_text:
@@ -480,7 +565,7 @@ def check_arch_3() -> str:
         issues.append(f"client token reference in {', '.join(leaked)}")
     require_no_issues("marker-driven GitHub pins/activity generator and isolated scheduled workflow", issues)
     return (
-        f"project/activity markers, schema 1.2.0 four-project and current-year activity contract, "
+        f"project/activity markers, schema 1.2.0 four-project, three-highlight, and rhythm-graph contract, "
         "fail-closed schedule, token isolation, and verified Pages build are present"
     )
 
@@ -515,15 +600,37 @@ def reach_out_issues() -> list[str]:
         issues.append("form#contactForm is absent")
     else:
         controls = {item.attrs.get("name"): item for item in walk(form) if item.tag in {"input", "textarea"}}
+        expected_lengths = {"name": "100", "email": "254", "message": "1500"}
         for name in ("name", "email", "message"):
             if name not in controls or "required" not in controls[name].attrs:
                 issues.append(f"required {name} field is absent")
+            elif controls[name].attrs.get("maxlength") != expected_lengths[name]:
+                issues.append(f"{name} maxlength is not {expected_lengths[name]}")
             labels = [item for item in elements(form, tag="label") if item.attrs.get("for") == controls.get(name, Element("", {})).attrs.get("id")]
             if not labels or "required" not in text_content(labels[0]).casefold():
                 issues.append(f"{name} field is not visibly marked required")
         submits = [item for item in elements(form, tag="button") if item.attrs.get("type") == "submit"]
-        if len(submits) != 1 or "disabled" not in submits[0].attrs:
-            issues.append("submit button does not ship disabled for the placeholder endpoint")
+        if len(submits) != 1 or "disabled" not in submits[0].attrs or text_content(submits[0]) != "Open Email Draft":
+            issues.append("email-draft submit does not ship disabled with exact progressive-enhancement copy")
+        helpers = elements(form, cls="contact-form__help")
+        if len(helpers) != 1 or "nothing is sent until you press send" not in text_content(helpers[0]).casefold():
+            issues.append("form lacks the truthful press-Send delivery boundary")
+        statuses = [
+            item for item in elements(form, cls="contact-form__status")
+            if item.attrs.get("role") == "status"
+            and item.attrs.get("aria-live") == "polite"
+            and item.attrs.get("aria-atomic") == "true"
+        ]
+        if len(statuses) != 1:
+            issues.append("contact form lacks one polite atomic live status")
+        retry_links = [
+            item for item in elements(form, tag="a")
+            if item.attrs.get("id") == "contactDraftLink"
+            and item.attrs.get("href") == "mailto:josiah.hunter.it@gmail.com"
+            and "hidden" in item.attrs
+        ]
+        if len(retry_links) != 1:
+            issues.append("contact form lacks an initially hidden email-draft retry link")
     hrefs = {item.attrs.get("href") for item in elements(tree, tag="a")}
     for href in ("mailto:josiah.hunter.it@gmail.com", "https://github.com/josiahH-cf", "https://www.linkedin.com/in/josiahhunter/"):
         if href not in hrefs:
@@ -531,23 +638,49 @@ def reach_out_issues() -> list[str]:
     direct_groups = [item for item in elements(tree, cls="contact__links") if item.attrs.get("role") == "group" and item.attrs.get("aria-label")]
     if len(direct_groups) != 1:
         issues.append("direct contact links lack a valid named group role")
-    if "The contact form is not configured yet. Email me directly instead." not in whole_text:
-        issues.append("honest unconfigured fallback is not initially visible")
+    direct_email = first_by_id(tree, "contactEmailLink")
+    if (
+        direct_email is None
+        or direct_email.tag != "a"
+        or direct_email.attrs.get("href") != "mailto:josiah.hunter.it@gmail.com"
+        or text_content(direct_email) != "josiah.hunter.it@gmail.com"
+    ):
+        issues.append("literal direct email address is not visibly usable without JavaScript")
+    copy_buttons = [
+        item for item in elements(tree, tag="button")
+        if item.attrs.get("id") == "copyEmailButton" and item.attrs.get("type") == "button"
+    ]
+    if len(copy_buttons) != 1 or "disabled" not in copy_buttons[0].attrs or text_content(copy_buttons[0]) != "Copy email address":
+        issues.append("separate copy-email control does not ship safely disabled")
     return issues
 
 
 def check_arch_4() -> str:
     issues = reach_out_issues()
-    sources = [path for path in public_html_paths() if path.name == "reach-out.html"]
-    sources.extend(path for path in ROOT.glob("*.js") if path.is_file())
-    joined = "\n".join(path.read_text(encoding="utf-8") for path in sources)
-    declarations = re.findall(r"\bconst\s+CONTACT_FORM_ENDPOINT\s*=", joined)
-    if len(declarations) != 1:
-        issues.append(f"found {len(declarations)} CONTACT_FORM_ENDPOINT const declarations")
-    if "PASTE_FORM_FORWARDING_ENDPOINT_HERE" not in joined:
-        issues.append("endpoint placeholder is absent")
-    require_no_issues("exact About/details/Role/contact form with one safe endpoint constant", issues)
-    return "Reach Out contains the exact About, four details, protected Role link, direct links, and safe form"
+    script_text = (ROOT / "script.js").read_text(encoding="utf-8")
+    forbidden = {
+        "forwarding endpoint placeholder": "PASTE_FORM_FORWARDING_ENDPOINT_HERE",
+        "legacy endpoint constant": "CONTACT_FORM_ENDPOINT",
+        "network contact submission": "fetch(contactEndpoint",
+        "false delivery claim": "Your message was sent",
+        "legacy email-link interception": "getElementById('emailLink')",
+    }
+    for label, token in forbidden.items():
+        if token in script_text:
+            issues.append(f"script.js retains {label}")
+    required = (
+        "const CONTACT_EMAIL = 'josiah.hunter.it@gmail.com'",
+        "buildContactDraftHref",
+        "sanitizeContactSubjectName",
+        "encodeURIComponent(subject)",
+        "encodeURIComponent(body)",
+        "navigator.clipboard.writeText(CONTACT_EMAIL)",
+    )
+    for token in required:
+        if token not in script_text:
+            issues.append(f"script.js lacks stable contact-handoff token {token!r}")
+    require_no_issues("exact About/details plus a dependency-free, honest email-draft handoff", issues)
+    return "Reach Out contains exact profile content, direct links, an encoded draft handoff, and explicit copy fallback"
 
 
 def resolve_site_link(source: Path, href: str) -> tuple[str | None, str | None]:
@@ -668,6 +801,17 @@ def check_arch_7() -> str:
         rendered_topics.append((text_content(emojis[0]) if len(emojis) == 1 else "", text_content(labels[0]) if len(labels) == 1 else ""))
         if len(emojis) != 1 or emojis[0].attrs.get("aria-hidden") != "true":
             issues.append("hero topic emoji is not decorative")
+        interactive_descendants = [
+            item for item in walk(topic)
+            if item is not topic and item.tag in {"a", "button", "input", "select", "textarea"}
+        ]
+        if (
+            interactive_descendants
+            or topic.attrs.get("role")
+            or topic.attrs.get("tabindex") is not None
+            or topic.attrs.get("data-href")
+        ):
+            issues.append("hero topic is exposed as an interactive control")
     if rendered_topics != list(INTRO_TOPICS):
         issues.append(f"hero topics {rendered_topics!r} do not match the requested ordered tags")
     ordered_classes = (
@@ -789,7 +933,7 @@ def check_beh_4() -> str:
         activity_headings = elements(activity_tree, tag="h2", cls="github-activity__title")
         activity_years = elements(activity_tree, tag="time", cls="github-activity__year")
         activity_statuses = elements(activity_tree, cls="github-activity__status")
-        activity_metrics = elements(activity_tree, cls="github-activity-stat")
+        activity_metrics = elements(activity_tree, cls="github-activity-highlight")
         if len(activity_headings) != 1 or text_content(activity_headings[0]) != "2026 GitHub activity":
             issues.append("generated activity heading does not use the fixture year")
         if len(activity_years) != 1 or activity_years[0].attrs.get("datetime") != "2026":
@@ -799,12 +943,41 @@ def check_beh_4() -> str:
         actual_activity = {}
         for item in activity_metrics:
             key = item.attrs.get("data-github-metric")
-            values = elements(item, tag="dd", cls="github-activity-stat__value")
+            values = elements(item, tag="dd", cls="github-activity-highlight__value")
             if key and len(values) == 1:
                 actual_activity[key] = normalized(text_content(values[0]))
         expected_activity = {key: f"{value:,}" for key, value in EXPECTED_ACTIVITY.items()}
         if actual_activity != expected_activity:
             issues.append(f"generated activity values {actual_activity!r} differ from {expected_activity!r}")
+        figures = elements(activity_tree, tag="figure", cls="github-activity__rhythm")
+        calendars = elements(activity_tree, tag="svg", cls="github-activity-calendar")
+        days = elements(activity_tree, tag="rect", cls="github-activity-day")
+        if len(figures) != 1 or len(calendars) != 1 or len(days) != 365:
+            issues.append(
+                f"generated contribution rhythm is incomplete: figures={len(figures)}, "
+                f"calendars={len(calendars)}, days={len(days)}"
+            )
+        generated_dates = [item.attrs.get("data-date") for item in days]
+        generated_total = sum(
+            int(item.attrs.get("data-count") or "-1")
+            for item in days
+            if re.fullmatch(r"\d+", item.attrs.get("data-count") or "")
+        )
+        if (
+            generated_dates != sorted(generated_dates)
+            or len(generated_dates) != len(set(generated_dates))
+            or any(not (value or "").startswith("2026-") for value in generated_dates)
+            or generated_total != EXPECTED_ACTIVITY["contributions"]
+        ):
+            issues.append("generated contribution days are unordered, duplicated, out-of-year, or unreconciled")
+        legend_levels = {
+            item.attrs.get("data-level")
+            for legend in elements(activity_tree, cls="github-activity__legend")
+            for item in walk(legend)
+            if item.attrs.get("data-level") is not None
+        }
+        if legend_levels != {"0", "1", "2", "3", "4"}:
+            issues.append("generated contribution rhythm lacks the five intensity levels")
         try:
             result_payload = json.loads(completed.stdout)
         except json.JSONDecodeError:
@@ -842,6 +1015,30 @@ def check_beh_4() -> str:
         rollover_activity["startedAt"] = "2027-01-01T00:00:00Z"
         rollover_activity["endedAt"] = "2027-12-31T23:59:59Z"
         rollover_activity["contributionCalendar"]["totalContributions"] = 0
+        rollover_weeks: list[dict[str, object]] = []
+        rollover_days: list[dict[str, object]] = []
+        rollover_cursor = datetime(2027, 1, 1).date()
+        rollover_end = datetime(2027, 12, 31).date()
+        while rollover_cursor <= rollover_end:
+            if rollover_cursor.weekday() == 6 and rollover_days:
+                rollover_weeks.append(
+                    {"firstDay": rollover_days[0]["date"], "contributionDays": rollover_days}
+                )
+                rollover_days = []
+            rollover_days.append(
+                {
+                    "contributionCount": 0,
+                    "contributionLevel": "NONE",
+                    "date": rollover_cursor.isoformat(),
+                    "weekday": (rollover_cursor.weekday() + 1) % 7,
+                }
+            )
+            rollover_cursor += timedelta(days=1)
+        if rollover_days:
+            rollover_weeks.append(
+                {"firstDay": rollover_days[0]["date"], "contributionDays": rollover_days}
+            )
+        rollover_activity["contributionCalendar"]["weeks"] = rollover_weeks
         for key in (
             "totalCommitContributions", "totalIssueContributions",
             "totalPullRequestContributions", "totalPullRequestReviewContributions",
@@ -879,6 +1076,15 @@ def check_beh_4() -> str:
             "malformed timestamp": copy.deepcopy(fixture),
             "missing activity collection": copy.deepcopy(fixture),
             "missing contribution calendar": copy.deepcopy(fixture),
+            "missing calendar weeks": copy.deepcopy(fixture),
+            "empty calendar weeks": copy.deepcopy(fixture),
+            "calendar coverage gap": copy.deepcopy(fixture),
+            "duplicate calendar day": copy.deepcopy(fixture),
+            "unordered calendar weeks": copy.deepcopy(fixture),
+            "negative calendar day": copy.deepcopy(fixture),
+            "invalid calendar level": copy.deepcopy(fixture),
+            "invalid calendar weekday": copy.deepcopy(fixture),
+            "calendar total mismatch": copy.deepcopy(fixture),
             "negative activity total": copy.deepcopy(fixture),
             "boolean commit total": copy.deepcopy(fixture),
             "malformed activity start": copy.deepcopy(fixture),
@@ -907,6 +1113,22 @@ def check_beh_4() -> str:
         variants["malformed timestamp"]["data"]["user"]["pinnedItems"]["nodes"][0]["updatedAt"] = "yesterday"
         variants["missing activity collection"]["data"]["user"].pop("contributionsCollection")
         variants["missing contribution calendar"]["data"]["user"]["contributionsCollection"].pop("contributionCalendar")
+        variants["missing calendar weeks"]["data"]["user"]["contributionsCollection"]["contributionCalendar"].pop("weeks")
+        variants["empty calendar weeks"]["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"] = []
+        coverage_weeks = variants["calendar coverage gap"]["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"]
+        coverage_days = next(
+            week["contributionDays"]
+            for week in coverage_weeks
+            if any(day.get("date") == "2026-12-31" for day in week["contributionDays"])
+        )
+        coverage_days[:] = [day for day in coverage_days if day.get("date") != "2026-12-31"]
+        duplicate_days = variants["duplicate calendar day"]["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"][0]["contributionDays"]
+        duplicate_days[1]["date"] = duplicate_days[0]["date"]
+        variants["unordered calendar weeks"]["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"].reverse()
+        variants["negative calendar day"]["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"][0]["contributionDays"][0]["contributionCount"] = -1
+        variants["invalid calendar level"]["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"][0]["contributionDays"][0]["contributionLevel"] = "MAXIMUM"
+        variants["invalid calendar weekday"]["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"][0]["contributionDays"][0]["weekday"] = 9
+        variants["calendar total mismatch"]["data"]["user"]["contributionsCollection"]["contributionCalendar"]["totalContributions"] += 1
         variants["negative activity total"]["data"]["user"]["contributionsCollection"]["contributionCalendar"]["totalContributions"] = -1
         variants["boolean commit total"]["data"]["user"]["contributionsCollection"]["totalCommitContributions"] = True
         variants["malformed activity start"]["data"]["user"]["contributionsCollection"]["startedAt"] = "this year"
@@ -982,8 +1204,9 @@ def check_beh_4() -> str:
         issues,
     )
     return (
-        f"hostile fixture generated {EXPECTED_PROJECT_COUNT} styled cards and six activity metrics; "
-        "CRLF/LF bytes, idempotence, year rollover, and invalid-input atomicity passed"
+        f"hostile fixture generated {EXPECTED_PROJECT_COUNT} styled cards, three headline metrics, "
+        "and a reconciled daily calendar; CRLF/LF bytes, idempotence, year rollover, and "
+        "invalid-input atomicity passed"
     )
 
 
@@ -1030,8 +1253,42 @@ def check_pres_1() -> str:
         link_sets.append((name, resolved_targets))
     if len(link_sets) == 2 and link_sets[0][1] != link_sets[1][1]:
         issues.append("home and Blog Article Flow card sequences diverge")
-    require_no_issues("matching, nonempty Article Flow marker cards whose pages exist", issues)
-    return f"home and Blog preserve {len(link_sets[0][1]) if link_sets else 0} generated article cards and targets"
+    home_tree = parse_html(ROOT / "index.html")
+    home_sections = elements(home_tree, tag="section", cls="articles--home")
+    if len(home_sections) != 1:
+        issues.append("home lacks one lightweight Blog section")
+    else:
+        intro = elements(home_sections[0], cls="home-blog__intro")
+        if (
+            len(intro) != 1
+            or text_content(intro[0]) != "Ideas, experiments, and the occasional useful rabbit hole."
+            or "reveal-on-scroll" not in (intro[0].attrs.get("class") or "").split()
+        ):
+            issues.append("home Blog lacks the exact light introduction and reveal behavior")
+        all_links = [
+            item for item in elements(home_sections[0], tag="a", cls="home-blog__all-link")
+            if item.attrs.get("href") == "/docs/blog.html" and text_content(item) == "See all writing →"
+        ]
+        series_links = [
+            item for item in elements(home_sections[0], tag="a", cls="home-series-link")
+            if item.attrs.get("href") == "/docs/31-days-of-ai.html"
+            and text_content(item) == "A completed side quest: 31 Days of AI — 31 entries →"
+        ]
+        if len(all_links) != 1:
+            issues.append("home Blog lacks one exact full-writing link")
+        nested_series_links = (
+            [item for item in walk(series_links[0]) if item is not series_links[0] and item.tag == "a"]
+            if len(series_links) == 1 else []
+        )
+        if len(series_links) != 1 or nested_series_links:
+            issues.append("home Blog lacks one simple non-nested completed-series link")
+        if elements(home_sections[0], cls="campaign-banner"):
+            issues.append("home Blog retains the heavy campaign banner")
+    require_no_issues("matching live Article Flow card sequences plus a lightweight home-only presentation", issues)
+    return (
+        f"home and Blog expose the same {len(link_sets[0][1]) if link_sets else 0} generated cards; "
+        "home adds only a light intro and two hub links outside the markers"
+    )
 
 
 def check_pres_2() -> str:
@@ -1130,13 +1387,13 @@ BROWSER_IDS = {
     "BEH-1": ("behavior", "Nav remains visible"),
     "BEH-2": ("behavior", "Internal nav changes documents"),
     "BEH-3": ("behavior", "Telemetry opens a new tab"),
-    "BEH-6": ("behavior", "Contact delivery states"),
+    "BEH-6": ("behavior", "Contact email-draft handoff"),
     "BEH-9": ("behavior", "Hero fits the viewport"),
     "BEH-10": ("behavior", "GitHub activity and dashboard CTA"),
     "PRES-3": ("preservation", "31 Days fixed-clock reveal"),
     "PRES-4": ("preservation", "Mobile menu"),
     "PRES-5": ("preservation", "Reveal and reduced motion"),
-    "PRES-6": ("preservation", "Social sidebar and clipboard"),
+    "PRES-6": ("preservation", "Social links and explicit copy control"),
 }
 
 
