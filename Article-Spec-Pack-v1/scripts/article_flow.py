@@ -5127,6 +5127,40 @@ def record_static_controls(directory: Path, run: dict[str, Any]) -> None:
     record_artifact(directory, run, environment_path, "environment", {"actor": "controller", "version": CONTROLLER_VERSION})
 
 
+def voice_probe_awaits_human(
+    directory: Path,
+    run: dict[str, Any],
+    events: list[dict[str, Any]] | None = None,
+) -> bool:
+    """True when the recorded probe passed its gate and is waiting on the operator.
+
+    ``command_submit`` records the produced artifact before writing the gate
+    receipt, so a probe rejected by its code-owned checks still leaves a
+    ``voice-probe`` artifact behind.  Presenting the operator a probe that
+    ``automatic_gate`` refuses is worse than useless: choosing a candidate is
+    rejected as an integrity failure, and because the caller stops at the
+    decision the declared repair window never dispatches its next attempt.
+
+    A passing review submission records ``ESCALATE`` for the human decision and
+    a rejected one records ``REPAIR``, so the newest gate outcome is the
+    durable signal.  A later dispatch means a fresh attempt is in flight.  Runs
+    whose probe was recorded without any gate event keep the prior behaviour.
+    """
+    if events is None:
+        verified, _, _, events = verify_event_log(directory, run)
+        if not verified:
+            return False
+    awaiting = True
+    for event in events:
+        kind = event.get("type")
+        payload = event.get("payload") if isinstance(event.get("payload"), dict) else {}
+        if kind == "GATE_RECORDED" and payload.get("gate_id") == "G-VOICE-PROBE":
+            awaiting = payload.get("outcome") == "ESCALATE"
+        elif kind == "TASK_DISPATCHED" and payload.get("state") == "VOICE_PROBE":
+            awaiting = False
+    return awaiting
+
+
 def next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
     state = run["state"]
     if state in {"COMPLETE", "TERMINAL"}:
@@ -5152,7 +5186,11 @@ def next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
         "VOICE_PROBE": "voice-probe",
         "EDITORIAL_QA": "editorial-qa",
     }
-    if state in REVIEW_STATES and artifact(run, review_artifact[state]):
+    if (
+        state in REVIEW_STATES
+        and artifact(run, review_artifact[state])
+        and (state != "VOICE_PROBE" or voice_probe_awaits_human(directory, run))
+    ):
         if is_v3_run(run) and state == "VOICE_PROBE":
             probe = json_artifact(directory, run, "voice-probe") or {}
             candidates = [
@@ -7659,7 +7697,11 @@ def command_advance(args: argparse.Namespace) -> int:
                         "candidate_id": relocked["candidate_id"],
                     })
             continue
-        if state == "VOICE_PROBE" and artifact(run, "voice-probe"):
+        if (
+            state == "VOICE_PROBE"
+            and artifact(run, "voice-probe")
+            and voice_probe_awaits_human(directory, run)
+        ):
             payload = {**next_state_payload(directory, run), "ok": True, "progress": progress}
             emit(payload, args.json)
             return EXIT_WAITING

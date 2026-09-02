@@ -3133,6 +3133,63 @@ class VoiceLearningTests(TemporaryRuntime):
         self.assertEqual(candidate_path.read_bytes(), candidate_bytes)
         self.assertEqual(af.committed_voice_selection(directory, legacy)["candidate_id"], "B")
 
+    def gate_events(self, directory):
+        return [
+            event for event in af._read_jsonl(directory / "events.jsonl")
+            if event["type"] == "GATE_RECORDED" and event["payload"].get("gate_id") == "G-VOICE-PROBE"
+        ]
+
+    def test_probe_rejected_by_its_gate_is_never_offered_as_the_human_choice(self):
+        run_id, directory, run, probe_path, probe = self.prepare_voice_choice()
+        # Reproduce a submission whose probe failed its code-owned checks: the
+        # artifact is recorded before the gate receipt, so it survives.
+        af.write_gate_receipt(
+            directory, run, "G-VOICE-PROBE", "REPAIR",
+            [{"criterion": "candidate_hash", "artifact": str(probe_path), "location": "A",
+              "finding": "Candidate passage hash is incorrect.",
+              "repair_instruction": "Hash the exact UTF-8 candidate passage."}],
+            {"type": "code", "version": af.CONTROLLER_VERSION},
+            "VOICE_PROBE",
+        )
+        af.save_run(directory, run)
+        directory, rejected = af.load_run(run_id)
+
+        self.assertFalse(af.voice_probe_awaits_human(directory, rejected))
+        try:
+            payload = af.next_state_payload(directory, rejected)
+        except af.FlowError as exc:
+            # The review branch was skipped, so the controller went on to mint
+            # the next bounded attempt.  This fixture declares no model route,
+            # which is itself proof the rejected probe was not offered.
+            self.assertEqual(exc.code, af.EXIT_WAITING)
+        else:
+            self.assertNotEqual(payload["action"], "human_decision")
+        self.assertNotEqual(af.load_json(directory / "run.json")["status"], "WAITING_HUMAN")
+
+    def test_probe_that_passed_its_gate_is_still_offered(self):
+        run_id, directory, run, _, _ = self.prepare_voice_choice()
+        af.write_gate_receipt(
+            directory, run, "G-VOICE-PROBE", "ESCALATE",
+            [{"criterion": "operator_owned_judgment", "artifact": "current", "location": None,
+              "finding": "Mechanical validation passed.",
+              "repair_instruction": "Ask the operator the controller-supplied decision question."}],
+            {"type": "code", "version": af.CONTROLLER_VERSION},
+            "VOICE_PROBE",
+        )
+        af.save_run(directory, run)
+        directory, escalated = af.load_run(run_id)
+
+        self.assertTrue(af.voice_probe_awaits_human(directory, escalated))
+        payload = af.next_state_payload(directory, escalated)
+        self.assertEqual(payload["action"], "human_decision")
+        self.assertEqual([item["candidate_id"] for item in payload["candidates"]], ["A", "B", "C"])
+
+    def test_probe_recorded_without_a_gate_event_keeps_prior_behaviour(self):
+        run_id, directory, run, _, _ = self.prepare_voice_choice()
+        self.assertEqual(self.gate_events(directory), [])
+        self.assertTrue(af.voice_probe_awaits_human(directory, run))
+        self.assertEqual(af.next_state_payload(directory, run)["action"], "human_decision")
+
     def test_selection_learning_is_immediate_idempotent_and_rollback_preserves_evidence(self):
         baseline_path = SPEC_ROOT / "profiles" / "voice-profile.v1.json"
         baseline_hash = af.sha256_path(baseline_path)
