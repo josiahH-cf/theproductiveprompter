@@ -4516,7 +4516,12 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
                 permitted_citation_additions(locked_record),
             ))
             for category in before:
-                if before[category] != after[category]:
+                # Compare the set of verified values, not their multiplicity.
+                # Introducing, altering, or dropping a locked value all still
+                # fail, but naturalization rewrites sentences, so mentioning an
+                # unchanged value a different number of times is not a change
+                # to that value and must not consume the repair window.
+                if set(before[category]) != set(after[category]):
                     findings.append({"criterion": "locked_fields", "artifact": str(submission), "location": category, "finding": f"Naturalization changed locked {category}.", "repair_instruction": "Restore the locked values or reopen claim verification."})
             recipe = json_artifact(directory, run, "article-recipe") or {}
             if recipe.get("citation_mode") == "links":

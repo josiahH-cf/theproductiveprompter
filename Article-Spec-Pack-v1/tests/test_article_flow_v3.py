@@ -3716,6 +3716,25 @@ class NaturalizationCitationLockTests(TemporaryRuntime):
         outcome, findings = self.gate(directory, run, self.article())
         self.assertEqual(outcome, "PASS", findings)
 
+    def test_repeating_a_locked_value_is_not_a_change(self):
+        """Naturalization rewrites sentences, so mention counts move."""
+        # A value the draft never carried is still an introduction.
+        directory, run = self.edit_run()
+        introduced = self.article(
+            extra_line="The recorded default has stood since 2019.\n"
+        )
+        outcome, findings = self.gate(directory, run, introduced)
+        self.assertEqual(outcome, "REPAIR")
+        self.assertIn("locked_fields", {item["criterion"] for item in findings})
+
+        # Saying an already verified value one more time is not a change.
+        directory, run = self.edit_run()
+        repeated = self.article(
+            extra_line="See %s once more for that same recorded default.\n" % self.KEPT_URL
+        )
+        outcome, findings = self.gate(directory, run, repeated)
+        self.assertEqual(outcome, "PASS", findings)
+
     def test_removing_a_locked_url_still_fails(self):
         directory, run = self.edit_run()
         outcome, findings = self.gate(directory, run, self.article(keep_locked_url=False))
