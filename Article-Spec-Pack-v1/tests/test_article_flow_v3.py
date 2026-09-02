@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import argparse
+import builtins
 import contextlib
 import html
 import io
 import json
 import os
 import subprocess
+import symtable
 import sys
 import tempfile
 import threading
@@ -4218,28 +4220,109 @@ class PublicationAtomicityTests(TemporaryRuntime):
             "writing inside the verification loop publishes partially",
         )
 
-    def test_a_moved_target_head_also_returns_to_approval(self):
-        """The same recovery for the sibling staleness check.
+    def unbound_global_reads(self):
+        """Names a function reads that resolve to a global that does not exist.
 
-        Its message already told the operator to create a new plan, but the
-        run had no way to reach planning again from PUBLISH.
+        Python binds such a name at call time, so an undefined local inside a
+        rarely-taken branch compiles cleanly and raises NameError only when
+        that branch is reached.  Both publication staleness recoveries shipped
+        that way: their tests sliced the controller's source and matched the
+        very lines that were broken.  CPython's symbol table answers the
+        question the source text cannot.
         """
-        body = self.controller_source()
-        marker = body.index("Repository HEAD changed after publication planning")
-        window = body[marker - 700:marker + 500]
-        self.assertIn("plan_path.unlink(missing_ok=True)", window)
-        self.assertIn('"PUBLISH_APPROVAL"', window)
-        self.assertIn("EXIT_WAITING", window)
+        source = (SPEC_ROOT / "scripts" / "article_flow.py").read_text(encoding="utf-8")
+        table = symtable.symtable(source, "article_flow.py", "exec")
+        known = {
+            symbol.get_name()
+            for symbol in table.get_symbols()
+            if symbol.is_assigned() or symbol.is_imported()
+        } | set(dir(builtins))
+        found = set()
 
-    def test_a_stale_plan_returns_to_approval_instead_of_dead_ending(self):
-        body = self.controller_source()
-        marker = body.index("Publication target changed after planning")
-        window = body[marker - 800:marker + 400]
-        # The plan is a snapshot of the target, so a moved target makes the
-        # plan stale rather than the run unsound.
-        self.assertIn("plan_path.unlink(missing_ok=True)", window)
-        self.assertIn('"PUBLISH_APPROVAL"', window)
-        self.assertIn("EXIT_WAITING", window)
+        def walk(scope, path):
+            for symbol in scope.get_symbols():
+                if (
+                    scope.get_type() == "function"
+                    and symbol.is_referenced()
+                    and symbol.is_global()
+                    and symbol.get_name() not in known
+                ):
+                    found.add((path, symbol.get_name()))
+            for child in scope.get_children():
+                walk(child, path + "." + child.get_name())
+
+        walk(table, "<module>")
+        return found
+
+    def test_no_controller_function_reads_an_unbound_name(self):
+        self.assertEqual(self.unbound_global_reads(), set())
+
+    def test_the_scope_check_detects_an_unbound_name(self):
+        """The guard is worthless if it cannot fail."""
+        source = "def publish():\n    plan_path.unlink()\n"
+        table = symtable.symtable(source, "sample.py", "exec")
+        scope = table.get_children()[0]
+        unbound = [
+            symbol.get_name()
+            for symbol in scope.get_symbols()
+            if symbol.is_referenced() and symbol.is_global() and symbol.get_name() not in set(dir(builtins))
+        ]
+        self.assertEqual(unbound, ["plan_path"])
+
+    def stale_publication_run(self):
+        """A run at PUBLISH whose plan was built against an earlier head."""
+        repository = self.root / "target-repo"
+        (repository / "docs").mkdir(parents=True)
+        (repository / "docs" / "article.html").write_text("<h1>old</h1>\n", encoding="utf-8")
+        af.git(["init", "--quiet"], cwd=repository)
+        af.git(["-c", "user.email=t@example.com", "-c", "user.name=t", "add", "-A"], cwd=repository)
+        af.git(["-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "--quiet", "-m", "base"], cwd=repository)
+
+        run_id = self.start("A stale publication plan must not strand the run.")
+        directory, run = af.load_run(run_id)
+        af.transition(directory, run, "PUBLISH", "test", "exercise stale publication")
+        plan_path = directory / "publication" / "plan.json"
+        plan_path.parent.mkdir(parents=True, exist_ok=True)
+        af.write_json(plan_path, {
+            "package_revision": "rev-1",
+            "target": "theproductiveprompter",
+            "base_commit": "0" * 40,
+            "changes": [{
+                "path": "docs/article.html",
+                "current_sha256": af.sha256_path(repository / "docs" / "article.html"),
+            }],
+        })
+        approval_id = "AP-stale"
+        (directory / "approvals").mkdir(parents=True, exist_ok=True)
+        af.write_json(directory / "approvals" / f"{approval_id}.json", {
+            "package_revision": "rev-1",
+            "target": "theproductiveprompter",
+            "plan_sha256": af.sha256_path(plan_path),
+            "expires_at": (af.dt.datetime.now(af.dt.timezone.utc) + af.dt.timedelta(hours=1)).isoformat(),
+        })
+        return run_id, repository, plan_path, approval_id
+
+    def test_a_moved_target_head_returns_to_approval(self):
+        """The failure that stranded a live run, exercised end to end.
+
+        Its predecessor asserted on the controller's source text and passed
+        while the branch it described raised NameError on every call.
+        """
+        run_id, repository, plan_path, approval_id = self.stale_publication_run()
+        args = namespace(run_id=run_id, approval=approval_id, commit=False, push=False, json=True)
+        with mock.patch.object(af, "publication_repo_root", return_value=repository), \
+                mock.patch.dict(os.environ, {"ARTICLE_FLOW_TEST_NO_PUBLISH": "0"}):
+            with self.assertRaises(af.FlowError) as caught:
+                af.command_publish_execute(args)
+        self.assertEqual(caught.exception.code, af.EXIT_WAITING)
+        self.assertIn("fresh plan is required", str(caught.exception))
+        # Returning to approval is what makes the recovery reachable, and the
+        # stale plan must not survive to be approved again verbatim.
+        _, after = af.load_run(run_id)
+        self.assertEqual(after["state"], "PUBLISH_APPROVAL")
+        self.assertFalse(plan_path.is_file())
+        self.assertEqual(str(af.git(["status", "--porcelain"], cwd=repository)).strip(), "")
+
 
 
 class SoleHumanGateTests(TemporaryRuntime):

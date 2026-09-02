@@ -7652,10 +7652,11 @@ def _command_publish_execute_locked(
     if not approval_path.is_file():
         raise FlowError("Scoped publication approval not found", EXIT_APPROVAL)
     approval = load_json(approval_path)
-    plan = load_json(directory / "publication" / "plan.json")
+    plan_path = directory / "publication" / "plan.json"
+    plan = load_json(plan_path)
     if approval["package_revision"] != plan["package_revision"] or approval["target"] != plan["target"]:
         raise FlowError("Approval does not match this target and package revision", EXIT_APPROVAL)
-    if approval.get("plan_sha256") != sha256_path(directory / "publication" / "plan.json"):
+    if approval.get("plan_sha256") != sha256_path(plan_path):
         raise FlowError("Publication plan changed after approval", EXIT_APPROVAL)
     if parse_time(approval["expires_at"]) <= dt.datetime.now(dt.timezone.utc):
         raise FlowError("Publication approval has expired", EXIT_APPROVAL)
