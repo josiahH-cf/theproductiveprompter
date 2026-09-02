@@ -9,6 +9,24 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## September 2, 2026: Article Flow workflow 3.0.0 (controller 3.0.0)
+
+Nine defects found by the first full live run of the workflow 3 pipeline. The regression suite was green before this work; every item below was reachable only by running the workflow end to end against real providers.
+
+- Reconciled an interrupted voice gate. The approved probe was recorded over the `voice-probe` artifact type, so a crash between the durable operator selection and its state transition left the three-candidate authority unreachable and made every retry fail `operator_selection_authority`. The candidates are now preserved under `voice-probe-candidates`, a durable selection plus its passing receipt is recognized as a committed human decision, retrying the same choice completes exactly one transition without duplicating selection or learning evidence, a conflicting choice fails closed, and `advance` reconciles instead of redispatching a probe task.
+- Stopped `command_submit` re-reading the model output file after the single snapshot its model-call receipt validated. The re-read reopened the exact time-of-check to time-of-use window that snapshot exists to close.
+- Made a malformed evidence source URL fail closed instead of crashing the controller. `http.client.InvalidURL` derives from `HTTPException` rather than `OSError` or `ValueError`, so a claim citing several URLs joined into one field escaped `fetch_url` and aborted the run with an unhandled traceback. A distinct negative status keeps a broken source from being misreported as an unreachable host, which the evidence gate accepts.
+- Made `G-DRAFT-COVERAGE` check coverage. The brief's required `claims_to_support` was written and never read, so a draft that declined to write anything passed with no findings and carried an empty article through claim verification to the operator's only manual gate. Coverage is measured on distinctive-term overlap with deliberately forgiving bounds, because a rough draft may paraphrase and a false rejection consumes one of three attempts.
+- Stopped offering the voice choice for a probe its own gate rejected. The produced artifact is recorded before the gate receipt, so a rejected probe was presented as the human decision, choosing was refused as an integrity failure, and the repair window the rejection opened never dispatched its next attempt.
+- Allowed naturalization to add a required citation the draft never carried. Claim verification can accept a claim the draft did not cite, and the citation gate then requires that URL while `urls` is a locked token category compared for exact equality, which made the two gates unsatisfiable together. The locked record now names the permitted additions and the gate subtracts them before comparing.
+- Locked verified values rather than how often they are said. Locked tokens were compared as lists including duplicates, so mentioning an unchanged value one more time counted as altering it. Introducing, altering, and dropping a value all still fail.
+- Named the claim and the exact URL a lost citation needs. Repair context carries gate findings verbatim to the next attempt, and the previous message identified neither the claim nor the string.
+- Checked and repaired public display text where it is owned. The deterministic character policy this pack has documented since August 25, 2026 was never applied to the brief's title and description, and `amend` could not reach them before `PACKAGE`, so editorial QA could report a display-text problem that no reachable command could fix. The brief gate now applies the documented policy, and `amend --title/--description` is accepted from `EDIT` onward while `amend --article` stays restricted to `PACKAGE` and `PUBLISH_APPROVAL`.
+
+**Known limitations:** Operator guidance supplied to `repair --finding` is recorded in the event log but does not reach the writer on a code-owned gate, because repair context sources its findings from the latest gate receipt and `command_repair` writes none. The draft stage may also cite a URL that differs from the verified ledger's string for the same claim; nothing compares them until naturalization, by which point the draft's form is already locked. Both are recorded here rather than fixed.
+
+---
+
 ## August 25, 2026: Article Flow workflow 2.0.1 (controller 2.1.5)
 
 - Added a deterministic character policy that rejects U+2014 in drafts, edited articles, titles, descriptions, and packaged article Markdown. This operates independently from the contextual cliché review.
