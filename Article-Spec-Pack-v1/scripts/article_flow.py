@@ -3361,6 +3361,16 @@ def task_packet(
     if revision_input and not any(item.get("id") == "revision-request" for item in inputs):
         inputs.append(revision_input)
     constraints = [rule_map[item] for item in stage_rules.get(state, [])]
+    if state in {"CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION"}:
+        constraints.append(
+            "Each source_url_or_local_id must contain exactly one direct HTTP(S) URL or one local input locator. "
+            "Never concatenate sources in that field; split materially different evidence into separate claims."
+        )
+    if state == "POST_EDIT_CLAIM_VERIFICATION":
+        constraints.append(
+            "For an unchanged claim, preserve the exact source_url_or_local_id from the verified-claim-ledger. "
+            "Put scope qualifications in allowed_wording or the supporting excerpt, not beside the source locator."
+        )
     if is_v31_run(run) and state == "VOICE_PROBE":
         constraints.extend([
             "Rewrite only the controller-owned voice-anchor passage. Do not invent IDs, hashes, comparison order, or an operator choice; the controller owns that envelope.",

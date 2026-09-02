@@ -4680,6 +4680,28 @@ class WorkflowV31RegressionTests(TemporaryRuntime):
         failed = [item["stage"] for item in health["checks"] if not item["ok"]]
         self.assertEqual(failed, ["VISUAL_PLAN"])
 
+    def test_post_edit_packet_preserves_one_source_locator_per_claim(self):
+        run_id = self.start("Keep verified evidence stable through the voice rewrite.")
+        directory, run = af.load_run(run_id)
+        self.record_text(directory, run, "article", "# A useful article\n")
+        self.record_json(directory, run, "verified-claim-ledger", {"run_id": run_id, "claims": []})
+        self.record_json(directory, run, "article-recipe", {"run_id": run_id})
+        af.transition(directory, run, "POST_EDIT_CLAIM_VERIFICATION", "test", "Inspect verifier constraints")
+        controller = {
+            "provider": "fixture", "model": "fixture-model", "kind": "command",
+            "eligible": True, "evaluation_score": None,
+        }
+        routes = {
+            "stage": "POST_EDIT_CLAIM_VERIFICATION", "required_capabilities": ["research"],
+            "candidates": [controller], "chosen": controller, "fallbacks": [],
+            "reason": "test route", "configuration_path": "test",
+        }
+        with mock.patch.object(af, "route_candidates", return_value=routes):
+            _path, packet = af.task_packet(directory, run)
+        constraints = "\n".join(packet["constraints"])
+        self.assertIn("exactly one direct HTTP(S) URL or one local input locator", constraints)
+        self.assertIn("preserve the exact source_url_or_local_id", constraints)
+
     def live_verification_fixture(self, *, valid_article: bool = True):
         run_id = self.start("Verify a bounded live deployment.")
         directory, run = af.load_run(run_id)

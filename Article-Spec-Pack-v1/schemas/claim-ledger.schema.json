@@ -19,7 +19,10 @@
           "class": {"enum": ["fact", "inference", "opinion", "project_observation"]},
           "risk": {"enum": ["low", "medium", "high"]},
           "source_tier": {"type": ["string", "null"]},
-          "source_url_or_local_id": {"type": ["string", "null"]},
+          "source_url_or_local_id": {
+            "type": ["string", "null"],
+            "description": "Exactly one direct HTTP(S) URL or one local input locator. Never concatenate multiple sources in this field."
+          },
           "source_title_and_publisher": {"type": ["string", "null"]},
           "exact_locator_or_supporting_excerpt": {"type": ["string", "null"]},
           "checked_at": {"type": ["string", "null"]},
