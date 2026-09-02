@@ -2417,6 +2417,30 @@ def prefer_controller_route(run: dict[str, Any], stage: str, routes: dict[str, A
     }
 
 
+def automated_route_health() -> dict[str, Any]:
+    """Prove that every model stage has at least one executable automation route."""
+    checks: list[dict[str, Any]] = []
+    for stage in sorted(MODEL_STATES):
+        routes = route_candidates(stage)
+        eligible = [
+            item for item in routes.get("candidates", [])
+            if item.get("eligible") and item.get("kind") != "agent-hosted"
+        ]
+        checks.append({
+            "stage": stage,
+            "ok": bool(eligible),
+            "eligible_controller_routes": [
+                f"{item.get('provider')}:{item.get('model')}" for item in eligible
+            ],
+            "reason": None if eligible else "no eligible controller-hosted route",
+        })
+    return {
+        "ok": all(item["ok"] for item in checks),
+        "checks": checks,
+        "configuration_path": str(provider_config_path()),
+    }
+
+
 def packet_inputs(directory: Path, run: dict[str, Any], state: str) -> list[dict[str, str]]:
     required = set(str(item) for item in state_definition(state, run).get("required_inputs", []))
     latest = {str(item["type"]): item for item in run.get("artifact_index", [])}
@@ -9800,12 +9824,13 @@ def doctor_payload(scope: str) -> dict[str, Any]:
     schemas = schema_health()
     integrity = {"ok": manifest_integrity["ok"] and schemas["ok"], "manifest": manifest_integrity, "schemas_and_documents": schemas}
     commands = global_command_health()
-    routes = route_candidates("RESEARCH_PLAN")
+    route_health = automated_route_health()
     dirty = dirty_classification()
     authoring = {
-        "ok": launcher["ok"] and integrity["ok"] and routes.get("chosen") is not None and not dirty["protected_unstaged"],
+        "ok": launcher["ok"] and integrity["ok"] and route_health["ok"] and not dirty["protected_unstaged"],
         "spec_integrity": integrity,
-        "route_available": routes.get("chosen") is not None,
+        "automated_routes": route_health,
+        "route_available": route_health["ok"],
         "protected_worktree_state": "VERIFIED" if integrity["ok"] and not dirty["protected_unstaged"] else "UNVERIFIED",
         "dirty_state": dirty,
     }
@@ -9813,13 +9838,14 @@ def doctor_payload(scope: str) -> dict[str, Any]:
     installations = installation_health()
     conformance = host_conformance_health()
     release = {
-        "ok": launcher["ok"] and head_integrity["ok"] and schemas["ok"] and dirty["clean"] and commands["ok"] and installations["ok"] and conformance["ok"],
+        "ok": launcher["ok"] and head_integrity["ok"] and schemas["ok"] and dirty["clean"] and commands["ok"] and installations["ok"] and conformance["ok"] and route_health["ok"],
         "head_integrity": head_integrity,
         "schemas_and_documents": schemas,
         "clean_checkout": dirty["clean"],
         "global_command_discovery": commands,
         "installations": installations,
         "host_conformance": conformance,
+        "automated_routes": route_health,
         "publication_target_present": (SPEC_ROOT / "publication" / "theproductiveprompter.json").is_file(),
     }
     scopes = {"launcher_access": launcher, "spec_integrity": integrity, "global_command_discovery": commands, "authoring_ready": authoring, "release_ready": release}

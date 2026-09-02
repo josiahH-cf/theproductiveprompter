@@ -4660,6 +4660,26 @@ class WorkflowV31RegressionTests(TemporaryRuntime):
         )
         self.assertEqual(retry["payload"]["reason"], "controller_route_became_available")
 
+    def test_automation_health_checks_every_model_stage(self):
+        controller = {
+            "provider": "codex-cli", "model": "gpt-5.6-sol", "kind": "codex-cli",
+            "eligible": True,
+        }
+        hosted = {
+            "provider": "active-host", "model": "active-capable-host", "kind": "agent-hosted",
+            "eligible": True,
+        }
+
+        def routes(stage):
+            candidate = hosted if stage == "VISUAL_PLAN" else controller
+            return {"stage": stage, "candidates": [candidate], "chosen": candidate}
+
+        with mock.patch.object(af, "route_candidates", side_effect=routes):
+            health = af.automated_route_health()
+        self.assertFalse(health["ok"])
+        failed = [item["stage"] for item in health["checks"] if not item["ok"]]
+        self.assertEqual(failed, ["VISUAL_PLAN"])
+
     def live_verification_fixture(self, *, valid_article: bool = True):
         run_id = self.start("Verify a bounded live deployment.")
         directory, run = af.load_run(run_id)
