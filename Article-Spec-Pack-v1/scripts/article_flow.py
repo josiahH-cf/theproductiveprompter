@@ -109,10 +109,11 @@ STAGE_CAPABILITIES = {
 }
 LEGACY_WORKFLOW_VERSION = "2.0.0"
 V3_WRITING_STATES = {"DRAFT", "VOICE_PROBE", "EDIT"}
-# The article itself may only be replaced once it is packaged, but the brief's
-# public display text has no owning stage after BRIEF, so it stays correctable
-# for as long as the article is under review.
-ARTICLE_AMENDABLE_STATES = {"PACKAGE", "PUBLISH_APPROVAL"}
+# A human-authored article may be amended at editorial QA when a scoped finding
+# needs a direct correction, and after packaging while publication is held. The
+# brief's public display text has no owning stage after BRIEF, so it stays
+# correctable for as long as the article is under review.
+ARTICLE_AMENDABLE_STATES = {"EDITORIAL_QA", "PACKAGE", "PUBLISH_APPROVAL"}
 DISPLAY_TEXT_AMENDABLE_STATES = {
     "EDIT",
     "POST_EDIT_CLAIM_VERIFICATION",
@@ -4223,6 +4224,20 @@ def update_writing_provenance(
     save_run(directory, run)
 
 
+def editorial_repair_must_preserve_operator_article(
+    run: dict[str, Any],
+    stage: str,
+    repair_destination: str | None,
+) -> bool:
+    article_item = artifact(run, "article") or {}
+    producer = article_item.get("producer") if isinstance(article_item.get("producer"), dict) else {}
+    return (
+        stage == "EDITORIAL_QA"
+        and repair_destination == "EDIT"
+        and producer.get("actor") == "operator"
+    )
+
+
 def command_execute_stage(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
     if args.canary and not args.route:
@@ -6574,6 +6589,11 @@ def command_submit(args: argparse.Namespace) -> int:
             else {"type": "code", "version": CONTROLLER_VERSION}
         )
         repair_destination = effective_repair_state(definition, review_findings)
+        preserve_operator_article = editorial_repair_must_preserve_operator_article(
+            run,
+            args.stage,
+            repair_destination,
+        )
         gate_receipt_path = write_gate_receipt(
             directory,
             run,
@@ -6615,7 +6635,12 @@ def command_submit(args: argparse.Namespace) -> int:
             attempt_evidence = stage_attempt_evidence(directory, run, args.stage)
             attempts_used = attempt_evidence["window_used"]
             maximum = int(definition.get("max_attempts", 1))
-            if automation_enabled(run) and attempts_used < maximum and repair_destination in MODEL_STATES:
+            if (
+                automation_enabled(run)
+                and attempts_used < maximum
+                and repair_destination in MODEL_STATES
+                and not preserve_operator_article
+            ):
                 append_event(directory, run, "REPAIR", "controller", {
                     "gate_id": definition["gate"],
                     "source_state": args.stage,
@@ -6643,12 +6668,24 @@ def command_submit(args: argparse.Namespace) -> int:
                 }
                 emit(payload, args.json)
                 return EXIT_OK
-            if automation_enabled(run) and attempts_used >= maximum:
+            if preserve_operator_article:
+                append_event(directory, run, "ESCALATION", "controller", {
+                    "state": args.stage,
+                    "gate_id": definition["gate"],
+                    "reason": "operator_article_requires_scoped_amendment",
+                    "findings": findings,
+                })
+                run["status"] = "BLOCKED"
+                save_run(directory, run)
+            elif automation_enabled(run) and attempts_used >= maximum:
                 block_exhausted_stage(directory, run, args.stage, definition)
             else:
                 run["status"] = "BLOCKED"
                 save_run(directory, run)
             payload = {"ok": False, "outcome": outcome, "state": run["state"], "findings": findings, "repair_command": ["article-flow", "repair", run["run_id"], definition["gate"]]}
+            if preserve_operator_article:
+                payload["repair_mode"] = "scoped_operator_amendment"
+                payload["amend_command"] = ["article-flow", "amend", run["run_id"], "--article", "REVISED_MARKDOWN_PATH"]
             emit(payload, args.json)
             return EXIT_FAILED
         pending_repair = run.get("pending_repair")
@@ -7974,7 +8011,7 @@ def command_amend(args: argparse.Namespace) -> int:
         raise FlowError("Amend requires --title, --description, and/or --article", EXIT_USAGE)
     if article_argument is not None and run["state"] not in ARTICLE_AMENDABLE_STATES:
         raise FlowError(
-            f"Amending the article requires PACKAGE or PUBLISH_APPROVAL, current state is {run['state']}"
+            f"Amending the article requires EDITORIAL_QA, PACKAGE, or PUBLISH_APPROVAL, current state is {run['state']}"
         )
     if (args.title is not None or args.description is not None) and run["state"] not in DISPLAY_TEXT_AMENDABLE_STATES:
         raise FlowError(

@@ -4093,14 +4093,21 @@ class DisplayTextAmendmentTests(TemporaryRuntime):
             "A clean replacement description.",
         )
 
-    def test_article_amendment_still_requires_packaging(self):
-        run_id, _ = self.amend_run("EDITORIAL_QA")
+    def test_article_amendment_at_editorial_qa_reverifies_the_article(self):
+        run_id, directory = self.amend_run("EDITORIAL_QA")
         replacement = self.root / "replacement-article.md"
         replacement.write_text("# Title\n\nReplacement body.\n", encoding="utf-8")
-        with self.assertRaises(af.FlowError) as caught:
-            af.command_amend(namespace(
+        with mock.patch.object(af, "emit"):
+            code = af.command_amend(namespace(
                 run_id=run_id, title=None, description=None, article=str(replacement)))
-        self.assertIn("PACKAGE", str(caught.exception))
+        self.assertEqual(code, af.EXIT_OK)
+        _, after = af.load_run(run_id)
+        self.assertEqual(after["state"], "POST_EDIT_CLAIM_VERIFICATION")
+        self.assertEqual(af.artifact(after, "article")["producer"]["actor"], "operator")
+        self.assertEqual(
+            af.artifact_path(directory, after, "article").read_text(encoding="utf-8"),
+            replacement.read_text(encoding="utf-8"),
+        )
 
     def test_display_text_amendment_at_publish_approval_rebuilds_the_package(self):
         run_id, _ = self.amend_run("PUBLISH_APPROVAL")
@@ -4741,6 +4748,30 @@ class WorkflowV31RegressionTests(TemporaryRuntime):
         constraints = "\n".join(packet["constraints"])
         self.assertIn("exactly one direct HTTP(S) URL or one local input locator", constraints)
         self.assertIn("preserve the exact source_url_or_local_id", constraints)
+
+    def test_editorial_repair_does_not_silently_replace_operator_article(self):
+        operator_run = {
+            "artifact_index": [{
+                "type": "article",
+                "producer": {"actor": "operator"},
+            }],
+        }
+        self.assertTrue(
+            af.editorial_repair_must_preserve_operator_article(operator_run, "EDITORIAL_QA", "EDIT")
+        )
+        self.assertFalse(
+            af.editorial_repair_must_preserve_operator_article(operator_run, "POST_EDIT_CLAIM_VERIFICATION", "EDIT")
+        )
+        model_run = {
+            "artifact_index": [{
+                "type": "article",
+                "producer": {"actor": "model_or_host"},
+            }],
+        }
+        self.assertFalse(
+            af.editorial_repair_must_preserve_operator_article(model_run, "EDITORIAL_QA", "EDIT")
+        )
+        self.assertIn("EDITORIAL_QA", af.ARTICLE_AMENDABLE_STATES)
 
     def live_verification_fixture(self, *, valid_article: bool = True):
         run_id = self.start("Verify a bounded live deployment.")
