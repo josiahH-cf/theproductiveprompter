@@ -3,7 +3,7 @@
   "workflow_version": "3.1.0",
   "hash_algorithm": "sha256",
   "generator_name_and_version": "article-flow 3.1.0",
-  "generated_at": "2026-09-02T20:19:31Z",
+  "generated_at": "2026-09-02T20:26:43Z",
   "generated_from": "index",
   "files": [
     {
@@ -555,8 +555,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "500db4093b8ada625bfe1841b840439fb6fab78dfef9ee6df972220502bd9368",
-      "byte_size": 547320
+      "sha256": "36428ceed2af104c4b0cd250201972e7fa10ef0dfacf46c896c182506a4f31b9",
+      "byte_size": 548330
     },
     {
       "path": "scripts/codex_exec_adapter.py",
@@ -595,8 +595,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "conformance",
-      "sha256": "a41f956929bfa440cdc8107df7ab64a1100ac163a82621f99f2c55fe8eb02521",
-      "byte_size": 259870
+      "sha256": "20d4400e3eb7fd06a0dc60a8c25990b5c7dabcd1fe2c145b8bc637c644f1e54b",
+      "byte_size": 261475
     },
     {
       "path": "tests/test_codex_exec_adapter.py",

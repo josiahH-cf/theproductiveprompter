@@ -1321,14 +1321,30 @@ def roll_forward_run_cache(
                 except (TypeError, ValueError) as exc:
                     raise FlowError("Repair event has an invalid execution baseline", EXIT_INTEGRITY, sequence) from exc
             if isinstance(context, dict):
-                if context.get("source_stage") != source_state or context.get("repair_state") != repair_state:
+                context_source = str(context.get("source_stage") or "")
+                context_repair = str(context.get("repair_state") or "")
+                normalized_context = json.loads(json.dumps(context))
+                legacy_directed_context = False
+                if context_source == source_state and context_repair != repair_state:
+                    try:
+                        source_definition = state_definition(source_state, run)
+                        legacy_directed_context = (
+                            context_repair == str(source_definition.get("repair_state") or "")
+                            and repair_state
+                            == str(effective_repair_state(source_definition, context.get("findings") or []) or "")
+                        )
+                    except FlowError:
+                        legacy_directed_context = False
+                    if legacy_directed_context:
+                        normalized_context["repair_state"] = repair_state
+                if context_source != source_state or (context_repair != repair_state and not legacy_directed_context):
                     repair_recovery_error = {
                         "reason": "repair_event_context_identity_mismatch",
                         "sequence": sequence,
                     }
                     active_repair_context = None
                 else:
-                    active_repair_context = json.loads(json.dumps(context))
+                    active_repair_context = normalized_context
                     repair_recovery_error = None
             elif bool(payload.get("repair_context_required")):
                 repair_recovery_error = {
@@ -2883,7 +2899,7 @@ def remember_repair_context(
     context = {
         "context_type": "targeted_gate_repair",
         "source_stage": source_stage,
-        "repair_state": definition.get("repair_state"),
+        "repair_state": effective_repair_state(definition, findings),
         "failed_attempt": failed_attempt,
         "maximum_attempts": int(definition.get("max_attempts", 1)),
         "rejected_output": {

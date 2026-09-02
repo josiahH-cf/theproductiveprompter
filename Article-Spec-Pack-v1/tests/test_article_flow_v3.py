@@ -1359,6 +1359,46 @@ class RepairAttemptBoundRegressionTests(TemporaryRuntime):
             original_context["gate_receipt"]["sha256"],
         )
 
+    def test_same_stage_directed_repair_recovers_legacy_context_identity(self):
+        run_id = self.start("A directed ledger repair must survive a same-state transition.")
+        directory, run = af.load_run(run_id)
+        af.transition(
+            directory,
+            run,
+            "POST_EDIT_CLAIM_VERIFICATION",
+            "test",
+            "Exercise a same-stage directed repair",
+        )
+        context = {
+            "context_type": "targeted_gate_repair",
+            "source_stage": "POST_EDIT_CLAIM_VERIFICATION",
+            "repair_state": "EDIT",
+            "findings": [{
+                "criterion": "source_resolution",
+                "repair_state": "POST_EDIT_CLAIM_VERIFICATION",
+            }],
+        }
+        af.append_event(directory, run, "REPAIR", "controller", {
+            "gate_id": "G-POST-EDIT-CLAIMS",
+            "source_state": "POST_EDIT_CLAIM_VERIFICATION",
+            "repair_state": "POST_EDIT_CLAIM_VERIFICATION",
+            "repair_context": context,
+            "repair_context_required": True,
+            "execution_count_baseline": 0,
+        })
+        af.append_event(directory, run, "STATE_TRANSITION", "controller", {
+            "from": "POST_EDIT_CLAIM_VERIFICATION",
+            "to": "POST_EDIT_CLAIM_VERIFICATION",
+            "reason": "Automatic targeted repair",
+        })
+
+        _directory, recovered = af.load_run(run_id)
+        self.assertNotIn("repair_recovery_error", recovered)
+        self.assertEqual(
+            recovered["pending_repair"]["repair_state"],
+            "POST_EDIT_CLAIM_VERIFICATION",
+        )
+
     def test_cross_stage_provider_exhaustion_carries_context_through_crash(self):
         run_id, directory, _, original_context = self.post_edit_repair_run(
             "Cross-stage provider exhaustion must carry its unresolved context."
