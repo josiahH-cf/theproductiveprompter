@@ -4618,6 +4618,48 @@ class WorkflowV31RegressionTests(TemporaryRuntime):
         self.assertEqual(selected["chosen"]["kind"], "codex-cli")
         self.assertEqual(selected["chosen"]["model"], "gpt-5.6-sol")
 
+    def test_pending_agent_packet_refreshes_when_controller_route_becomes_available(self):
+        run_id = self.start("Explain why a product default can lag a model.")
+        directory, run = af.load_run(run_id)
+        self.record_text(directory, run, "draft", "# A useful draft\n")
+        for artifact_type in ("brief", "article-recipe", "claim-ledger"):
+            self.record_json(directory, run, artifact_type, {"run_id": run_id})
+        run["run_overrides"]["automation_mode"] = "active_session"
+        af.save_run(directory, run)
+        af.transition(directory, run, "VISUAL_PLAN", "test", "Exercise route refresh")
+
+        hosted = {
+            "provider": "active-host", "model": "active-capable-host", "kind": "agent-hosted",
+            "eligible": True, "evaluation_score": None,
+        }
+        controller = {
+            "provider": "codex-cli", "model": "gpt-5.6-sol", "kind": "codex-cli",
+            "eligible": True, "evaluation_score": None,
+        }
+
+        def selection(chosen):
+            return {
+                "stage": "VISUAL_PLAN", "required_capabilities": ["structured-output"],
+                "candidates": [chosen], "chosen": chosen, "fallbacks": [],
+                "reason": "test route", "configuration_path": "test",
+            }
+
+        with mock.patch.object(af, "route_candidates", return_value=selection(hosted)):
+            first_path, first_packet = af.task_packet(directory, run)
+        self.assertEqual(first_packet["selected_route"]["chosen"]["kind"], "agent-hosted")
+
+        directory, run = af.load_run(run_id)
+        with mock.patch.object(af, "route_candidates", return_value=selection(controller)):
+            second_path, second_packet = af.current_packet(directory, run)
+        self.assertNotEqual(first_path, second_path)
+        self.assertEqual(second_packet["attempt"], 2)
+        self.assertEqual(second_packet["selected_route"]["chosen"]["kind"], "codex-cli")
+        retry = next(
+            event for event in reversed(af._read_jsonl(directory / "events.jsonl"))
+            if event["type"] == "RETRY"
+        )
+        self.assertEqual(retry["payload"]["reason"], "controller_route_became_available")
+
     def live_verification_fixture(self, *, valid_article: bool = True):
         run_id = self.start("Verify a bounded live deployment.")
         directory, run = af.load_run(run_id)

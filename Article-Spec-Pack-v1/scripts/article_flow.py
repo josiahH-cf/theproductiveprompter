@@ -4087,6 +4087,21 @@ def current_packet(
                     save_run(directory, run)
                 return task_packet(directory, run, requested_route=requested_route, allow_canary=allow_canary)
             if not requested_route:
+                chosen = packet.get("selected_route", {}).get("chosen") or {}
+                if automation_enabled(run) and chosen.get("kind") == "agent-hosted":
+                    refreshed_routes = route_candidates(run["state"])
+                    refreshed_routes = prefer_controller_route(run, run["state"], refreshed_routes)
+                    refreshed_routes = pin_writing_route(run, run["state"], refreshed_routes)
+                    replacement = refreshed_routes.get("chosen") or {}
+                    if replacement and replacement.get("kind") != "agent-hosted":
+                        recorded_key = f"{chosen.get('provider')}:{chosen.get('model')}"
+                        replacement_key = f"{replacement.get('provider')}:{replacement.get('model')}"
+                        abandon_cached_packet(directory, run, run["state"], item, {
+                            "reason": "controller_route_became_available",
+                            "recorded_route": recorded_key,
+                            "replacement_route": replacement_key,
+                        })
+                        return task_packet(directory, run)
                 return path, packet
             chosen = packet.get("selected_route", {}).get("chosen") or {}
             chosen_key = f"{chosen.get('provider')}:{chosen.get('model')}"
