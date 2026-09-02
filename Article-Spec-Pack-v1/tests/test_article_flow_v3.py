@@ -4869,6 +4869,7 @@ class WorkflowV31RegressionTests(TemporaryRuntime):
         self.assertEqual(len(manifest["assets"]), 1)
         asset = manifest["assets"][0]
         self.assertEqual(af.sha256_path(directory / asset["source_path"]), asset["sha256"])
+        self.assertIn(asset["sha256"][:8], Path(asset["source_path"]).stem)
         self.assertIn("<title", (directory / asset["source_path"]).read_text(encoding="utf-8"))
         visualized = af.artifact_path(directory, run, "draft").read_text(encoding="utf-8")
         self.assertIn(asset["public_path"], visualized)
@@ -4882,6 +4883,24 @@ class WorkflowV31RegressionTests(TemporaryRuntime):
         )
         self.assertEqual(body.count('data-visual-id="capability-gap"'), 1)
         self.assertEqual(body.count(asset["public_path"]), 1)
+
+        af.transition(directory, run, "PUBLISH_APPROVAL", "test", "Exercise a held visual refresh")
+        original_renderer = af.render_visual_svg
+        with mock.patch.object(
+            af,
+            "render_visual_svg",
+            side_effect=lambda visual: original_renderer(visual).replace(
+                b"</svg>\n", b"<!-- renderer upgrade --></svg>\n"
+            ),
+        ):
+            code, refreshed = call(af.command_visual_render, run_id=run_id, refresh=True)
+        self.assertEqual(code, af.EXIT_OK, refreshed)
+        directory, run = af.load_run(run_id)
+        self.assertEqual(run["state"], "PACKAGE")
+        refreshed_asset = af.json_artifact(directory, run, "visual-manifest")["assets"][0]
+        self.assertNotEqual(refreshed_asset["sha256"], asset["sha256"])
+        self.assertNotEqual(refreshed_asset["source_path"], asset["source_path"])
+        self.assertIn(refreshed_asset["sha256"][:8], Path(refreshed_asset["source_path"]).stem)
 
     def test_console_reconstruction_keeps_all_four_planned_questions(self):
         labels = [

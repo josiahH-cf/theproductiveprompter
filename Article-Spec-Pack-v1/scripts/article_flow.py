@@ -7221,9 +7221,12 @@ def materialize_manifest_visuals_markdown(markdown: str, manifest: dict[str, Any
 
 def command_visual_render(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
-    if run["state"] != "VISUAL_RENDER":
-        raise FlowError(f"Visual rendering requires VISUAL_RENDER, current state is {run['state']}")
+    refresh = bool(getattr(args, "refresh", False))
+    if run["state"] != "VISUAL_RENDER" and not (refresh and run["state"] == "PUBLISH_APPROVAL"):
+        suffix = " or --refresh from PUBLISH_APPROVAL" if refresh else ""
+        raise FlowError(f"Visual rendering requires VISUAL_RENDER{suffix}, current state is {run['state']}")
     with run_lock(directory, run):
+        refresh = bool(getattr(args, "refresh", False)) and run["state"] == "PUBLISH_APPROVAL"
         plan_path = artifact_path(directory, run, "visual-plan")
         if not plan_path:
             raise FlowError("Approved visual plan is missing", EXIT_INTEGRITY)
@@ -7233,25 +7236,27 @@ def command_visual_render(args: argparse.Namespace) -> int:
             raise FlowError("Visual plan is invalid", EXIT_INTEGRITY, plan_errors)
         slug = package_metadata_slug(directory, run)
         plan_hash = sha256_path(plan_path)
-        source_draft_item = artifact(run, "draft")
-        source_draft_path = artifact_path(directory, run, "draft")
-        if not source_draft_item or not source_draft_path:
+        source_draft_item = artifact(run, "draft") if not refresh else None
+        source_draft_path = artifact_path(directory, run, "draft") if not refresh else None
+        if not refresh and (not source_draft_item or not source_draft_path):
             raise FlowError("Visual rendering requires the accepted rough draft", EXIT_INTEGRITY)
+        prior_manifest_item = artifact(run, "visual-manifest")
         assets: list[dict[str, Any]] = []
         visuals_root = directory / "artifacts" / "visuals"
         visuals_root.mkdir(parents=True, exist_ok=True)
         for visual in plan.get("visuals", []):
             visual_id = str(visual["visual_id"])
-            path = visuals_root / f"{visual_id}-{plan_hash[:8]}.svg"
             data = render_visual_svg(visual)
+            data_hash = sha256_bytes(data)
+            path = visuals_root / f"{visual_id}-{plan_hash[:8]}-{data_hash[:8]}.svg"
             immutable_write(path, data)
-            record_artifact(directory, run, path, f"visual-asset:{visual_id}", {"actor": "controller", "version": CONTROLLER_VERSION, "renderer": "deterministic-svg-v1"}, expected_bytes=data)
+            record_artifact(directory, run, path, f"visual-asset:{visual_id}", {"actor": "controller", "version": CONTROLLER_VERSION, "renderer": "deterministic-svg-v2"}, expected_bytes=data)
             assets.append({
                 "visual_id": visual_id,
                 "kind": visual["kind"],
                 "source_path": path.relative_to(directory).as_posix(),
                 "public_path": f"/assets/articles/{slug}/{visual_id}.svg",
-                "sha256": sha256_bytes(data),
+                "sha256": data_hash,
                 "byte_size": len(data),
                 "title": visual["title"],
                 "alt_text": visual["alt_text"],
@@ -7265,13 +7270,27 @@ def command_visual_render(args: argparse.Namespace) -> int:
             "visual_plan_sha256": plan_hash,
             "assets": assets,
         }
-        manifest_path = directory / "artifacts" / "visual-manifest.json"
-        write_json(manifest_path, manifest)
+        manifest_bytes = (json.dumps(manifest, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+        manifest_hash = sha256_bytes(manifest_bytes)
+        manifest_path = directory / "artifacts" / f"visual-manifest-{plan_hash[:8]}-{manifest_hash[:8]}.json"
+        immutable_write(manifest_path, manifest_bytes)
         findings = validate_visual_manifest(directory, run, manifest_path)
         if findings:
             write_gate_receipt(directory, run, "G-VISUAL-RENDER", "REPAIR", findings, {"type": "code", "version": CONTROLLER_VERSION}, "VISUAL_PLAN")
             raise FlowError("Deterministic visual rendering failed", EXIT_INTEGRITY, findings)
-        manifest_item = record_artifact(directory, run, manifest_path, "visual-manifest", {"actor": "controller", "version": CONTROLLER_VERSION}, inputs=[artifact(run, "visual-plan")["artifact_id"]] if artifact(run, "visual-plan") else [])
+        manifest_item = record_artifact(directory, run, manifest_path, "visual-manifest", {"actor": "controller", "version": CONTROLLER_VERSION, "renderer": "deterministic-svg-v2"}, inputs=[artifact(run, "visual-plan")["artifact_id"]] if artifact(run, "visual-plan") else [], expected_bytes=manifest_bytes)
+        if refresh:
+            write_gate_receipt(directory, run, "G-VISUAL-RENDER", "PASS", [], {"type": "code", "version": CONTROLLER_VERSION})
+            append_event(directory, run, "VISUALS_REFRESHED", "controller", {
+                "visual_plan_sha256": plan_hash,
+                "prior_manifest_sha256": prior_manifest_item.get("sha256") if prior_manifest_item else None,
+                "manifest_sha256": manifest_item["sha256"],
+                "asset_sha256s": {item["visual_id"]: item["sha256"] for item in assets},
+            })
+            transition(directory, run, "PACKAGE", "controller", "Held publication visuals refreshed from the unchanged approved plan")
+            emit({"ok": True, "state": run["state"], "manifest": str(manifest_path), "assets": assets, "next_command": ["article-flow", "package", run["run_id"]]}, args.json)
+            return EXIT_OK
+        assert source_draft_path is not None and source_draft_item is not None
         visualized_draft = materialize_manifest_visuals_markdown(
             source_draft_path.read_text(encoding="utf-8"),
             manifest,
@@ -10461,6 +10480,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     render_visuals = sub.add_parser("render-visuals", help="Render a validated visual plan into deterministic SVG assets.")
     render_visuals.add_argument("run_id")
+    render_visuals.add_argument("--refresh", action="store_true", help="Re-render a held publication from its unchanged approved visual plan, then rebuild its package.")
     add_json(render_visuals)
 
     package = sub.add_parser("package", help="Create hashed public and private packages.")
