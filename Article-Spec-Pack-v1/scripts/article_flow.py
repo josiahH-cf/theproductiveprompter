@@ -2888,6 +2888,25 @@ def repair_context_for_packet(
     return context, inputs
 
 
+def blocked_only_by_attempt_window(directory: Path, run: dict[str, Any], state: str) -> bool:
+    """True when the run's durable block is this stage's exhausted window.
+
+    Integrity failures persist BLOCKED too, and a reopened window must never
+    clear one of those, so only the most recent escalation is consulted.
+    """
+    latest: dict[str, Any] | None = None
+    for event in _read_jsonl(directory / str(run["event_log"])):
+        if event.get("type") == "ESCALATION":
+            latest = event
+    if latest is None:
+        return False
+    payload = latest.get("payload") if isinstance(latest.get("payload"), dict) else {}
+    return (
+        str(payload.get("reason") or "") == "attempt_window_exhausted"
+        and str(payload.get("state") or latest.get("state") or "") == state
+    )
+
+
 def block_exhausted_stage(
     directory: Path,
     run: dict[str, Any],
@@ -7840,6 +7859,7 @@ def command_advance(args: argparse.Namespace) -> int:
             emit(payload, args.json)
             return EXIT_OK if state == "COMPLETE" else EXIT_FAILED
         if run.get("status") == "BLOCKED":
+            reopened = False
             if state in MODEL_STATES:
                 # Observer recovery is intentionally pure.  Advance is a
                 # mutating command, so reconcile the attempt boundary and
@@ -7849,9 +7869,20 @@ def command_advance(args: argparse.Namespace) -> int:
                     evidence = stage_attempt_evidence(directory, run, run["state"])
                     if evidence["window_used"] >= int(definition.get("max_attempts", 1)):
                         block_exhausted_stage(directory, run, run["state"], definition)
+                    elif blocked_only_by_attempt_window(directory, run, run["state"]):
+                        # The window that produced this stop has reopened, so
+                        # the durable block no longer describes the run and
+                        # must not outlive its cause.  Any other escalation
+                        # keeps the run blocked for an operator to review.
+                        run["status"] = "ACTIVE"
+                        reopened = True
+                        save_run(directory, run)
                     else:
                         save_run(directory, run)
                 directory, run = load_run(args.run_id)
+            if reopened:
+                progress.append({"state": state, "command": "attempt-window-reopened"})
+                continue
             payload = {**next_state_payload(directory, run), "ok": False, "progress": progress}
             emit(payload, args.json)
             return EXIT_WAITING

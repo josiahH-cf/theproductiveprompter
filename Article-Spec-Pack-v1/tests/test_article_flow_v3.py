@@ -798,6 +798,26 @@ class RepairAttemptBoundRegressionTests(TemporaryRuntime):
         self.assertEqual(healed["window_used"], 0, healed)
         self.assertGreaterEqual(healed["window_baseline"], 1, healed)
 
+    def test_an_integrity_block_is_never_cleared_by_a_reopened_window(self):
+        """Only an exhausted-window stop may be lifted automatically."""
+        run_id = self.start("An integrity block must survive a reopened window.")
+        directory, run = af.load_run(run_id)
+        af.append_event(directory, run, "ESCALATION", "controller", {
+            "state": "RESEARCH_PLAN", "reason": "gate_receipt_evidence_changed_during_commit"})
+        run["status"] = "BLOCKED"
+        af.save_run(directory, run)
+        directory, blocked = af.load_run(run_id)
+        self.assertFalse(af.blocked_only_by_attempt_window(directory, blocked, "RESEARCH_PLAN"))
+
+        # The same run stopped at its declared boundary may be lifted.
+        af.append_event(directory, blocked, "ESCALATION", "controller", {
+            "state": "RESEARCH_PLAN", "reason": "attempt_window_exhausted"})
+        af.save_run(directory, blocked)
+        directory, exhausted = af.load_run(run_id)
+        self.assertTrue(af.blocked_only_by_attempt_window(directory, exhausted, "RESEARCH_PLAN"))
+        # ...but only for the stage it actually names.
+        self.assertFalse(af.blocked_only_by_attempt_window(directory, exhausted, "EDIT"))
+
     def test_stale_external_and_duplicate_submissions_are_rejected_before_write(self):
         run_id, directory = self.research_run()
         with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)):
