@@ -69,6 +69,7 @@
             "INTENT_REVIEW",
             "ARTICLE_RECIPE",
             "BRIEF",
+            "VISUAL_PLAN",
             "DRAFT",
             "VOICE_PROBE",
             "EDIT",

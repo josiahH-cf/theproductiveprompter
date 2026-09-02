@@ -4597,6 +4597,27 @@ class SchemaAndCanaryRegressionTests(TemporaryRuntime):
 
 
 class WorkflowV31RegressionTests(TemporaryRuntime):
+    def test_visual_plan_has_an_automatable_controller_route(self):
+        registry = json.loads(
+            (SPEC_ROOT / "evaluations" / "capability-registry.json").read_text(encoding="utf-8")
+        )
+        codex = next(item for item in registry["providers"] if item["provider_id"] == "codex-cli")
+        sol = next(item for item in codex["models"] if item["model_id"] == "gpt-5.6-sol")
+        self.assertIn("VISUAL_PLAN", sol["stages"])
+
+        with (
+            mock.patch.object(af, "evidenced_codex_canary_status", return_value="passed"),
+            mock.patch.object(af.shutil, "which", return_value="/usr/bin/codex"),
+        ):
+            routes = af.route_candidates("VISUAL_PLAN")
+            selected = af.prefer_controller_route(
+                {"workflow_version": "3.1.0", "run_overrides": {"automation_mode": "active_session"}},
+                "VISUAL_PLAN",
+                routes,
+            )
+        self.assertEqual(selected["chosen"]["kind"], "codex-cli")
+        self.assertEqual(selected["chosen"]["model"], "gpt-5.6-sol")
+
     def live_verification_fixture(self, *, valid_article: bool = True):
         run_id = self.start("Verify a bounded live deployment.")
         directory, run = af.load_run(run_id)

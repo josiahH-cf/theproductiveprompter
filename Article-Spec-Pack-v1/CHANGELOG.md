@@ -23,6 +23,7 @@ Implemented the correction loop proved necessary by the first workflow 3 article
 - Added first-class same-URL correction runs. The historical seed remains immutable, the correction request is a separate hash-bound input with explicit precedence, the original publication date and page position are retained, and modified metadata is updated.
 - Replaced loose live checks with attempt-specific receipts over the exact article, discovery surfaces, and visual bytes. Deployment propagation retries use a bounded 10/20/40-second schedule; permanent validation failures block immediately, and a fourth failed propagation check ends the retry window.
 - Archived the exact workflow 3.0.0 authority for resumability and regenerated the human workflow view from the 3.1 machine definition.
+- Added `VISUAL_PLAN` to the enabled controller-hosted model route and every matching provider example. The real correction run exposed that the state existed in the workflow but had no executable route, so active-session automation stopped at a task packet instead of rendering the planned visuals.
 
 **Maturity note:** The new contracts and no-publish path are covered by regression tests. Release acceptance additionally requires a real same-URL correction of the article that exposed these defects, desktop and mobile visual inspection, and exact live-byte verification.
 
