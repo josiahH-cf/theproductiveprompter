@@ -1901,6 +1901,34 @@ def gate_class(gate_id: str) -> str:
     return "hard" if gate_id in gates["hard"] else "soft"
 
 
+def effective_repair_state(definition: dict[str, Any], findings: list[dict[str, Any]]) -> str | None:
+    """Route a repair by what its findings are about.
+
+    A stage declares one repair state, but a gate rejects for two different
+    reasons: the artifact just submitted is itself wrong, or the upstream work
+    it describes is. POST_EDIT_CLAIM_VERIFICATION declares EDIT because a claim
+    that cannot be verified means the article must change, yet every code-owned
+    check at that gate validates the ledger it just produced. A malformed
+    source URL therefore rewrote the article instead of the record naming it,
+    and the rewrite could regress work the ledger had already accepted.
+
+    The gate-receipt and task-packet schemas already carry `repair_state` on
+    each finding, so honour it when the findings agree and fall back to the
+    stage's declaration otherwise. An operator repair after the window is spent
+    still uses the declared state, which keeps the escalation path to EDIT for
+    a claim that genuinely cannot be verified.
+    """
+    directed = {
+        str(item.get("repair_state"))
+        for item in findings
+        if isinstance(item, dict) and item.get("repair_state")
+    }
+    if len(directed) == 1:
+        return directed.pop()
+    declared = definition.get("repair_state")
+    return str(declared) if declared else None
+
+
 def write_gate_receipt(
     directory: Path,
     run: dict[str, Any],
@@ -2671,7 +2699,7 @@ def remember_repair_context(
         return None
     if (
         receipt.get("run_id") != run.get("run_id")
-        or receipt.get("repair_state") != definition.get("repair_state")
+        or receipt.get("repair_state") != effective_repair_state(definition, receipt.get("findings") or [])
         or (receipt.get("artifact_hashes") or {}).get(artifact_type) != rejected.get("sha256")
     ):
         raise FlowError("Gate receipt is not cross-bound to the rejected repair artifact", EXIT_INTEGRITY)
@@ -4667,6 +4695,13 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
                 text,
                 str(submission),
             ))
+    if state in {"CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION"}:
+        # Every code-owned check at these gates validates the ledger just
+        # submitted, not the article it describes, so direct their repairs at
+        # the stage that produced the record.  A check added later that really
+        # is about the article can set its own destination and keep it.
+        for finding in findings:
+            finding.setdefault("repair_state", state)
     return ("PASS" if not findings else "REPAIR"), findings
 
 
@@ -6057,6 +6092,7 @@ def command_submit(args: argparse.Namespace) -> int:
             if policy_review
             else {"type": "code", "version": CONTROLLER_VERSION}
         )
+        repair_destination = effective_repair_state(definition, review_findings)
         gate_receipt_path = write_gate_receipt(
             directory,
             run,
@@ -6064,7 +6100,7 @@ def command_submit(args: argparse.Namespace) -> int:
             recorded_outcome,
             review_findings,
             evaluator,
-            definition.get("repair_state"),
+            repair_destination,
             task_state=args.stage,
             task_attempt=attempt,
             task_packet_sha256=packet_hash,
@@ -6100,15 +6136,15 @@ def command_submit(args: argparse.Namespace) -> int:
             attempt_evidence = stage_attempt_evidence(directory, run, args.stage)
             attempts_used = attempt_evidence["window_used"]
             maximum = int(definition.get("max_attempts", 1))
-            if automation_enabled(run) and attempts_used < maximum and definition.get("repair_state") in MODEL_STATES:
+            if automation_enabled(run) and attempts_used < maximum and repair_destination in MODEL_STATES:
                 append_event(directory, run, "REPAIR", "controller", {
                     "gate_id": definition["gate"],
                     "source_state": args.stage,
                     "findings": findings,
-                    "repair_state": definition["repair_state"],
+                    "repair_state": repair_destination,
                     "attempt": attempt_evidence["ordinal"],
                     "attempt_ordinal_baseline": int(run.get("attempts", {}).get(args.stage, 0)),
-                    "execution_count_baseline": int(run.get("attempt_baselines", {}).get(definition["repair_state"], 0)),
+                    "execution_count_baseline": int(run.get("attempt_baselines", {}).get(str(repair_destination), 0)),
                     "attempts_in_window": attempts_used,
                     "maximum": maximum,
                     "gate_receipt": gate_receipt_path.relative_to(directory).as_posix(),
@@ -6117,7 +6153,7 @@ def command_submit(args: argparse.Namespace) -> int:
                     "clear_route_failures": False,
                 })
                 require_submit_evidence("attempt_evidence_changed_before_repair_transition")
-                transition(directory, run, definition["repair_state"], "controller", f"Automatic targeted repair after {definition['gate']}")
+                transition(directory, run, str(repair_destination), "controller", f"Automatic targeted repair after {definition['gate']}")
                 require_submit_evidence("attempt_evidence_changed_after_repair_transition")
                 payload = {
                     "ok": False,

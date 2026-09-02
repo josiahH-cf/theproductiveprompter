@@ -3963,6 +3963,72 @@ class DisplayTextAmendmentTests(TemporaryRuntime):
         self.assertEqual(caught.exception.code, af.EXIT_INTEGRITY)
 
 
+class RepairDestinationTests(TemporaryRuntime):
+    """A gate rejects for two different reasons and they need different repairs."""
+
+    def ledger(self, run_id, source):
+        return {
+            "claim_ledger_schema_version": "1.0.0",
+            "run_id": run_id,
+            "generated_at": af.utc_now(),
+            "claims": [{
+                "claim_id": "C1", "exact_claim": "A supported claim.", "class": "fact",
+                "risk": "medium", "source_tier": "primary", "source_url_or_local_id": source,
+                "source_title_and_publisher": "Example",
+                "exact_locator_or_supporting_excerpt": "Supporting text",
+                "checked_at": af.utc_now(), "freshness_horizon": "one year",
+                "contradiction_status": "none_found", "allowed_wording": "A supported claim.",
+                "confidence": 0.8, "disposition": "use",
+            }],
+        }
+
+    def test_post_edit_ledger_findings_repair_the_ledger_not_the_article(self):
+        run_id = self.start("A malformed ledger must not rewrite the article.")
+        directory, run = af.load_run(run_id)
+        run["state"] = "POST_EDIT_CLAIM_VERIFICATION"
+        path = self.root / "joined-source-ledger.json"
+        path.write_text(
+            json.dumps(self.ledger(run_id, "https://example.com/a ; https://example.com/b")),
+            encoding="utf-8",
+        )
+        outcome, findings = af.automatic_gate(directory, run, "POST_EDIT_CLAIM_VERIFICATION", path)
+        self.assertEqual(outcome, "REPAIR")
+        self.assertTrue(findings)
+        self.assertEqual({item["repair_state"] for item in findings}, {"POST_EDIT_CLAIM_VERIFICATION"})
+
+        definition = af.state_definition("POST_EDIT_CLAIM_VERIFICATION", run)
+        # The workflow declaration is deliberately unchanged.
+        self.assertEqual(definition["repair_state"], "EDIT")
+        self.assertEqual(
+            af.effective_repair_state(definition, findings), "POST_EDIT_CLAIM_VERIFICATION")
+
+    def test_the_declared_state_still_governs_without_directed_findings(self):
+        run_id = self.start("Operator escalation still reaches the article.")
+        _, run = af.load_run(run_id)
+        definition = af.state_definition("POST_EDIT_CLAIM_VERIFICATION", run)
+        # An operator repair after the window is spent carries no directed
+        # findings, so it still escalates to the article.
+        self.assertEqual(af.effective_repair_state(definition, []), "EDIT")
+        # Findings that disagree fall back to the declaration rather than
+        # guessing which one wins.
+        mixed = [{"repair_state": "EDIT"}, {"repair_state": "POST_EDIT_CLAIM_VERIFICATION"}]
+        self.assertEqual(af.effective_repair_state(definition, mixed), "EDIT")
+
+    def test_claim_verification_is_unaffected(self):
+        run_id = self.start("A stage that already self-repairs is unchanged.")
+        directory, run = af.load_run(run_id)
+        run["state"] = "CLAIM_VERIFICATION"
+        path = self.root / "cv-ledger.json"
+        path.write_text(
+            json.dumps(self.ledger(run_id, "https://example.com/a ; https://example.com/b")),
+            encoding="utf-8",
+        )
+        _, findings = af.automatic_gate(directory, run, "CLAIM_VERIFICATION", path)
+        definition = af.state_definition("CLAIM_VERIFICATION", run)
+        self.assertEqual(definition["repair_state"], "CLAIM_VERIFICATION")
+        self.assertEqual(af.effective_repair_state(definition, findings), "CLAIM_VERIFICATION")
+
+
 class StyleDefenseTests(TemporaryRuntime):
     def make_package(self, *, title="Root Relative Test", description="A direct test of packaged links."):
         package_root = self.root / "package"
