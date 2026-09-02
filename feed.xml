@@ -5,10 +5,17 @@
     <link>https://theproductiveprompter.com/docs/blog.html</link>
     <description>Practical writing on AI workflows, prompting systems, evaluation, and publication design.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 31 Aug 2026 12:00:00 -0500</lastBuildDate>
+    <lastBuildDate>Wed, 02 Sep 2026 12:00:00 -0500</lastBuildDate>
     <atom:link href="https://theproductiveprompter.com/feed.xml" rel="self" type="application/rss+xml"/>
 
     <!-- ARTICLE_FLOW_FEED_START -->
+<item>
+  <title>The Limit May Not Be in the Model</title>
+  <link>https://theproductiveprompter.com/docs/the-limit-may-not-be-in-the-model.html</link>
+  <guid isPermaLink="true">https://theproductiveprompter.com/docs/the-limit-may-not-be-in-the-model.html</guid>
+  <pubDate>Wed, 02 Sep 2026 12:00:00 -0500</pubDate>
+  <description>A layer-by-layer teardown for determining whether an AI product ceiling comes from the model or from a surrounding configuration, orchestration, interface, compatibility, governance, or resource control, and whether removing it is safe.</description>
+</item>
 <item>
   <title>Context + Prompt = Anything a Computer Can Do</title>
   <link>https://theproductiveprompter.com/docs/context-plus-prompt-anything-a-computer-can-do.html</link>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A layer-by-layer teardown for determining whether an AI product ceiling comes from the model or from a surrounding configuration, orchestration, interface, compatibility, governance, or resource control, and whether removing it is safe.">
+    <meta name="author" content="Josiah Hunter">
+    <meta name="robots" content="index, follow">
+    <title>The Limit May Not Be in the Model | Josiah Hunter</title>
+    <link rel="canonical" href="https://theproductiveprompter.com/docs/the-limit-may-not-be-in-the-model.html">
+    <link rel="alternate" type="application/rss+xml" title="The Productive Prompter" href="https://theproductiveprompter.com/feed.xml">
+    <link rel="stylesheet" href="../styles.css">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="The Productive Prompter">
+    <meta property="og:title" content="The Limit May Not Be in the Model">
+    <meta property="og:description" content="A layer-by-layer teardown for determining whether an AI product ceiling comes from the model or from a surrounding configuration, orchestration, interface, compatibility, governance, or resource control, and whether removing it is safe.">
+    <meta property="og:url" content="https://theproductiveprompter.com/docs/the-limit-may-not-be-in-the-model.html">
+    <meta property="article:published_time" content="2026-09-02T12:00:00-05:00">
+    <meta property="article:modified_time" content="2026-09-02T12:00:00-05:00">
+    <meta property="article:author" content="Josiah Hunter">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="The Limit May Not Be in the Model">
+    <meta name="twitter:description" content="A layer-by-layer teardown for determining whether an AI product ceiling comes from the model or from a surrounding configuration, orchestration, interface, compatibility, governance, or resource control, and whether removing it is safe.">
+    <meta name="article-flow-revision" content="0f714f49f6961e696d59a3ca6b14df7d719fbd6d11de7be35ce989866a0b2d54">
+    <meta name="article-flow-recipe" content="{&quot;archetype&quot;:&quot;teardown&quot;,&quot;opening&quot;:&quot;result-first&quot;,&quot;ending&quot;:&quot;warning&quot;,&quot;summary&quot;:&quot;auto&quot;,&quot;narrative_person&quot;:&quot;second&quot;}">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        "headline": "The Limit May Not Be in the Model",
+        "description": "A layer-by-layer teardown for determining whether an AI product ceiling comes from the model or from a surrounding configuration, orchestration, interface, compatibility, governance, or resource control, and whether removing it is safe.",
+        "url": "https://theproductiveprompter.com/docs/the-limit-may-not-be-in-the-model.html",
+        "mainEntityOfPage": "https://theproductiveprompter.com/docs/the-limit-may-not-be-in-the-model.html",
+        "datePublished": "2026-09-02T12:00:00-05:00",
+        "dateModified": "2026-09-02T12:00:00-05:00",
+        "inLanguage": "en-US",
+        "wordCount": 2095,
+        "keywords": ["AI engineering", "software architecture", "agent orchestration", "API design", "technical debt"],
+        "author": {"@type": "Person", "name": "Josiah Hunter", "url": "https://theproductiveprompter.com/"},
+        "publisher": {"@type": "Person", "name": "Josiah Hunter", "url": "https://theproductiveprompter.com/"},
+        "isPartOf": {"@type": "Blog", "name": "The Productive Prompter", "url": "https://theproductiveprompter.com/docs/blog.html"}
+    }
+    </script>
+    <script src="../script.js" defer></script>
+<meta name="article-flow-drafting-models" content="[&quot;gpt-5.5&quot;,&quot;gpt-5.6-sol&quot;]">
+<meta name="article-flow-style-policy-sha256" content="f6b03e5f629ac61eda927f09c8e83854c18fd08bb44043cd2bedf3984accb701">
+</head>
+<body>
+    <nav class="nav" id="nav">
+        <div class="nav__container">
+            <a href="/" class="nav__logo" aria-label="Josiah Hunter home">JH</a>
+            <ul class="nav__menu" id="navMenu">
+                <li class="nav__item"><a href="/docs/blog.html" class="nav__link"><span class="nav__number">01.</span> Blog</a></li>
+                <li class="nav__item"><a href="/projects.html" class="nav__link"><span class="nav__number">02.</span> Projects</a></li>
+                <li class="nav__item"><a href="/reach-out.html" class="nav__link"><span class="nav__number">03.</span> Reach Out</a></li>
+                <li class="nav__item"><a href="https://josiahh-cf.github.io/agent-telemetry/" class="nav__link" target="_blank" rel="noopener noreferrer" aria-label="Agent Telemetry (opens in a new tab)"><span class="nav__number">04.</span> Agent Telemetry <span class="nav__external" aria-hidden="true">↗</span></a></li>
+            </ul>
+            <button class="nav__toggle" id="navToggle" type="button" aria-label="Toggle navigation" aria-controls="navMenu" aria-expanded="false"><span class="nav__toggle-line"></span><span class="nav__toggle-line"></span><span class="nav__toggle-line"></span></button>
+        </div>
+    </nav>
+    <main class="article-page" id="main-content">
+        <div class="container">
+            <nav class="article-navigation" aria-label="Article breadcrumb"><a href="blog.html" class="back-link">← All writing</a></nav>
+            <article class="article-content">
+                <header class="article-header">
+                    <h1>The Limit May Not Be in the Model</h1>
+                    <div class="article-header__meta" role="group" aria-label="Article details"><span>By Josiah Hunter</span><span aria-hidden="true">•</span><time datetime="2026-09-02T12:00:00-05:00">September 2, 2026</time><span aria-hidden="true">•</span><span>9 min read</span></div>
+                </header>
+                <!-- GENERATED_ARTICLE_START -->
+<p>A product ceiling can look like model behavior from the outside, but the useful question is where the stop was imposed and whether that layer still has a current reason to impose it.</p>
+<p>You encounter the limit as a product event. A run stops early. An agent refuses to continue. A tool loop ends at the same count every time. A response is shorter than the task appears to require. From the outside, it looks as though the model reached its limit.</p>
+<p>Sometimes it did. You do not know that from the product event alone.</p>
+<p>The model is one participant in the behavior you see. A request can cap output or tool calls. A runner can stop an agent loop. A host can decide which capabilities to expose. A protocol can require negotiated features. Compatibility rules can preserve old defaults. Safety, latency, cost, and resource controls can intentionally hold a boundary in place after the model improves.</p>
+<p>A persistent limit tells you where to investigate, not what verdict to reach.</p>
+<h2>Trace the Layered Path</h2>
+<p>Start with the observed ceiling and work inward.</p>
+<p>Observed product ceiling &amp;nbsp;&amp;nbsp;| &amp;nbsp;&amp;nbsp;v Product interface or host policy &amp;nbsp;&amp;nbsp;| &amp;nbsp;&amp;nbsp;v Protocol or session contract &amp;nbsp;&amp;nbsp;| &amp;nbsp;&amp;nbsp;v Agent orchestration layer &amp;nbsp;&amp;nbsp;| &amp;nbsp;&amp;nbsp;v API request configuration &amp;nbsp;&amp;nbsp;| &amp;nbsp;&amp;nbsp;v Model capability &amp;nbsp;&amp;nbsp;| &amp;nbsp;&amp;nbsp;v Current constraints: compatibility, safety, latency, cost, protocol, resource protection</p>
+<p>That direction matters. Starting at the model can hide a nearer layer that already explains the stop. Starting at the product event lets you distinguish “the model could not” from “the system did not let it.”</p>
+<h2>Model Capability Is Narrow Evidence</h2>
+<p>Model capability can change substantially. OpenAI&#x27;s April 14, 2025 GPT-4.1 launch post documented a context window of up to one million tokens, compared with 128,000 tokens for previous GPT-4o models in that publication&#x27;s comparison <a href="https://openai.com/index/gpt-4-1/">Introducing GPT-4.1 in the API</a>. This is dated evidence that a specific capacity expanded. It does not establish that every longer product workflow should expand with it.</p>
+<p>The publication distinguishes simple needle retrieval from harder long-context work. It says its more complex multi-round long-context evaluation remained difficult even for advanced reasoning models <a href="https://openai.com/index/gpt-4-1/">Introducing GPT-4.1 in the API</a>. A larger context window can remove one constraint while reliability, latency, interaction quality, cost, and surrounding contracts remain unresolved.</p>
+<p>When a ceiling looks older than the model&#x27;s current capacity, the improvement gives you a reason to inspect that ceiling. It does not give you permission to delete it.</p>
+<h2>A Request Can Masquerade as Model Capacity</h2>
+<p>Inspect the request that was actually sent before attributing the result to the model.</p>
+<p>In the OpenAI Responses API, <code>max_tool_calls</code> caps the total built-in tool calls processed in one response. The API reference describes it as a response-wide cap and says further model attempts are ignored after the threshold <a href="https://developers.openai.com/api/reference/cli/resources/responses/methods/create">Create a model response</a>.</p>
+<p>That is a request-layer limit.</p>
+<p>Suppose a trace shows the model attempting another built-in tool call after the configured <code>max_tool_calls</code> threshold, and the API ignores it. For that run, the stop belongs to the request or API layer. This does not prove that raising the cap would produce a better answer, preserve latency, or reduce user friction. It establishes only that the observed stop occurred before model capability became the explanation.</p>
+<p>Output length has the same distinction. The Responses API exposes <code>max_output_tokens</code> as an upper bound covering visible output tokens and reasoning tokens <a href="https://developers.openai.com/api/reference/cli/resources/responses/methods/create">Create a model response</a>. If a product repeatedly returns short responses, a configured output ceiling is one possible cause. Confirm it with the actual request, response metadata, trace, or logs. A repeatable ceiling created by <code>max_output_tokens</code> still says nothing by itself about what the model could otherwise generate.</p>
+<h2>A Runner Can End the Loop</h2>
+<p>Agent products place an orchestration layer between the request and the model.</p>
+<p>The OpenAI Agents SDK documentation describes a runner that repeatedly invokes the model and tools. It also documents <code>MaxTurnsExceeded</code>, which is raised when the configured <code>max_turns</code> is exceeded, and says setting <code>max_turns</code> to <code>None</code> disables that runner limit <a href="https://openai.github.io/openai-agents-python/running_agents/">Running agents</a>.</p>
+<p>When a run ends with <code>MaxTurnsExceeded</code>, you have direct evidence that the runner stopped at its configured threshold. You do not yet have evidence that the model could not continue.</p>
+<p>Because the SDK allows the limit to be disabled without changing the model, the orchestration boundary is easy to identify. That does not make it obsolete. The limit may bound cost, interrupt an unproductive loop, protect latency, or keep the user experience predictable.</p>
+<p>The supported conclusion is smaller and more useful: a configurable runner ceiling can be distinguished from an intrinsic model limit. Assess the model&#x27;s capability separately from the safety and utility of changing the ceiling.</p>
+<h2>Hosts and Protocols Shape What Users Can Reach</h2>
+<p>A limit can also reside in the host, interface, or protocol contract around the model.</p>
+<p>MCP revision 2025-06-18 makes these layers visible. Its elicitation specification allows implementations to choose their interface pattern. The protocol does not prescribe a particular interaction layout or question count <a href="https://modelcontextprotocol.io/specification/2025-06-18/client/elicitation">Elicitation</a>. A product&#x27;s elicitation pattern therefore does not automatically come from MCP or the model. The implementation may have chosen it.</p>
+<p>The same versioned specification restricts elicitation schemas to flat objects with primitive properties. It excludes nested objects and arrays of objects to simplify client implementation <a href="https://modelcontextprotocol.io/specification/2025-06-18/client/elicitation">Elicitation</a>. A model may be able to produce richer structure than the active interface contract accepts. The contract still constrains the exposed behavior.</p>
+<p>The MCP 2025-06-18 architecture specification assigns the host responsibility for orchestration, permissions, security-policy enforcement, authorization, context aggregation, LLM integration, and related coordination <a href="https://modelcontextprotocol.io/specification/2025-06-18/architecture">Architecture</a>. Host policy can shape the user&#x27;s experience before model capability becomes the limiting factor.</p>
+<p>The session contract adds another boundary. Under MCP 2025-06-18, clients and servers negotiate capabilities and use only those successfully negotiated for the session <a href="https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle">Lifecycle</a>. A model may be capable of an action while the active session cannot expose it because the related application capability was not negotiated.</p>
+<p>These examples do not identify the cause of an unspecified product&#x27;s behavior. They show how interface choice, schema restrictions, host policy, and session negotiation can each impose a ceiling independently of the model.</p>
+<h2>An Old Default May Still Be a Current Contract</h2>
+<p>Finding the layer is only half the diagnosis. You still need to determine whether the limit has a present rationale.</p>
+<p>Backward compatibility can preserve a stale-looking default. Google&#x27;s AIP-180 guidance treats changing a static API default as a breaking change that must not occur within a minor version for APIs governed by that guidance <a href="https://google.aip.dev/180">AIP-180: Backwards compatibility</a>. It also says API-visible behavior or semantics should not change when the change is likely to break reasonable user code <a href="https://google.aip.dev/180">AIP-180: Backwards compatibility</a>.</p>
+<p>AIP-180 is not a universal rule for every product. It documents a concrete compatibility mechanism. Consumers can build around a default through client code, tests, budgets, alert thresholds, pagination assumptions, review processes, or user workflows. A technically larger value can still break those expectations.</p>
+<p>The model may have outgrown a default while the API contract has not. Changing it then requires a compatibility decision, not just a code edit.</p>
+<h2>Governance Can Delay Exposure Deliberately</h2>
+<p>Capability and exposure are separate decisions.</p>
+<p>OpenAI&#x27;s April 15, 2025 Preparedness Framework update says covered systems reaching its High capability threshold require safeguards that sufficiently minimize severe-harm risk before deployment. It also describes review and recommendations from a Safety Advisory Group <a href="https://openai.com/index/updating-our-preparedness-framework/">Our updated Preparedness Framework</a>. This is a scoped OpenAI governance example from 2025, not a general description of every deployment.</p>
+<p>A model or system can cross a capability threshold before a product exposes that capability broadly. The controlling layer may be a safety gate, review requirement, deployment policy, abuse-prevention control, or release process.</p>
+<p>If a ceiling persists because of a governance decision, removing it is a policy change. Calling it a refactor would hide the decision that actually needs review.</p>
+<h2>Resource Protection Is a Current Rationale</h2>
+<p>An unbounded system can be a production risk.</p>
+<p>MCP revision 2025-06-18 recommends per-request timeouts. It also says implementations should enforce a maximum timeout even when progress notifications arrive, limiting the impact of misbehaving clients or servers <a href="https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle">Lifecycle</a>. The maximum remains useful because a peer can misbehave.</p>
+<p>Other fixed ceilings may protect latency, spend, availability, or other users. A timeout, turn cap, token cap, recursion limit, queue limit, or tool-call budget can be a deliberate control. It can also be an old default that nobody has reconsidered. The constant alone cannot distinguish the two.</p>
+<p>A turn budget, recursion limit, predefined route, layer of glue code, sprawling configuration surface, manually maintained threshold, or strict output contract tells you where to investigate, not what verdict to reach. These boundaries do not establish that a constraint is obsolete, trace it to an earlier model limitation, or justify removing it.</p>
+<h2>Four Tests for the Ceiling</h2>
+<p>Once you have traced the stop to a plausible layer, apply four tests to establish what you know.</p>
+<p>First, establish provenance. Find the source of the limit. A named API parameter, runner exception, host policy, protocol rule, compatibility document, or deployment gate is stronger evidence than a repeated user-visible pattern. Provenance extends beyond the file containing a constant. It includes the decision record, configuration owner, release note, or contract that explains why the value exists.</p>
+<p>Next, identify the present rationale. A limit created for an older model&#x27;s context window may deserve review after a model upgrade. One created for cost, latency, safety, abuse prevention, or compatibility may still apply. If nobody can state the rationale, you have evidence of process decay. You do not yet have evidence that removal is safe.</p>
+<p>Then demonstrate the relevant model capability outside the product ceiling. The GPT-4.1 context-window example shows the necessary restraint. A dated capacity increase can be real without proving that a longer interactive workflow will be reliable, useful, safe, or economical. Test the behavior you intend to expose, not a nearby benchmark.</p>
+<p>Finally, find the dependent contracts. Public API semantics, client assumptions, timeout budgets, billing expectations, monitoring thresholds, safety reviews, protocol negotiation, and host permissions may all depend on the current ceiling. A small implementation change can still alter a cross-system contract.</p>
+<p>These are diagnostic tests, not a remediation sequence. They separate an obsolete default from a current control and expose the cases where the evidence remains incomplete.</p>
+<h2>Name the Layer, Then Judge the Limit</h2>
+<p>A configured request explains a request-layer stop. In the Responses API, <code>max_tool_calls</code> and <code>max_output_tokens</code> are documented examples, limited to those parameters and that API.</p>
+<p>A runner condition explains an orchestration-layer stop. In the OpenAI Agents SDK, <code>MaxTurnsExceeded</code> identifies the documented runner behavior, not an intrinsic inability of the model to continue.</p>
+<p>An active contract can explain an interface or protocol ceiling. MCP 2025-06-18 provides version-pinned examples involving interface choice, elicitation schema shape, host responsibility, and negotiated session capabilities.</p>
+<p>A governing compatibility policy can explain why a default or visible behavior remains fixed. AIP-180 supplies a scoped example for APIs governed by that guidance.</p>
+<p>A safety review, deployment safeguard, timeout, cost control, latency bound, or abuse-prevention measure can explain a governance or resource ceiling.</p>
+<p>None of those explanations can be inferred from the constant alone. You cannot conclude that the architecture fell behind, that the model is the blocker, or that deletion is safe.</p>
+<p>Limits are easy to find. The difficult part is preserving the distinction between an obsolete default and a justified control after model capability changes. Treat every constant as an investigative lead. Model improvement does not justify deleting it while compatibility, safety, latency, cost, protocol, or resource requirements may still supply its current rationale.</p>
+<footer class="article-model-attribution" data-style-policy-sha256="f6b03e5f629ac61eda927f09c8e83854c18fd08bb44043cd2bedf3984accb701"><p>Drafting model: GPT-5.5, GPT-5.6 Sol</p></footer>
+                <!-- GENERATED_ARTICLE_END -->
+            </article>
+        </div>
+    </main>
+</body>
+</html>
