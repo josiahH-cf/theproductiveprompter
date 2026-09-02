@@ -4014,6 +4014,30 @@ class RepairDestinationTests(TemporaryRuntime):
         mixed = [{"repair_state": "EDIT"}, {"repair_state": "POST_EDIT_CLAIM_VERIFICATION"}]
         self.assertEqual(af.effective_repair_state(definition, mixed), "EDIT")
 
+    def test_a_receipt_without_a_destination_recovers_one_from_its_criteria(self):
+        """Runs recorded before findings carried a destination still route."""
+        run_id = self.start("A legacy receipt still names ledger criteria.")
+        _, run = af.load_run(run_id)
+        definition = af.state_definition("POST_EDIT_CLAIM_VERIFICATION", run)
+        legacy = [
+            {"criterion": "source_resolution", "artifact": "x", "location": "C1",
+             "finding": "Source URL is not a single well-formed URL.",
+             "repair_instruction": "Give exactly one direct source URL."},
+        ]
+        self.assertEqual(
+            af.effective_repair_state(definition, legacy), "POST_EDIT_CLAIM_VERIFICATION")
+
+        # A finding about anything else keeps the declared escalation.
+        other = [
+            {"criterion": "operator_review", "artifact": "x", "location": None,
+             "finding": "The article overstates the case.",
+             "repair_instruction": "Soften the claim."},
+        ]
+        self.assertEqual(af.effective_repair_state(definition, other), "EDIT")
+
+        # A mixture is ambiguous, so it falls back rather than guessing.
+        self.assertEqual(af.effective_repair_state(definition, legacy + other), "EDIT")
+
     def test_claim_verification_is_unaffected(self):
         run_id = self.start("A stage that already self-repairs is unchanged.")
         directory, run = af.load_run(run_id)

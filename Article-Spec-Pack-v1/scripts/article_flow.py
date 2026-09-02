@@ -1901,6 +1901,18 @@ def gate_class(gate_id: str) -> str:
     return "hard" if gate_id in gates["hard"] else "soft"
 
 
+VERIFICATION_OWN_OUTPUT_CRITERIA = frozenset({
+    "valid_json",
+    "schema",
+    "run_identity",
+    "claim_evidence",
+    "no_memory_citations",
+    "freshness",
+    "source_disagreement",
+    "source_resolution",
+})
+
+
 def effective_repair_state(definition: dict[str, Any], findings: list[dict[str, Any]]) -> str | None:
     """Route a repair by what its findings are about.
 
@@ -1926,6 +1938,22 @@ def effective_repair_state(definition: dict[str, Any], findings: list[dict[str, 
     if len(directed) == 1:
         return directed.pop()
     declared = definition.get("repair_state")
+    state_id = str(definition.get("id") or "")
+    if (
+        not directed
+        and state_id in {"CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION"}
+        and findings
+        and all(
+            str(item.get("criterion")) in VERIFICATION_OWN_OUTPUT_CRITERIA
+            for item in findings
+            if isinstance(item, dict)
+        )
+    ):
+        # Receipts written before findings carried a destination still name
+        # criteria that only validate the ledger the stage produced, so the
+        # direction is recoverable rather than lost.  Runs recorded before this
+        # change therefore route their repairs correctly too.
+        return state_id
     return str(declared) if declared else None
 
 
