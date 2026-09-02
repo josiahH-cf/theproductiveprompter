@@ -3523,6 +3523,74 @@ class SourceResolutionRegressionTests(TemporaryRuntime):
         self.assertNotIn("source_resolution", {item["criterion"] for item in findings})
 
 
+class DraftCoverageRegressionTests(TemporaryRuntime):
+    CLAIMS = [
+        "Model upgrades do not automatically update the schemas and counters that surround a model.",
+        "An output schema fixed at integration time can outlive the capability that motivated it.",
+        "A turn budget chosen for an earlier model can persist as an unexamined default.",
+        "Recognizing a fossilized assumption requires evidence of an explicit application-layer constraint.",
+    ]
+
+    def draft_run(self, claims):
+        run_id = self.start("Coverage must be checked against the brief.")
+        directory, run = af.load_run(run_id)
+        self.record_json(directory, run, "brief", {
+            "brief_schema_version": "1.0.0",
+            "run_id": run_id,
+            "title": "Fossilized defaults",
+            "slug": "fossilized-defaults",
+            "description": "Diagnosing inherited application-layer constraints.",
+            "reader_job": "Recognize a stale default.",
+            "scope": "Diagnosis only.",
+            "exclusions": [],
+            "claims_to_support": claims,
+            "acceptance_criteria": ["Every required claim is argued."],
+        })
+        run["state"] = "DRAFT"
+        return directory, run
+
+    def test_unwritten_draft_is_repaired_instead_of_passing_coverage(self):
+        directory, run = self.draft_run(self.CLAIMS)
+        stub = self.root / "stub-draft.md"
+        stub.write_text(
+            "Unresolved: required commit permalink for a mutable source-code citation is missing, "
+            "so the DRAFT stage cannot complete without guessing.\n",
+            encoding="utf-8",
+        )
+        outcome, findings = af.automatic_gate(directory, run, "DRAFT", stub)
+        self.assertEqual(outcome, "REPAIR")
+        coverage = [item for item in findings if item["criterion"] == "brief_claim_coverage"]
+        self.assertEqual(len(coverage), len(self.CLAIMS) + 1, findings)
+        self.assertIn("covers 0 of the 4 claims", coverage[0]["finding"])
+        self.assertEqual(coverage[1]["location"], "claims_to_support[0]")
+
+    def test_draft_that_argues_the_brief_passes_coverage(self):
+        directory, run = self.draft_run(self.CLAIMS)
+        article = self.root / "real-draft.md"
+        article.write_text(
+            "# Fossilized defaults\n"
+            "\n"
+            "Model upgrades do not automatically update the schemas and counters that\n"
+            "surround a model. An output schema fixed at integration time can outlive the\n"
+            "capability that motivated it, and a turn budget chosen for an earlier model\n"
+            "can persist as an unexamined default long after anyone examined it.\n"
+            "\n"
+            "Recognizing a fossilized assumption requires evidence of an explicit\n"
+            "application-layer constraint, not merely a disappointing result.\n",
+            encoding="utf-8",
+        )
+        outcome, findings = af.automatic_gate(directory, run, "DRAFT", article)
+        self.assertEqual(outcome, "PASS", findings)
+
+    def test_brief_without_declared_claims_keeps_prior_behaviour(self):
+        directory, run = self.draft_run([])
+        stub = self.root / "unclaimed-draft.md"
+        stub.write_text("# Short\n\nA brief that declares no claims cannot fail coverage.\n", encoding="utf-8")
+        outcome, findings = af.automatic_gate(directory, run, "DRAFT", stub)
+        self.assertEqual(outcome, "PASS", findings)
+        self.assertEqual([item for item in findings if item["criterion"] == "brief_claim_coverage"], [])
+
+
 class StyleDefenseTests(TemporaryRuntime):
     def make_package(self, *, title="Root Relative Test", description="A direct test of packaged links."):
         package_root = self.root / "package"

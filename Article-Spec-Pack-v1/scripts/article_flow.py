@@ -4266,6 +4266,83 @@ def lock_verified_fields(directory: Path, run: dict[str, Any], ledger_path: Path
     record_artifact(directory, run, path, "locked-fields", {"actor": "controller", "version": CONTROLLER_VERSION}, inputs=[artifact(run, "draft")["artifact_id"], artifact(run, "verified-claim-ledger")["artifact_id"]])
 
 
+DRAFT_COVERAGE_STOPWORDS = frozenset({
+    "about", "above", "after", "again", "against", "all", "already", "also", "although",
+    "always", "among", "and", "another", "any", "are", "around", "because", "been",
+    "before", "being", "below", "between", "both", "but", "can", "cannot", "could",
+    "did", "does", "doing", "done", "down", "during", "each", "either", "else",
+    "enough", "even", "ever", "every", "few", "for", "from", "further", "had", "has",
+    "have", "having", "here", "how", "however", "into", "its", "itself", "just",
+    "less", "like", "made", "make", "many", "may", "might", "more", "most", "much",
+    "must", "neither", "never", "not", "now", "off", "often", "once", "one", "only",
+    "onto", "other", "others", "our", "out", "over", "own", "per", "rather", "same",
+    "several", "shall", "should", "since", "some", "still", "such", "than", "that",
+    "the", "their", "them", "then", "there", "these", "they", "this", "those",
+    "through", "thus", "too", "under", "until", "upon", "use", "used", "using",
+    "very", "was", "were", "what", "when", "where", "whether", "which", "while",
+    "who", "whom", "whose", "why", "will", "with", "within", "without", "would",
+    "you", "your",
+})
+# A rough draft is allowed to paraphrase, so a claim counts as covered on a
+# modest share of its distinctive terms, and the gate only blocks when most of
+# the brief is missing.  Both bounds are deliberately forgiving: a false
+# rejection consumes one of DRAFT's three bounded attempts.
+MINIMUM_CLAIM_TERM_COVERAGE = 0.4
+MINIMUM_COVERED_CLAIM_SHARE = 0.5
+
+
+def coverage_terms(value: str) -> set[str]:
+    """Distinctive lowercase terms used to test whether prose covers a claim."""
+    words = re.findall(r"[a-z0-9][a-z0-9'-]{2,}", unicodedata.normalize("NFKC", value).casefold())
+    return {word for word in words if word not in DRAFT_COVERAGE_STOPWORDS}
+
+
+def draft_coverage_findings(brief: dict[str, Any] | None, text: str, artifact: str) -> list[dict[str, Any]]:
+    """Report the brief claims a rough draft does not argue at all.
+
+    ``G-DRAFT-COVERAGE`` is named for this check but never performed it, so a
+    draft that declined to write anything -- a single "Unresolved:" line, for
+    example -- passed with no findings and carried an empty article through
+    claim verification to the operator's only manual gate.  DRAFT already
+    declares three bounded attempts and repairs to itself, so reporting the
+    uncovered claims here is enough to route a refusal back into that window
+    with the specific gaps attached.
+    """
+    if not isinstance(brief, dict):
+        return []
+    claims = [str(claim) for claim in brief.get("claims_to_support", []) if str(claim).strip()]
+    if not claims:
+        return []
+    drafted = coverage_terms(text)
+    uncovered: list[tuple[int, str]] = []
+    for index, claim in enumerate(claims):
+        required = coverage_terms(claim)
+        if not required:
+            continue
+        if len(required & drafted) / len(required) < MINIMUM_CLAIM_TERM_COVERAGE:
+            uncovered.append((index, claim))
+    if len(claims) - len(uncovered) >= MINIMUM_COVERED_CLAIM_SHARE * len(claims):
+        return []
+    findings = [{
+        "criterion": "brief_claim_coverage",
+        "artifact": artifact,
+        "location": "claims_to_support",
+        "finding": (
+            f"The rough draft covers {len(claims) - len(uncovered)} of the {len(claims)} claims the brief requires."
+        ),
+        "repair_instruction": "Write the complete rough draft the brief describes. If a required claim cannot be supported by the verified evidence, repair the brief instead of leaving the draft unwritten.",
+    }]
+    for index, claim in uncovered:
+        findings.append({
+            "criterion": "brief_claim_coverage",
+            "artifact": artifact,
+            "location": f"claims_to_support[{index}]",
+            "finding": f"The rough draft does not argue the required claim: {claim}",
+            "repair_instruction": "Argue this claim from the verified evidence, or remove it from the brief with a recorded reason.",
+        })
+    return findings
+
+
 def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission: Path) -> tuple[str, list[dict[str, Any]]]:
     findings: list[dict[str, Any]] = []
     if not submission.is_file() or submission.stat().st_size == 0:
@@ -4400,6 +4477,12 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
         for finding in forbidden_public_prose_character_findings(text):
             findings.append({**finding, "artifact": str(submission)})
         findings.extend(style_phrase_findings(text, str(submission)))
+        if state == "DRAFT":
+            findings.extend(draft_coverage_findings(
+                json_artifact(directory, run, "brief"),
+                text,
+                str(submission),
+            ))
     return ("PASS" if not findings else "REPAIR"), findings
 
 
