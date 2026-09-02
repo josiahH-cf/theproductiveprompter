@@ -4193,6 +4193,42 @@ class RepairDestinationTests(TemporaryRuntime):
         self.assertEqual(af.effective_repair_state(definition, findings), "CLAIM_VERIFICATION")
 
 
+class PublicationAtomicityTests(TemporaryRuntime):
+    """A refused publication must leave the target repository untouched.
+
+    Publication copies approved files into the live site checkout. Checking
+    and writing in one pass left it partially published when a later file had
+    moved, and the resulting dirty checkout was then refused by the
+    clean-checkout guard, so the run could neither finish nor retry.
+    """
+
+    def controller_source(self):
+        return (SPEC_ROOT / "scripts" / "article_flow.py").read_text(encoding="utf-8")
+
+    def test_every_target_is_verified_before_any_is_written(self):
+        body = self.controller_source()
+        self.assertLess(
+            body.index("Publication target changed after planning"),
+            body.index("atomic_write(repository / rel"),
+            "verification must precede every write",
+        )
+        self.assertNotIn(
+            "atomic_write(destination, source.read_bytes())",
+            body,
+            "writing inside the verification loop publishes partially",
+        )
+
+    def test_a_stale_plan_returns_to_approval_instead_of_dead_ending(self):
+        body = self.controller_source()
+        marker = body.index("Publication target changed after planning")
+        window = body[marker - 800:marker + 400]
+        # The plan is a snapshot of the target, so a moved target makes the
+        # plan stale rather than the run unsound.
+        self.assertIn("plan_path.unlink(missing_ok=True)", window)
+        self.assertIn('"PUBLISH_APPROVAL"', window)
+        self.assertIn("EXIT_WAITING", window)
+
+
 class SoleHumanGateTests(TemporaryRuntime):
     """The voice choice must remain the only pause in an automated run."""
 

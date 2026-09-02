@@ -7725,14 +7725,33 @@ def _command_publish_execute_locked(
         changed_paths = [safe_relative(change["path"]).as_posix() for change in plan["changes"]]
         commit = current_commit if resumed_own_commit else None
         if not resumed_own_commit:
+            # Verify every target before writing any of them.  Checking and
+            # writing in one pass left the publication repository partially
+            # published when a later file had moved: earlier approved files
+            # were already on disk, the rest were abandoned, and the resulting
+            # dirty checkout was then refused by the clean-checkout guard.
             for change in plan["changes"]:
                 rel = safe_relative(change["path"])
-                source = site_root / rel
                 destination = repository / rel
                 current_hash = sha256_path(destination) if destination.is_file() else None
                 if current_hash != change["current_sha256"]:
-                    raise FlowError(f"Publication target changed after planning: {rel}", EXIT_INTEGRITY)
-                atomic_write(destination, source.read_bytes())
+                    # The plan is a snapshot of the target, so a target that
+                    # moved makes the plan stale rather than the run unsound.
+                    # Drop it and return to approval so a fresh plan is built
+                    # against what is actually there; the publication itself
+                    # has not started.
+                    plan_path.unlink(missing_ok=True)
+                    transition(
+                        directory, run, "PUBLISH_APPROVAL", "controller",
+                        f"Publication target {rel} changed after planning; replan against the current target",
+                    )
+                    raise FlowError(
+                        f"Publication target changed after planning: {rel}; a fresh plan is required",
+                        EXIT_WAITING,
+                    )
+            for change in plan["changes"]:
+                rel = safe_relative(change["path"])
+                atomic_write(repository / rel, (site_root / rel).read_bytes())
             git(["add", "--", *changed_paths], cwd=repository)
             if args.commit:
                 git(["commit", "-m", f"Publish {run['run_id']} ({plan['package_revision'][:12]})", "--", *changed_paths], cwd=repository)

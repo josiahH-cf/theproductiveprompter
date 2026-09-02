@@ -32,6 +32,8 @@ Nine defects found by the first full live run of the workflow 3 pipeline. The re
 
 - Applied the deterministic character policy and the formulaic-phrase scan to voice candidates. The probe gate checked hashes, paragraph count, and comparison orders but never the prose itself, so an operator could select a passage containing a forbidden em dash and promote it into the voice profile as a positive exemplar, teaching the profile a character the house style rejects in drafts, articles, titles, and descriptions.
 
+- Made publication all-or-nothing at the target. Approved files were verified and copied in one pass, so a target that had moved left the live site checkout partially published: earlier files written, the rest abandoned, and the dirty checkout then refused by the clean-checkout guard, which left the run unable to finish or retry. Every target is verified before any is written, and a target that moved drops the stale plan and returns to approval so a fresh one is built against what is actually there.
+
 **Known limitations:** Operator guidance supplied to `repair --finding` is recorded in the event log but does not reach the writer on a code-owned gate, because repair context sources its findings from the latest gate receipt and `command_repair` writes none. The draft stage may also cite a URL that differs from the verified ledger's string for the same claim; nothing compares them until naturalization, by which point the draft's form is already locked. Both are recorded here rather than fixed.
 
 ---
