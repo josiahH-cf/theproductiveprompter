@@ -4528,7 +4528,19 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
                 for claim in locked_record.get("claims", []):
                     source = claim.get("source_url_or_local_id")
                     if claim.get("risk") in {"medium", "high"} and isinstance(source, str) and source.startswith("http") and source not in article_text:
-                        findings.append({"criterion": "claim_citation_mapping", "artifact": str(submission), "location": str(claim.get("claim_id")), "finding": "A used medium/high-risk claim lost its source link.", "repair_instruction": "Restore the verified source link or reopen claim verification."})
+                        findings.append({
+                            "criterion": "claim_citation_mapping",
+                            "artifact": str(submission),
+                            "location": str(claim.get("claim_id")),
+                            # Name the claim and its exact URL.  The repair
+                            # context carries these findings verbatim to the
+                            # next attempt, and a message that says only that
+                            # "a" link was lost gives the writer nothing to act
+                            # on: it identifies neither which claim nor which
+                            # string, so the same omission repeats.
+                            "finding": f"Claim {claim.get('claim_id')} lost its source link. The article must contain this exact URL: {source}",
+                            "repair_instruction": f"Insert {source} byte-identically as the citation for {claim.get('claim_id')}. Do not substitute an equivalent, shortened, or modernized URL, and do not remove any URL the draft already carried.",
+                        })
     if state in {"DRAFT", "EDIT"}:
         text = submission.read_text(encoding="utf-8")
         for pattern in (r"\[Writer to research[^\]]*\]", r"\bTODO\b", r"/mnt/[a-z]/Users/", r"[A-Z]:\\Users\\"):
