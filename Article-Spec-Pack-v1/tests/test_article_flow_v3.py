@@ -4804,7 +4804,14 @@ class WorkflowV31RegressionTests(TemporaryRuntime):
             "tags": [], "reader_job": "See the gap", "scope": "One example", "exclusions": [],
             "claims_to_support": [], "acceptance_criteria": ["One visual is present."],
         })
-        self.record_text(directory, run, "draft", "# A Useful Article\n\nAn opening paragraph with enough concrete language to make the point visible.\n\n## The gap\n\nThe default stays still while capability improves.\n")
+        self.record_text(
+            directory,
+            run,
+            "draft",
+            "# A Useful Article\n\nAn opening paragraph with enough concrete language to make the point visible.\n\n"
+            "## The gap\n\n**Conceptual diagram**\n\n![Guessed placeholder](visual-gap.png)\n\n"
+            "*A model-authored placeholder caption.*\n\nThe default stays still while capability improves.\n",
+        )
         plan_path = self.record_json(directory, run, "visual-plan", {
             "visual_plan_schema_version": "1.0.0", "run_id": run_id,
             "visuals": [{
@@ -4827,6 +4834,17 @@ class WorkflowV31RegressionTests(TemporaryRuntime):
         asset = manifest["assets"][0]
         self.assertEqual(af.sha256_path(directory / asset["source_path"]), asset["sha256"])
         self.assertIn("<title", (directory / asset["source_path"]).read_text(encoding="utf-8"))
+        visualized = af.artifact_path(directory, run, "draft").read_text(encoding="utf-8")
+        self.assertIn(asset["public_path"], visualized)
+        self.assertNotIn("visual-gap.png", visualized)
+        self.assertNotIn("model-authored placeholder", visualized)
+        body = af.inject_manifest_visuals(
+            directory,
+            run,
+            af.markdown_to_html(af.strip_planned_visual_blocks(visualized, manifest)),
+        )
+        self.assertEqual(body.count('data-visual-id="capability-gap"'), 1)
+        self.assertEqual(body.count(asset["public_path"]), 1)
 
     def test_controller_owns_voice_ids_hashes_anchor_and_order(self):
         run_id = self.start("Test controller-owned voice metadata.")

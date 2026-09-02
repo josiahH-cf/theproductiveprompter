@@ -7102,6 +7102,77 @@ def validate_visual_manifest(directory: Path, run: dict[str, Any], manifest_path
     return findings
 
 
+def strip_planned_visual_blocks(markdown: str, manifest: dict[str, Any]) -> str:
+    """Remove model-authored image placeholders in controller-owned sections."""
+    lines = markdown.splitlines()
+    planned_headings = {
+        re.sub(r"\s+", " ", str((asset.get("placement") or {}).get("after_heading") or "")).strip().casefold()
+        for asset in manifest.get("assets", [])
+        if isinstance(asset, dict)
+    }
+    remove: set[int] = set()
+    for index, line in enumerate(lines):
+        heading = re.match(r"^(#{2,6})\s+(.+?)\s*$", line)
+        if not heading:
+            continue
+        normalized = re.sub(r"\s+", " ", heading.group(2)).strip().casefold()
+        if normalized not in planned_headings:
+            continue
+        end = next(
+            (candidate for candidate in range(index + 1, len(lines)) if re.match(r"^#{2,6}\s+", lines[candidate])),
+            len(lines),
+        )
+        for image_index in range(index + 1, end):
+            if not re.fullmatch(r"\s*!\[[^\]\n]*\]\([^)\n]+\)\s*", lines[image_index]):
+                continue
+            remove.add(image_index)
+            previous = next((item for item in range(image_index - 1, index, -1) if lines[item].strip()), None)
+            following = next((item for item in range(image_index + 1, end) if lines[item].strip()), None)
+            if previous is not None and re.fullmatch(r"\s*\*\*[^*\n]+\*\*\s*", lines[previous]):
+                remove.add(previous)
+            if following is not None and re.fullmatch(r"\s*\*[^*\n]+\*\s*", lines[following]):
+                remove.add(following)
+    cleaned = "\n".join(line for index, line in enumerate(lines) if index not in remove)
+    return re.sub(r"\n{3,}", "\n\n", cleaned).rstrip() + "\n"
+
+
+def materialize_manifest_visuals_markdown(markdown: str, manifest: dict[str, Any]) -> str:
+    """Replace draft placeholders with the exact hash-bound public visual references."""
+    cleaned = strip_planned_visual_blocks(markdown, manifest)
+    assets_by_heading: dict[str, list[dict[str, Any]]] = {}
+    for asset in manifest.get("assets", []):
+        if not isinstance(asset, dict):
+            continue
+        heading = re.sub(r"\s+", " ", str((asset.get("placement") or {}).get("after_heading") or "")).strip().casefold()
+        assets_by_heading.setdefault(heading, []).append(asset)
+    seen = {heading: 0 for heading in assets_by_heading}
+    output: list[str] = []
+    for line in cleaned.splitlines():
+        output.append(line)
+        match = re.match(r"^#{2,6}\s+(.+?)\s*$", line)
+        if not match:
+            continue
+        heading = re.sub(r"\s+", " ", match.group(1)).strip().casefold()
+        if heading not in assets_by_heading:
+            continue
+        seen[heading] += 1
+        output.append("")
+        for asset in assets_by_heading[heading]:
+            alt = str(asset["alt_text"]).replace("]", "\\]")
+            output.append(f"![{alt}]({asset['public_path']})")
+            output.append("")
+            output.append(f"*{asset['caption']}*")
+            output.append("")
+    missing = [heading for heading, count in seen.items() if count != 1]
+    if missing:
+        raise FlowError(
+            "Rendered visuals could not be materialized at exactly one Markdown heading",
+            EXIT_INTEGRITY,
+            {"headings": missing},
+        )
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(output)).rstrip() + "\n"
+
+
 def command_visual_render(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
     if run["state"] != "VISUAL_RENDER":
@@ -7116,6 +7187,10 @@ def command_visual_render(args: argparse.Namespace) -> int:
             raise FlowError("Visual plan is invalid", EXIT_INTEGRITY, plan_errors)
         slug = package_metadata_slug(directory, run)
         plan_hash = sha256_path(plan_path)
+        source_draft_item = artifact(run, "draft")
+        source_draft_path = artifact_path(directory, run, "draft")
+        if not source_draft_item or not source_draft_path:
+            raise FlowError("Visual rendering requires the accepted rough draft", EXIT_INTEGRITY)
         assets: list[dict[str, Any]] = []
         visuals_root = directory / "artifacts" / "visuals"
         visuals_root.mkdir(parents=True, exist_ok=True)
@@ -7150,7 +7225,23 @@ def command_visual_render(args: argparse.Namespace) -> int:
         if findings:
             write_gate_receipt(directory, run, "G-VISUAL-RENDER", "REPAIR", findings, {"type": "code", "version": CONTROLLER_VERSION}, "VISUAL_PLAN")
             raise FlowError("Deterministic visual rendering failed", EXIT_INTEGRITY, findings)
-        record_artifact(directory, run, manifest_path, "visual-manifest", {"actor": "controller", "version": CONTROLLER_VERSION}, inputs=[artifact(run, "visual-plan")["artifact_id"]] if artifact(run, "visual-plan") else [])
+        manifest_item = record_artifact(directory, run, manifest_path, "visual-manifest", {"actor": "controller", "version": CONTROLLER_VERSION}, inputs=[artifact(run, "visual-plan")["artifact_id"]] if artifact(run, "visual-plan") else [])
+        visualized_draft = materialize_manifest_visuals_markdown(
+            source_draft_path.read_text(encoding="utf-8"),
+            manifest,
+        )
+        visualized_draft_path = directory / "artifacts" / f"visualized-draft-{plan_hash[:8]}.md"
+        visualized_bytes = visualized_draft.encode("utf-8")
+        immutable_write(visualized_draft_path, visualized_bytes)
+        record_artifact(
+            directory,
+            run,
+            visualized_draft_path,
+            "draft",
+            {"actor": "controller", "version": CONTROLLER_VERSION, "renderer": "manifest-markdown-v1"},
+            inputs=[source_draft_item["artifact_id"], manifest_item["artifact_id"]],
+            expected_bytes=visualized_bytes,
+        )
         write_gate_receipt(directory, run, "G-VISUAL-RENDER", "PASS", [], {"type": "code", "version": CONTROLLER_VERSION})
         transition(directory, run, "CLAIM_VERIFICATION", "controller", "Visual assets rendered and hash-bound to their plan")
     emit({"ok": True, "state": run["state"], "manifest": str(manifest_path), "assets": assets, "next_command": ["article-flow", "advance", run["run_id"]]}, args.json)
@@ -7463,7 +7554,11 @@ def render_publication_files(directory: Path, run: dict[str, Any], package_root:
     target = load_json(SPEC_ROOT / "publication" / "theproductiveprompter.json")
     repository = publication_repo_root(required=True)
     template = (SPEC_ROOT / target["article_template"]).read_text(encoding="utf-8")
-    body = inject_manifest_visuals(directory, run, markdown_to_html(article_path.read_text(encoding="utf-8")))
+    article_markdown = article_path.read_text(encoding="utf-8")
+    manifest_path = artifact_path(directory, run, "visual-manifest")
+    if manifest_path:
+        article_markdown = strip_planned_visual_blocks(article_markdown, load_json(manifest_path))
+    body = inject_manifest_visuals(directory, run, markdown_to_html(article_markdown))
     drafting_models = metadata.get("drafting_models", [])
     if is_v3_run(run) and not drafting_models:
         raise FlowError("Cannot render a workflow 3 article without drafting-model disclosure", EXIT_INTEGRITY)
