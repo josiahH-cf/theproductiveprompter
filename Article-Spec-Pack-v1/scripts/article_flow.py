@@ -6468,7 +6468,14 @@ def command_repair(args: argparse.Namespace) -> int:
         definition = state_definition(run["state"], run)
         if args.gate_id != definition.get("gate"):
             raise FlowError(f"Gate {args.gate_id} no longer controls current state {run['state']}", EXIT_WAITING)
-        repair_state = str(definition.get("repair_state") or "")
+        # Authorize another window where the rejected findings actually point.
+        # Routing an operator repair by the stage declaration alone would send
+        # a malformed ledger back to rewrite the article, and would reset that
+        # stage's window instead of the one that is exhausted.
+        recorded_receipt = json_artifact(directory, run, f"gate-receipt:{args.gate_id}") or {}
+        repair_state = str(
+            effective_repair_state(definition, recorded_receipt.get("findings") or []) or ""
+        )
         source_state = run["state"]
         repair_context = remember_repair_context(directory, run, source_state, definition)
         context_required = bool(
