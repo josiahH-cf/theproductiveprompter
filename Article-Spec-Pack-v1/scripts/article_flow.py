@@ -2731,7 +2731,10 @@ def remember_repair_context(
         return None
     if (
         receipt.get("run_id") != run.get("run_id")
-        or receipt.get("repair_state") != effective_repair_state(definition, receipt.get("findings") or [])
+        or receipt.get("repair_state") not in {
+            definition.get("repair_state"),
+            effective_repair_state(definition, receipt.get("findings") or []),
+        }
         or (receipt.get("artifact_hashes") or {}).get(artifact_type) != rejected.get("sha256")
     ):
         raise FlowError("Gate receipt is not cross-bound to the rejected repair artifact", EXIT_INTEGRITY)
