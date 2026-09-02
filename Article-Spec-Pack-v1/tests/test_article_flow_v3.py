@@ -3735,6 +3735,25 @@ class NaturalizationCitationLockTests(TemporaryRuntime):
         outcome, findings = self.gate(directory, run, repeated)
         self.assertEqual(outcome, "PASS", findings)
 
+    def test_a_permitted_citation_never_strips_a_locked_url_that_extends_it(self):
+        """Only whole URL tokens may be removed before locked tokens compare.
+
+        A required citation can be a prefix of a URL the draft already carried.
+        Removing it as a bare substring would destroy the locked URL and report
+        it as deleted, rejecting an article that changed nothing.
+        """
+        parent = "https://example.com/docs/guide"
+        deep = "https://example.com/docs/guide/turns"
+        article = "Draft cites [deep](%s) and required [parent](%s).\n" % (deep, parent)
+        stripped = af.strip_citation_additions(article, {parent})
+        urls = af.find_locked_tokens(stripped)["urls"]
+        self.assertEqual(urls, [deep])
+
+        # The reverse nesting must also survive.
+        stripped = af.strip_citation_additions(
+            "Draft cites [parent](%s) and required [deep](%s).\n" % (parent, deep), {deep})
+        self.assertEqual(af.find_locked_tokens(stripped)["urls"], [parent])
+
     def test_removing_a_locked_url_still_fails(self):
         directory, run = self.edit_run()
         outcome, findings = self.gate(directory, run, self.article(keep_locked_url=False))

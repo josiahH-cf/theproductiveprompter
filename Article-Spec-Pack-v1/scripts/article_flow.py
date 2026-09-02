@@ -4281,9 +4281,14 @@ def strip_citation_additions(text: str, additions: set[str]) -> str:
     contains, so removing the citation itself is what keeps every other locked
     category strict.  The link text is deliberately preserved.
     """
+    # A locked URL may extend a permitted one, so only whole URL tokens are
+    # removed.  find_locked_tokens ends a URL at whitespace or one of ) ] > ' ",
+    # and without this boundary stripping "https://host/a" would also destroy
+    # the locked "https://host/a/b" and report it as removed.
+    boundary = r"(?![^\s)\]>'\"])"
     for url in sorted(additions, key=len, reverse=True):
-        text = re.sub(r"\]\(\s*" + re.escape(url) + r"[^)]*\)", "]", text)
-        text = text.replace(url, " ")
+        text = re.sub(r"\]\(\s*" + re.escape(url) + boundary + r"[^)]*\)", "]", text)
+        text = re.sub(re.escape(url) + boundary, " ", text)
     return text
 
 
@@ -4561,7 +4566,13 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
                             # on: it identifies neither which claim nor which
                             # string, so the same omission repeats.
                             "finding": f"Claim {claim.get('claim_id')} lost its source link. The article must contain this exact URL: {source}",
-                            "repair_instruction": f"Insert {source} byte-identically as the citation for {claim.get('claim_id')}. Do not substitute an equivalent, shortened, or modernized URL, and do not remove any URL the draft already carried.",
+                            # Say how to satisfy this without breaking the
+                            # neighbouring rules.  Editorial QA rejects a bare
+                            # duplicate URL and the locked-token check rejects
+                            # re-targeting a link the draft already carried, so
+                            # a finding that asks only for presence sends the
+                            # writer between two gates it cannot satisfy at once.
+                            "repair_instruction": f"Insert {source} byte-identically as a Markdown link on the claim it supports, not as bare URL text. Do not substitute an equivalent, shortened, or modernized URL, and do not remove or re-target any URL the draft already carried; adding a second link for the same source is expected when the draft cited a different form of it.",
                         })
     if state in {"DRAFT", "EDIT"}:
         text = submission.read_text(encoding="utf-8")
