@@ -3283,6 +3283,26 @@ class VoiceLearningTests(TemporaryRuntime):
             self.assertNotEqual(payload["action"], "human_decision")
         self.assertNotEqual(af.load_json(directory / "run.json")["status"], "WAITING_HUMAN")
 
+    def test_an_authorized_repair_supersedes_a_pending_voice_decision(self):
+        """Regenerating the probe must not keep offering the old candidates."""
+        run_id, directory, run, _, _ = self.prepare_voice_choice()
+        af.write_gate_receipt(
+            directory, run, "G-VOICE-PROBE", "ESCALATE",
+            [{"criterion": "operator_owned_judgment", "artifact": "current", "location": None,
+              "finding": "Mechanical validation passed.",
+              "repair_instruction": "Ask the operator the decision question."}],
+            {"type": "code", "version": af.CONTROLLER_VERSION}, "VOICE_PROBE")
+        af.save_run(directory, run)
+        directory, offered = af.load_run(run_id)
+        self.assertTrue(af.voice_probe_awaits_human(directory, offered))
+
+        af.append_event(directory, offered, "REPAIR", "operator_or_controller",
+                        {"gate_id": "G-VOICE-PROBE", "repair_state": "VOICE_PROBE",
+                         "finding": "A candidate carries a forbidden character."})
+        af.save_run(directory, offered)
+        directory, repaired = af.load_run(run_id)
+        self.assertFalse(af.voice_probe_awaits_human(directory, repaired))
+
     def test_probe_that_passed_its_gate_is_still_offered(self):
         run_id, directory, run, _, _ = self.prepare_voice_choice()
         af.write_gate_receipt(

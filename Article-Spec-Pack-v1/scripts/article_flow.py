@@ -5471,6 +5471,12 @@ def voice_probe_awaits_human(
             awaiting = payload.get("outcome") == "ESCALATE"
         elif kind == "TASK_DISPATCHED" and payload.get("state") == "VOICE_PROBE":
             awaiting = False
+        elif kind == "REPAIR" and str(payload.get("repair_state") or "") == "VOICE_PROBE":
+            # An authorized repair supersedes a pending decision: the probe is
+            # being regenerated, so there is nothing to choose from until the
+            # next attempt is produced.  Without this the caller re-presents
+            # the superseded candidates forever and the repair never runs.
+            awaiting = False
     return awaiting
 
 
