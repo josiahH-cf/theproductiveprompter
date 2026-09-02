@@ -7078,11 +7078,16 @@ def render_visual_svg(visual: dict[str, Any]) -> bytes:
             '<circle cx="88" cy="126" r="7" fill="#fb7185"/><circle cx="112" cy="126" r="7" fill="#fbbf24"/><circle cx="136" cy="126" r="7" fill="#4ade80"/>',
             '<text x="830" y="132" class="small">RECONSTRUCTION</text>',
         ])
-        y = 186
-        for index, label in enumerate(labels[:5], start=1):
-            elements.append(f'<circle cx="98" cy="{y - 7}" r="17" fill="#24324d"/><text x="92" y="{y}" class="small">{index}</text>')
-            elements.append(_svg_wrapped_text(label, x=135, y=y, width=70, line_height=21))
-            y += 66
+        count = min(7, len(labels))
+        compact = count >= 6
+        y = 174 if compact else 186
+        row_step = 50 if compact else 66
+        radius = 14 if compact else 17
+        line_height = 18 if compact else 21
+        for index, label in enumerate(labels[:7], start=1):
+            elements.append(f'<circle cx="98" cy="{y - 7}" r="{radius}" fill="#24324d"/><text x="92" y="{y}" class="small">{index}</text>')
+            elements.append(_svg_wrapped_text(label, x=135, y=y, width=70, line_height=line_height))
+            y += row_step
     elif kind == "trend_gap":
         first = _svg_text(labels[0] if labels else "Model capability")
         second = _svg_text(labels[1] if len(labels) > 1 else "Product default")

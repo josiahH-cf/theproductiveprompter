@@ -4883,6 +4883,26 @@ class WorkflowV31RegressionTests(TemporaryRuntime):
         self.assertEqual(body.count('data-visual-id="capability-gap"'), 1)
         self.assertEqual(body.count(asset["public_path"]), 1)
 
+    def test_console_reconstruction_keeps_all_four_planned_questions(self):
+        labels = [
+            "Reconstruction",
+            "Request: Conduct a longer iterative interview",
+            "Clarifying question 1",
+            "Clarifying question 2",
+            "Clarifying question 3",
+            "Clarifying question 4",
+            "Four questions recur",
+        ]
+        rendered = af.render_visual_svg({
+            "kind": "console_reconstruction",
+            "title": "Four Questions, Again",
+            "alt_text": "A reconstruction containing four clarifying questions.",
+            "labels": labels,
+        }).decode("utf-8")
+        for label in labels:
+            self.assertIn(html.escape(label, quote=True), rendered)
+        self.assertEqual(rendered.count('fill="#24324d"'), len(labels))
+
     def test_controller_owns_voice_ids_hashes_anchor_and_order(self):
         run_id = self.start("Test controller-owned voice metadata.")
         directory, run = af.load_run(run_id)
