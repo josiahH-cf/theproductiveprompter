@@ -4642,6 +4642,37 @@ class SchemaAndCanaryRegressionTests(TemporaryRuntime):
         self.assertIn("canary invalid-evidence", candidate["exclusion_reason"])
         self.assertIsNone(routes["chosen"])
 
+    def test_codex_canary_selects_hash_bound_evidence_for_the_current_cli_version(self):
+        model_id = "gpt-test-multi-host"
+        receipt_root = self.root / "canaries" / model_id
+        receipt_root.mkdir(parents=True)
+        receipt_path = receipt_root / "windows-0.150.1.receipt.json"
+        af.write_json(receipt_path, {
+            "requested_model": model_id,
+            "exit_code": 0,
+            "cli_version": "0.150.1",
+            "transport": {
+                "host_tool_access": "disabled",
+                "host_file_access": "none_via_model_tools",
+                "web_search_mode": "disabled",
+            },
+        })
+        provider = {"provider_id": "codex-cli", "kind": "codex-cli", "executable": sys.executable}
+        model = {
+            "model_id": model_id,
+            "canary_status": "passed",
+            "canary_receipt_sha256": "f" * 64,
+            "canary_receipt_sha256s": [af.sha256_path(receipt_path)],
+        }
+
+        with (
+            mock.patch.object(af, "shared_state_root", return_value=self.root),
+            mock.patch.object(af, "inspected_codex_cli_version", return_value="0.150.1"),
+        ):
+            self.assertEqual(af.evidenced_codex_canary_status(provider, model), "passed")
+            model["canary_receipt_sha256s"] = ["e" * 64]
+            self.assertEqual(af.evidenced_codex_canary_status(provider, model), "invalid-evidence")
+
 
 class WorkflowV31RegressionTests(TemporaryRuntime):
     def test_visual_plan_has_an_automatable_controller_route(self):

@@ -2197,26 +2197,43 @@ def evidenced_codex_canary_status(provider: dict[str, Any], model: dict[str, Any
     if declared != "passed":
         return declared
     model_id = str(model.get("model_id") or "")
-    expected_hash = str(model.get("canary_receipt_sha256") or "")
-    receipt_path = shared_state_root() / "canaries" / f"{model_id}.receipt.json"
-    if not expected_hash or not receipt_path.is_file() or sha256_path(receipt_path) != expected_hash:
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", model_id):
         return "invalid-evidence"
-    try:
-        receipt = load_json(receipt_path)
-    except FlowError:
+    expected_hashes = {
+        str(value)
+        for value in [
+            model.get("canary_receipt_sha256"),
+            *(model.get("canary_receipt_sha256s") or []),
+        ]
+        if isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value)
+    }
+    if not expected_hashes:
         return "invalid-evidence"
     executable = str(provider.get("executable", "codex"))
-    transport = receipt.get("transport", {}) if isinstance(receipt.get("transport"), dict) else {}
-    if not (
-        receipt.get("requested_model") == model_id
-        and receipt.get("exit_code") == 0
-        and receipt.get("cli_version") == inspected_codex_cli_version(executable)
-        and transport.get("host_tool_access") == "disabled"
-        and transport.get("host_file_access") == "none_via_model_tools"
-        and transport.get("web_search_mode") == "disabled"
-    ):
-        return "invalid-evidence"
-    return "passed"
+    current_cli_version = inspected_codex_cli_version(executable)
+    canary_root = shared_state_root() / "canaries"
+    receipt_paths = [canary_root / f"{model_id}.receipt.json"]
+    versioned_root = canary_root / model_id
+    if versioned_root.is_dir():
+        receipt_paths.extend(sorted(versioned_root.glob("*.receipt.json")))
+    for receipt_path in receipt_paths:
+        if not receipt_path.is_file() or sha256_path(receipt_path) not in expected_hashes:
+            continue
+        try:
+            receipt = load_json(receipt_path)
+        except FlowError:
+            continue
+        transport = receipt.get("transport", {}) if isinstance(receipt.get("transport"), dict) else {}
+        if (
+            receipt.get("requested_model") == model_id
+            and receipt.get("exit_code") == 0
+            and receipt.get("cli_version") == current_cli_version
+            and transport.get("host_tool_access") == "disabled"
+            and transport.get("host_file_access") == "none_via_model_tools"
+            and transport.get("web_search_mode") == "disabled"
+        ):
+            return "passed"
+    return "invalid-evidence"
 
 
 def route_candidates(stage: str, excluded_routes: set[str] | None = None) -> dict[str, Any]:
