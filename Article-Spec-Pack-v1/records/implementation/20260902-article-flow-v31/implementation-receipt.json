@@ -11,7 +11,7 @@
   },
   "source_base_commit": "f3211fd8f96e94827796241e90ec4d1c6e7dad8a",
   "initial_implementation_commit": "2a6f2d6445fd1cd7d9e1f3fa83fc3dbb928dedd8",
-  "final_backend_code_commit": "bb77a770f927b6ea31e4b784033d1c49c7b73941",
+  "final_backend_code_commit": "108d83d59a09eb04dceb507bfc2a03bec3adb976",
   "implementation_branch": "codex/article-publication-v3",
   "workflow_version": "3.1.0",
   "controller_version": "3.1.0",
@@ -25,6 +25,7 @@
     "Preserved direct operator article amendments through editorial QA instead of silently replacing them with a whole-article model rewrite.",
     "Bound live verification to exact article, discovery-surface, and visual bytes with bounded propagation retries.",
     "Classified article-derived live checks by their exact-byte dependency so stale Pages content remains retryable while current malformed markup still blocks immediately.",
+    "Retained multiple hash-approved canary receipts per model so Windows and WSL can independently prove their native Codex CLI versions without overwriting or weakening the other host's evidence.",
     "Recorded rejected published prose as negative voice evidence, retired the two provisional rules that produced it, and activated a concrete field-note rule before the correction run.",
     "Replaced the public article in place with shorter paragraphs, a concrete first-person opening, one comparison table, and three accessible diagrams."
   ],
@@ -41,7 +42,8 @@
     "9484f42c0ff303bd8d662fe9b94c48e521909b62",
     "def27f4776d5f963af5d262e5f1c8b635f3612ed",
     "4111823b7a660921ba32d139d716ee3872ca1ce0",
-    "bb77a770f927b6ea31e4b784033d1c49c7b73941"
+    "bb77a770f927b6ea31e4b784033d1c49c7b73941",
+    "108d83d59a09eb04dceb507bfc2a03bec3adb976"
   ],
   "human_gate_contract": {
     "routine_operator_gate": "VOICE_PROBE",
@@ -109,6 +111,21 @@
     "horizontal_page_overflow": false,
     "figure_count": 3,
     "comparison_table_readable": true
+  },
+  "native_canary_evidence": {
+    "wsl_cli_version": "0.144.4",
+    "windows_cli_version": "0.150.1",
+    "windows_receipt_sha256s": {
+      "gpt-5.5": "f423399b9f376f22257443c21b41795aea7602cfa3911d5fa259e73662b823d6",
+      "gpt-5.6-sol": "fb53902d01cff77cde4bc60a7cecad526be75e8a21197dce414f642b4d2e1818",
+      "gpt-5.6-terra": "6d2da5b1abf5aa0ca4a8f89f0f0d2c6266cf8d8d80e07ae090ee88fb79bd17ab",
+      "gpt-5.6-luna": "b4918727997af1586f2fc645f199bf4b4593b65743a26c34dcbc70f7ef8dabed"
+    },
+    "isolation_requirements": {
+      "host_tool_access": "disabled",
+      "host_file_access": "none_via_model_tools",
+      "web_search_mode": "disabled"
+    }
   },
   "verification": {
     "wsl_unittest": {
