@@ -3760,6 +3760,21 @@ class NaturalizationCitationLockTests(TemporaryRuntime):
         self.assertEqual(outcome, "REPAIR")
         self.assertIn("locked_fields", {item["criterion"] for item in findings})
 
+    def test_locked_field_findings_name_the_values_that_changed(self):
+        """The finding is the writer's whole instruction on the next attempt."""
+        directory, run = self.edit_run()
+        text = self.article(keep_locked_url=False,
+                            extra_line="Background lives at https://example.com/unrelated/page.\n")
+        outcome, findings = self.gate(directory, run, text)
+        self.assertEqual(outcome, "REPAIR")
+        locked = [item for item in findings if item["criterion"] == "locked_fields"]
+        urls = next(item for item in locked if item["location"] == "urls")
+        self.assertIn(self.KEPT_URL, urls["finding"])
+        self.assertIn("removed", urls["finding"])
+        self.assertIn("https://example.com/unrelated/page", urls["finding"])
+        self.assertIn("added", urls["finding"])
+        self.assertIn("citation", urls["repair_instruction"])
+
     def test_adding_an_unrelated_url_still_fails(self):
         directory, run = self.edit_run()
         text = self.article(extra_line="Background lives at https://example.com/unrelated/page.\n")

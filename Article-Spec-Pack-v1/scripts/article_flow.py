@@ -4548,8 +4548,29 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
                 # fail, but naturalization rewrites sentences, so mentioning an
                 # unchanged value a different number of times is not a change
                 # to that value and must not consume the repair window.
-                if set(before[category]) != set(after[category]):
-                    findings.append({"criterion": "locked_fields", "artifact": str(submission), "location": category, "finding": f"Naturalization changed locked {category}.", "repair_instruction": "Restore the locked values or reopen claim verification."})
+                locked_before = set(before[category])
+                locked_after = set(after[category])
+                if locked_before == locked_after:
+                    continue
+                removed = sorted(locked_before - locked_after)
+                added = sorted(locked_after - locked_before)
+                # Name the values.  These findings are the writer's whole
+                # instruction on the next attempt, and "changed locked urls"
+                # identifies nothing, so a rewrite that also has to satisfy the
+                # citation gate alternates between the two instead of
+                # converging.
+                detail = []
+                if removed:
+                    detail.append("removed " + ", ".join(repr(item) for item in removed[:5]))
+                if added:
+                    detail.append("added " + ", ".join(repr(item) for item in added[:5]))
+                findings.append({
+                    "criterion": "locked_fields",
+                    "artifact": str(submission),
+                    "location": category,
+                    "finding": f"Naturalization changed locked {category}: " + "; ".join(detail) + ".",
+                    "repair_instruction": f"Restore every removed {category} value verbatim and remove any that was added, keeping each required citation in place, or reopen claim verification.",
+                })
             recipe = json_artifact(directory, run, "article-recipe") or {}
             if recipe.get("citation_mode") == "links":
                 for claim in locked_record.get("claims", []):
