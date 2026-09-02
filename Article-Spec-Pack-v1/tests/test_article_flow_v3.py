@@ -789,6 +789,15 @@ class RepairAttemptBoundRegressionTests(TemporaryRuntime):
             accepted["attempt_baselines"]["RESEARCH_PLAN"], evidence["execution_count"], evidence
         )
 
+        # Runs recorded before the window closed on a pass carry a stale
+        # baseline, so the floor is derived from the settled gate as well.
+        accepted["attempt_baselines"]["RESEARCH_PLAN"] = 0
+        af.save_run(directory, accepted)
+        directory, legacy = af.load_run(run_id)
+        healed = af.stage_attempt_evidence(directory, legacy, "RESEARCH_PLAN")
+        self.assertEqual(healed["window_used"], 0, healed)
+        self.assertGreaterEqual(healed["window_baseline"], 1, healed)
+
     def test_stale_external_and_duplicate_submissions_are_rejected_before_write(self):
         run_id, directory = self.research_run()
         with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)):

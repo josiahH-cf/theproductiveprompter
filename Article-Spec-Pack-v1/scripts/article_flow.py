@@ -2429,6 +2429,15 @@ def stage_attempt_evidence(directory: Path, run: dict[str, Any], state: str) -> 
     provider_failure_attempts: set[int] = set()
     legacy_rejections = 0
     durable_execution_numbers: set[int] = set()
+    # Executions already closed out by a non-rejecting gate for this stage.
+    # The stored baseline only advances for a repair_state, so a stage that
+    # repairs elsewhere never had its own window closed and would exhaust by
+    # succeeding.  Deriving it here also heals runs recorded before that fix.
+    settled_attempt = 0
+    try:
+        stage_gate = str(state_definition(state, run).get("gate") or "")
+    except FlowError:
+        stage_gate = ""
     packet_pattern = re.compile(rf"^task-packet:{re.escape(state)}:(\d+)$")
     receipt_pattern = re.compile(rf"^model-call:{re.escape(state)}:(\d+)$")
     for event in _read_jsonl(directory / str(run["event_log"])):
@@ -2449,6 +2458,21 @@ def stage_attempt_evidence(directory: Path, run: dict[str, Any], state: str) -> 
                 attempt = int(receipt_match.group(1))
                 receipt_attempts.add(attempt)
                 execution_attempts.add(attempt)
+        elif (
+            event.get("type") == "GATE_RECORDED"
+            and stage_gate
+            and payload.get("gate_id") == stage_gate
+            and payload.get("outcome") in {"PASS", "ESCALATE"}
+        ):
+            # ESCALATE is what a review stage records when its mechanical
+            # checks passed and only the human decision remains.  Key off the
+            # receipt's bound attempt rather than the executions seen so far,
+            # because execution evidence is also recovered from files after
+            # this scan finishes.
+            try:
+                settled_attempt = max(settled_attempt, int(payload.get("attempt", 0)))
+            except (TypeError, ValueError):
+                pass
         elif event.get("type") == "MODEL_EXECUTION_STARTED":
             identity = event_task_identity(event)
             if identity and identity[0] == state:
@@ -2504,7 +2528,8 @@ def stage_attempt_evidence(directory: Path, run: dict[str, Any], state: str) -> 
         max(durable_execution_numbers, default=0),
         legacy_rejections,
     )
-    baseline = int(run.get("attempt_baselines", {}).get(state, 0))
+    settled_execution_count = len([item for item in execution_attempts if item <= settled_attempt])
+    baseline = max(int(run.get("attempt_baselines", {}).get(state, 0)), settled_execution_count)
     execution_count = max(
         len(execution_attempts),
         legacy_rejections,
