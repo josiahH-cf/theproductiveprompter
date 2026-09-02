@@ -7408,7 +7408,9 @@ def markdown_to_html(markdown: str) -> str:
             flush_paragraph()
             close_list()
             headers = [cell.strip() for cell in line.strip().strip("|").split("|")]
-            output.append('<div class="article-table-wrap"><table><thead><tr>')
+            output.append(
+                f'<div class="article-table-wrap" data-column-count="{len(headers)}"><table><thead><tr>'
+            )
             output.extend(f"<th>{markdown_inline(cell)}</th>" for cell in headers)
             output.append("</tr></thead><tbody>")
             index += 2

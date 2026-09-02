@@ -2169,6 +2169,31 @@ a:focus {
         padding: 0.65rem;
     }
 
+    .article-table-wrap[data-column-count="3"] table {
+        table-layout: fixed;
+    }
+
+    .article-table-wrap[data-column-count="3"] th,
+    .article-table-wrap[data-column-count="3"] td {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .article-table-wrap[data-column-count="3"] th:nth-child(1),
+    .article-table-wrap[data-column-count="3"] td:nth-child(1) {
+        width: 22%;
+    }
+
+    .article-table-wrap[data-column-count="3"] th:nth-child(2),
+    .article-table-wrap[data-column-count="3"] td:nth-child(2) {
+        width: 29%;
+    }
+
+    .article-table-wrap[data-column-count="3"] th:nth-child(3),
+    .article-table-wrap[data-column-count="3"] td:nth-child(3) {
+        width: 49%;
+    }
+
     /* Navigation */
     .nav__menu {
         position: fixed;

@@ -4821,7 +4821,7 @@ class WorkflowV31RegressionTests(TemporaryRuntime):
             "![Useful diagram](/assets/articles/example/diagram.svg)\n\n<script>alert(1)</script>"
         )
         self.assertIn("A\u00a0B<br>\nnext line", rendered)
-        self.assertIn('<div class="article-table-wrap"><table>', rendered)
+        self.assertIn('<div class="article-table-wrap" data-column-count="2"><table>', rendered)
         self.assertIn('<img src="/assets/articles/example/diagram.svg" alt="Useful diagram"', rendered)
         self.assertNotIn("<script>alert", rendered)
         self.assertIn("&lt;script&gt;", rendered)
