@@ -9,7 +9,8 @@
     "run_id": {"type": "string"},
     "source_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "tokens": {"type": "object", "additionalProperties": {"type": "array", "items": {"type": "string"}}},
-    "claims": {"type": "array", "items": {"type": "object"}}
+    "claims": {"type": "array", "items": {"type": "object"}},
+    "citation_additions": {"type": "array", "items": {"type": "string"}}
   },
   "additionalProperties": false
 }

@@ -4235,6 +4235,47 @@ def find_locked_tokens(text: str) -> dict[str, list[str]]:
     return {name: sorted(re.findall(pattern, text, flags=re.MULTILINE | re.DOTALL)) for name, pattern in patterns.items()}
 
 
+def permitted_citation_additions(locked_record: dict[str, Any]) -> set[str]:
+    """Source URLs a naturalized article may introduce that its draft lacked.
+
+    ``claim_citation_mapping`` requires every used medium or high risk claim's
+    source URL to appear in the article, and claim verification can accept a
+    claim the draft never cited.  ``urls`` is also a locked token category, so
+    requiring an unchanged token set at the same time makes those two gates
+    unsatisfiable together and consumes the entire naturalization window.  The
+    lock exists to stop naturalization altering verified values, not to forbid
+    satisfying another gate, so exactly these additions are permitted and every
+    other change still fails closed.
+    """
+    recorded = locked_record.get("citation_additions")
+    if isinstance(recorded, list):
+        return {str(value) for value in recorded}
+    # Runs locked before the field existed: derive the same set from the
+    # snapshot, which is the required source URLs the draft never carried.
+    locked_urls = set(locked_record.get("tokens", {}).get("urls", []))
+    return {
+        str(claim["source_url_or_local_id"])
+        for claim in locked_record.get("claims", [])
+        if isinstance(claim, dict)
+        and claim.get("risk") in {"medium", "high"}
+        and isinstance(claim.get("source_url_or_local_id"), str)
+        and str(claim["source_url_or_local_id"]).startswith("http")
+    } - locked_urls
+
+
+def strip_citation_additions(text: str, additions: set[str]) -> str:
+    """Remove permitted new citations so locked tokens compare like for like.
+
+    A newly cited URL also introduces the numbers, dates, and markdown link it
+    contains, so removing the citation itself is what keeps every other locked
+    category strict.  The link text is deliberately preserved.
+    """
+    for url in sorted(additions, key=len, reverse=True):
+        text = re.sub(r"\]\(\s*" + re.escape(url) + r"[^)]*\)", "]", text)
+        text = text.replace(url, " ")
+    return text
+
+
 def lock_verified_fields(directory: Path, run: dict[str, Any], ledger_path: Path) -> None:
     draft = artifact_path(directory, run, "draft")
     if not draft:
@@ -4251,12 +4292,23 @@ def lock_verified_fields(directory: Path, run: dict[str, Any], ledger_path: Path
             "source_url_or_local_id": claim.get("source_url_or_local_id"),
             "checked_at": claim.get("checked_at"),
         })
+    draft_text = draft.read_text(encoding="utf-8")
     value = {
         "locked_fields_schema_version": "1.0.0",
         "run_id": run["run_id"],
         "source_sha256": sha256_path(draft),
-        "tokens": find_locked_tokens(draft.read_text(encoding="utf-8")),
+        "tokens": find_locked_tokens(draft_text),
         "claims": claims,
+        # Record which required citations the draft never carried, so
+        # naturalization is measured against a constraint it can satisfy.
+        "citation_additions": sorted({
+            str(claim["source_url_or_local_id"])
+            for claim in claims
+            if claim.get("risk") in {"medium", "high"}
+            and isinstance(claim.get("source_url_or_local_id"), str)
+            and str(claim["source_url_or_local_id"]).startswith("http")
+            and str(claim["source_url_or_local_id"]) not in draft_text
+        }),
     }
     path = directory / "artifacts" / "locked-fields.json"
     write_json(path, value)
@@ -4456,15 +4508,19 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
     if state == "EDIT":
         locked_path = artifact_path(directory, run, "locked-fields")
         if locked_path:
-            before = load_json(locked_path).get("tokens", {})
-            after = find_locked_tokens(submission.read_text(encoding="utf-8"))
+            locked_record = load_json(locked_path)
+            before = locked_record.get("tokens", {})
+            article_text = submission.read_text(encoding="utf-8")
+            after = find_locked_tokens(strip_citation_additions(
+                article_text,
+                permitted_citation_additions(locked_record),
+            ))
             for category in before:
                 if before[category] != after[category]:
                     findings.append({"criterion": "locked_fields", "artifact": str(submission), "location": category, "finding": f"Naturalization changed locked {category}.", "repair_instruction": "Restore the locked values or reopen claim verification."})
             recipe = json_artifact(directory, run, "article-recipe") or {}
             if recipe.get("citation_mode") == "links":
-                article_text = submission.read_text(encoding="utf-8")
-                for claim in load_json(locked_path).get("claims", []):
+                for claim in locked_record.get("claims", []):
                     source = claim.get("source_url_or_local_id")
                     if claim.get("risk") in {"medium", "high"} and isinstance(source, str) and source.startswith("http") and source not in article_text:
                         findings.append({"criterion": "claim_citation_mapping", "artifact": str(submission), "location": str(claim.get("claim_id")), "finding": "A used medium/high-risk claim lost its source link.", "repair_instruction": "Restore the verified source link or reopen claim verification."})

@@ -3648,6 +3648,89 @@ class DraftCoverageRegressionTests(TemporaryRuntime):
         self.assertEqual([item for item in findings if item["criterion"] == "brief_claim_coverage"], [])
 
 
+class NaturalizationCitationLockTests(TemporaryRuntime):
+    """A required citation the draft never carried must be addable.
+
+    Claim verification can accept a claim the draft did not cite. The article
+    then has to add that source link, but ``urls`` is a locked token category,
+    so an exact-token rule makes the citation gate and the lock unsatisfiable
+    together and burns the whole naturalization window.
+    """
+
+    DRAFT = (
+        "# Fossilized defaults\n"
+        "\n"
+        "A turn budget can outlive its cause. See https://example.com/docs/turns for the recorded default.\n"
+    )
+    KEPT_URL = "https://example.com/docs/turns"
+    NEW_URL = "https://example.com/papers/reasoning.pdf"
+
+    def edit_run(self, *, record_additions=True):
+        run_id = self.start("Naturalization must be able to add a required citation.")
+        directory, run = af.load_run(run_id)
+        draft_path = self.record_text(directory, run, "draft", self.DRAFT, "draft.md")
+        self.record_json(directory, run, "article-recipe", {"citation_mode": "links"}, "article-recipe.json")
+        locked = {
+            "locked_fields_schema_version": "1.0.0",
+            "run_id": run_id,
+            "source_sha256": af.sha256_path(draft_path),
+            "tokens": af.find_locked_tokens(self.DRAFT),
+            "claims": [
+                {"claim_id": "CL-1", "risk": "high", "allowed_wording": "A turn budget can outlive its cause.",
+                 "source_url_or_local_id": self.KEPT_URL, "checked_at": af.utc_now()},
+                {"claim_id": "CL-2", "risk": "high", "allowed_wording": "The reasoning result is documented.",
+                 "source_url_or_local_id": self.NEW_URL, "checked_at": af.utc_now()},
+            ],
+        }
+        if record_additions:
+            locked["citation_additions"] = [self.NEW_URL]
+        self.record_json(directory, run, "locked-fields", locked, "locked-fields.json")
+        run["state"] = "EDIT"
+        return directory, run
+
+    def article(self, *, keep_locked_url=True, extra_line=""):
+        first = (
+            "A turn budget can outlive the constraint that produced it. See %s for the recorded default.\n"
+            % self.KEPT_URL
+        ) if keep_locked_url else "A turn budget can outlive the constraint that produced it.\n"
+        return (
+            "# Fossilized defaults\n"
+            "\n"
+            + first
+            + "The reasoning result is recorded in [the linked paper](%s).\n" % self.NEW_URL
+            + extra_line
+        )
+
+    def gate(self, directory, run, text):
+        path = self.root / "edited-article.md"
+        path.write_text(text, encoding="utf-8")
+        return af.automatic_gate(directory, run, "EDIT", path)
+
+    def test_naturalization_may_add_a_required_citation_the_draft_lacked(self):
+        directory, run = self.edit_run()
+        outcome, findings = self.gate(directory, run, self.article())
+        self.assertEqual(outcome, "PASS", findings)
+
+    def test_locked_fields_without_recorded_additions_derives_them(self):
+        directory, run = self.edit_run(record_additions=False)
+        outcome, findings = self.gate(directory, run, self.article())
+        self.assertEqual(outcome, "PASS", findings)
+
+    def test_removing_a_locked_url_still_fails(self):
+        directory, run = self.edit_run()
+        outcome, findings = self.gate(directory, run, self.article(keep_locked_url=False))
+        self.assertEqual(outcome, "REPAIR")
+        self.assertIn("locked_fields", {item["criterion"] for item in findings})
+
+    def test_adding_an_unrelated_url_still_fails(self):
+        directory, run = self.edit_run()
+        text = self.article(extra_line="Background lives at https://example.com/unrelated/page.\n")
+        outcome, findings = self.gate(directory, run, text)
+        self.assertEqual(outcome, "REPAIR")
+        locked = [item for item in findings if item["criterion"] == "locked_fields"]
+        self.assertEqual([item["location"] for item in locked], ["urls"], findings)
+
+
 class StyleDefenseTests(TemporaryRuntime):
     def make_package(self, *, title="Root Relative Test", description="A direct test of packaged links."):
         package_root = self.root / "package"
