@@ -4094,6 +4094,40 @@ class RepairDestinationTests(TemporaryRuntime):
         # A mixture is ambiguous, so it falls back rather than guessing.
         self.assertEqual(af.effective_repair_state(definition, legacy + other), "EDIT")
 
+    def test_a_model_may_not_choose_where_its_rejection_is_repaired(self):
+        """Repair routing is a controller decision, not an assessment's.
+
+        Editorial QA findings come from the model and are relayed verbatim. A
+        live run returned `repair_state: "unresolved-attempt-exhausted"`, which
+        is not a workflow state at all, and routing followed it.
+        """
+        run_id = self.start("A model must not choose the repair destination.")
+        directory, run = af.load_run(run_id)
+        run["state"] = "EDITORIAL_QA"
+        assessment = self.root / "editorial-qa.json"
+        assessment.write_text(json.dumps({
+            "editorial_assessment_schema_version": "1.0.0",
+            "run_id": run_id,
+            "outcome": "REPAIR",
+            "findings": [{
+                "criterion": "naturalness",
+                "artifact": "article",
+                "location": "body",
+                "finding": "A passage reads as assembled.",
+                "repair_instruction": "Rewrite the affected passage.",
+                "repair_state": "unresolved-attempt-exhausted",
+            }],
+        }), encoding="utf-8")
+        _, findings = af.automatic_gate(directory, run, "EDITORIAL_QA", assessment)
+        relayed = [item for item in findings if item.get("criterion") == "naturalness"]
+        self.assertTrue(relayed)
+        self.assertNotIn("repair_state", relayed[0])
+
+        # Even if one reached the router, only the implicated stages are routable.
+        definition = af.state_definition("EDITORIAL_QA", run)
+        forged = [{"criterion": "x", "repair_state": "PUBLISH"}]
+        self.assertEqual(af.effective_repair_state(definition, forged), definition["repair_state"])
+
     def test_claim_verification_is_unaffected(self):
         run_id = self.start("A stage that already self-repairs is unchanged.")
         directory, run = af.load_run(run_id)

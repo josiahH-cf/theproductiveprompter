@@ -1930,10 +1930,14 @@ def effective_repair_state(definition: dict[str, Any], findings: list[dict[str, 
     still uses the declared state, which keeps the escalation path to EDIT for
     a claim that genuinely cannot be verified.
     """
+    # A finding may only redirect between the two stages already implicated:
+    # the one that produced the rejected artifact and the one the workflow
+    # declares. Anything else is not a routing decision the controller made.
+    routable = {str(definition.get("id") or ""), str(definition.get("repair_state") or "")} - {""}
     directed = {
         str(item.get("repair_state"))
         for item in findings
-        if isinstance(item, dict) and item.get("repair_state")
+        if isinstance(item, dict) and str(item.get("repair_state") or "") in routable
     }
     if len(directed) == 1:
         return directed.pop()
@@ -4667,7 +4671,15 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
         if state == "EDITORIAL_QA" and value.get("outcome") != "PASS":
             supplied = value.get("findings", [])
             if supplied:
-                findings.extend(supplied)
+                # These findings come from the model. Repair routing is a
+                # controller decision, so strip any destination they carry
+                # rather than letting an assessment choose where the run goes.
+                findings.extend(
+                    {key: item[key] for key in item if key != "repair_state"}
+                    if isinstance(item, dict)
+                    else item
+                    for item in supplied
+                )
             else:
                 findings.append({"criterion": "editorial_outcome", "artifact": str(submission), "location": None, "finding": f"Editorial assessment returned {value.get('outcome')}.", "repair_instruction": "Return a passage-specific finding and repair destination."})
     if state == "EDIT":
