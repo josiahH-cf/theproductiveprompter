@@ -4387,6 +4387,31 @@ def permitted_citation_additions(locked_record: dict[str, Any]) -> set[str]:
     } - locked_urls
 
 
+def unverified_locked_urls(locked_record: dict[str, Any]) -> set[str]:
+    """Locked URLs that no verified claim cites.
+
+    The lock exists to stop naturalization altering verified values. A URL the
+    draft happened to write that the evidence does not record is not one of
+    them: locking it protects a possible mis-citation, and when the ledger
+    records a different address for the same source the citation gate and the
+    lock cannot both be satisfied. A live run reached editorial QA carrying two
+    URLs for one paper because the draft cited the legacy proceedings host and
+    verification recorded the current one, and no rewrite could satisfy both.
+    """
+    cited = {
+        str(claim.get("source_url_or_local_id"))
+        for claim in locked_record.get("claims", [])
+        if isinstance(claim, dict)
+        and isinstance(claim.get("source_url_or_local_id"), str)
+        and str(claim["source_url_or_local_id"]).startswith("http")
+    }
+    return {
+        str(url)
+        for url in locked_record.get("tokens", {}).get("urls", [])
+        if str(url) not in cited
+    }
+
+
 def strip_citation_additions(text: str, additions: set[str]) -> str:
     """Remove permitted new citations so locked tokens compare like for like.
 
@@ -4651,10 +4676,25 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
             locked_record = load_json(locked_path)
             before = locked_record.get("tokens", {})
             article_text = submission.read_text(encoding="utf-8")
-            after = find_locked_tokens(strip_citation_additions(
-                article_text,
-                permitted_citation_additions(locked_record),
-            ))
+            permitted = permitted_citation_additions(locked_record)
+            # A URL the evidence never cited is not a verified value, so
+            # naturalization may replace it with the one the ledger records.
+            # Both sides are measured with those URLs removed, which keeps
+            # every other locked category strict: the numbers, dates, and
+            # markdown links such a URL carries disappear from both.
+            droppable = unverified_locked_urls(locked_record)
+            draft_path = artifact_path(directory, run, "draft")
+            if (
+                droppable
+                and draft_path
+                and draft_path.is_file()
+                and sha256_path(draft_path) == locked_record.get("source_sha256")
+            ):
+                before = find_locked_tokens(
+                    strip_citation_additions(draft_path.read_text(encoding="utf-8"), droppable)
+                )
+                permitted = permitted | droppable
+            after = find_locked_tokens(strip_citation_additions(article_text, permitted))
             for category in before:
                 # Compare the set of verified values, not their multiplicity.
                 # Introducing, altering, or dropping a locked value all still
@@ -6103,10 +6143,29 @@ def command_submit(args: argparse.Namespace) -> int:
         if args.stage == "CLAIM_VERIFICATION" and outcome == "PASS":
             lock_verified_fields(directory, run, destination)
         definition = state_definition(args.stage, run)
+        policy_accepted_findings: list[dict[str, Any]] = []
+        if (
+            outcome != "PASS"
+            and automation_enabled(run)
+            and args.stage in AUTO_REVIEW_STATES
+            and gate_class(str(definition.get("gate") or "")) == "soft"
+            and stage_attempt_evidence(directory, run, args.stage)["window_used"]
+            >= int(definition.get("max_attempts", 1))
+        ):
+            # A soft review gate this run delegates to policy must not become a
+            # second manual stop; the voice choice is the only pause. Its
+            # bounded repairs are spent, so accept the reviewed artifact and
+            # keep the unresolved findings on the receipt as durable notes.
+            # Every code-owned gate still blocks: this only applies where the
+            # workflow declares the judgment soft and the run assigns it to
+            # policy rather than to the operator.
+            policy_accepted_findings = list(findings)
+            outcome = "PASS"
+            findings = []
         policy_review = outcome == "PASS" and automation_enabled(run) and args.stage in AUTO_REVIEW_STATES
         human_review = outcome == "PASS" and args.stage in REVIEW_STATES and not policy_review
         recorded_outcome = "ESCALATE" if human_review else outcome
-        review_findings = findings
+        review_findings = policy_accepted_findings or findings
         if recorded_outcome == "ESCALATE" and not review_findings:
             review_findings = [{
                 "criterion": "operator_owned_judgment",
@@ -6224,6 +6283,13 @@ def command_submit(args: argparse.Namespace) -> int:
         update_writing_provenance(directory, run, args.stage, packet_route)
         require_submit_evidence("attempt_evidence_changed_before_pass_transition")
         if policy_review:
+            if policy_accepted_findings:
+                append_event(directory, run, "POLICY_APPROVAL", "policy", {
+                    "state": args.stage,
+                    "gate_id": definition.get("gate"),
+                    "reason": "soft_review_window_exhausted",
+                    "accepted_findings": policy_accepted_findings,
+                })
             approve_review_artifact(directory, run, args.stage, actor="policy")
             require_submit_evidence("attempt_evidence_changed_after_policy_approval")
             transition(directory, run, definition["next_on_pass"], "policy", f"Policy approved validated {args.stage} artifact")

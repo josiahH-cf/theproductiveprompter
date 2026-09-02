@@ -3841,6 +3841,62 @@ class NaturalizationCitationLockTests(TemporaryRuntime):
             "Draft cites [parent](%s) and required [deep](%s).\n" % (parent, deep), {deep})
         self.assertEqual(af.find_locked_tokens(stripped)["urls"], [parent])
 
+    def test_an_unverified_locked_url_may_be_replaced_by_the_verified_one(self):
+        """The draft's address is not evidence; the ledger's is.
+
+        A draft may cite a legacy host while verification records the current
+        one. Locking the draft's variant made the citation gate and the lock
+        unsatisfiable together, and editorial QA then asked for the deletion
+        the lock forbade.
+        """
+        legacy = "https://proceedings.nips.cc/paper/2015/file/abc-Paper.pdf"
+        verified = "https://proceedings.neurips.cc/paper_files/paper/2015/file/abc-Paper.pdf"
+        draft_text = (
+            "# Fossilized defaults\n"
+            "\n"
+            "A turn budget can outlive its cause, as noted [in the paper](%s).\n" % legacy
+        )
+        run_id = self.start("An unverified locked URL must not block the verified one.")
+        directory, run = af.load_run(run_id)
+        draft_path = self.record_text(directory, run, "draft", draft_text, "draft.md")
+        self.record_json(directory, run, "article-recipe", {"citation_mode": "links"},
+                         "article-recipe.json")
+        self.record_json(directory, run, "locked-fields", {
+            "locked_fields_schema_version": "1.0.0",
+            "run_id": run_id,
+            "source_sha256": af.sha256_path(draft_path),
+            "tokens": af.find_locked_tokens(draft_text),
+            "claims": [{
+                "claim_id": "CL-1", "risk": "high", "allowed_wording": "A turn budget can outlive its cause.",
+                "source_url_or_local_id": verified, "checked_at": af.utc_now(),
+            }],
+            "citation_additions": [verified],
+        }, "locked-fields.json")
+        run["state"] = "EDIT"
+
+        self.assertEqual(
+            af.unverified_locked_urls(af.json_artifact(directory, run, "locked-fields")),
+            {legacy},
+        )
+
+        replaced = self.root / "replaced-article.md"
+        replaced.write_text(
+            "# Fossilized defaults\n"
+            "\n"
+            "A turn budget can outlive its cause, as noted [in the paper](%s).\n" % verified,
+            encoding="utf-8",
+        )
+        outcome, findings = af.automatic_gate(directory, run, "EDIT", replaced)
+        self.assertEqual(outcome, "PASS", findings)
+
+        # The verified address itself still may not be dropped.
+        dropped = self.root / "dropped-article.md"
+        dropped.write_text(
+            "# Fossilized defaults\n\nA turn budget can outlive its cause.\n", encoding="utf-8")
+        outcome, findings = af.automatic_gate(directory, run, "EDIT", dropped)
+        self.assertEqual(outcome, "REPAIR")
+        self.assertIn("claim_citation_mapping", {item["criterion"] for item in findings})
+
     def test_removing_a_locked_url_still_fails(self):
         directory, run = self.edit_run()
         outcome, findings = self.gate(directory, run, self.article(keep_locked_url=False))
@@ -4051,6 +4107,39 @@ class RepairDestinationTests(TemporaryRuntime):
         definition = af.state_definition("CLAIM_VERIFICATION", run)
         self.assertEqual(definition["repair_state"], "CLAIM_VERIFICATION")
         self.assertEqual(af.effective_repair_state(definition, findings), "CLAIM_VERIFICATION")
+
+
+class SoleHumanGateTests(TemporaryRuntime):
+    """The voice choice must remain the only pause in an automated run."""
+
+    def test_only_the_voice_gate_is_operator_owned(self):
+        run_id = self.start("Exactly one gate may wait on a person.")
+        _, run = af.load_run(run_id)
+        overrides = run["run_overrides"]
+        self.assertEqual(overrides["voice_probe_approval"], "required")
+        for field in ("intent_approval", "recipe_approval", "editorial_approval"):
+            self.assertEqual(overrides[field], "policy", field)
+        human = [
+            state["id"] for state in af.workflow_for_run(run)["states"]
+            if state.get("normal_action") == "human_decision"
+        ]
+        self.assertEqual(human, ["VOICE_PROBE"])
+
+    def test_soft_policy_review_is_eligible_for_automatic_acceptance(self):
+        run_id = self.start("A spent soft review must not become a second stop.")
+        _, run = af.load_run(run_id)
+        # Editorial QA is soft and delegated to policy, so a spent window is
+        # accepted with its findings recorded rather than blocking.
+        self.assertEqual(af.gate_class("G-EDITORIAL-QA"), "soft")
+        self.assertIn("EDITORIAL_QA", af.AUTO_REVIEW_STATES)
+        # The voice probe is soft too but is never policy-owned, so it still
+        # waits for the operator.
+        self.assertEqual(af.gate_class("G-VOICE-PROBE"), "soft")
+        self.assertNotIn("VOICE_PROBE", af.AUTO_REVIEW_STATES)
+        # Every code-owned gate keeps blocking.
+        for gate in ("G-POST-EDIT-CLAIMS", "G-CLAIMS-VERIFIED", "G-NATURALIZATION",
+                     "G-PACKAGE-INTEGRITY", "G-PUBLISH-REVISION"):
+            self.assertEqual(af.gate_class(gate), "hard", gate)
 
 
 class StyleDefenseTests(TemporaryRuntime):
