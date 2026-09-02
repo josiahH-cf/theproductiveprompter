@@ -2975,6 +2975,36 @@ class VoiceLearningTests(TemporaryRuntime):
         outcome, findings = af.automatic_gate(directory, run, "VOICE_PROBE", probe_path)
         self.assertEqual(outcome, "PASS", findings)
 
+    def test_a_voice_candidate_answers_to_the_public_prose_policy(self):
+        """A selected candidate is promoted into the voice profile.
+
+        The probe gate checked hashes, paragraph count, and comparison orders
+        but never the character policy, so an operator could pick a passage
+        containing a forbidden em dash and teach the profile a character the
+        house style rejects everywhere else.
+        """
+        _, directory, run, probe_path, probe = self.prepare_voice_choice()
+        outcome, findings = af.automatic_gate(directory, run, "VOICE_PROBE", probe_path)
+        self.assertEqual(outcome, "PASS", findings)
+
+        tainted = "You can see the result—and verify the exact revision yourself."
+        probe["candidates"][1]["passage"] = tainted
+        probe["candidates"][1]["passage_sha256"] = af.sha256_bytes(tainted.encode("utf-8"))
+        af.write_json(probe_path, probe)
+        outcome, findings = af.automatic_gate(directory, run, "VOICE_PROBE", probe_path)
+        self.assertEqual(outcome, "REPAIR")
+        flagged = [item for item in findings
+                   if item["criterion"] == "forbidden_public_prose_character"]
+        self.assertEqual([item["location"] for item in flagged], ["B"], findings)
+
+        # A formulaic phrase in a candidate is caught the same way.
+        cliche = "At its core, you can see the result and verify the revision."
+        probe["candidates"][1]["passage"] = cliche
+        probe["candidates"][1]["passage_sha256"] = af.sha256_bytes(cliche.encode("utf-8"))
+        af.write_json(probe_path, probe)
+        _, findings = af.automatic_gate(directory, run, "VOICE_PROBE", probe_path)
+        self.assertIn("high_confidence_cliche", {item["criterion"] for item in findings})
+
     def test_voice_choice_rejects_external_and_tampered_probe_artifacts(self):
         run_id, directory, _, probe_path, probe = self.prepare_voice_choice()
         external = self.root / "unrecorded-probe.json"

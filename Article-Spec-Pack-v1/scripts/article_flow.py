@@ -4644,6 +4644,17 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
                     paragraphs = [part for part in re.split(r"\n\s*\n", passage.strip()) if part.strip()]
                     if len(paragraphs) != 1:
                         findings.append({"criterion": "one_paragraph_variant", "artifact": str(submission), "location": str(item.get("candidate_id")), "finding": "A voice candidate is not exactly one paragraph.", "repair_instruction": "Return one paragraph per candidate."})
+                    # A candidate is public prose the operator may promote
+                    # into the voice profile, so it answers to the same
+                    # deterministic character policy and formulaic-phrase
+                    # scan as the draft, the article, and the public title
+                    # and description.  Without this a selected candidate
+                    # could teach the profile a character the house style
+                    # forbids.
+                    for finding in forbidden_public_prose_character_findings(passage):
+                        findings.append({**finding, "artifact": str(submission), "location": str(item.get("candidate_id"))})
+                    for finding in style_phrase_findings(passage, str(submission)):
+                        findings.append({**finding, "location": str(item.get("candidate_id"))})
                     claim_sets.append(tuple(sorted(str(claim) for claim in item.get("preserved_claim_ids", []))))
                 if claim_sets and len(set(claim_sets)) != 1:
                     findings.append({"criterion": "shared_verified_meaning", "artifact": str(submission), "location": "candidates.preserved_claim_ids", "finding": "Candidates do not preserve the same verified claim set.", "repair_instruction": "Hold meaning and claims constant; vary only the declared voice dimensions."})

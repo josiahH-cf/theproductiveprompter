@@ -30,6 +30,8 @@ Nine defects found by the first full live run of the workflow 3 pipeline. The re
 - Stopped locking a URL the verified evidence does not cite. A draft may cite a legacy address while verification records the current one, and locking the draft's variant made the citation gate and the lock unsatisfiable together. Removing an address the evidence does cite still fails.
 - Kept repair routing out of model hands. Editorial QA relays the assessing model's findings verbatim, so once findings carried a destination a model could choose where its own rejection was repaired. The field is stripped from relayed findings and the router is bounded to the two stages already implicated.
 
+- Applied the deterministic character policy and the formulaic-phrase scan to voice candidates. The probe gate checked hashes, paragraph count, and comparison orders but never the prose itself, so an operator could select a passage containing a forbidden em dash and promote it into the voice profile as a positive exemplar, teaching the profile a character the house style rejects in drafts, articles, titles, and descriptions.
+
 **Known limitations:** Operator guidance supplied to `repair --finding` is recorded in the event log but does not reach the writer on a code-owned gate, because repair context sources its findings from the latest gate receipt and `command_repair` writes none. The draft stage may also cite a URL that differs from the verified ledger's string for the same claim; nothing compares them until naturalization, by which point the draft's form is already locked. Both are recorded here rather than fixed.
 
 ---
