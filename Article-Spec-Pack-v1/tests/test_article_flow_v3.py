@@ -4995,6 +4995,37 @@ class WorkflowV31RegressionTests(TemporaryRuntime):
         self.assertEqual(run["status"], "BLOCKED")
         self.assertEqual(len(list((directory / "receipts").glob("live-verification-*.json"))), 4)
 
+    def test_live_verification_retries_article_dependent_failures_when_article_is_stale(self):
+        run_id, directory, target, surfaces = self.live_verification_fixture()
+        stale_article = surfaces["article"].read_bytes().replace(
+            af.sha256_path(directory / "package" / "public" / "article.md").encode("ascii"),
+            b"stale-article-revision",
+        ).replace(
+            b"</body>",
+            b'<a href="https://stale.example/broken">old link</a></body>',
+        )
+        url_to_body = {
+            target["canonical_url"].format(slug="bounded-live-verification"): stale_article,
+            target["blog_url"]: surfaces["blog"].read_bytes(),
+            target["homepage_url"]: surfaces["homepage"].read_bytes(),
+            target["feed_url"]: surfaces["feed"].read_bytes(),
+            target["sitemap_url"]: surfaces["sitemap"].read_bytes(),
+        }
+
+        with mock.patch.object(af, "fetch_url", side_effect=lambda url, timeout=30: (200, url_to_body[url], {})):
+            code, payload = call(af.command_verify_live, run_id=run_id)
+
+        self.assertEqual(code, af.EXIT_FAILED, payload)
+        self.assertEqual(payload["classification"], "deployment_propagation")
+        self.assertTrue(payload["retryable"])
+        self.assertEqual(payload["retry_after_seconds"], 10)
+        receipt = af.load_json(directory / "receipts" / "live-verification-01.json")
+        self.assertEqual(receipt["external_links"], [])
+        self.assertEqual(
+            {item["name"] for item in payload["checks"] if not item["ok"]},
+            {"article_revision", "embedded_article_revision"},
+        )
+
     def test_live_verification_does_not_retry_permanent_markup_failure(self):
         run_id, _directory, target, surfaces = self.live_verification_fixture(valid_article=False)
         url_to_body = {

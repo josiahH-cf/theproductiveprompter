@@ -8790,6 +8790,46 @@ def fetch_url(url: str, timeout: int = 30) -> tuple[int, bytes, dict[str, str]]:
         return -1, b"", {}
 
 
+def live_verification_failures_are_propagation(checks: list[dict[str, Any]]) -> bool:
+    failed_names = {
+        str(item.get("name"))
+        for item in checks
+        if not item.get("ok")
+    }
+    if not failed_names:
+        return False
+    transport_or_revision = {
+        "article_http", "article_revision",
+        "blog_http", "blog_revision",
+        "homepage_http", "homepage_revision",
+        "feed_http", "feed_revision",
+        "sitemap_http", "sitemap_revision",
+        "visual_asset",
+    }
+    article_dependent = {
+        "canonical",
+        "title",
+        "open_graph_url",
+        "structured_data",
+        "embedded_article_revision",
+    }
+    article_is_stale = bool({"article_http", "article_revision"} & failed_names)
+    for item in checks:
+        if item.get("ok"):
+            continue
+        name = str(item.get("name"))
+        if name in transport_or_revision:
+            continue
+        if name in article_dependent and article_is_stale:
+            continue
+        if name.endswith("_links_article"):
+            surface = name.removesuffix("_links_article")
+            if {f"{surface}_http", f"{surface}_revision"} & failed_names:
+                continue
+        return False
+    return True
+
+
 def command_verify_live(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
     if run["state"] != "LIVE_VERIFICATION":
@@ -8851,7 +8891,12 @@ def command_verify_live(args: argparse.Namespace) -> int:
             "actual_sha256": sha256_bytes(body),
             "ok": status == 200 and sha256_bytes(body) == asset.get("sha256"),
         })
-    external_links = sorted(set(re.findall(r'href="(https?://[^"]+)"', article_text)) - set(urls.values()))
+    article_revision_ok = next(item["ok"] for item in checks if item["name"] == "article_revision")
+    external_links = (
+        sorted(set(re.findall(r'href="(https?://[^"]+)"', article_text)) - set(urls.values()))
+        if article_revision_ok
+        else []
+    )
     link_results = []
     for link in external_links:
         status, _, _ = fetch_url(html.unescape(link), timeout=15)
@@ -8860,8 +8905,7 @@ def command_verify_live(args: argparse.Namespace) -> int:
         checks.append({"name": "external_link", "url": html.unescape(link), "status": status, "classification": classification, "ok": classification != "failed"})
     ok = all(item["ok"] for item in checks)
     failed = [item for item in checks if not item["ok"]]
-    propagation_names = {"article_http", "article_revision", "blog_http", "blog_revision", "homepage_http", "homepage_revision", "feed_http", "feed_revision", "sitemap_http", "sitemap_revision", "visual_asset"}
-    propagation = bool(failed) and all(str(item.get("name")) in propagation_names or str(item.get("name", "")).endswith("_links_article") for item in failed)
+    propagation = live_verification_failures_are_propagation(checks)
     classification = "verified" if ok else "deployment_propagation" if propagation else "permanent_validation_failure"
     retry_schedule = [10, 20, 40, 60]
     retry_after = retry_schedule[min(attempt - 1, len(retry_schedule) - 1)] if not ok and propagation and attempt < maximum else None
