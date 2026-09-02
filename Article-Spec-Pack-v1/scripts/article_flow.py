@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import datetime as dt
+import difflib
 import errno
 import functools
 import hashlib
@@ -39,7 +40,7 @@ except ModuleNotFoundError:  # Supports importlib-based conformance tests.
     from codex_exec_adapter import CodexExecError, codex_cli_version, execute_task_packet
 
 
-CONTROLLER_VERSION = "3.0.0"
+CONTROLLER_VERSION = "3.1.0"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -68,7 +69,7 @@ def bootstrap_payload() -> dict[str, Any]:
             "Preserve the operator's seed verbatim when replacing the placeholder in start_command.",
             "Run only exact command arrays returned by the controller in next_command, command, submission_command, or approval_command fields.",
             "For perform_task, read only task_packet, create only expected_output, then run submission_command.",
-            "For human_decision, show the controller's three voice choices and wait; never run selection_command without the operator's confirmed choice.",
+            "For the normal human_decision, show the controller's three voice choices plus its regeneration option and wait; never choose or reject the set without the operator's decision.",
             "For human_action, show the controller's single handoff and wait for the operator or a credentialed host to complete it.",
             "For run_command, run the exact command array returned by the controller. Use advance for active-session automation and safe resumption.",
             "Stop on complete, terminal, or an unresolved capability or decision.",
@@ -77,13 +78,14 @@ def bootstrap_payload() -> dict[str, Any]:
     }
 REVIEW_STATES = {"INTENT_REVIEW", "ARTICLE_RECIPE", "VOICE_PROBE", "EDITORIAL_QA"}
 AUTO_REVIEW_STATES = {"INTENT_REVIEW", "ARTICLE_RECIPE", "EDITORIAL_QA"}
-DETERMINISTIC_STATES = {"VOICE_LEARNING", "PACKAGE", "PUBLISH_APPROVAL", "PUBLISH", "LIVE_VERIFICATION", "COMPLETE"}
+DETERMINISTIC_STATES = {"VISUAL_RENDER", "VOICE_LEARNING", "PACKAGE", "PUBLISH_APPROVAL", "PUBLISH", "LIVE_VERIFICATION", "COMPLETE"}
 MODEL_STATES = {
     "RESEARCH_PLAN",
     "RESEARCH",
     "INTENT_REVIEW",
     "ARTICLE_RECIPE",
     "BRIEF",
+    "VISUAL_PLAN",
     "VOICE_PROBE",
     "DRAFT",
     "CLAIM_VERIFICATION",
@@ -97,6 +99,7 @@ STAGE_CAPABILITIES = {
     "INTENT_REVIEW": {"structured-output"},
     "ARTICLE_RECIPE": {"structured-output"},
     "BRIEF": {"structured-output"},
+    "VISUAL_PLAN": {"structured-output"},
     "VOICE_PROBE": {"structured-output"},
     "DRAFT": {"long-form"},
     "CLAIM_VERIFICATION": {"structured-output", "research"},
@@ -311,6 +314,14 @@ def state_definition(state_id: str, run: dict[str, Any] | None = None) -> dict[s
 
 def is_v3_run(run: dict[str, Any]) -> bool:
     return str(run.get("workflow_version", "")).split(".", 1)[0] == "3"
+
+
+def is_v31_run(run: dict[str, Any]) -> bool:
+    parts = str(run.get("workflow_version", "0.0.0")).split(".")
+    try:
+        return (int(parts[0]), int(parts[1])) >= (3, 1)
+    except (IndexError, ValueError):
+        return False
 
 
 def automation_enabled(run: dict[str, Any]) -> bool:
@@ -1275,7 +1286,7 @@ def roll_forward_run_cache(
                 recovered_attempts[state] = max(int(recovered_attempts.get(state, 0)), attempt)
             else:
                 state = str(payload.get("state") or event.get("state") or "")
-            if route_event_is_tail and event.get("type") in {"MODEL_ROUTE_FAILURE", "MODEL_OUTPUT_REJECTED"} and state:
+            if route_event_is_tail and event.get("type") == "MODEL_ROUTE_FAILURE" and state:
                 route = payload.get("route") if isinstance(payload.get("route"), dict) else payload
                 provider = str(route.get("provider") or "")
                 model = str(route.get("model") or "")
@@ -2330,6 +2341,14 @@ def pin_writing_route(run: dict[str, Any], stage: str, routes: dict[str, Any]) -
         reason = f"assigned writing route {provider_id}:{active_model} is unavailable"
         if unavailable and unavailable.get("exclusion_reason"):
             reason += f": {unavailable['exclusion_reason']}"
+        if is_v31_run(run) and stage == "EDIT" and artifact(run, "voice-learning"):
+            return {
+                **routes,
+                "chosen": None,
+                "fallbacks": [],
+                "reason": reason + "; fallback is closed after the operator's voice choice so another model cannot silently replace the selected register",
+                "assigned_route": unavailable,
+            }
         ordered_models = writing_model_policy()["ordered_models"]
         fallbacks = [
             candidate
@@ -2421,6 +2440,61 @@ def packet_inputs(directory: Path, run: dict[str, Any], state: str) -> list[dict
     return result
 
 
+def ensure_voice_anchor(directory: Path, run: dict[str, Any]) -> dict[str, str]:
+    """Select and bind an early opening/thesis paragraph without model-authored IDs or hashes."""
+    draft_path = artifact_path(directory, run, "draft")
+    if not draft_path or not draft_path.is_file():
+        raise FlowError("Voice probing requires the recorded rough draft", EXIT_INTEGRITY)
+    text = draft_path.read_text(encoding="utf-8")
+    candidates: list[tuple[int, str]] = []
+    for match in re.finditer(r"(?:\A|\n\s*\n)([^\n].*?)(?=\n\s*\n|\Z)", text, flags=re.DOTALL):
+        passage = re.sub(r"\s+", " ", match.group(1)).strip()
+        if (
+            len(passage) >= 50
+            and not passage.startswith(("#", "- ", "* ", "> ", "|"))
+            and match.start(1) <= max(1, len(text) // 3)
+        ):
+            candidates.append((match.start(1), passage))
+    if not candidates:
+        raise FlowError("The rough draft has no substantial opening or thesis paragraph for the voice gate", EXIT_INTEGRITY)
+    offset, passage = candidates[0]
+    line = text[:offset].count("\n") + 1
+    value = {
+        "voice_anchor_schema_version": "1.0.0",
+        "run_id": run["run_id"],
+        "locator": f"rough draft opening, line {line}",
+        "source_passage": passage,
+        "source_passage_sha256": sha256_bytes(passage.encode("utf-8")),
+        "rough_draft_sha256": sha256_path(draft_path),
+    }
+    path = directory / "artifacts" / "voice-anchor.json"
+    data = (json.dumps(value, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+    if path.exists() and path.read_bytes() != data:
+        raise FlowError("The controller-owned voice anchor disagrees with the current rough draft", EXIT_INTEGRITY)
+    if not path.exists():
+        immutable_write(path, data)
+        record_artifact(
+            directory,
+            run,
+            path,
+            "voice-anchor",
+            {"actor": "controller", "version": CONTROLLER_VERSION},
+            inputs=[artifact(run, "draft")["artifact_id"]] if artifact(run, "draft") else [],
+            expected_bytes=data,
+        )
+    return {"id": "voice-anchor", "path": str(path), "sha256": sha256_path(path)}
+
+
+def revision_task_input(directory: Path, run: dict[str, Any]) -> dict[str, str] | None:
+    if not isinstance(run.get("revision"), dict):
+        return None
+    item = artifact(run, "revision-request")
+    path = artifact_path(directory, run, "revision-request")
+    if not item or not path or not path.is_file() or sha256_path(path) != item.get("sha256"):
+        raise FlowError("Revision run is missing its hash-bound correction request", EXIT_INTEGRITY)
+    return {"id": "revision-request", "path": str(path), "sha256": str(item["sha256"])}
+
+
 def json_artifact(directory: Path, run: dict[str, Any], artifact_type: str) -> dict[str, Any] | None:
     path = artifact_path(directory, run, artifact_type)
     if not path or path.suffix.lower() != ".json":
@@ -2431,14 +2505,19 @@ def json_artifact(directory: Path, run: dict[str, Any], artifact_type: str) -> d
         return None
 
 
-def stage_output(state: str) -> tuple[str, str]:
+def stage_output(state: str, run: dict[str, Any] | None = None) -> tuple[str, str]:
     mapping = {
         "RESEARCH_PLAN": ("research-plan", "research-plan.json"),
         "RESEARCH": ("claim-ledger", "claim-ledger.json"),
         "INTENT_REVIEW": ("intent-candidate", "intent-candidate.json"),
         "ARTICLE_RECIPE": ("article-recipe", "article-recipe.json"),
         "BRIEF": ("brief", "brief.json"),
-        "VOICE_PROBE": ("voice-probe", "voice-probe.json"),
+        "VISUAL_PLAN": ("visual-plan", "visual-plan.json"),
+        "VOICE_PROBE": (
+            ("voice-candidates", "voice-candidates.json")
+            if run is not None and is_v31_run(run)
+            else ("voice-probe", "voice-probe.json")
+        ),
         "DRAFT": ("draft", "draft.md"),
         "CLAIM_VERIFICATION": ("verified-claim-ledger", "verified-claim-ledger.json"),
         "EDIT": ("article", "article.md"),
@@ -2555,7 +2634,7 @@ def stage_attempt_evidence(directory: Path, run: dict[str, Any], state: str) -> 
                 rejection_attempts.add(identity[1])
             else:
                 legacy_rejections += 1
-    _, output_filename = stage_output(state)
+    _, output_filename = stage_output(state, run)
     raw_packet_attempts = {
         int(match.group(1))
         for path in (directory / "tasks").glob(f"{state.lower()}-*.json")
@@ -2702,7 +2781,7 @@ def remember_repair_context(
     if source_stage not in MODEL_STATES:
         omit_stale_context()
         return None
-    artifact_type, _ = stage_output(source_stage)
+    artifact_type, _ = stage_output(source_stage, run)
     rejected = artifact(run, artifact_type)
     gate_id = str(definition.get("gate") or "")
     gate_item = artifact(run, f"gate-receipt:{gate_id}") if gate_id else None
@@ -3058,7 +3137,7 @@ def task_packet(
             run["repair_recovery_error"],
         )
     definition = state_definition(state, run)
-    artifact_type, filename = stage_output(state)
+    artifact_type, filename = stage_output(state, run)
     attempt_evidence = stage_attempt_evidence(directory, run, state)
     if attempt_evidence["window_used"] >= int(definition.get("max_attempts", 1)):
         block_exhausted_stage(directory, run, state, definition)
@@ -3213,6 +3292,7 @@ def task_packet(
         "INTENT_REVIEW": ["AF-PREC-001"],
         "ARTICLE_RECIPE": ["AF-PERSON-001", "AF-LENGTH-001", "AF-SHAPE-001", "AF-END-001"],
         "BRIEF": ["AF-PREC-001", "AF-LENGTH-001"],
+        "VISUAL_PLAN": ["AF-VISUAL-001", "AF-EVIDENCE-001"],
         "VOICE_PROBE": ["AF-VOICE-001"],
         "DRAFT": ["AF-SHAPE-001", "AF-CITATION-001", "AF-EVIDENCE-001", "AF-VOICE-001"],
         "CLAIM_VERIFICATION": ["AF-EVIDENCE-001", "AF-CITATION-001", "AF-VERIFY-001"],
@@ -3225,6 +3305,8 @@ def task_packet(
         allowed_tools += ["web_or_approved_local_corpus", "direct_source_retrieval"]
     output_path = directory / "submissions" / f"{attempt:02d}-{filename}"
     output_schema_name = definition.get("output_schema") if output_path.suffix.lower() == ".json" else None
+    if is_v31_run(run) and state == "VOICE_PROBE":
+        output_schema_name = "voice-candidates.schema.json"
     output_schema = load_json(SPEC_ROOT / "schemas" / output_schema_name) if output_schema_name else None
     if is_v3_run(run) and output_schema_name == "voice-probe.schema.json" and isinstance(output_schema, dict):
         output_schema = next(
@@ -3249,7 +3331,21 @@ def task_packet(
     else:
         inputs = packet_inputs(directory, run, state)
         inputs.extend(repair_inputs)
+    if is_v31_run(run) and state == "VOICE_PROBE" and not any(item.get("id") == "voice-anchor" for item in inputs):
+        inputs.append(ensure_voice_anchor(directory, run))
+    revision_input = revision_task_input(directory, run)
+    if revision_input and not any(item.get("id") == "revision-request" for item in inputs):
+        inputs.append(revision_input)
     constraints = [rule_map[item] for item in stage_rules.get(state, [])]
+    if is_v31_run(run) and state == "VOICE_PROBE":
+        constraints.extend([
+            "Rewrite only the controller-owned voice-anchor passage. Do not invent IDs, hashes, comparison order, or an operator choice; the controller owns that envelope.",
+            "Return three genuinely different registers: direct field note, conversational reflection, and crisp engineering note. Preserve one shared claim set and keep each candidate to one paragraph.",
+        ])
+    if state == "VISUAL_PLAN":
+        constraints.append("Choose only useful visuals, use an exact existing Markdown heading for every placement, label reconstructions as reconstructions, and do not ask the model to produce SVG or HTML.")
+    if revision_input:
+        constraints.append("This is a correction run. The separate revision-request is the current operator instruction and overrides conflicting assumptions from the historical seed; preserve the seed as evidence rather than silently rewriting it.")
     if repair_context:
         constraints.append(
             "This is a targeted repair. Resolve every hash-bound gate finding in repair_context while preserving unaffected verified content."
@@ -4567,13 +4663,19 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
         except FlowError as exc:
             findings.append({"criterion": "valid_json", "artifact": str(submission), "location": None, "finding": str(exc), "repair_instruction": "Return valid JSON matching the task packet."})
             return "REPAIR", findings
+        compact_voice_submission = bool(
+            state == "VOICE_PROBE"
+            and is_v31_run(run)
+            and value.get("voice_candidates_schema_version") == "1.0.0"
+        )
         schema_by_state = {
             "RESEARCH_PLAN": "research-plan.schema.json",
             "RESEARCH": "claim-ledger.schema.json",
             "INTENT_REVIEW": "intent.schema.json",
             "ARTICLE_RECIPE": "article-recipe.schema.json",
             "BRIEF": "brief.schema.json",
-            "VOICE_PROBE": "voice-probe.schema.json",
+            "VISUAL_PLAN": "visual-plan.schema.json",
+            "VOICE_PROBE": "voice-candidates.schema.json" if compact_voice_submission else "voice-probe.schema.json",
             "CLAIM_VERIFICATION": "claim-ledger.schema.json",
             "POST_EDIT_CLAIM_VERIFICATION": "claim-ledger.schema.json",
             "EDITORIAL_QA": "editorial-assessment.schema.json",
@@ -4605,7 +4707,35 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
                                 else f"did not resolve during independent verification (HTTP {status})"
                             )
                             findings.append({"criterion": "source_resolution", "artifact": str(submission), "location": str(claim.get("claim_id")), "finding": f"Source URL {detail}.", "repair_instruction": "Give exactly one direct source URL for this claim, use another direct source, qualify/omit, or escalate."})
-        if state == "VOICE_PROBE":
+        if state == "VOICE_PROBE" and compact_voice_submission:
+            raw_candidates = [item for item in value.get("candidates", []) if isinstance(item, dict)]
+            if len(raw_candidates) != 3:
+                findings.append({"criterion": "exactly_three_voice_variants", "artifact": str(submission), "location": "candidates", "finding": "Voice probe must contain exactly three candidates.", "repair_instruction": "Return exactly three one-paragraph variants of the controller-owned anchor."})
+            claim_sets: list[tuple[str, ...]] = []
+            dimension_sets: list[tuple[str, ...]] = []
+            normalized_passages: list[str] = []
+            for index, item in enumerate(raw_candidates):
+                passage = str(item.get("passage") or "").strip()
+                location = f"candidates[{index}]"
+                paragraphs = [part for part in re.split(r"\n\s*\n", passage) if part.strip()]
+                if len(paragraphs) != 1:
+                    findings.append({"criterion": "one_paragraph_variant", "artifact": str(submission), "location": location, "finding": "A voice candidate is not exactly one paragraph.", "repair_instruction": "Return one paragraph per candidate."})
+                for finding in forbidden_public_prose_character_findings(passage):
+                    findings.append({**finding, "artifact": str(submission), "location": location})
+                for finding in style_phrase_findings(passage, str(submission)):
+                    findings.append({**finding, "location": location})
+                claim_sets.append(tuple(sorted(str(claim) for claim in item.get("preserved_claim_ids", []))))
+                dimension_sets.append(tuple(sorted(str(dimension) for dimension in item.get("intended_dimensions", []))))
+                normalized_passages.append(re.sub(r"\W+", " ", passage.casefold()).strip())
+            if claim_sets and len(set(claim_sets)) != 1:
+                findings.append({"criterion": "shared_verified_meaning", "artifact": str(submission), "location": "candidates.preserved_claim_ids", "finding": "Candidates do not preserve the same verified claim set.", "repair_instruction": "Hold meaning and claims constant; vary only voice."})
+            if len(set(dimension_sets)) != len(dimension_sets):
+                findings.append({"criterion": "distinct_registers", "artifact": str(submission), "location": "candidates.intended_dimensions", "finding": "The candidates declare duplicate voice treatments.", "repair_instruction": "Use three meaningfully different registers, not cosmetic rewrites."})
+            for left in range(len(normalized_passages)):
+                for right in range(left + 1, len(normalized_passages)):
+                    if difflib.SequenceMatcher(None, normalized_passages[left], normalized_passages[right]).ratio() > 0.88:
+                        findings.append({"criterion": "distinct_registers", "artifact": str(submission), "location": f"candidates[{left}],candidates[{right}]", "finding": "Two candidates are nearly the same wording.", "repair_instruction": "Change rhythm, warmth, and framing while preserving the same meaning."})
+        if state == "VOICE_PROBE" and not compact_voice_submission:
             candidates = [str(item.get("candidate_id")) for item in value.get("candidates", []) if isinstance(item, dict)]
             orders = value.get("comparison_orders", [])
             if len(candidates) >= 2 and not any(list(order) == list(reversed(candidates)) for order in orders if isinstance(order, list)):
@@ -4682,6 +4812,29 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
             count = len(dimensions) if isinstance(dimensions, list) else int(dimensions or 0)
             if count < 2 or count > 3:
                 findings.append({"criterion": "variation_budget", "artifact": str(submission), "location": "variation_budget.macro_dimensions", "finding": "A normal recipe should vary two or three macro dimensions.", "repair_instruction": "Choose two or three useful macro dimensions; do not create decorative randomness."})
+        if state == "VISUAL_PLAN":
+            draft_path = artifact_path(directory, run, "draft")
+            draft_text = draft_path.read_text(encoding="utf-8") if draft_path else ""
+            headings = {
+                re.sub(r"\s+", " ", match.group(1)).strip().casefold()
+                for match in re.finditer(r"^#{2,6}\s+(.+?)\s*$", draft_text, flags=re.MULTILINE)
+            }
+            visual_ids: set[str] = set()
+            for index, visual in enumerate(value.get("visuals", [])):
+                if not isinstance(visual, dict):
+                    continue
+                visual_id = str(visual.get("visual_id") or "")
+                location = f"visuals[{index}]"
+                if visual_id in visual_ids:
+                    findings.append({"criterion": "unique_visual_id", "artifact": str(submission), "location": location, "finding": f"Duplicate visual_id {visual_id}.", "repair_instruction": "Give every planned visual a stable unique ID."})
+                visual_ids.add(visual_id)
+                after_heading = re.sub(r"\s+", " ", str((visual.get("placement") or {}).get("after_heading") or "")).strip().casefold()
+                if after_heading not in headings:
+                    findings.append({"criterion": "visual_placement", "artifact": str(submission), "location": f"{location}.placement.after_heading", "finding": "Placement does not match an exact level-2-or-lower heading in the draft.", "repair_instruction": "Copy one existing Markdown heading exactly, without its # prefix."})
+                if visual.get("kind") == "console_reconstruction" and "reconstruct" not in str(visual.get("caption") or "").casefold():
+                    findings.append({"criterion": "reconstruction_disclosure", "artifact": str(submission), "location": f"{location}.caption", "finding": "A screenshot-style reconstruction is not labeled as a reconstruction.", "repair_instruction": "State plainly in the caption that this is a reconstruction, not a captured product screenshot."})
+                if visual.get("kind") == "console_reconstruction" and len(visual.get("labels", [])) < 4:
+                    findings.append({"criterion": "console_sequence", "artifact": str(submission), "location": f"{location}.labels", "finding": "The console reconstruction does not contain the full observed question sequence.", "repair_instruction": "Include at least four concise interaction labels."})
         if state == "EDITORIAL_QA" and value.get("outcome") != "PASS":
             supplied = value.get("findings", [])
             if supplied:
@@ -4797,6 +4950,67 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
         for finding in findings:
             finding.setdefault("repair_state", state)
     return ("PASS" if not findings else "REPAIR"), findings
+
+
+def materialize_voice_probe(
+    directory: Path,
+    run: dict[str, Any],
+    candidates_path: Path,
+    attempt: int,
+) -> Path:
+    """Wrap model prose in a controller-owned, hash-bound comparison envelope."""
+    source = load_json(candidates_path)
+    anchor_path = artifact_path(directory, run, "voice-anchor")
+    draft_path = artifact_path(directory, run, "draft")
+    ledger_path = artifact_path(directory, run, "verified-claim-ledger")
+    profile_path = artifact_path(directory, run, "voice-profile")
+    assignment_path = artifact_path(directory, run, "model-assignment")
+    if not all((anchor_path, draft_path, ledger_path, profile_path, assignment_path)):
+        raise FlowError("Voice-probe controller bindings are incomplete", EXIT_INTEGRITY)
+    anchor = load_json(anchor_path)  # type: ignore[arg-type]
+    ids = ("A", "B", "C")
+    candidates: list[dict[str, Any]] = []
+    for candidate_id, raw in zip(ids, source.get("candidates", [])):
+        passage = str(raw["passage"]).strip()
+        candidates.append({
+            "candidate_id": candidate_id,
+            "passage": passage,
+            "passage_sha256": sha256_bytes(passage.encode("utf-8")),
+            "intended_dimensions": list(raw.get("intended_dimensions", [])),
+            "preserved_claim_ids": list(raw.get("preserved_claim_ids", [])),
+        })
+    probe = {
+        "voice_probe_schema_version": "2.0.0",
+        "run_id": run["run_id"],
+        "rough_draft_sha256": sha256_path(draft_path),  # type: ignore[arg-type]
+        "claim_ledger_sha256": sha256_path(ledger_path),  # type: ignore[arg-type]
+        "voice_profile_sha256": sha256_path(profile_path),  # type: ignore[arg-type]
+        "model_assignment_sha256": sha256_path(assignment_path),  # type: ignore[arg-type]
+        "source_anchor": {
+            "locator": anchor["locator"],
+            "source_passage": anchor["source_passage"],
+            "source_passage_sha256": anchor["source_passage_sha256"],
+        },
+        "article_register": source.get("article_register", {}),
+        "candidates": candidates,
+        "comparison_orders": [list(ids), list(reversed(ids))],
+        "held_out_plan": "Compare the selected register against a different opening or thesis paragraph during editorial QA; do not treat one selection as a universal trait.",
+        "operator_selection": None,
+    }
+    path = directory / "artifacts" / f"voice-probe-{attempt:02d}.json"
+    write_json(path, probe)
+    errors = validate_json_schema(path, "voice-probe.schema.json")
+    if errors:
+        raise FlowError("Controller generated an invalid voice-probe envelope", EXIT_INTEGRITY, errors)
+    record_artifact(
+        directory,
+        run,
+        path,
+        "voice-probe",
+        {"actor": "controller", "version": CONTROLLER_VERSION, "model_prose_artifact": candidates_path.name},
+        inputs=[item["artifact_id"] for item in run.get("artifact_index", []) if item.get("type") in {"voice-candidates", "voice-anchor", "draft", "verified-claim-ledger", "voice-profile", "model-assignment"}],
+    )
+    return path
 
 
 def recent_article_history(limit: int | None = None) -> dict[str, Any]:
@@ -5527,12 +5741,13 @@ def next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
                 "action": "human_decision",
                 "run_id": run["run_id"],
                 "state": state,
-                "question": "Which one of these three paragraphs sounds most like you? You may add a short reason, but it is optional.",
+                "question": "Which one of these three paragraphs sounds most like you, or should all three be regenerated? A short reason is optional for a selection and required for regeneration.",
                 "candidates": candidates,
                 "selection_commands": {
                     str(item["candidate_id"]): ["article-flow", "choose-voice", run["run_id"], str(item["candidate_id"]), "--auto"]
                     for item in candidates
                 },
+                "rejection_command": ["article-flow", "regenerate-voice", run["run_id"], "--feedback", "WHAT_MISSED", "--auto"],
             }
         question = {
             "INTENT_REVIEW": "Does this candidate intent match what you want the article to accomplish? Confirm it or give the smallest correction.",
@@ -5551,6 +5766,8 @@ def next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
         }
     if state == "VOICE_LEARNING":
         return {"action": "run_command", "run_id": run["run_id"], "state": state, "command": ["article-flow", "voice", "apply", run["run_id"]]}
+    if state == "VISUAL_RENDER":
+        return {"action": "run_command", "run_id": run["run_id"], "state": state, "command": ["article-flow", "render-visuals", run["run_id"]]}
     if state == "PACKAGE":
         return {"action": "run_command", "run_id": run["run_id"], "state": state, "command": ["article-flow", "package", run["run_id"]]}
     if state == "PUBLISH_APPROVAL":
@@ -5730,6 +5947,72 @@ def command_start(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def command_revise(args: argparse.Namespace) -> int:
+    """Create a new, fully verified run that replaces one completed URL in place."""
+    source_directory, source_run = load_run(args.source_run_id)
+    if source_run.get("state") != "COMPLETE":
+        raise FlowError("A same-URL revision requires a completed source run", EXIT_USAGE)
+    request_path = Path(args.request_file).expanduser().resolve()
+    if not request_path.is_file() or not request_path.read_text(encoding="utf-8").strip():
+        raise FlowError(f"Revision request does not exist or is empty: {request_path}", EXIT_USAGE)
+    source_seed = artifact_path(source_directory, source_run, "seed")
+    source_metadata_path = source_directory / "package" / "public" / "metadata.json"
+    if not source_seed or not source_metadata_path.is_file():
+        raise FlowError("Completed source run lacks its seed or publication metadata", EXIT_INTEGRITY)
+    source_metadata = load_json(source_metadata_path)
+    start_args = argparse.Namespace(
+        seed=None,
+        seed_file=str(source_seed),
+        slug=str(source_metadata.get("slug") or ""),
+        draft_model=getattr(args, "draft_model", None),
+        auto=False,
+        hold_before_publish=bool(getattr(args, "hold_before_publish", False)),
+        json=True,
+    )
+    code, created = _silent_command(command_start, start_args)
+    if code != EXIT_OK or not created or not created.get("run_id"):
+        raise FlowError("Could not create the correction run", code or EXIT_FAILED, created)
+    run_id = str(created["run_id"])
+    directory, run = load_run(run_id)
+    with run_lock(directory, run):
+        request_destination = directory / "artifacts" / "revision-request.md"
+        request_bytes = request_path.read_bytes()
+        immutable_write(request_destination, request_bytes)
+        request_artifact = record_artifact(
+            directory,
+            run,
+            request_destination,
+            "revision-request",
+            {"actor": "operator", "source_run_id": source_run["run_id"], "preserved_verbatim": True},
+            expected_bytes=request_bytes,
+        )
+        target = load_json(SPEC_ROOT / "publication" / "theproductiveprompter.json")
+        revision = {
+            "revision_schema_version": "1.0.0",
+            "source_run_id": source_run["run_id"],
+            "mode": "replace_in_place",
+            "slug": str(source_metadata["slug"]),
+            "canonical_url": target["canonical_url"].format(slug=source_metadata["slug"]),
+            "original_published_date": str(source_metadata["date"]),
+            "requested_at": utc_now(),
+            "request_sha256": request_artifact["sha256"],
+        }
+        revision_path = directory / "artifacts" / "revision.json"
+        write_json(revision_path, revision)
+        errors = validate_json_schema(revision_path, "revision.schema.json")
+        if errors:
+            raise FlowError("Controller generated an invalid revision record", EXIT_INTEGRITY, errors)
+        record_artifact(directory, run, revision_path, "revision", {"actor": "controller", "version": CONTROLLER_VERSION}, inputs=[request_artifact["artifact_id"]])
+        run["revision"] = revision
+        run["parent_run_id"] = source_run["run_id"]
+        append_event(directory, run, "REVISION_CREATED", "controller", revision)
+        save_run(directory, run)
+    if bool(getattr(args, "auto", False)):
+        return command_advance(argparse.Namespace(run_id=run_id, max_steps=100, json=args.json))
+    emit({"ok": True, "run_id": run_id, "source_run_id": source_run["run_id"], "state": run["state"], "revision": revision, "next_command": ["article-flow", "advance", run_id]}, args.json)
+    return EXIT_OK
+
+
 def latest_run_id() -> str:
     candidates = sorted(
         (path for path in runs_root().glob("AF-*") if path.is_dir() and (path / "run.json").is_file()),
@@ -5794,6 +6077,14 @@ def command_status(args: argparse.Namespace) -> int:
         "event_log_integrity": True,
         "derived_state": run["state"],
         "compatibility_warning": compatibility_warning,
+        "next_action_summary": (
+            "complete" if run["state"] == "COMPLETE"
+            else "terminal" if run["state"] == "TERMINAL"
+            else "operator repair required" if run.get("status") == "BLOCKED"
+            else "choose or reject the three voice candidates" if run["state"] == "VOICE_PROBE" and run.get("status") == "WAITING_HUMAN"
+            else "run the next automatic controller step" if run["state"] in DETERMINISTIC_STATES
+            else "produce and validate the current model-stage artifact"
+        ),
     }
     emit(payload, args.json)
     return EXIT_OK
@@ -5843,7 +6134,7 @@ def command_submit(args: argparse.Namespace) -> int:
     source = Path(args.file).expanduser().resolve()
     if not source.is_file():
         raise FlowError(f"Submission file does not exist: {source}")
-    artifact_type, filename = stage_output(args.stage)
+    artifact_type, filename = stage_output(args.stage, run)
     with run_lock(directory, run):
         if run["state"] != args.stage:
             raise FlowError(
@@ -6172,6 +6463,8 @@ def command_submit(args: argparse.Namespace) -> int:
             block_attempt_reconciliation(directory, run, args.stage, attempt, packet_hash, issue)
             raise FlowError("Accepted attempt changed after artifact recording", EXIT_INTEGRITY, issue)
         require_submit_evidence("attempt_evidence_changed_after_artifact_record")
+        if args.stage == "VOICE_PROBE" and is_v31_run(run) and outcome == "PASS":
+            materialize_voice_probe(directory, run, destination, attempt)
         if args.stage == "CLAIM_VERIFICATION" and outcome == "PASS":
             lock_verified_fields(directory, run, destination)
         definition = state_definition(args.stage, run)
@@ -6227,15 +6520,13 @@ def command_submit(args: argparse.Namespace) -> int:
         require_submit_evidence("attempt_evidence_changed_after_gate_receipt")
         if outcome != "PASS":
             if packet_route:
-                key = f"{packet_route.get('provider')}:{packet_route.get('model')}"
-                stage_failures = run.setdefault("route_failures", {}).setdefault(args.stage, {})
-                stage_failures[key] = int(stage_failures.get(key, 0)) + 1
                 append_event(directory, run, "MODEL_OUTPUT_REJECTED", "controller", {
                     "state": args.stage,
                     "attempt": attempt,
                     "task_packet_sha256": packet_hash,
                     "route": packet_route,
-                    "failure_count": stage_failures[key],
+                    "classification": "content_or_schema_rejection",
+                    "route_eligibility_changed": False,
                     "findings": findings,
                 })
             repair_context = remember_repair_context(directory, run, args.stage, definition)
@@ -6647,14 +6938,197 @@ def command_repair(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def _svg_text(value: str) -> str:
+    return html.escape(re.sub(r"\s+", " ", value).strip(), quote=True)
+
+
+def _svg_wrapped_text(value: str, *, x: int, y: int, width: int, line_height: int = 24, css_class: str = "label") -> str:
+    lines = textwrap.wrap(re.sub(r"\s+", " ", value).strip(), width=max(12, width)) or [""]
+    spans = "".join(
+        f'<tspan x="{x}" dy="{0 if index == 0 else line_height}">{_svg_text(line)}</tspan>'
+        for index, line in enumerate(lines[:3])
+    )
+    return f'<text x="{x}" y="{y}" class="{css_class}">{spans}</text>'
+
+
+def render_visual_svg(visual: dict[str, Any]) -> bytes:
+    """Render one schema-limited visual without accepting model-authored markup."""
+    kind = str(visual["kind"])
+    title = _svg_text(str(visual["title"]))
+    alt = _svg_text(str(visual["alt_text"]))
+    labels = [str(item) for item in visual.get("labels", [])]
+    style = """
+      .bg{fill:#0b1020}.panel{fill:#121a2d;stroke:#33415f;stroke-width:2}.muted{fill:#95a3bd}
+      .title{fill:#f8fafc;font:700 30px system-ui,sans-serif}.label{fill:#e8edf7;font:500 19px system-ui,sans-serif}
+      .small{fill:#aebbd0;font:500 16px system-ui,sans-serif}.accent{fill:#7dd3fc}.warm{fill:#fbbf24}
+      .line-a{fill:none;stroke:#7dd3fc;stroke-width:7;stroke-linecap:round}.line-b{fill:none;stroke:#fbbf24;stroke-width:7;stroke-linecap:round}
+      .arrow{fill:none;stroke:#71819d;stroke-width:3;marker-end:url(#arrow)}
+    """
+    defs = '<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#71819d"/></marker></defs>'
+    elements = [f'<rect class="bg" width="1000" height="560" rx="28"/>', f'<text x="60" y="66" class="title">{title}</text>']
+    if kind == "console_reconstruction":
+        elements.extend([
+            '<rect x="55" y="96" width="890" height="410" rx="18" class="panel"/>',
+            '<circle cx="88" cy="126" r="7" fill="#fb7185"/><circle cx="112" cy="126" r="7" fill="#fbbf24"/><circle cx="136" cy="126" r="7" fill="#4ade80"/>',
+            '<text x="830" y="132" class="small">RECONSTRUCTION</text>',
+        ])
+        y = 186
+        for index, label in enumerate(labels[:5], start=1):
+            elements.append(f'<circle cx="98" cy="{y - 7}" r="17" fill="#24324d"/><text x="92" y="{y}" class="small">{index}</text>')
+            elements.append(_svg_wrapped_text(label, x=135, y=y, width=70, line_height=21))
+            y += 66
+    elif kind == "trend_gap":
+        first = _svg_text(labels[0] if labels else "Model capability")
+        second = _svg_text(labels[1] if len(labels) > 1 else "Product default")
+        elements.extend([
+            '<line x1="100" y1="465" x2="910" y2="465" class="arrow"/>',
+            '<line x1="100" y1="465" x2="100" y2="120" class="arrow"/>',
+            '<path d="M130 420 C320 390, 420 325, 555 260 S780 150, 885 125" class="line-a"/>',
+            '<path d="M130 382 C360 378, 650 374, 885 370" class="line-b"/>',
+            f'<circle cx="720" cy="176" r="7" class="accent"/><text x="738" y="181" class="label">{first}</text>',
+            f'<circle cx="720" cy="372" r="7" class="warm"/><text x="738" y="378" class="label">{second}</text>',
+            '<text x="858" y="507" class="small">Time</text><text x="30" y="120" class="small" transform="rotate(-90 30 120)">Capability used</text>',
+            '<line x1="620" y1="270" x2="620" y2="365" stroke="#a78bfa" stroke-width="3" stroke-dasharray="8 8"/>',
+            '<text x="640" y="320" class="small">integration gap</text>',
+        ])
+    elif kind == "delivery_loop":
+        count = min(6, len(labels))
+        card_width = 128 if count == 6 else 150 if count == 5 else 180
+        gap = 18 if count == 6 else 22
+        total = count * card_width + max(0, count - 1) * gap
+        start = max(45, (1000 - total) // 2)
+        for index, label in enumerate(labels[:6]):
+            x = start + index * (card_width + gap)
+            elements.append(f'<rect x="{x}" y="185" width="{card_width}" height="150" rx="16" class="panel"/>')
+            elements.append(f'<text x="{x + 18}" y="218" class="small">0{index + 1}</text>')
+            elements.append(_svg_wrapped_text(label, x=x + 18, y=255, width=12 if count == 6 else 15, line_height=23))
+            if index < count - 1:
+                elements.append(f'<line x1="{x + card_width + 4}" y1="260" x2="{x + card_width + gap - 4}" y2="260" class="arrow"/>')
+        if count:
+            last_x = start + (count - 1) * (card_width + gap) + card_width // 2
+            first_x = start + card_width // 2
+            elements.append(f'<path d="M{last_x} 350 C{last_x} 455,{first_x} 455,{first_x} 350" class="arrow"/>')
+            elements.append('<text x="420" y="445" class="small">telemetry starts the next review</text>')
+    else:
+        raise FlowError(f"Unsupported deterministic visual kind: {kind}", EXIT_INTEGRITY)
+    svg = (
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" role="img" aria-labelledby="title desc">'
+        f'<title id="title">{title}</title><desc id="desc">{alt}</desc>{defs}<style>{style}</style>'
+        + "".join(elements)
+        + "</svg>\n"
+    )
+    return svg.encode("utf-8")
+
+
+def validate_visual_manifest(directory: Path, run: dict[str, Any], manifest_path: Path) -> list[dict[str, Any]]:
+    findings: list[dict[str, Any]] = []
+    for error in validate_json_schema(manifest_path, "visual-manifest.schema.json"):
+        findings.append({"criterion": "schema", "artifact": str(manifest_path), "location": None, "finding": error, "repair_instruction": "Re-render the validated visual plan."})
+    if findings:
+        return findings
+    value = load_json(manifest_path)
+    plan_path = artifact_path(directory, run, "visual-plan")
+    if not plan_path or value.get("visual_plan_sha256") != sha256_path(plan_path):
+        findings.append({"criterion": "visual_plan_binding", "artifact": str(manifest_path), "location": "visual_plan_sha256", "finding": "Manifest is not bound to the approved visual plan.", "repair_instruction": "Render from the current plan."})
+    for item in value.get("assets", []):
+        source = directory / safe_relative(str(item.get("source_path") or ""))
+        if not source.is_file() or sha256_path(source) != item.get("sha256") or source.stat().st_size != item.get("byte_size"):
+            findings.append({"criterion": "visual_asset_hash", "artifact": str(source), "location": str(item.get("visual_id")), "finding": "Rendered asset is missing or does not match its manifest.", "repair_instruction": "Re-render the deterministic asset."})
+    return findings
+
+
+def command_visual_render(args: argparse.Namespace) -> int:
+    directory, run = load_run(args.run_id)
+    if run["state"] != "VISUAL_RENDER":
+        raise FlowError(f"Visual rendering requires VISUAL_RENDER, current state is {run['state']}")
+    with run_lock(directory, run):
+        plan_path = artifact_path(directory, run, "visual-plan")
+        if not plan_path:
+            raise FlowError("Approved visual plan is missing", EXIT_INTEGRITY)
+        plan = load_json(plan_path)
+        plan_errors = validate_json_schema(plan_path, "visual-plan.schema.json")
+        if plan_errors:
+            raise FlowError("Visual plan is invalid", EXIT_INTEGRITY, plan_errors)
+        slug = package_metadata_slug(directory, run)
+        plan_hash = sha256_path(plan_path)
+        assets: list[dict[str, Any]] = []
+        visuals_root = directory / "artifacts" / "visuals"
+        visuals_root.mkdir(parents=True, exist_ok=True)
+        for visual in plan.get("visuals", []):
+            visual_id = str(visual["visual_id"])
+            path = visuals_root / f"{visual_id}-{plan_hash[:8]}.svg"
+            data = render_visual_svg(visual)
+            immutable_write(path, data)
+            record_artifact(directory, run, path, f"visual-asset:{visual_id}", {"actor": "controller", "version": CONTROLLER_VERSION, "renderer": "deterministic-svg-v1"}, expected_bytes=data)
+            assets.append({
+                "visual_id": visual_id,
+                "kind": visual["kind"],
+                "source_path": path.relative_to(directory).as_posix(),
+                "public_path": f"/assets/articles/{slug}/{visual_id}.svg",
+                "sha256": sha256_bytes(data),
+                "byte_size": len(data),
+                "title": visual["title"],
+                "alt_text": visual["alt_text"],
+                "caption": visual["caption"],
+                "placement": visual["placement"],
+                "claim_ids": visual.get("claim_ids", []),
+            })
+        manifest = {
+            "visual_manifest_schema_version": "1.0.0",
+            "run_id": run["run_id"],
+            "visual_plan_sha256": plan_hash,
+            "assets": assets,
+        }
+        manifest_path = directory / "artifacts" / "visual-manifest.json"
+        write_json(manifest_path, manifest)
+        findings = validate_visual_manifest(directory, run, manifest_path)
+        if findings:
+            write_gate_receipt(directory, run, "G-VISUAL-RENDER", "REPAIR", findings, {"type": "code", "version": CONTROLLER_VERSION}, "VISUAL_PLAN")
+            raise FlowError("Deterministic visual rendering failed", EXIT_INTEGRITY, findings)
+        record_artifact(directory, run, manifest_path, "visual-manifest", {"actor": "controller", "version": CONTROLLER_VERSION}, inputs=[artifact(run, "visual-plan")["artifact_id"]] if artifact(run, "visual-plan") else [])
+        write_gate_receipt(directory, run, "G-VISUAL-RENDER", "PASS", [], {"type": "code", "version": CONTROLLER_VERSION})
+        transition(directory, run, "CLAIM_VERIFICATION", "controller", "Visual assets rendered and hash-bound to their plan")
+    emit({"ok": True, "state": run["state"], "manifest": str(manifest_path), "assets": assets, "next_command": ["article-flow", "advance", run["run_id"]]}, args.json)
+    return EXIT_OK
+
+
+def package_metadata_slug(directory: Path, run: dict[str, Any]) -> str:
+    brief = json_artifact(directory, run, "brief") or {}
+    revision = run.get("revision") if isinstance(run.get("revision"), dict) else {}
+    return slugify(str(revision.get("slug") or brief.get("slug") or brief.get("title") or "untitled-article"), 80)
+
+
 def markdown_inline(value: str) -> str:
     placeholders: dict[str, str] = {}
     def hold(rendered: str) -> str:
         key = f"@@AF{len(placeholders)}@@"
         placeholders[key] = rendered
         return key
+    # Decode entities to characters before escaping. This renders legitimate
+    # Markdown entities such as &nbsp; once, while encoded HTML remains text.
+    value = html.unescape(value)
+    def safe_target(raw: str) -> str | None:
+        target = raw.strip()
+        parsed = urllib.parse.urlparse(target)
+        if parsed.scheme and parsed.scheme not in {"http", "https", "mailto"}:
+            return None
+        if target.startswith("//"):
+            return None
+        return html.escape(target, quote=True)
+    def image_replacement(match: re.Match[str]) -> str:
+        target = safe_target(match.group(2))
+        alt = html.escape(match.group(1), quote=True)
+        if target is None:
+            return alt
+        title = f' title="{html.escape(match.group(3), quote=True)}"' if match.group(3) else ""
+        return hold(f'<img src="{target}" alt="{alt}" loading="lazy" decoding="async"{title}>')
+    def link_replacement(match: re.Match[str]) -> str:
+        target = safe_target(match.group(2))
+        label = html.escape(match.group(1))
+        return hold(f'<a href="{target}">{label}</a>') if target is not None else label
     value = re.sub(r"`([^`]+)`", lambda match: hold(f"<code>{html.escape(match.group(1))}</code>"), value)
-    value = re.sub(r"\[([^\]]+)\]\((https?://[^)]+|[^)]+)\)", lambda match: hold(f'<a href="{html.escape(match.group(2), quote=True)}">{html.escape(match.group(1))}</a>'), value)
+    value = re.sub(r"!\[([^\]]*)\]\(([^)\s]+)(?:\s+\"([^\"]*)\")?\)", image_replacement, value)
+    value = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", link_replacement, value)
     value = html.escape(value)
     value = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", value)
     value = re.sub(r"(?<!\*)\*([^*]+)\*(?!\*)", r"<em>\1</em>", value)
@@ -6673,14 +7147,21 @@ def markdown_to_html(markdown: str) -> str:
     code_language = ""
     def flush_paragraph() -> None:
         if paragraph:
-            output.append(f"<p>{markdown_inline(' '.join(item.strip() for item in paragraph))}</p>")
+            rendered: list[str] = []
+            for item in paragraph:
+                hard_break = item.endswith("  ")
+                rendered.append(markdown_inline(item.rstrip()))
+                rendered.append("<br>\n" if hard_break else " ")
+            output.append(f"<p>{''.join(rendered).rstrip()}</p>")
             paragraph.clear()
     def close_list() -> None:
         nonlocal list_type
         if list_type:
             output.append(f"</{list_type}>")
             list_type = None
-    for line in lines:
+    index = 0
+    while index < len(lines):
+        line = lines[index]
         if line.startswith("```"):
             flush_paragraph()
             close_list()
@@ -6692,9 +7173,11 @@ def markdown_to_html(markdown: str) -> str:
                 language_class = f' class="language-{html.escape(code_language)}"' if code_language else ""
                 output.append(f"<pre><code{language_class}>{html.escape(chr(10).join(code_lines))}</code></pre>")
                 in_code = False
+            index += 1
             continue
         if in_code:
             code_lines.append(line)
+            index += 1
             continue
         stripped = line.strip()
         if stripped in {"<details>", "</details>"} or (stripped.startswith("<summary>") and stripped.endswith("</summary>") and "<" not in stripped[len("<summary>"):-len("</summary>")]):
@@ -6707,6 +7190,7 @@ def markdown_to_html(markdown: str) -> str:
                 output.append(f"<summary>{markdown_inline(inner)}</summary>")
             else:
                 output.append(stripped)
+            index += 1
             continue
         heading = re.match(r"^(#{1,6})\s+(.+)$", line)
         if heading:
@@ -6714,8 +7198,30 @@ def markdown_to_html(markdown: str) -> str:
             close_list()
             level = len(heading.group(1))
             if level == 1 and not output:
+                index += 1
                 continue
             output.append(f"<h{level}>{markdown_inline(heading.group(2))}</h{level}>")
+            index += 1
+            continue
+        if (
+            "|" in line
+            and index + 1 < len(lines)
+            and re.match(r"^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?\s*$", lines[index + 1])
+        ):
+            flush_paragraph()
+            close_list()
+            headers = [cell.strip() for cell in line.strip().strip("|").split("|")]
+            output.append('<div class="article-table-wrap"><table><thead><tr>')
+            output.extend(f"<th>{markdown_inline(cell)}</th>" for cell in headers)
+            output.append("</tr></thead><tbody>")
+            index += 2
+            while index < len(lines) and "|" in lines[index] and lines[index].strip():
+                cells = [cell.strip() for cell in lines[index].strip().strip("|").split("|")]
+                if len(cells) != len(headers):
+                    break
+                output.append("<tr>" + "".join(f"<td>{markdown_inline(cell)}</td>" for cell in cells) + "</tr>")
+                index += 1
+            output.append("</tbody></table></div>")
             continue
         bullet = re.match(r"^\s*[-*+]\s+(.+)$", line)
         number = re.match(r"^\s*\d+[.)]\s+(.+)$", line)
@@ -6727,17 +7233,20 @@ def markdown_to_html(markdown: str) -> str:
                 list_type = desired
                 output.append(f"<{desired}>")
             output.append(f"<li>{markdown_inline((bullet or number).group(1))}</li>")
+            index += 1
             continue
         if line.startswith("> "):
             flush_paragraph()
             close_list()
             output.append(f"<blockquote><p>{markdown_inline(line[2:])}</p></blockquote>")
+            index += 1
             continue
         if not line.strip():
             flush_paragraph()
             close_list()
         else:
             paragraph.append(line)
+        index += 1
     flush_paragraph()
     close_list()
     if in_code:
@@ -6749,8 +7258,10 @@ def package_metadata(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
     brief = json_artifact(directory, run, "brief") or {}
     recipe = json_artifact(directory, run, "article-recipe") or {}
     title = str(brief.get("title") or "Untitled article")
-    slug = slugify(str(brief.get("slug") or title), 80)
-    date_value = str(brief.get("date") or dt.date.today().isoformat())
+    revision = run.get("revision") if isinstance(run.get("revision"), dict) else {}
+    slug = slugify(str(revision.get("slug") or brief.get("slug") or title), 80)
+    date_value = str(revision.get("original_published_date") or brief.get("date") or dt.date.today().isoformat())
+    modified_value = utc_now() if revision else (date_value if "T" in date_value else f"{date_value}T12:00:00-05:00")
     description = str(brief.get("description") or brief.get("reader_job") or title)
     tags = brief.get("tags", [])
     if not isinstance(tags, list):
@@ -6772,6 +7283,8 @@ def package_metadata(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
         "reader_job": brief.get("reader_job"),
         "date": date_value,
         "date_iso": date_value if "T" in date_value else f"{date_value}T12:00:00-05:00",
+        "modified_date": modified_value[:10],
+        "modified_date_iso": modified_value,
         "author": "Josiah Hunter",
         "tags": tags,
         "archetype": recipe.get("archetype"),
@@ -6784,6 +7297,8 @@ def package_metadata(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
         "drafting_models": drafting_models,
         "model_experiment_contaminated": bool(experiment.get("contaminated", False)),
         "style_policy_sha256": style_policy_sha256(),
+        "revision_mode": "replace_in_place" if revision else "new",
+        "source_run_id": revision.get("source_run_id"),
     }
 
 
@@ -6816,6 +7331,66 @@ def demote_latest_cards(value: str) -> str:
     return value
 
 
+def replace_existing_article_card(content: str, slug: str, replacement: str) -> str:
+    pattern = re.compile(
+        rf'<article\b(?=[^>]*\bdata-article-flow-slug="{re.escape(slug)}")[^>]*>.*?</article>',
+        flags=re.DOTALL,
+    )
+    matches = list(pattern.finditer(content))
+    if len(matches) != 1:
+        raise FlowError(f"Expected exactly one existing card for same-URL revision {slug}; found {len(matches)}")
+    old = matches[0].group(0)
+    if "article-card--featured" not in old:
+        replacement = replacement.replace("article-card article-card--featured", "article-card")
+        replacement = re.sub(r'\s*<span class="article-card__badge">Latest</span>', "", replacement)
+    return content[:matches[0].start()] + replacement + content[matches[0].end():]
+
+
+def replace_existing_feed_item(content: str, canonical: str, replacement: str) -> str:
+    pattern = re.compile(r"<item>.*?</item>", flags=re.DOTALL)
+    matches = [match for match in pattern.finditer(content) if canonical in match.group(0)]
+    if len(matches) != 1:
+        raise FlowError(f"Expected exactly one existing feed item for same-URL revision; found {len(matches)}")
+    match = matches[0]
+    return content[:match.start()] + replacement + content[match.end():]
+
+
+def replace_existing_sitemap_item(content: str, canonical: str, replacement: str) -> str:
+    pattern = re.compile(r"<url>.*?</url>", flags=re.DOTALL)
+    matches = [match for match in pattern.finditer(content) if canonical in match.group(0)]
+    if len(matches) != 1:
+        raise FlowError(f"Expected exactly one existing sitemap entry for same-URL revision; found {len(matches)}")
+    match = matches[0]
+    return content[:match.start()] + replacement.strip() + content[match.end():]
+
+
+def inject_manifest_visuals(directory: Path, run: dict[str, Any], body: str) -> str:
+    manifest_path = artifact_path(directory, run, "visual-manifest")
+    if not manifest_path:
+        return body
+    findings = validate_visual_manifest(directory, run, manifest_path)
+    if findings:
+        raise FlowError("Visual manifest failed before publication rendering", EXIT_INTEGRITY, findings)
+    manifest = load_json(manifest_path)
+    rendered = body
+    for asset in manifest.get("assets", []):
+        heading = str((asset.get("placement") or {}).get("after_heading") or "")
+        heading_html = markdown_inline(heading)
+        pattern = re.compile(rf"(<h([2-6])>{re.escape(heading_html)}</h\2>)")
+        figure = (
+            f'<figure class="article-visual" data-visual-id="{html.escape(str(asset["visual_id"]), quote=True)}" '
+            f'data-asset-sha256="{html.escape(str(asset["sha256"]), quote=True)}">'
+            f'<img src="{html.escape(str(asset["public_path"]), quote=True)}" alt="{html.escape(str(asset["alt_text"]), quote=True)}" '
+            'loading="lazy" decoding="async">'
+            f'<figcaption><strong>{html.escape(str(asset["title"]))}.</strong> {html.escape(str(asset["caption"]))}</figcaption>'
+            '</figure>'
+        )
+        rendered, count = pattern.subn(rf"\1\n{figure}", rendered, count=1)
+        if count != 1:
+            raise FlowError(f"Visual {asset['visual_id']} could not be placed after heading {heading!r}", EXIT_INTEGRITY)
+    return rendered
+
+
 def render_publication_files(directory: Path, run: dict[str, Any], package_root: Path, metadata: dict[str, Any]) -> list[Path]:
     article_path = artifact_path(directory, run, "article")
     if not article_path:
@@ -6823,7 +7398,7 @@ def render_publication_files(directory: Path, run: dict[str, Any], package_root:
     target = load_json(SPEC_ROOT / "publication" / "theproductiveprompter.json")
     repository = publication_repo_root(required=True)
     template = (SPEC_ROOT / target["article_template"]).read_text(encoding="utf-8")
-    body = markdown_to_html(article_path.read_text(encoding="utf-8"))
+    body = inject_manifest_visuals(directory, run, markdown_to_html(article_path.read_text(encoding="utf-8")))
     drafting_models = metadata.get("drafting_models", [])
     if is_v3_run(run) and not drafting_models:
         raise FlowError("Cannot render a workflow 3 article without drafting-model disclosure", EXIT_INTEGRITY)
@@ -6842,6 +7417,7 @@ def render_publication_files(directory: Path, run: dict[str, Any], package_root:
         "{{DESCRIPTION}}": html.escape(metadata["description"], quote=True),
         "{{CANONICAL_URL}}": html.escape(canonical, quote=True),
         "{{DATE_ISO}}": html.escape(metadata["date_iso"], quote=True),
+        "{{MODIFIED_DATE_ISO}}": html.escape(str(metadata.get("modified_date_iso") or metadata["date_iso"]), quote=True),
         "{{DATE_DISPLAY}}": html.escape(dt.date.fromisoformat(metadata["date"][:10]).strftime("%B %d, %Y").replace(" 0", " ")),
         "{{WORD_COUNT}}": str(words),
         "{{READING_MINUTES}}": str(reading_minutes),
@@ -6869,6 +7445,17 @@ def render_publication_files(directory: Path, run: dict[str, Any], package_root:
             raise FlowError("Article publication template has no </head> marker for provenance metadata", EXIT_INTEGRITY)
         rendered = rendered.replace("</head>", disclosure_meta + "\n</head>", 1)
     site_root = package_root / "site"
+    site_root.mkdir(parents=True, exist_ok=True)
+    # Article figures and table wrappers rely on the release stylesheet. Keep
+    # that exact reviewed byte set in the publication plan with the article.
+    shutil.copy2(REPO_ROOT / "styles.css", site_root / "styles.css")
+    manifest_path = artifact_path(directory, run, "visual-manifest")
+    if manifest_path:
+        for asset in load_json(manifest_path).get("assets", []):
+            source = directory / safe_relative(str(asset["source_path"]))
+            destination = site_root / str(asset["public_path"]).lstrip("/")
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, destination)
     article_output = site_root / "docs" / f"{metadata['slug']}.html"
     atomic_write(article_output, rendered.encode("utf-8"))
     card_blog = textwrap.dedent(f"""\
@@ -6884,14 +7471,18 @@ def render_publication_files(directory: Path, run: dict[str, Any], package_root:
     card_home = card_blog.replace(f'href="{metadata["slug"]}.html"', f'href="docs/{metadata["slug"]}.html"')
     for source_rel, replacement in (("docs/blog.html", card_blog), ("index.html", card_home)):
         source = repository / source_rel
-        updated = prepend_marked(
-            source.read_text(encoding="utf-8"),
-            target["latest_card_start_marker"],
-            target["latest_card_end_marker"],
-            replacement,
-            unique_token=f"{metadata['slug']}.html",
-            transform_existing=demote_latest_cards,
-        )
+        source_text = source.read_text(encoding="utf-8")
+        if metadata.get("revision_mode") == "replace_in_place":
+            updated = replace_existing_article_card(source_text, metadata["slug"], replacement)
+        else:
+            updated = prepend_marked(
+                source_text,
+                target["latest_card_start_marker"],
+                target["latest_card_end_marker"],
+                replacement,
+                unique_token=f"{metadata['slug']}.html",
+                transform_existing=demote_latest_cards,
+            )
         output = site_root / source_rel
         atomic_write(output, updated.encode("utf-8"))
     feed_source = (repository / target["feed_file"]).read_text(encoding="utf-8")
@@ -6903,18 +7494,26 @@ def render_publication_files(directory: Path, run: dict[str, Any], package_root:
           <pubDate>{dt.datetime.fromisoformat(metadata['date_iso']).strftime('%a, %d %b %Y %H:%M:%S %z')}</pubDate>
           <description>{html.escape(metadata['description'])}</description>
         </item>""")
-    feed_updated = prepend_marked(feed_source, "<!-- ARTICLE_FLOW_FEED_START -->", "<!-- ARTICLE_FLOW_FEED_END -->", feed_item, unique_token=canonical)
+    feed_updated = (
+        replace_existing_feed_item(feed_source, canonical, feed_item)
+        if metadata.get("revision_mode") == "replace_in_place"
+        else prepend_marked(feed_source, "<!-- ARTICLE_FLOW_FEED_START -->", "<!-- ARTICLE_FLOW_FEED_END -->", feed_item, unique_token=canonical)
+    )
     feed_updated = re.sub(
         r"<lastBuildDate>.*?</lastBuildDate>",
-        f"<lastBuildDate>{dt.datetime.fromisoformat(metadata['date_iso']).strftime('%a, %d %b %Y %H:%M:%S %z')}</lastBuildDate>",
+        f"<lastBuildDate>{dt.datetime.fromisoformat(metadata.get('modified_date_iso') or metadata['date_iso']).strftime('%a, %d %b %Y %H:%M:%S %z')}</lastBuildDate>",
         feed_updated,
         count=1,
     )
     feed_output = site_root / target["feed_file"]
     atomic_write(feed_output, feed_updated.encode("utf-8"))
     sitemap_source = (repository / target["sitemap_file"]).read_text(encoding="utf-8")
-    sitemap_item = f"  <url>\n    <loc>{canonical}</loc>\n    <lastmod>{metadata['date'][:10]}</lastmod>\n  </url>"
-    sitemap_updated = prepend_marked(sitemap_source, "<!-- ARTICLE_FLOW_SITEMAP_START -->", "<!-- ARTICLE_FLOW_SITEMAP_END -->", sitemap_item, unique_token=canonical)
+    sitemap_item = f"  <url>\n    <loc>{canonical}</loc>\n    <lastmod>{metadata.get('modified_date') or metadata['date'][:10]}</lastmod>\n  </url>"
+    sitemap_updated = (
+        replace_existing_sitemap_item(sitemap_source, canonical, sitemap_item)
+        if metadata.get("revision_mode") == "replace_in_place"
+        else prepend_marked(sitemap_source, "<!-- ARTICLE_FLOW_SITEMAP_START -->", "<!-- ARTICLE_FLOW_SITEMAP_END -->", sitemap_item, unique_token=canonical)
+    )
     sitemap_output = site_root / target["sitemap_file"]
     atomic_write(sitemap_output, sitemap_updated.encode("utf-8"))
     return sorted([path for path in site_root.rglob("*") if path.is_file()])
@@ -7127,6 +7726,34 @@ def validate_public_package(package_root: Path, metadata: dict[str, Any]) -> lis
             for name, required_text in required_provenance.items():
                 if required_text not in text:
                     findings.append({"criterion": name, "path": str(article_html), "finding": f"Missing or incorrect {name}."})
+        workflow_parts = str(metadata.get("workflow_version", "0.0")).split(".")
+        try:
+            visuals_required = (int(workflow_parts[0]), int(workflow_parts[1])) >= (3, 1)
+        except (IndexError, ValueError):
+            visuals_required = False
+        if visuals_required:
+            assets_path = public_root / "assets.json"
+            try:
+                asset_manifest = load_json(assets_path)
+            except FlowError as exc:
+                findings.append({"criterion": "visual_manifest", "path": str(assets_path), "finding": str(exc)})
+                asset_manifest = {"assets": []}
+            assets = [item for item in asset_manifest.get("assets", []) if isinstance(item, dict)]
+            if not assets:
+                findings.append({"criterion": "required_visual", "path": str(article_html), "finding": "Workflow 3.1 article has no rendered visuals."})
+            for asset in assets:
+                visual_id = str(asset.get("visual_id") or "")
+                public_target = site_root / str(asset.get("public_path") or "").lstrip("/")
+                if not public_target.is_file() or sha256_path(public_target) != asset.get("sha256"):
+                    findings.append({"criterion": "visual_asset_hash", "path": str(public_target), "finding": f"Visual {visual_id} is missing or has the wrong hash."})
+                required_figure_bits = [
+                    f'data-visual-id="{html.escape(visual_id, quote=True)}"',
+                    f'data-asset-sha256="{asset.get("sha256")}"',
+                    f'alt="{html.escape(str(asset.get("alt_text") or ""), quote=True)}"',
+                    f'<figcaption><strong>{html.escape(str(asset.get("title") or ""))}.',
+                ]
+                if any(bit not in text for bit in required_figure_bits):
+                    findings.append({"criterion": "visual_figure_binding", "path": str(article_html), "finding": f"Visual {visual_id} is not rendered with its bound hash, alt text, title, and caption."})
         for attribute, target in re.findall(r"\b(href|src)=\"([^\"]+)\"", text):
             if target.startswith(("http://", "https://", "mailto:", "#", "data:")):
                 continue
@@ -7299,7 +7926,22 @@ def command_package(args: argparse.Namespace) -> int:
             ledger = load_json(claim_path)
             references["sources"] = sorted({claim.get("source_url_or_local_id") for claim in ledger.get("claims", []) if claim.get("source_url_or_local_id")})
         write_json(public_root / "references.json", references)
-        write_json(public_root / "assets.json", {"assets": []})
+        visual_manifest_path = artifact_path(directory, run, "visual-manifest")
+        if is_v31_run(run):
+            if not visual_manifest_path:
+                raise FlowError("Workflow 3.1 packaging requires a rendered visual manifest", EXIT_INTEGRITY)
+            visual_findings = validate_visual_manifest(directory, run, visual_manifest_path)
+            if visual_findings:
+                raise FlowError("Workflow 3.1 visual manifest is invalid", EXIT_INTEGRITY, visual_findings)
+            visual_manifest = load_json(visual_manifest_path)
+            for asset in visual_manifest.get("assets", []):
+                source = directory / safe_relative(str(asset["source_path"]))
+                destination = public_root / "assets" / f"{asset['visual_id']}.svg"
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source, destination)
+            write_json(public_root / "assets.json", visual_manifest)
+        else:
+            write_json(public_root / "assets.json", {"assets": []})
         site_files = render_publication_files(directory, run, package_root, metadata)
         private_index = copy_private_run_archive(directory, private_root)
         write_json(private_root / "archive-index.json", private_index)
@@ -7918,6 +8560,14 @@ def command_verify_live(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
     if run["state"] != "LIVE_VERIFICATION":
         raise FlowError(f"Live verification requires LIVE_VERIFICATION, current state is {run['state']}")
+    events = _read_jsonl(directory / str(run["event_log"]))
+    prior_attempts = sum(1 for event in events if event.get("type") == "VERIFICATION" and (event.get("payload") or {}).get("state") == "LIVE_VERIFICATION")
+    maximum = int(state_definition("LIVE_VERIFICATION", run).get("max_attempts", 4))
+    if prior_attempts >= maximum:
+        run["status"] = "BLOCKED"
+        save_run(directory, run)
+        raise FlowError("Live verification exhausted its bounded retry window", EXIT_WAITING, {"attempts": prior_attempts, "maximum": maximum})
+    attempt = prior_attempts + 1
     package = load_json(directory / "package" / "package.json")
     metadata = load_json(directory / "package" / "public" / "metadata.json")
     target = load_json(SPEC_ROOT / "publication" / "theproductiveprompter.json")
@@ -7929,7 +8579,7 @@ def command_verify_live(args: argparse.Namespace) -> int:
         "sitemap": target["sitemap_url"],
     }
     expected_article = directory / "package" / "site" / "docs" / f"{metadata['slug']}.html"
-    checks = []
+    checks: list[dict[str, Any]] = []
     article_status, article_body, headers = fetch_url(urls["article"])
     checks.append({"name": "article_http", "ok": article_status == 200, "status": article_status})
     checks.append({"name": "article_revision", "ok": sha256_bytes(article_body) == sha256_path(expected_article), "expected_sha256": sha256_path(expected_article), "actual_sha256": sha256_bytes(article_body)})
@@ -7940,11 +8590,33 @@ def command_verify_live(args: argparse.Namespace) -> int:
     checks.append({"name": "structured_data", "ok": '"@type": "BlogPosting"' in article_text and f'"url": "{urls["article"]}"' in article_text})
     article_markdown = directory / "package" / "public" / "article.md"
     checks.append({"name": "embedded_article_revision", "ok": f'<meta name="article-flow-revision" content="{sha256_path(article_markdown)}">' in article_text})
+    expected_surface_paths = {
+        "blog": directory / "package" / "site" / "docs" / "blog.html",
+        "homepage": directory / "package" / "site" / "index.html",
+        "feed": directory / "package" / "site" / "feed.xml",
+        "sitemap": directory / "package" / "site" / "sitemap.xml",
+    }
     for surface in ("blog", "homepage", "feed", "sitemap"):
         status, body, _ = fetch_url(urls[surface])
         decoded = body.decode("utf-8", errors="replace")
         checks.append({"name": f"{surface}_http", "ok": status == 200, "status": status})
+        checks.append({"name": f"{surface}_revision", "ok": sha256_bytes(body) == sha256_path(expected_surface_paths[surface]), "expected_sha256": sha256_path(expected_surface_paths[surface]), "actual_sha256": sha256_bytes(body)})
         checks.append({"name": f"{surface}_links_article", "ok": urls["article"] in decoded or f"{metadata['slug']}.html" in decoded})
+    asset_manifest = load_json(directory / "package" / "public" / "assets.json")
+    for asset in asset_manifest.get("assets", []):
+        if not isinstance(asset, dict):
+            continue
+        asset_url = urllib.parse.urljoin(target["homepage_url"], str(asset.get("public_path") or "").lstrip("/"))
+        status, body, _ = fetch_url(asset_url)
+        checks.append({
+            "name": "visual_asset",
+            "visual_id": asset.get("visual_id"),
+            "url": asset_url,
+            "status": status,
+            "expected_sha256": asset.get("sha256"),
+            "actual_sha256": sha256_bytes(body),
+            "ok": status == 200 and sha256_bytes(body) == asset.get("sha256"),
+        })
     external_links = sorted(set(re.findall(r'href="(https?://[^"]+)"', article_text)) - set(urls.values()))
     link_results = []
     for link in external_links:
@@ -7953,6 +8625,12 @@ def command_verify_live(args: argparse.Namespace) -> int:
         link_results.append({"url": html.unescape(link), "status": status, "classification": classification})
         checks.append({"name": "external_link", "url": html.unescape(link), "status": status, "classification": classification, "ok": classification != "failed"})
     ok = all(item["ok"] for item in checks)
+    failed = [item for item in checks if not item["ok"]]
+    propagation_names = {"article_http", "article_revision", "blog_http", "blog_revision", "homepage_http", "homepage_revision", "feed_http", "feed_revision", "sitemap_http", "sitemap_revision", "visual_asset"}
+    propagation = bool(failed) and all(str(item.get("name")) in propagation_names or str(item.get("name", "")).endswith("_links_article") for item in failed)
+    classification = "verified" if ok else "deployment_propagation" if propagation else "permanent_validation_failure"
+    retry_schedule = [10, 20, 40, 60]
+    retry_after = retry_schedule[min(attempt - 1, len(retry_schedule) - 1)] if not ok and propagation and attempt < maximum else None
     receipt = {
         "publication_receipt_schema_version": "1.0.0",
         "run_id": run["run_id"],
@@ -7969,20 +8647,38 @@ def command_verify_live(args: argparse.Namespace) -> int:
         "indexing": "unknown_not_claimed",
         "response_headers": headers,
         "external_links": link_results,
+        "attempt": attempt,
+        "maximum_attempts": maximum,
+        "classification": classification,
+        "retry_after_seconds": retry_after,
         "created_at": utc_now(),
     }
-    receipt_path = directory / "receipts" / "live-verification.json"
+    receipt_path = directory / "receipts" / f"live-verification-{attempt:02d}.json"
     write_json(receipt_path, receipt)
-    record_artifact(directory, run, receipt_path, "live-verification", {"actor": "controller", "version": CONTROLLER_VERSION})
-    append_event(directory, run, "VERIFICATION", "controller", {"ok": ok, "url": receipt["url"], "checks": checks})
+    record_artifact(directory, run, receipt_path, f"live-verification-attempt:{attempt}", {"actor": "controller", "version": CONTROLLER_VERSION})
+    append_event(directory, run, "VERIFICATION", "controller", {"state": "LIVE_VERIFICATION", "attempt": attempt, "ok": ok, "url": receipt["url"], "classification": classification, "retry_after_seconds": retry_after, "checks": checks})
     if not ok:
         write_gate_receipt(directory, run, "G-LIVE-REVISION", "RETRY", [
-            {"criterion": item["name"], "artifact": urls["article"], "location": None, "finding": json.dumps(item), "repair_instruction": "Wait for deployment/cache propagation or return to the declared publication repair state."}
-            for item in checks if not item["ok"]
+            {"criterion": item["name"], "artifact": str(item.get("url") or urls["article"]), "location": None, "finding": json.dumps(item), "repair_instruction": "Wait for bounded deployment propagation when classified retryable; otherwise return to the publication repair state."}
+            for item in failed
         ], {"type": "code", "version": CONTROLLER_VERSION}, "PUBLISH")
-        emit({"ok": False, "receipt": str(receipt_path), "checks": checks, "indexing": "unknown_not_claimed"}, args.json)
+        run["live_verification"] = {"attempt": attempt, "maximum": maximum, "classification": classification, "retry_after_seconds": retry_after, "next_retry_at": (dt.datetime.now(dt.timezone.utc) + dt.timedelta(seconds=retry_after)).replace(microsecond=0).isoformat().replace("+00:00", "Z") if retry_after else None}
+        run["status"] = "ACTIVE" if retry_after else "BLOCKED"
+        save_run(directory, run)
+        emit({"ok": False, "receipt": str(receipt_path), "checks": checks, "classification": classification, "retryable": retry_after is not None, "retry_after_seconds": retry_after, "attempt": attempt, "maximum_attempts": maximum, "indexing": "unknown_not_claimed"}, args.json)
         return EXIT_FAILED
     write_gate_receipt(directory, run, "G-LIVE-REVISION", "PASS", [], {"type": "code", "version": CONTROLLER_VERSION})
+    record_artifact(directory, run, receipt_path, "live-verification", {"actor": "controller", "version": CONTROLLER_VERSION})
+    run["publication"] = {
+        "status": "VERIFIED",
+        "url": receipt["url"],
+        "commit": receipt.get("commit"),
+        "package_revision": package["package_revision"],
+        "verified_at": receipt["created_at"],
+        "represented_for_discovery": receipt["represented_for_discovery"],
+        "indexing": receipt["indexing"],
+    }
+    run["live_verification"] = {"attempt": attempt, "maximum": maximum, "classification": "verified", "retry_after_seconds": None, "next_retry_at": None}
     record_experiment_outcome(directory, run)
     transition(directory, run, "COMPLETE", "controller", "Exact rendered revision and required discovery surfaces verified")
     emit({"ok": True, "url": receipt["url"], "receipt": str(receipt_path), "state": run["state"], "indexing": "unknown_not_claimed"}, args.json)
@@ -8171,6 +8867,13 @@ def command_advance(args: argparse.Namespace) -> int:
                 result = apply_voice_learning(directory, run)
             progress.append({"state": state, "command": "voice-apply", "result": result})
             continue
+        if state == "VISUAL_RENDER":
+            code, result = _silent_command(command_visual_render, argparse.Namespace(run_id=run["run_id"], json=True))
+            progress.append({"state": state, "command": "render-visuals", "exit_code": code, "result": result})
+            if code != EXIT_OK:
+                emit({"ok": False, "action": "blocked", "run_id": run["run_id"], "state": state, "progress": progress}, args.json)
+                return code
+            continue
         if state == "PACKAGE":
             code, result = _silent_command(command_package, argparse.Namespace(run_id=run["run_id"], json=True))
             progress.append({"state": state, "command": "package", "exit_code": code, "result": result})
@@ -8240,6 +8943,9 @@ def command_advance(args: argparse.Namespace) -> int:
             code, result = _silent_command(command_verify_live, argparse.Namespace(run_id=run["run_id"], json=True))
             progress.append({"state": state, "command": "verify-live", "exit_code": code, "result": result})
             if code != EXIT_OK:
+                if isinstance(result, dict) and result.get("retryable") and int(result.get("retry_after_seconds") or 0) <= 60:
+                    time.sleep(max(0, int(result.get("retry_after_seconds") or 0)))
+                    continue
                 emit({"ok": False, "action": "live_verification_failed", "run_id": run["run_id"], "state": state, "progress": progress}, args.json)
                 return EXIT_WAITING
             continue
@@ -8271,6 +8977,49 @@ def command_choose_voice(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def command_regenerate_voice(args: argparse.Namespace) -> int:
+    directory, run = load_run(args.run_id)
+    if not is_v31_run(run) or run.get("state") != "VOICE_PROBE" or not voice_probe_awaits_human(directory, run):
+        raise FlowError("Voice regeneration requires a workflow 3.1 run waiting at the voice choice", EXIT_USAGE)
+    feedback = str(args.feedback or "").strip()
+    if not feedback:
+        raise FlowError("Voice regeneration requires concrete feedback", EXIT_USAGE)
+    probe_path = artifact_path(directory, run, "voice-probe")
+    if not probe_path:
+        raise FlowError("The current voice probe is missing", EXIT_INTEGRITY)
+    ordinal = 1 + len([item for item in run.get("artifact_index", []) if str(item.get("type", "")).startswith("voice-set-rejection:")])
+    rejection = {
+        "voice_set_rejection_schema_version": "1.0.0",
+        "run_id": run["run_id"],
+        "voice_probe_sha256": sha256_path(probe_path),
+        "feedback": feedback,
+        "rejected_at": utc_now(),
+        "learning_applied": False,
+    }
+    with run_lock(directory, run):
+        path = directory / "artifacts" / f"voice-set-rejection-{ordinal:02d}.json"
+        write_json(path, rejection)
+        errors = validate_json_schema(path, "voice-set-rejection.schema.json")
+        if errors:
+            raise FlowError("Controller generated an invalid voice-set rejection", EXIT_INTEGRITY, errors)
+        record_artifact(directory, run, path, f"voice-set-rejection:{ordinal}", {"actor": "operator"})
+        append_event(directory, run, "VOICE_SET_REJECTED", "operator", {"feedback": feedback, "voice_probe_sha256": rejection["voice_probe_sha256"], "learning_applied": False})
+        save_run(directory, run)
+    gate_args = argparse.Namespace(
+        run_id=run["run_id"], gate_id="G-VOICE-PROBE", outcome="REPAIR", finding=feedback,
+        artifact=str(probe_path), selection=None, feedback=None, json=True,
+    )
+    code, result = _silent_command(command_gate, gate_args)
+    if code != EXIT_OK:
+        emit(result or {"ok": False}, args.json)
+        return code
+    if bool(getattr(args, "auto", False)):
+        return command_advance(argparse.Namespace(run_id=run["run_id"], max_steps=100, json=args.json))
+    directory, run = load_run(run["run_id"])
+    emit({"ok": True, "state": run["state"], "learning_applied": False, "next_command": ["article-flow", "advance", run["run_id"]]}, args.json)
+    return EXIT_OK
+
+
 def command_voice_apply(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
     with run_lock(directory, run):
@@ -8282,6 +9031,129 @@ def command_voice_apply(args: argparse.Namespace) -> int:
 
 def command_voice_history(args: argparse.Namespace) -> int:
     emit(voice_history(), args.json)
+    return EXIT_OK
+
+
+def command_voice_feedback(args: argparse.Namespace) -> int:
+    directory, run = load_run(args.run_id)
+    live_receipt = json_artifact(directory, run, "live-verification") or {}
+    if run.get("state") != "COMPLETE" or live_receipt.get("status") != "VERIFIED":
+        raise FlowError("Published-article feedback requires a completed run with a verified live receipt", EXIT_USAGE)
+    feedback_path = Path(args.feedback_file).expanduser().resolve()
+    if not feedback_path.is_file():
+        raise FlowError(f"Feedback file does not exist: {feedback_path}", EXIT_USAGE)
+    feedback_text = feedback_path.read_text(encoding="utf-8").strip()
+    if not feedback_text:
+        raise FlowError("Article feedback cannot be empty", EXIT_USAGE)
+    article_path = artifact_path(directory, run, "article")
+    if not article_path:
+        raise FlowError("Article feedback requires a recorded article artifact", EXIT_INTEGRITY)
+    recorded_at = utc_now()
+    identity_hash = sha256_bytes(canonical_json({"run_id": run["run_id"], "outcome": args.outcome, "feedback": feedback_text, "article_sha256": sha256_path(article_path)}))
+    record_id = f"AFB-{identity_hash[:20]}"
+    feedback = {
+        "article_feedback_schema_version": "1.0.0",
+        "run_id": run["run_id"],
+        "outcome": args.outcome,
+        "feedback": feedback_text,
+        "recorded_at": recorded_at,
+    }
+    root = voice_state_root()
+    with shared_lock(root / ".lock"):
+        prior_profile, _, pointer = _initialize_voice_runtime_locked()
+        evidence_path = root / "article-feedback.jsonl"
+        existing = next((item for item in _read_jsonl(evidence_path) if item.get("record_id") == record_id), None)
+        if existing:
+            emit({"ok": True, "idempotent": True, "record_id": record_id, "current_version": pointer.get("current_version")}, args.json)
+            return EXIT_OK
+        profile = json.loads(json.dumps(prior_profile))
+        retired_guidance: list[str] = []
+        retired_sources: set[str] = set()
+        if args.outcome == "rejected":
+            active_guidance = [item for item in profile.get("provisional_guidance", []) if isinstance(item, dict)]
+            retired_guidance = [str(item.get("guidance_id")) for item in active_guidance]
+            retired_sources = {str(item.get("source_record_id")) for item in active_guidance}
+            profile["provisional_guidance"] = []
+            profile["positive_examples"] = [
+                item for item in profile.get("positive_examples", [])
+                if not (isinstance(item, dict) and str(item.get("source_record_id")) in retired_sources)
+            ]
+            profile["accepted_rejected_pairs"] = [
+                item for item in profile.get("accepted_rejected_pairs", [])
+                if not (isinstance(item, dict) and str(item.get("source_record_id")) in retired_sources)
+            ]
+            profile.setdefault("negative_examples", []).append({
+                "example_id": f"VN-{identity_hash[:16]}",
+                "status": "operator_rejected_published_article",
+                "run_id": run["run_id"],
+                "article_sha256": sha256_path(article_path),
+                "excerpt": re.sub(r"\s+", " ", article_path.read_text(encoding="utf-8")).strip()[:700],
+                "feedback": feedback_text,
+                "source_record_id": record_id,
+            })
+        profiles_count = len(list((root / "profiles").glob("runtime-*.json"))) + 1
+        new_version = f"runtime-{profiles_count:06d}-{identity_hash[:10]}"
+        guidance_id = f"VG-{identity_hash[:16]}"
+        profile["version"] = new_version
+        profile["status"] = "provisional"
+        profile["parent_version"] = prior_profile["version"]
+        profile["base_profile_sha256"] = sha256_path(baseline_voice_profile_path())
+        profile["source_learning_record_id"] = record_id
+        profile.setdefault("provisional_guidance", []).append({
+            "guidance_id": guidance_id,
+            "text": (
+                "For senior-engineer field notes, prefer a concrete first-person observation, short paragraphs, ordinary nouns, and a clear practical thesis. "
+                "Use technical detail only when it helps the reader see or decide something. Operator feedback: " + feedback_text
+            ),
+            "status": "provisional",
+            "source_record_id": record_id,
+            "created_at": recorded_at,
+            "dimensions": ["concrete", "conversational", "field-note", "human", "practical", "senior-engineer"],
+        })
+        profile.setdefault("change_history", []).append({
+            "version": new_version,
+            "date": dt.date.today().isoformat(),
+            "status": "provisional",
+            "reason": f"Published-article feedback {record_id}; retired {len(retired_guidance)} active provisional guidance entries while immutable history remains available.",
+        })
+        errors = validate_instance_schema(profile, "voice-profile.schema.json")
+        if errors:
+            raise FlowError("Controller generated an invalid feedback-adjusted voice profile", EXIT_INTEGRITY, errors)
+        profile_path = root / "profiles" / f"{slugify(new_version, 80)}-{sha256_bytes(canonical_json(profile))[:12]}.json"
+        write_json(profile_path, profile)
+        evidence = {
+            **feedback,
+            "record_id": record_id,
+            "article_sha256": sha256_path(article_path),
+            "prior_profile_version": prior_profile["version"],
+            "new_profile_version": new_version,
+            "retired_guidance_ids": retired_guidance,
+            "guidance_added": guidance_id,
+        }
+        _append_jsonl(evidence_path, evidence)
+        new_pointer = {
+            "voice_profile_pointer_schema_version": "1.0.0",
+            "profile_id": profile["profile_id"],
+            "current_version": new_version,
+            "profile_sha256": sha256_path(profile_path),
+            "updated_at": recorded_at,
+            "source_learning_record_id": record_id,
+            "previous_version": prior_profile["version"],
+        }
+        pointer_errors = validate_instance_schema(new_pointer, "voice-profile-pointer.schema.json")
+        if pointer_errors:
+            raise FlowError("Controller generated an invalid voice-profile pointer", EXIT_INTEGRITY, pointer_errors)
+        write_json(root / "current.json", new_pointer)
+    with run_lock(directory, run):
+        local_path = directory / "artifacts" / f"article-feedback-{record_id}.json"
+        write_json(local_path, feedback)
+        local_errors = validate_json_schema(local_path, "article-feedback.schema.json")
+        if local_errors:
+            raise FlowError("Controller generated an invalid article feedback artifact", EXIT_INTEGRITY, local_errors)
+        record_artifact(directory, run, local_path, f"article-feedback:{record_id}", {"actor": "operator"})
+        append_event(directory, run, "ARTICLE_VOICE_FEEDBACK", "operator", {"record_id": record_id, "outcome": args.outcome, "new_profile_version": new_version, "retired_guidance_ids": retired_guidance})
+        save_run(directory, run)
+    emit({"ok": True, "idempotent": False, "record_id": record_id, "new_profile_version": new_version, "retired_guidance_ids": retired_guidance, "guidance_added": guidance_id}, args.json)
     return EXIT_OK
 
 
@@ -9287,6 +10159,14 @@ def build_parser() -> argparse.ArgumentParser:
     capture.add_argument("--hold-before-publish", action="store_true", help="Stop after publication planning instead of issuing policy approval.")
     add_json(capture)
 
+    revise = sub.add_parser("revise", help="Create a new verified run that replaces one completed article at the same URL.")
+    revise.add_argument("source_run_id")
+    revise.add_argument("--request-file", required=True)
+    revise.add_argument("--auto", action="store_true", help="Continue synchronously until the voice choice, a blocker, or completion.")
+    revise.add_argument("--draft-model", choices=DEFAULT_DRAFT_MODEL_POOL)
+    revise.add_argument("--hold-before-publish", action="store_true")
+    add_json(revise)
+
     advance = sub.add_parser("advance", help="Continue an active-session run until its voice choice, a blocker, or completion.")
     advance.add_argument("run_id")
     advance.add_argument("--max-steps", type=int, default=100)
@@ -9298,6 +10178,12 @@ def build_parser() -> argparse.ArgumentParser:
     choose_voice.add_argument("--feedback")
     choose_voice.add_argument("--auto", action="store_true")
     add_json(choose_voice)
+
+    regenerate_voice = sub.add_parser("regenerate-voice", help="Reject all three voice candidates without learning and create a new bounded set.")
+    regenerate_voice.add_argument("run_id")
+    regenerate_voice.add_argument("--feedback", required=True)
+    regenerate_voice.add_argument("--auto", action="store_true")
+    add_json(regenerate_voice)
 
     models = sub.add_parser("models", help="Inspect the immutable writing-model experiment ledger.")
     models_sub = models.add_subparsers(dest="models_command", required=True)
@@ -9314,6 +10200,11 @@ def build_parser() -> argparse.ArgumentParser:
     voice_rollback = voice_sub.add_parser("rollback")
     voice_rollback.add_argument("version")
     add_json(voice_rollback)
+    voice_feedback = voice_sub.add_parser("feedback")
+    voice_feedback.add_argument("run_id")
+    voice_feedback.add_argument("--outcome", choices=["accepted", "rejected"], required=True)
+    voice_feedback.add_argument("--feedback-file", required=True)
+    add_json(voice_feedback)
 
     listing = sub.add_parser("list", help="List captured ideas, active runs, and returned live links.")
     add_json(listing)
@@ -9350,6 +10241,10 @@ def build_parser() -> argparse.ArgumentParser:
     repair.add_argument("gate_id", nargs="?")
     repair.add_argument("--finding")
     add_json(repair)
+
+    render_visuals = sub.add_parser("render-visuals", help="Render a validated visual plan into deterministic SVG assets.")
+    render_visuals.add_argument("run_id")
+    add_json(render_visuals)
 
     package = sub.add_parser("package", help="Create hashed public and private packages.")
     package.add_argument("run_id")
@@ -9447,10 +10342,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             return command_start(args)
         if args.command == "capture":
             return command_start(args)
+        if args.command == "revise":
+            return command_revise(args)
         if args.command == "advance":
             return command_advance(args)
         if args.command == "choose-voice":
             return command_choose_voice(args)
+        if args.command == "regenerate-voice":
+            return command_regenerate_voice(args)
         if args.command == "models" and args.models_command == "history":
             return command_models_history(args)
         if args.command == "voice":
@@ -9458,6 +10357,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 return command_voice_apply(args)
             if args.voice_command == "history":
                 return command_voice_history(args)
+            if args.voice_command == "feedback":
+                return command_voice_feedback(args)
             return command_voice_rollback(args)
         if args.command == "list":
             return command_list(args)
@@ -9475,6 +10376,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return command_gate(args)
         if args.command == "repair":
             return command_repair(args)
+        if args.command == "render-visuals":
+            return command_visual_render(args)
         if args.command == "package":
             return command_package(args)
         if args.command == "amend":

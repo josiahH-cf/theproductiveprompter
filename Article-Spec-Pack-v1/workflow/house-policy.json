@@ -1,6 +1,6 @@
 {
   "policy_schema_version": "3.0.0",
-  "workflow_version": "3.0.0",
+  "workflow_version": "3.1.0",
   "status": "operator-configurable defaults; subordinate to run overrides and an approved article recipe",
   "automation": {
     "default_mode": "active_session",

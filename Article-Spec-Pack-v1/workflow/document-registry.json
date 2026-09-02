@@ -1,8 +1,9 @@
 {
   "document_registry_schema_version": "1.0.0",
-  "workflow_version": "3.0.0",
+  "workflow_version": "3.1.0",
   "authoritative_controls": [
     "workflow/workflow.json",
+    "workflow/workflow.v3.0.0.json",
     "workflow/workflow.v2.0.0.json",
     "workflow/house-policy.json",
     "workflow/article-recipe.defaults.json",

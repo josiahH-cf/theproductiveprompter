@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://theproductiveprompter.com/schemas/article-feedback.schema.json",
+  "title": "Published Article Voice Feedback",
+  "type": "object",
+  "required": ["article_feedback_schema_version", "run_id", "outcome", "feedback", "recorded_at"],
+  "properties": {
+    "article_feedback_schema_version": {"const": "1.0.0"},
+    "run_id": {"type": "string"},
+    "outcome": {"enum": ["accepted", "rejected"]},
+    "feedback": {"type": "string", "minLength": 1},
+    "recorded_at": {"type": "string", "format": "date-time"}
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://theproductiveprompter.com/schemas/voice-set-rejection.schema.json",
+  "title": "Voice Candidate Set Rejection",
+  "type": "object",
+  "required": ["voice_set_rejection_schema_version", "run_id", "voice_probe_sha256", "feedback", "rejected_at", "learning_applied"],
+  "properties": {
+    "voice_set_rejection_schema_version": {"const": "1.0.0"},
+    "run_id": {"type": "string"},
+    "voice_probe_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "feedback": {"type": "string", "minLength": 1},
+    "rejected_at": {"type": "string", "format": "date-time"},
+    "learning_applied": {"const": false}
+  },
+  "additionalProperties": false
+}

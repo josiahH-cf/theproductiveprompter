@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://theproductiveprompter.com/schemas/voice-candidates.schema.json",
+  "title": "Model-authored Voice Candidates",
+  "type": "object",
+  "required": ["voice_candidates_schema_version", "run_id", "article_register", "candidates"],
+  "properties": {
+    "voice_candidates_schema_version": {"const": "1.0.0"},
+    "run_id": {"type": "string"},
+    "article_register": {"type": "object"},
+    "candidates": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["passage", "intended_dimensions", "preserved_claim_ids"],
+        "properties": {
+          "passage": {"type": "string", "minLength": 1},
+          "intended_dimensions": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+          "preserved_claim_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -490,6 +490,17 @@ def _load_task_packet(packet_path: Path) -> tuple[dict[str, Any], str, str, dict
     if output_schema is not None and not isinstance(output_schema, dict):
         raise CodexExecError("Task packet output schema must be an object")
 
+    # The packet on disk retains the complete hash-bound contract. The prompt
+    # carries a compact view because the transport appends the output schema
+    # once and the input files are included once below. Repeating both inflated
+    # small repairs into very large calls without adding authority.
+    prompt_packet = json.loads(json.dumps(packet))
+    for output in prompt_packet.get("expected_outputs", []):
+        if isinstance(output, dict):
+            output.pop("schema", None)
+    input_ids = {str(item.get("id")) for item in prompt_packet.get("inputs", []) if isinstance(item, dict)}
+    if "article-recipe" in input_ids:
+        prompt_packet.pop("article_recipe", None)
     sections = [
         "You are performing one bounded stage in a provider-neutral article workflow.",
         "The controller, not you, owns state transitions and gate outcomes.",
@@ -497,7 +508,7 @@ def _load_task_packet(packet_path: Path) -> tuple[dict[str, Any], str, str, dict
         "If a stop condition is met, return the smallest schema-valid artifact that records the unresolved condition; never invent evidence or operator intent.",
         "",
         "TASK PACKET",
-        json.dumps(packet, indent=2, ensure_ascii=False),
+        json.dumps(prompt_packet, indent=2, ensure_ascii=False),
     ]
     inputs = packet.get("inputs", [])
     if not isinstance(inputs, list):

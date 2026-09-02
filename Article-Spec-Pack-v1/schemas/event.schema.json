@@ -65,7 +65,10 @@
         "VOICE_PROFILE_ROLLED_BACK",
         "POLICY_APPROVAL",
         "VOICE_SELECTION_RECORDED",
-        "WRITING_MODEL_ACCEPTED"
+        "WRITING_MODEL_ACCEPTED",
+        "REVISION_CREATED",
+        "VOICE_SET_REJECTED",
+        "ARTICLE_VOICE_FEEDBACK"
       ]
     },
     "state": {

@@ -21,9 +21,11 @@ The controller preserves that seed verbatim, creates a resumable run, and return
 ## Everyday loop
 
 1. Capture one natural sentence or paragraph; it does not need to be a brief.
-2. Let the active local model complete the returned research, intent, recipe, drafting, verification, editing, and packaging tasks.
-3. Intervene only when the controller asks you to confirm intent, choose an article recipe or voice probe, proofread the result, approve publication, or complete a credentialed publishing handoff.
+2. Let the controller complete research, intent, recipe, drafting, visual planning and rendering, verification, editing, packaging, publication, and exact live checks.
+3. Make the one routine human decision at the voice gate: select one of three short passages or reject the set with concrete feedback so it can be regenerated without learning from it.
 4. Continue until exact live verification returns the `theproductiveprompter.com` article URL.
+
+Ambiguity, exhausted repair windows, missing capability, a publication hold, a merge conflict, or failed live verification still stops explicitly. These are exceptional safety stops, not additional editorial approvals.
 
 `article-flow list` is the small operational index. It shows the original idea, current state, run directory, and returned live link for every run. The same response identifies the canonical process directory, private captured-material directory, and public `docs/` directory. Windows and WSL keep separate installation and health records but use one private captured-material directory, so either command sees and resumes the same runs. A stopped session is resumed with `article-flow resume RUN_ID`; the idea does not need to be entered again.
 
@@ -47,6 +49,8 @@ This distinction is deliberate. Narrative person, article length, opening, endin
 - integrity checks and a SHA-256 release manifest;
 - complete provider-neutral task packets;
 - hard gates, artifact hashes, claim/evidence checks, and locked-field preservation;
+- controller-selected voice anchors and candidate IDs, hashes, bindings, and comparison order;
+- deterministic accessible SVG rendering from a bounded visual plan;
 - package generation, a publication dry run, scoped approval, exact deployment, and live-revision verification;
 - credential preflight, one explicit publication handoff when the active host cannot push, and remote-branch attestation before live verification;
 - global Windows/WSL command installation and drift checks;
@@ -56,9 +60,11 @@ Models work only inside the task packet they receive. They do not advance their 
 
 ## Public and private artifacts
 
-The canonical private article is `article.md`. The website publication target renders it to `docs/{slug}.html`, updates the home page, article index, feed, and sitemap, and verifies the exact live bytes. Internal task packets, receipts, claim ledgers, and run events remain private.
+The canonical private article is `article.md`. The website publication target renders it to `docs/{slug}.html`, copies hash-bound article visuals, updates the home page, article index, feed, and sitemap, and verifies every expected live byte. Internal task packets, receipts, claim ledgers, and run events remain private.
 
 `package`, `publish --plan`, scoped approval, `publish --execute`, and `verify-live` are separate operations. The brief gate applies the deterministic character and formulaic-phrase checks to the public title and description when they are first written, so display-text problems are normally repaired inside the brief's own bounded window. If one still needs correction later, `amend` changes the public title or description from `EDIT` onward without replaying research or drafting: before packaging it leaves the run where it is, so the gate that asked for the change still runs, and from `PUBLISH_APPROVAL` it returns to `PACKAGE` to rebuild. A bounded article amendment can repair naturalization without replaying research; a changed article must repeat post-edit claim verification and editorial QA before the controller permits another package. If the active host cannot publish, the controller returns one `human_action`; `deployment-attest` accepts the handoff only when the named commit is the current publication-branch head and every planned public file matches. An expired approval is never reused silently: `next` asks the operator whether to run `publish --renew-approval`, and renewal succeeds only when the target, package revision, and hashed plan are unchanged. Smoke and conformance tests cannot publish.
+
+Use `article-flow revise COMPLETED_RUN --request-file CORRECTION.md` to replace an existing article at the same URL. The old seed remains immutable, the correction request is stored separately with explicit precedence, the original publication date and card position are preserved, and the page receives an updated modified date. Live deployment propagation is retried on a short bounded schedule; a permanent markup or content failure blocks immediately.
 
 ## Health commands
 
@@ -74,7 +80,7 @@ Launcher health proves only that the command, canonical process root, and shared
 
 ## Voice and evidence
 
-The current voice profile is provisional. Trial output is not silently promoted into the author corpus. Profile changes require author judgment and a held-out comparison. Editorial assessment covers the article and its public title and description. Packaging also rejects a deliberately narrow set of high-confidence formulaic public-display phrases; contextual voice judgment remains with the operator rather than a blacklist. Separately, the controller rejects U+2014 in drafts, edited articles, titles, and descriptions. That character policy is deterministic and does not depend on the contextual cliché assessment.
+The current voice profile is provisional. Trial output is not silently promoted into the author corpus. Profile changes require author judgment and a held-out comparison. At the voice gate, `choose-voice` applies learning only from the selected passage; `regenerate-voice` records a rejected set but applies no learning. Later, `voice feedback` can record an accepted or rejected published article. Rejection preserves old profile files as history, retires the active provisional guidance they produced, and adds the article as negative evidence. Editorial assessment covers the article and its public title and description. Packaging also rejects a deliberately narrow set of high-confidence formulaic public-display phrases; contextual voice judgment remains with the operator rather than a blacklist. Separately, the controller rejects U+2014 in drafts, edited articles, titles, and descriptions. That character policy is deterministic and does not depend on the contextual cliché assessment.
 
 Every material factual claim must be traceable and fresh enough for its use. Model memory is not a citation source. The final naturalization pass is conservative and fact-locked; a changed number, date, name, citation, URL, code token, quotation, or qualified claim reopens verification.
 

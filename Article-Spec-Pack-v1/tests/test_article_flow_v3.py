@@ -7,6 +7,7 @@ import html
 import io
 import json
 import os
+import re
 import subprocess
 import symtable
 import sys
@@ -126,15 +127,21 @@ class WorkflowV3ContractTests(unittest.TestCase):
         self.assertEqual(parser.parse_args(["models", "history"]).command, "models")
         self.assertEqual(parser.parse_args(["voice", "history"]).command, "voice")
         self.assertEqual(parser.parse_args(["voice", "rollback", "VP-2"]).version, "VP-2")
+        self.assertEqual(parser.parse_args(["regenerate-voice", "AF-TEST", "--feedback", "Too formal."]).command, "regenerate-voice")
+        self.assertEqual(parser.parse_args(["revise", "AF-TEST", "--request-file", "repair.md"]).command, "revise")
 
     def test_v3_order_has_one_normal_human_gate_and_bundles_v2(self):
         current = json.loads((SPEC_ROOT / "workflow" / "workflow.json").read_text(encoding="utf-8"))
         legacy = json.loads((SPEC_ROOT / "workflow" / "workflow.v2.0.0.json").read_text(encoding="utf-8"))
-        self.assertEqual(current["workflow_version"], "3.0.0")
+        archived_v3 = json.loads((SPEC_ROOT / "workflow" / "workflow.v3.0.0.json").read_text(encoding="utf-8"))
+        self.assertEqual(current["workflow_version"], "3.1.0")
+        self.assertEqual(archived_v3["workflow_version"], "3.0.0")
         self.assertEqual(legacy["workflow_version"], "2.0.0")
 
         states = {item["id"]: item for item in current["states"]}
-        self.assertEqual(states["DRAFT"]["next_on_pass"], "CLAIM_VERIFICATION")
+        self.assertEqual(states["DRAFT"]["next_on_pass"], "VISUAL_PLAN")
+        self.assertEqual(states["VISUAL_PLAN"]["next_on_pass"], "VISUAL_RENDER")
+        self.assertEqual(states["VISUAL_RENDER"]["next_on_pass"], "CLAIM_VERIFICATION")
         self.assertEqual(states["CLAIM_VERIFICATION"]["next_on_pass"], "VOICE_PROBE")
         self.assertEqual(states["VOICE_PROBE"]["next_on_pass"], "VOICE_LEARNING")
         self.assertEqual(states["VOICE_LEARNING"]["next_on_pass"], "EDIT")
@@ -3524,36 +3531,37 @@ class NoPublishAutomationTests(TemporaryRuntime):
                 "## What the check proves\n\n"
                 "A private receipt can support a public result without exposing private run data.\n"
             )
+        if state == "VISUAL_PLAN":
+            return {
+                "visual_plan_schema_version": "1.0.0",
+                "run_id": run_id,
+                "visuals": [{
+                    "visual_id": "proof-boundary",
+                    "kind": "trend_gap",
+                    "title": "Proof stays tied to the artifact",
+                    "purpose": "Show that public visibility and private verification are separate concerns.",
+                    "placement": {"after_heading": "What the check proves"},
+                    "alt_text": "Two conceptual lines distinguish a visible public result from the private evidence that verifies it.",
+                    "caption": "Conceptual comparison of public visibility and hash-bound verification.",
+                    "claim_ids": [],
+                    "labels": ["Visible result", "Verified artifact"],
+                }],
+            }
         if state == "VOICE_PROBE":
-            draft_path = af.artifact_path(directory, run, "draft")
-            ledger_path = af.artifact_path(directory, run, "verified-claim-ledger")
-            source = "The page is visible. Its recorded revision identifies the exact result."
             passages = [
-                ("A", "The page is visible, and its recorded revision identifies the result.", "precision"),
-                ("B", "You can inspect the page and verify the exact recorded revision.", "directness"),
-                ("C", "A visible page only proves something when its recorded revision matches.", "skepticism"),
+                ("The page is visible, and its recorded revision identifies the result.", "precision"),
+                ("You can inspect the page and verify the exact recorded revision.", "directness"),
+                ("A visible page only proves something when its recorded revision matches.", "skepticism"),
             ]
             return {
-                "voice_probe_schema_version": "2.0.0",
+                "voice_candidates_schema_version": "1.0.0",
                 "run_id": run_id,
-                "rough_draft_sha256": af.sha256_path(draft_path),
-                "claim_ledger_sha256": af.sha256_path(ledger_path),
-                "source_anchor": {
-                    "locator": "paragraph:1",
-                    "source_passage": source,
-                    "source_passage_sha256": af.sha256_bytes(source.encode("utf-8")),
-                },
                 "article_register": {"technical_depth": "moderate"},
                 "candidates": [{
-                    "candidate_id": candidate_id,
                     "passage": passage,
-                    "passage_sha256": af.sha256_bytes(passage.encode("utf-8")),
                     "intended_dimensions": [dimension],
                     "preserved_claim_ids": [],
-                } for candidate_id, passage, dimension in passages],
-                "comparison_orders": [["A", "B", "C"], ["C", "B", "A"]],
-                "held_out_plan": "Retest the selected trait on a different article form.",
-                "operator_selection": None,
+                } for passage, dimension in passages],
             }
         if state == "EDITORIAL_QA":
             dimensions = {
@@ -4586,6 +4594,340 @@ class SchemaAndCanaryRegressionTests(TemporaryRuntime):
         self.assertFalse(candidate["eligible"])
         self.assertIn("canary invalid-evidence", candidate["exclusion_reason"])
         self.assertIsNone(routes["chosen"])
+
+
+class WorkflowV31RegressionTests(TemporaryRuntime):
+    def live_verification_fixture(self, *, valid_article: bool = True):
+        run_id = self.start("Verify a bounded live deployment.")
+        directory, run = af.load_run(run_id)
+        package_root = directory / "package"
+        site_root = package_root / "site"
+        public_root = package_root / "public"
+        (site_root / "docs").mkdir(parents=True, exist_ok=True)
+        public_root.mkdir(parents=True, exist_ok=True)
+        target = af.load_json(SPEC_ROOT / "publication" / "theproductiveprompter.json")
+        slug = "bounded-live-verification"
+        article_url = target["canonical_url"].format(slug=slug)
+        article_markdown = public_root / "article.md"
+        af.atomic_write(article_markdown, b"# Bounded Live Verification\n")
+        article_revision = af.sha256_path(article_markdown)
+        if valid_article:
+            article = (
+                '<html><head><title>Bounded Live Verification</title>'
+                f'<link rel="canonical" href="{article_url}">'
+                f'<meta property="og:url" content="{article_url}">'
+                f'<meta name="article-flow-revision" content="{article_revision}">'
+                f'<script type="application/ld+json">{{"@type": "BlogPosting", "url": "{article_url}"}}</script>'
+                '</head><body>Published</body></html>'
+            ).encode("utf-8")
+        else:
+            article = b"<html><head><title>Bounded Live Verification</title></head><body>Published</body></html>"
+        surfaces = {
+            "article": site_root / "docs" / f"{slug}.html",
+            "blog": site_root / "docs" / "blog.html",
+            "homepage": site_root / "index.html",
+            "feed": site_root / "feed.xml",
+            "sitemap": site_root / "sitemap.xml",
+        }
+        af.atomic_write(surfaces["article"], article)
+        for name in ("blog", "homepage", "feed", "sitemap"):
+            af.atomic_write(surfaces[name], f'<a href="{article_url}">article</a>'.encode("utf-8"))
+        af.write_json(package_root / "package.json", {"package_revision": "fixture-revision"})
+        af.write_json(public_root / "metadata.json", {"slug": slug, "title": "Bounded Live Verification"})
+        af.write_json(public_root / "assets.json", {"assets": []})
+        af.transition(directory, run, "LIVE_VERIFICATION", "test", "Exercise bounded live verification")
+        return run_id, directory, target, surfaces
+
+    def test_markdown_tables_images_hard_breaks_and_entities_render_safely(self):
+        rendered = af.markdown_to_html(
+            "# Hidden title\n\nA&nbsp;B  \nnext line\n\n"
+            "| Default | Review |\n| --- | --- |\n| Static | Contract |\n\n"
+            "![Useful diagram](/assets/articles/example/diagram.svg)\n\n<script>alert(1)</script>"
+        )
+        self.assertIn("A\u00a0B<br>\nnext line", rendered)
+        self.assertIn('<div class="article-table-wrap"><table>', rendered)
+        self.assertIn('<img src="/assets/articles/example/diagram.svg" alt="Useful diagram"', rendered)
+        self.assertNotIn("<script>alert", rendered)
+        self.assertIn("&lt;script&gt;", rendered)
+
+    def test_visual_plan_renders_hash_bound_assets_and_advances(self):
+        run_id = self.start("Explain why a product default can lag a model.")
+        directory, run = af.load_run(run_id)
+        self.record_json(directory, run, "brief", {
+            "brief_schema_version": "1.0.0", "run_id": run_id, "title": "A Useful Article",
+            "slug": "useful-article", "description": "A concrete explanation.", "date": "2026-09-02",
+            "tags": [], "reader_job": "See the gap", "scope": "One example", "exclusions": [],
+            "claims_to_support": [], "acceptance_criteria": ["One visual is present."],
+        })
+        self.record_text(directory, run, "draft", "# A Useful Article\n\nAn opening paragraph with enough concrete language to make the point visible.\n\n## The gap\n\nThe default stays still while capability improves.\n")
+        plan_path = self.record_json(directory, run, "visual-plan", {
+            "visual_plan_schema_version": "1.0.0", "run_id": run_id,
+            "visuals": [{
+                "visual_id": "capability-gap", "kind": "trend_gap", "title": "The integration gap",
+                "purpose": "Make the difference between available and used capability visible.",
+                "placement": {"after_heading": "The gap"},
+                "alt_text": "Model capability rises while the product default remains almost flat.",
+                "caption": "Conceptual view of capability growth outrunning a static product default.",
+                "claim_ids": [], "labels": ["Model capability", "Product default"],
+            }],
+        })
+        self.assertEqual(af.automatic_gate(directory, run, "VISUAL_PLAN", plan_path)[0], "PASS")
+        af.transition(directory, run, "VISUAL_RENDER", "test", "Exercise deterministic visual rendering")
+        code, payload = call(af.command_visual_render, run_id=run_id)
+        self.assertEqual(code, af.EXIT_OK, payload)
+        directory, run = af.load_run(run_id)
+        self.assertEqual(run["state"], "CLAIM_VERIFICATION")
+        manifest = af.json_artifact(directory, run, "visual-manifest")
+        self.assertEqual(len(manifest["assets"]), 1)
+        asset = manifest["assets"][0]
+        self.assertEqual(af.sha256_path(directory / asset["source_path"]), asset["sha256"])
+        self.assertIn("<title", (directory / asset["source_path"]).read_text(encoding="utf-8"))
+
+    def test_controller_owns_voice_ids_hashes_anchor_and_order(self):
+        run_id = self.start("Test controller-owned voice metadata.")
+        directory, run = af.load_run(run_id)
+        self.record_text(directory, run, "draft", "# Title\n\nI noticed the same product asking the same four setup questions even after its underlying model became much more capable.\n\n## Why it matters\n\nThe interface can become the limit.\n")
+        self.record_json(directory, run, "verified-claim-ledger", {"claims": []})
+        run["state"] = "VOICE_PROBE"
+        run["status"] = "ACTIVE"
+        af.save_run(directory, run)
+        anchor = af.ensure_voice_anchor(directory, run)
+        self.assertEqual(anchor["id"], "voice-anchor")
+        compact = directory / "artifacts" / "compact.json"
+        af.write_json(compact, {
+            "voice_candidates_schema_version": "1.0.0", "run_id": run_id,
+            "article_register": {"audience": "senior engineers"},
+            "candidates": [
+                {"passage": "I kept seeing the same four setup questions, even though the model underneath had become much more capable.", "intended_dimensions": ["field-note"], "preserved_claim_ids": []},
+                {"passage": "The odd part was not the model. It was the product asking four familiar questions as if nothing underneath had changed.", "intended_dimensions": ["conversational"], "preserved_claim_ids": []},
+                {"passage": "The model improved; the product contract did not. Four fixed setup questions made that lag visible.", "intended_dimensions": ["engineering"], "preserved_claim_ids": []},
+            ],
+        })
+        self.assertEqual(af.automatic_gate(directory, run, "VOICE_PROBE", compact)[0], "PASS")
+        probe_path = af.materialize_voice_probe(directory, run, compact, 1)
+        probe = af.load_json(probe_path)
+        self.assertEqual([item["candidate_id"] for item in probe["candidates"]], ["A", "B", "C"])
+        self.assertEqual(probe["comparison_orders"], [["A", "B", "C"], ["C", "B", "A"]])
+        self.assertEqual(probe["source_anchor"]["source_passage_sha256"], af.sha256_bytes(probe["source_anchor"]["source_passage"].encode("utf-8")))
+        self.assertTrue(all(item["passage_sha256"] == af.sha256_bytes(item["passage"].encode("utf-8")) for item in probe["candidates"]))
+
+    def test_same_url_helpers_replace_in_place_without_promoting(self):
+        original = '<div>before</div><article class="article-card" data-article-flow-slug="same"><h3>Old</h3></article><article class="article-card article-card--featured" data-article-flow-slug="new"><span class="article-card__badge">Latest</span></article>'
+        replacement = '<article class="article-card article-card--featured" data-article-flow-slug="same"><span class="article-card__badge">Latest</span><h3>Corrected</h3></article>'
+        updated = af.replace_existing_article_card(original, "same", replacement)
+        self.assertLess(updated.index("Corrected"), updated.index('data-article-flow-slug="new"'))
+        corrected = re.search(r'<article\b[^>]*data-article-flow-slug="same"[^>]*>.*?</article>', updated, flags=re.DOTALL).group(0)
+        self.assertNotIn("Latest", corrected)
+        self.assertNotIn("featured", corrected)
+
+    def test_archived_v30_authority_remains_loadable(self):
+        self.assertEqual(af.workflow_for_version("3.0.0")["workflow_version"], "3.0.0")
+        self.assertEqual(af.workflow_for_version("3.1.0")["workflow_version"], "3.1.0")
+
+    def test_live_verification_retries_propagation_on_a_bounded_schedule(self):
+        run_id, directory, target, surfaces = self.live_verification_fixture()
+        url_to_body = {
+            target["canonical_url"].format(slug="bounded-live-verification"): surfaces["article"].read_bytes(),
+            target["blog_url"]: surfaces["blog"].read_bytes(),
+            target["homepage_url"]: surfaces["homepage"].read_bytes(),
+            target["feed_url"]: surfaces["feed"].read_bytes() + b"stale",
+            target["sitemap_url"]: surfaces["sitemap"].read_bytes(),
+        }
+
+        def fetched(url, timeout=30):
+            return 200, url_to_body[url], {}
+
+        observed = []
+        with mock.patch.object(af, "fetch_url", side_effect=fetched):
+            for _ in range(4):
+                code, payload = call(af.command_verify_live, run_id=run_id)
+                self.assertEqual(code, af.EXIT_FAILED, payload)
+                observed.append((payload["classification"], payload["retry_after_seconds"]))
+            with self.assertRaisesRegex(af.FlowError, "exhausted"):
+                af.command_verify_live(namespace(run_id=run_id))
+
+        self.assertEqual(observed, [
+            ("deployment_propagation", 10),
+            ("deployment_propagation", 20),
+            ("deployment_propagation", 40),
+            ("deployment_propagation", None),
+        ])
+        _, run = af.load_run(run_id)
+        self.assertEqual(run["status"], "BLOCKED")
+        self.assertEqual(len(list((directory / "receipts").glob("live-verification-*.json"))), 4)
+
+    def test_live_verification_does_not_retry_permanent_markup_failure(self):
+        run_id, _directory, target, surfaces = self.live_verification_fixture(valid_article=False)
+        url_to_body = {
+            target["canonical_url"].format(slug="bounded-live-verification"): surfaces["article"].read_bytes(),
+            target["blog_url"]: surfaces["blog"].read_bytes(),
+            target["homepage_url"]: surfaces["homepage"].read_bytes(),
+            target["feed_url"]: surfaces["feed"].read_bytes(),
+            target["sitemap_url"]: surfaces["sitemap"].read_bytes(),
+        }
+
+        with mock.patch.object(af, "fetch_url", side_effect=lambda url, timeout=30: (200, url_to_body[url], {})):
+            code, payload = call(af.command_verify_live, run_id=run_id)
+
+        self.assertEqual(code, af.EXIT_FAILED, payload)
+        self.assertEqual(payload["classification"], "permanent_validation_failure")
+        self.assertFalse(payload["retryable"])
+        _, run = af.load_run(run_id)
+        self.assertEqual(run["status"], "BLOCKED")
+
+    def test_rejected_article_feedback_retires_provisional_learning_but_keeps_history(self):
+        run_id = self.start("Record durable feedback about a published article.")
+        directory, run = af.load_run(run_id)
+        self.record_text(directory, run, "article", "# Generic article\n\nThis reads like generated copy.\n")
+        self.record_json(directory, run, "live-verification", {"status": "VERIFIED"})
+        af.transition(directory, run, "COMPLETE", "test", "Create a verified published-article fixture")
+        voice_root = af.voice_state_root()
+        prior, _prior_path, _pointer = af.active_voice_profile()
+        prior = json.loads(json.dumps(prior))
+        prior["version"] = "runtime-000002-fixture"
+        prior["parent_version"] = "1.0.0-provisional"
+        prior["base_profile_sha256"] = af.sha256_path(af.baseline_voice_profile_path())
+        prior["source_learning_record_id"] = "VL-fixture-2"
+        prior["provisional_guidance"] = [
+            {"guidance_id": "VG-one", "text": "First stale rule", "status": "provisional", "source_record_id": "VL-one", "created_at": af.utc_now()},
+            {"guidance_id": "VG-two", "text": "Second stale rule", "status": "provisional", "source_record_id": "VL-two", "created_at": af.utc_now()},
+        ]
+        prior["positive_examples"].extend([
+            {"status": "trial", "source_record_id": "VL-one"},
+            {"status": "trial", "source_record_id": "VL-two"},
+        ])
+        prior["accepted_rejected_pairs"] = [{"source_record_id": "VL-two"}]
+        prior_path = voice_root / "profiles" / "runtime-000002-fixture.json"
+        af.write_json(prior_path, prior)
+        af.write_json(voice_root / "current.json", {
+            "voice_profile_pointer_schema_version": "1.0.0",
+            "profile_id": prior["profile_id"],
+            "current_version": prior["version"],
+            "profile_sha256": af.sha256_path(prior_path),
+            "updated_at": af.utc_now(),
+            "source_learning_record_id": "VL-fixture-2",
+            "previous_version": "1.0.0-provisional",
+        })
+        feedback_path = self.root / "feedback.md"
+        feedback_path.write_text("Use a concrete senior-engineer field-note voice with shorter paragraphs.", encoding="utf-8")
+
+        code, payload = call(
+            af.command_voice_feedback,
+            run_id=run_id,
+            outcome="rejected",
+            feedback_file=str(feedback_path),
+        )
+
+        self.assertEqual(code, af.EXIT_OK, payload)
+        self.assertEqual(payload["retired_guidance_ids"], ["VG-one", "VG-two"])
+        self.assertTrue(prior_path.is_file())
+        current, _current_path, pointer = af.active_voice_profile()
+        self.assertEqual(len(current["provisional_guidance"]), 1)
+        self.assertIn("senior-engineer field notes", current["provisional_guidance"][0]["text"])
+        self.assertFalse(any(item.get("source_record_id") in {"VL-one", "VL-two"} for item in current["positive_examples"]))
+        self.assertEqual(current["accepted_rejected_pairs"], [])
+        self.assertTrue(any(item.get("run_id") == run_id for item in current["negative_examples"]))
+        profile_count = len(list((voice_root / "profiles").glob("*.json")))
+        evidence_count = len(af._read_jsonl(voice_root / "article-feedback.jsonl"))
+
+        code, duplicate = call(
+            af.command_voice_feedback,
+            run_id=run_id,
+            outcome="rejected",
+            feedback_file=str(feedback_path),
+        )
+        self.assertEqual(code, af.EXIT_OK, duplicate)
+        self.assertTrue(duplicate["idempotent"])
+        self.assertEqual(pointer["current_version"], duplicate["current_version"])
+        self.assertEqual(profile_count, len(list((voice_root / "profiles").glob("*.json"))))
+        self.assertEqual(evidence_count, len(af._read_jsonl(voice_root / "article-feedback.jsonl")))
+
+    def test_revision_creates_a_fresh_run_with_separate_precedence_bound_request(self):
+        source_run_id = self.start("Historical seed that remains immutable.")
+        source_directory, source_run = af.load_run(source_run_id)
+        metadata_path = source_directory / "package" / "public" / "metadata.json"
+        metadata_path.parent.mkdir(parents=True, exist_ok=True)
+        af.write_json(metadata_path, {
+            "slug": "same-public-url",
+            "date": "2026-08-31",
+            "title": "Original title",
+        })
+        af.transition(source_directory, source_run, "COMPLETE", "test", "Create a completed revision source")
+        request = self.root / "revision-request.md"
+        request.write_text("Replace the generic prose with a concrete field note.\n", encoding="utf-8")
+
+        code, payload = call(
+            af.command_revise,
+            source_run_id=source_run_id,
+            request_file=str(request),
+            draft_model=None,
+            hold_before_publish=True,
+            auto=False,
+        )
+
+        self.assertEqual(code, af.EXIT_OK, payload)
+        directory, run = af.load_run(payload["run_id"])
+        self.assertEqual(run["parent_run_id"], source_run_id)
+        self.assertEqual(run["revision"]["slug"], "same-public-url")
+        self.assertEqual(run["revision"]["original_published_date"], "2026-08-31")
+        self.assertEqual(af.artifact_path(directory, run, "seed").read_text(encoding="utf-8"), "Historical seed that remains immutable.")
+        self.assertEqual(af.artifact_path(directory, run, "revision-request").read_text(encoding="utf-8"), request.read_text(encoding="utf-8"))
+        self.assertTrue(any(event["type"] == "REVISION_CREATED" for event in af._read_jsonl(directory / "events.jsonl")))
+
+        route = {
+            "provider": "fixture", "model": "fixture-model", "model_version": "test",
+            "eligible": True, "exclusion_reason": None, "capability_assumptions": [],
+            "evaluation_score": 1, "kind": "command", "privacy": "test", "locality": "local",
+            "cost_class": "test", "latency_class": "test", "canary_status": "passed",
+        }
+        routes = {
+            "stage": "RESEARCH_PLAN", "required_capabilities": ["structured-output"],
+            "candidates": [route], "chosen": route, "fallbacks": [], "reason": "fixture", "configuration_path": "test",
+        }
+        with mock.patch.object(af, "route_candidates", return_value=routes):
+            _path, packet = af.task_packet(directory, run)
+        self.assertIn("revision-request", {item["id"] for item in packet["inputs"]})
+        self.assertTrue(any("overrides conflicting assumptions" in item for item in packet["constraints"]))
+
+    def test_voice_set_can_be_rejected_without_learning_and_regenerated(self):
+        run_id = self.start("Regenerate an unsuitable voice set.")
+        directory, run = af.load_run(run_id)
+        self.record_text(directory, run, "draft", "# Title\n\nI kept seeing four fixed setup questions even after the model underneath became markedly more capable.\n")
+        self.record_json(directory, run, "verified-claim-ledger", {"claims": []})
+        af.transition(directory, run, "VOICE_PROBE", "test", "Prepare a voice decision")
+        af.ensure_voice_anchor(directory, run)
+        candidates = self.record_json(directory, run, "voice-candidates", {
+            "voice_candidates_schema_version": "1.0.0", "run_id": run_id,
+            "article_register": {"audience": "senior engineers"},
+            "candidates": [
+                {"passage": "I kept seeing the same four setup questions after the model underneath had become more capable.", "intended_dimensions": ["field-note"], "preserved_claim_ids": []},
+                {"passage": "The strange part was the four familiar questions, still there after the model underneath improved.", "intended_dimensions": ["conversational"], "preserved_claim_ids": []},
+                {"passage": "Model capability increased while the product retained a fixed four-question setup contract.", "intended_dimensions": ["engineering"], "preserved_claim_ids": []},
+            ],
+        })
+        probe = af.materialize_voice_probe(directory, run, candidates, 1)
+        af.write_gate_receipt(directory, run, "G-VOICE-PROBE", "ESCALATE", [], {"type": "code", "version": af.CONTROLLER_VERSION})
+        run["status"] = "WAITING_HUMAN"
+        af.save_run(directory, run)
+        prior_pointer = af.active_voice_profile()[2]
+
+        code, payload = call(
+            af.command_regenerate_voice,
+            run_id=run_id,
+            feedback="All three feel formal; use a concrete first-person field note.",
+            auto=False,
+        )
+
+        self.assertEqual(code, af.EXIT_OK, payload)
+        self.assertFalse(payload["learning_applied"])
+        directory, run = af.load_run(run_id)
+        self.assertEqual(run["state"], "VOICE_PROBE")
+        self.assertEqual(run["status"], "ACTIVE")
+        rejection = af.json_artifact(directory, run, "voice-set-rejection:1")
+        self.assertFalse(rejection["learning_applied"])
+        self.assertEqual(rejection["voice_probe_sha256"], af.sha256_path(probe))
+        self.assertEqual(af.active_voice_profile()[2]["current_version"], prior_pointer["current_version"])
+        self.assertTrue(any(event["type"] == "VOICE_SET_REJECTED" for event in af._read_jsonl(directory / "events.jsonl")))
 
 
 if __name__ == "__main__":

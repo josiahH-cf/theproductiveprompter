@@ -1,6 +1,6 @@
 {
   "protected_set_schema_version": "1.1.0",
-  "workflow_version": "3.0.0",
+  "workflow_version": "3.1.0",
   "watched_roots": [
     "workflow",
     "schemas",
@@ -22,6 +22,12 @@
       "scope": "repository",
       "role": "runtime",
       "rule_set": "integrity"
+    },
+    {
+      "path": "styles.css",
+      "scope": "repository",
+      "role": "template",
+      "rule_set": "publication"
     },
     {
       "path": "0-README.md",
@@ -216,6 +222,12 @@
       "rule_set": "publication"
     },
     {
+      "path": "schemas/article-feedback.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
       "path": "schemas/article-recipe.schema.json",
       "scope": "spec",
       "role": "runtime",
@@ -342,6 +354,12 @@
       "rule_set": "schemas"
     },
     {
+      "path": "schemas/revision.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
       "path": "schemas/run.schema.json",
       "scope": "spec",
       "role": "runtime",
@@ -349,6 +367,24 @@
     },
     {
       "path": "schemas/task-packet.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/visual-manifest.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/visual-plan.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/voice-candidates.schema.json",
       "scope": "spec",
       "role": "runtime",
       "rule_set": "schemas"
@@ -373,6 +409,12 @@
     },
     {
       "path": "schemas/voice-profile.schema.json",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "schemas"
+    },
+    {
+      "path": "schemas/voice-set-rejection.schema.json",
       "scope": "spec",
       "role": "runtime",
       "rule_set": "schemas"
@@ -457,6 +499,12 @@
     },
     {
       "path": "workflow/workflow.v2.0.0.json",
+      "scope": "spec",
+      "role": "normative",
+      "rule_set": "workflow"
+    },
+    {
+      "path": "workflow/workflow.v3.0.0.json",
       "scope": "spec",
       "role": "normative",
       "rule_set": "workflow"

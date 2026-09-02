@@ -127,6 +127,43 @@ class CodexExecAdapterTests(unittest.TestCase):
         ]
         self.assertIn('web_search="live"', config_values)
 
+    def test_task_packet_prompt_includes_schema_and_article_recipe_once(self):
+        recipe = self.root / "article-recipe.json"
+        recipe.write_text('{"recipe_marker":"ONLY_ONCE_RECIPE"}\n', encoding="utf-8")
+        schema = {
+            "type": "object",
+            "required": ["ONLY_ONCE_SCHEMA"],
+            "properties": {"ONLY_ONCE_SCHEMA": {"type": "boolean"}},
+            "additionalProperties": False,
+        }
+        packet = {
+            "run_id": "AF-test",
+            "stage": "DRAFT",
+            "article_recipe": {"recipe_marker": "ONLY_ONCE_RECIPE"},
+            "inputs": [{
+                "id": "article-recipe",
+                "path": str(recipe),
+                "sha256": hashlib.sha256(recipe.read_bytes()).hexdigest(),
+            }],
+            "expected_outputs": [{
+                "path": str(self.root / "controller-output.json"),
+                "format": "json",
+                "schema_name": "fixture.schema.json",
+                "schema": schema,
+            }],
+        }
+        packet_path = self.root / "packet-with-recipe.json"
+        packet_path.write_text(json.dumps(packet), encoding="utf-8")
+
+        _, compact_prompt, expected_format, output_schema = adapter._load_task_packet(packet_path)
+        transport_prompt = adapter._enveloped_json_prompt(compact_prompt, output_schema, "disabled")
+
+        self.assertEqual(expected_format, "json")
+        self.assertEqual(compact_prompt.count("ONLY_ONCE_RECIPE"), 1)
+        self.assertNotIn("ONLY_ONCE_SCHEMA", compact_prompt)
+        self.assertEqual(transport_prompt.count("ONLY_ONCE_RECIPE"), 1)
+        self.assertEqual(transport_prompt.count("ONLY_ONCE_SCHEMA"), 2)
+
     def test_task_packet_stage_scopes_live_web_search_to_research_and_verification(self):
         self.assertEqual(
             adapter.LIVE_WEB_SEARCH_STAGES,

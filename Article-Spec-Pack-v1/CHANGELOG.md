@@ -9,6 +9,25 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## September 2, 2026: Article Flow workflow 3.1.0 (controller 3.1.0)
+
+Implemented the correction loop proved necessary by the first workflow 3 article, while retaining the voice decision as the only routine human pause.
+
+- Added a model-authored visual plan followed by a deterministic, controller-owned SVG renderer. Visuals use a bounded vocabulary, exact heading placement, accessible titles and descriptions, and SHA-256 bindings carried through packaging and live verification.
+- Added native Markdown tables, safe images, explicit hard line breaks, entity handling, responsive table and figure styles, and continued raw-HTML escaping. The publication package now includes the reviewed stylesheet and article assets.
+- Reduced the voice model's job to three genuinely distinct paragraphs over a controller-selected opening or thesis anchor. Candidate IDs, source and passage hashes, comparison order, artifact bindings, and held-out instructions are now controller-owned.
+- Added an operator path to reject all three voice candidates and regenerate them without applying voice learning. A selected candidate remains the only normal human gate.
+- Separated content rejection from provider failure. A schema or editorial rejection consumes the bounded repair window but does not make an otherwise healthy model route ineligible; provider failures still drive model fallback.
+- Compacted provider prompts without changing the immutable task packet. The adapter includes the article recipe and normative output schema once instead of repeating each inside the packet and transport instructions.
+- Added immutable published-article feedback. A rejected article becomes negative evidence, active provisional rules derived from the affected learning history are retired, prior profile files remain intact, and a new field-note-oriented provisional rule is activated.
+- Added first-class same-URL correction runs. The historical seed remains immutable, the correction request is a separate hash-bound input with explicit precedence, the original publication date and page position are retained, and modified metadata is updated.
+- Replaced loose live checks with attempt-specific receipts over the exact article, discovery surfaces, and visual bytes. Deployment propagation retries use a bounded 10/20/40-second schedule; permanent validation failures block immediately, and a fourth failed propagation check ends the retry window.
+- Archived the exact workflow 3.0.0 authority for resumability and regenerated the human workflow view from the 3.1 machine definition.
+
+**Maturity note:** The new contracts and no-publish path are covered by regression tests. Release acceptance additionally requires a real same-URL correction of the article that exposed these defects, desktop and mobile visual inspection, and exact live-byte verification.
+
+---
+
 ## September 2, 2026: Article Flow workflow 3.0.0 (controller 3.0.0)
 
 Defects found by the first full live run of the workflow 3 pipeline, from intake through a published article. The regression suite was green before this work; every item below was reachable only by running the workflow end to end against real providers.

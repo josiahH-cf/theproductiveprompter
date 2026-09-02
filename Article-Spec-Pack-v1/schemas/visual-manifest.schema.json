@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://theproductiveprompter.com/schemas/visual-manifest.schema.json",
+  "title": "Rendered Article Visual Manifest",
+  "type": "object",
+  "required": ["visual_manifest_schema_version", "run_id", "visual_plan_sha256", "assets"],
+  "properties": {
+    "visual_manifest_schema_version": {"const": "1.0.0"},
+    "run_id": {"type": "string"},
+    "visual_plan_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "assets": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "required": ["visual_id", "kind", "source_path", "public_path", "sha256", "byte_size", "title", "alt_text", "caption", "placement", "claim_ids"],
+        "properties": {
+          "visual_id": {"type": "string"},
+          "kind": {"enum": ["console_reconstruction", "trend_gap", "delivery_loop"]},
+          "source_path": {"type": "string"},
+          "public_path": {"type": "string", "pattern": "^/assets/articles/[a-z0-9-]+/[a-z0-9-]+\\.svg$"},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "byte_size": {"type": "integer", "minimum": 1},
+          "title": {"type": "string"},
+          "alt_text": {"type": "string", "minLength": 1},
+          "caption": {"type": "string", "minLength": 1},
+          "placement": {
+            "type": "object",
+            "required": ["after_heading"],
+            "properties": {"after_heading": {"type": "string"}},
+            "additionalProperties": false
+          },
+          "claim_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

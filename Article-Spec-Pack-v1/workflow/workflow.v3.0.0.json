@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/workflow.schema.json",
-  "workflow_schema_version": "3.1.0",
-  "workflow_version": "3.1.0",
+  "workflow_schema_version": "3.0.0",
+  "workflow_version": "3.0.0",
   "authority": true,
-  "name": "The Productive Prompter article workflow v3.1",
+  "name": "The Productive Prompter article workflow v3",
   "precedence": [
     "run_overrides",
     "approved_article_recipe",
@@ -23,7 +23,7 @@
     {
       "id": "NEW",
       "actor": "code",
-      "objective": "Create a collision-safe run, reserve its writing model atomically, and lock it to workflow 3.1.0.",
+      "objective": "Create a collision-safe run, reserve its writing model atomically, and lock it to workflow 3.0.0.",
       "required_inputs": [],
       "output": "run.json",
       "output_schema": "run.schema.json",
@@ -165,7 +165,7 @@
       "output_schema": "artifact.schema.json",
       "side_effect_class": "none",
       "gate": "G-DRAFT-COVERAGE",
-      "next_on_pass": "VISUAL_PLAN",
+      "next_on_pass": "CLAIM_VERIFICATION",
       "repair_state": "DRAFT",
       "max_attempts": 3,
       "timeout_seconds": 900,
@@ -173,54 +173,12 @@
       "escalation_condition": "Escalate after 3 unsuccessful attempts or when a required operator decision/capability is missing."
     },
     {
-      "id": "VISUAL_PLAN",
-      "actor": "model_and_policy",
-      "objective": "Plan only diagrams or labeled reconstructions that materially improve comprehension, binding each visual to an article heading, accessible explanation, and explicit claim provenance.",
-      "required_inputs": [
-        "draft",
-        "brief",
-        "article-recipe",
-        "claim-ledger"
-      ],
-      "output": "artifacts/visual-plan.json",
-      "output_schema": "visual-plan.schema.json",
-      "side_effect_class": "none",
-      "gate": "G-VISUAL-PLAN",
-      "next_on_pass": "VISUAL_RENDER",
-      "repair_state": "VISUAL_PLAN",
-      "max_attempts": 2,
-      "timeout_seconds": 900,
-      "retry_policy": "bounded retry with declared repair state and transient backoff",
-      "escalation_condition": "Escalate after 2 unsuccessful attempts or when the article cannot support a truthful, useful visual."
-    },
-    {
-      "id": "VISUAL_RENDER",
-      "actor": "code",
-      "objective": "Render the approved visual plan as deterministic, accessible SVG assets and produce a hash-bound manifest without asking a model to generate markup.",
-      "required_inputs": [
-        "draft",
-        "visual-plan"
-      ],
-      "output": "artifacts/visual-manifest.json",
-      "output_schema": "visual-manifest.schema.json",
-      "side_effect_class": "local_reversible",
-      "gate": "G-VISUAL-RENDER",
-      "next_on_pass": "CLAIM_VERIFICATION",
-      "repair_state": "VISUAL_PLAN",
-      "max_attempts": 1,
-      "timeout_seconds": 120,
-      "retry_policy": "deterministic render once from a validated plan; repair the plan on failure",
-      "escalation_condition": "Escalate when the approved plan cannot be rendered or its hashes and accessibility metadata cannot be verified."
-    },
-    {
       "id": "CLAIM_VERIFICATION",
       "actor": "independent_model_and_code",
       "objective": "Re-extract every externally checkable claim from the rough draft, verify it independently, and lock facts, dates, numbers, names, citations, and URLs.",
       "required_inputs": [
         "draft",
-        "claim-ledger",
-        "visual-plan",
-        "visual-manifest"
+        "claim-ledger"
       ],
       "output": "artifacts/verified-claim-ledger.json",
       "output_schema": "claim-ledger.schema.json",
@@ -236,7 +194,7 @@
     {
       "id": "VOICE_PROBE",
       "actor": "assigned_writing_model_then_human",
-      "objective": "Generate exactly three meaningfully different, one-paragraph voice variants from a controller-selected opening or thesis passage with unchanged verified meaning; let the operator select one or reject the set for regeneration.",
+      "objective": "Generate exactly three one-paragraph voice variants from one rough-draft passage with unchanged verified meaning, then record the operator's single candidate selection and optional feedback.",
       "required_inputs": [
         "draft",
         "verified-claim-ledger",
@@ -470,7 +428,6 @@
       "G-SEED-PRESERVED",
       "G-RESEARCH-PLAN",
       "G-EVIDENCE-COVERAGE",
-      "G-VISUAL-RENDER",
       "G-CLAIMS-VERIFIED",
       "G-VOICE-LEARNING",
       "G-NATURALIZATION",
@@ -486,7 +443,6 @@
       "G-RECIPE-FIT",
       "G-BRIEF-ALIGNMENT",
       "G-DRAFT-COVERAGE",
-      "G-VISUAL-PLAN",
       "G-VOICE-PROBE",
       "G-EDITORIAL-QA"
     ]
@@ -553,11 +509,6 @@
       "text": "Reject U+2014 and encoded em-dash entities on every generated and rendered public surface, including quotations and code; repair by paraphrasing, omission, or reopened verification rather than silent protected-text mutation."
     },
     {
-      "id": "AF-VISUAL-001",
-      "level": "MUST",
-      "text": "Plan visuals from the article's actual explanatory needs, render them deterministically with alt text, captions, placement, claim provenance, and content hashes, and fail packaging when a required visual is absent or unbound."
-    },
-    {
       "id": "AF-VOICE-001",
       "level": "MUST",
       "text": "Keep the protected baseline voice profile immutable; apply each operator voice selection as idempotent provisional runtime evidence, activate a new version immediately, and permit rollback without deleting evidence."
@@ -595,7 +546,7 @@
     {
       "id": "AF-AUTO-001",
       "level": "MUST",
-      "text": "In workflow 3.1.0 the voice selection is the only routine human decision; rejecting all three candidates regenerates the set without learning, while unresolved ambiguity, exhausted repairs, missing capability, merge conflict, hold, or permanent live-verification failure remains an explicit stop."
+      "text": "In workflow 3.0.0 the voice selection is the only routine human decision; unresolved ambiguity, exhausted repairs, missing capability, merge conflict, hold, or failed live verification remains an explicit stop."
     },
     {
       "id": "AF-STYLE-001",
@@ -644,8 +595,6 @@
       "INTENT_REVIEW",
       "ARTICLE_RECIPE",
       "BRIEF",
-      "VISUAL_PLAN",
-      "VISUAL_RENDER",
       "VOICE_LEARNING",
       "EDITORIAL_QA",
       "PACKAGE",
