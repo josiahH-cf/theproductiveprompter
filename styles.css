@@ -2181,17 +2181,19 @@ a:focus {
 
     .article-table-wrap[data-column-count="3"] th:nth-child(1),
     .article-table-wrap[data-column-count="3"] td:nth-child(1) {
-        width: 22%;
+        width: 30%;
+        padding-inline: 0.5rem;
+        font-size: 0.9rem;
     }
 
     .article-table-wrap[data-column-count="3"] th:nth-child(2),
     .article-table-wrap[data-column-count="3"] td:nth-child(2) {
-        width: 29%;
+        width: 28%;
     }
 
     .article-table-wrap[data-column-count="3"] th:nth-child(3),
     .article-table-wrap[data-column-count="3"] td:nth-child(3) {
-        width: 49%;
+        width: 42%;
     }
 
     /* Navigation */
