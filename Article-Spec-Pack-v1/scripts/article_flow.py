@@ -7667,7 +7667,21 @@ def _command_publish_execute_locked(
         and incomplete.get("commit") == current_commit
     )
     if current_commit != plan.get("base_commit") and not resumed_own_commit:
-        raise FlowError("Repository HEAD changed after publication planning; create and approve a new plan", EXIT_INTEGRITY, {"planned": plan.get("base_commit"), "actual": current_commit})
+        # The plan is a snapshot of the target, and the target repository moves
+        # for reasons unrelated to this run.  Nothing has been copied yet, so
+        # drop the stale plan and return to approval where a fresh one is built
+        # against the current head rather than stopping with an instruction the
+        # run has no way to carry out.
+        plan_path.unlink(missing_ok=True)
+        transition(
+            directory, run, "PUBLISH_APPROVAL", "controller",
+            "Publication target head moved after planning; replan against the current head",
+        )
+        raise FlowError(
+            "Repository HEAD changed after publication planning; a fresh plan is required",
+            EXIT_WAITING,
+            {"planned": plan.get("base_commit"), "actual": current_commit},
+        )
     package = load_json(directory / "package" / "package.json")
     if package.get("package_revision") != plan.get("package_revision"):
         raise FlowError("Package revision changed after publication planning", EXIT_INTEGRITY)

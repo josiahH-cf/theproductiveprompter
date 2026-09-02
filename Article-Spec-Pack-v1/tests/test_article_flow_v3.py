@@ -4218,6 +4218,19 @@ class PublicationAtomicityTests(TemporaryRuntime):
             "writing inside the verification loop publishes partially",
         )
 
+    def test_a_moved_target_head_also_returns_to_approval(self):
+        """The same recovery for the sibling staleness check.
+
+        Its message already told the operator to create a new plan, but the
+        run had no way to reach planning again from PUBLISH.
+        """
+        body = self.controller_source()
+        marker = body.index("Repository HEAD changed after publication planning")
+        window = body[marker - 700:marker + 500]
+        self.assertIn("plan_path.unlink(missing_ok=True)", window)
+        self.assertIn('"PUBLISH_APPROVAL"', window)
+        self.assertIn("EXIT_WAITING", window)
+
     def test_a_stale_plan_returns_to_approval_instead_of_dead_ending(self):
         body = self.controller_source()
         marker = body.index("Publication target changed after planning")
