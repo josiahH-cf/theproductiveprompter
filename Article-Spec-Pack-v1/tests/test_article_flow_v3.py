@@ -4275,6 +4275,8 @@ class PublicationAtomicityTests(TemporaryRuntime):
         (repository / "docs").mkdir(parents=True)
         (repository / "docs" / "article.html").write_text("<h1>old</h1>\n", encoding="utf-8")
         af.git(["init", "--quiet"], cwd=repository)
+        # The publication lock derives its identity from the push remote.
+        af.git(["remote", "add", "origin", "https://example.invalid/site.git"], cwd=repository)
         af.git(["-c", "user.email=t@example.com", "-c", "user.name=t", "add", "-A"], cwd=repository)
         af.git(["-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "--quiet", "-m", "base"], cwd=repository)
 
