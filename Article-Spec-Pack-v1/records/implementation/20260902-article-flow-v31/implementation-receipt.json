@@ -1,0 +1,139 @@
+{
+  "implementation_receipt_schema_version": "1.0.0",
+  "created_at": "2026-09-02T22:14:09Z",
+  "source_plan": {
+    "path": "C:/Users/josia/Documents/obsidian-sync-vault/intake/notes/2026/09/01/Article Pipeline Improvements Cliché Gate, Variable Model Drafting, and Voice-Learning Loop.md",
+    "sha256": "67b55f00c6b89455a9ab519c7371a0fb1853106fb2bc7754780ff82403a06154"
+  },
+  "source_article_idea": {
+    "path": "C:/Users/josia/Documents/obsidian-sync-vault/intake/notes/2026/09/01/Article Idea Architecture Evolution Lagging Behind AI Capability Growth.md",
+    "sha256": "62dea075d4431297a0dc09e5dab41900e39c50fde8ee4048b77791987418a474"
+  },
+  "source_base_commit": "f3211fd8f96e94827796241e90ec4d1c6e7dad8a",
+  "initial_implementation_commit": "2a6f2d6445fd1cd7d9e1f3fa83fc3dbb928dedd8",
+  "final_backend_code_commit": "bb77a770f927b6ea31e4b784033d1c49c7b73941",
+  "implementation_branch": "codex/article-publication-v3",
+  "workflow_version": "3.1.0",
+  "controller_version": "3.1.0",
+  "scope_decision": "Repair the reusable article workflow and prove it with a same-URL correction of the article that exposed the defects. Keep voice selection as the only routine human gate, preserve deterministic validation and publication approval, and publish only through a clean dedicated checkout after confirming the shared checkout is in use.",
+  "implemented": [
+    "Added a controller-routed visual-planning stage and deterministic hash-bound SVG rendering, with complete console reconstructions and refreshable immutable assets.",
+    "Made visual placement and paths manifest-owned so model placeholders cannot become broken or duplicated public images.",
+    "Added safe Markdown tables and figures plus a responsive three-column table layout verified at a 390-pixel mobile viewport.",
+    "Reduced routine operator involvement to one three-option voice decision; policy-owned soft review, model routing, validation, repair, packaging, and live verification continue automatically.",
+    "Separated content rejection from provider failure, restored automation routes after upgrades, and kept directed repairs scoped to the artifact that failed.",
+    "Preserved direct operator article amendments through editorial QA instead of silently replacing them with a whole-article model rewrite.",
+    "Bound live verification to exact article, discovery-surface, and visual bytes with bounded propagation retries.",
+    "Classified article-derived live checks by their exact-byte dependency so stale Pages content remains retryable while current malformed markup still blocks immediately.",
+    "Recorded rejected published prose as negative voice evidence, retired the two provisional rules that produced it, and activated a concrete field-note rule before the correction run.",
+    "Replaced the public article in place with shorter paragraphs, a concrete first-person opening, one comparison table, and three accessible diagrams."
+  ],
+  "backend_repair_commits": [
+    "8585519c138104182298d6ceb885ce00e407facb",
+    "61e32c7bbdb9136ae34ca89edd7576aab54e2404",
+    "e2f26f3473bd0fbdc40cbaf4ccf4bdfbc6a3b967",
+    "c0a22a0ad37a8da4153ed92190f618138ed77fdc",
+    "96471a883897de98c4136f7b01fea982ff97e134",
+    "c2372c33d44655d90173287557160ff2332623f5",
+    "666715d260499503cb57b19d59b563cd1552176f",
+    "d1717770e98fffe578ad0bdb0b154590799ed69f",
+    "b94772b8bb2b95889e2e94eb91d3519ec8483ef8",
+    "9484f42c0ff303bd8d662fe9b94c48e521909b62",
+    "def27f4776d5f963af5d262e5f1c8b635f3612ed",
+    "4111823b7a660921ba32d139d716ee3872ca1ce0",
+    "bb77a770f927b6ea31e4b784033d1c49c7b73941"
+  ],
+  "human_gate_contract": {
+    "routine_operator_gate": "VOICE_PROBE",
+    "candidate_count": 3,
+    "selected_candidate": "B",
+    "selected_passage_sha256": "cdd7a51f451fa7763c4f111f90d0bdb846857124774f42bc20075132dcda295b",
+    "voice_learning_record_id": "VL-8f902bba50a4a571420e",
+    "effective_voice_profile_version": "runtime-000003-8f902bba50",
+    "exceptional_operator_controls": [
+      "Explicit article or metadata amendment after a blocking finding",
+      "Scoped publication approval",
+      "Credential handoff when the active host cannot publish"
+    ]
+  },
+  "voice_feedback": {
+    "rejected_publication_record_id": "AFB-6bc65edf8ff9077ba5c1",
+    "retired_guidance_ids": [
+      "VG-076124123164b6bd",
+      "VG-cd26eaa21bb6baf1"
+    ],
+    "replacement_guidance_id": "VG-6bc65edf8ff9077b",
+    "correction_run_guidance_id": "VG-8f902bba50a4a571"
+  },
+  "real_run": {
+    "run_id": "AF-20260902T193400Z-the-limit-may-not-be-in-the-model-a9d68582",
+    "source_run_id": "AF-20260902T123440Z-artifact-type-telegram-intake-note-schema-versio-83c97dca",
+    "state": "COMPLETE",
+    "status": "COMPLETE",
+    "package_revision": "b061d8aa2aa020851396d28c7ef080949822aaf9623c423b69abf403a91e728c",
+    "publication_approval_id": "AP-5eff3806dc01937f00d40638",
+    "publication_commit": "49358c698f2556279480d18ac35c248dbfa56123",
+    "live_url": "https://theproductiveprompter.com/docs/the-limit-may-not-be-in-the-model.html",
+    "live_html_sha256": "e62949733b89388b52efdcd51a2879387a3b176efb56e4b6b667815a33531fc4",
+    "live_verification_attempt": 2,
+    "represented_for_discovery": true,
+    "indexing": "unknown_not_claimed"
+  },
+  "article": {
+    "title": "The Limit May Not Be in the Model",
+    "description": "Stronger models do not automatically make better products. The defaults around them need owners, evidence, and a reason to change or stay put.",
+    "revision_mode": "replace_in_place",
+    "archetype": "field-note",
+    "source_word_count": 1557,
+    "operator_article_sha256": "3f01f3352f135307c098c25c6bb328fe7bfc5e8518da3ace859628fee0178fe5",
+    "public_article_markdown_sha256": "3924239e293d46fec525e6e989c236fd07705e9cd87d2051941c432959c08c8c"
+  },
+  "visuals": [
+    {
+      "visual_id": "console-interaction-reconstruction",
+      "sha256": "8d5e61d22f5705dffdfe5e6367d8f1fbdafd5cacf7f2f5de8bccd15f5769a51c"
+    },
+    {
+      "visual_id": "capability-default-review-gap",
+      "sha256": "eb43aa49d5e9300cbd655b092e1522df89039fed4c04b4fd5bf078a454389e88"
+    },
+    {
+      "visual_id": "contract-review-delivery-loop",
+      "sha256": "9bd5411de063f0226fbb4904c0b00d11d4e96d01812918cdcc27a6a61fdbb22c"
+    }
+  ],
+  "browser_qa": {
+    "desktop_top_sha256": "ed7ff0256987dd650301c190b304d7084a400d1fab675e78bca0061111653aa5",
+    "mobile_top_390px_sha256": "0adc9169982324b9613366eada24fe15b5963a2eec07b3f8fc9b3373cb497527",
+    "mobile_table_390px_sha256": "d8c3b5721c091f43687602798a66ab2f367aa54748e8686c2334460b859f150b",
+    "horizontal_page_overflow": false,
+    "figure_count": 3,
+    "comparison_table_readable": true
+  },
+  "verification": {
+    "wsl_unittest": {
+      "command": "python3 -m unittest discover -s Article-Spec-Pack-v1/tests -v",
+      "result": "178 tests, 177 passed, 1 expected Windows-only skip",
+      "elapsed_seconds": 862.997
+    },
+    "targeted_live_verification_regressions": "3 passed",
+    "protected_manifest": "passed against index and worktree",
+    "live_exact_bytes": "passed",
+    "live_visual_hashes": "3 of 3 passed",
+    "release_evidence_contract": {
+      "authority": "article-flow doctor --scope release --json",
+      "wsl_receipt": "~/.local/share/article-flow/conformance/latest.json",
+      "native_windows_receipt": "%USERPROFILE%\\.article-flow\\conformance\\latest.json",
+      "rule": "Both mutable native receipts must pass against the exact final linked-checkout commit after the implementation record is committed."
+    }
+  },
+  "shared_checkout_safety": {
+    "path": "C:/Users/josia/Documents/github-windows/theproductiveprompter",
+    "observed_branch": "main",
+    "observed_head": "86591035fd7acd1dca60eea559143ccb3b94b668",
+    "observed_dirty_entries": 23,
+    "mutated_by_this_implementation": false,
+    "publication_checkout": "C:/Users/josia/Documents/Codex/2026-09-01/lev/work/article-flow-publication",
+    "push_mode": "normal fast-forward only"
+  }
+}
