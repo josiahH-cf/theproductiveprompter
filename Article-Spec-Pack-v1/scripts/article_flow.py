@@ -1938,6 +1938,8 @@ VERIFICATION_OWN_OUTPUT_CRITERIA = frozenset({
     "freshness",
     "source_disagreement",
     "source_resolution",
+    "unresolved_evidence_escalation",
+    "verification_citation_coverage",
 })
 
 

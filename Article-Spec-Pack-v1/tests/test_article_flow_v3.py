@@ -5252,6 +5252,7 @@ class UsefulVisualPolicyTests(TemporaryRuntime):
         outcome, findings = af.automatic_gate(directory, run, "CLAIM_VERIFICATION", path)
         self.assertEqual(outcome, "REPAIR")
         self.assertTrue({"unresolved_evidence_escalation", "verification_citation_coverage"} <= {f["criterion"] for f in findings})
+        self.assertEqual(af.effective_repair_state(af.state_definition("CLAIM_VERIFICATION", run), findings), "CLAIM_VERIFICATION")
         ledger["claims"] = []
         af.write_json(path, ledger)
         self.assertIn("verification_citation_coverage", {f["criterion"] for f in af.automatic_gate(directory, run, "CLAIM_VERIFICATION", path)[1]})
