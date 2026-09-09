@@ -5236,6 +5236,26 @@ class WorkflowV31RegressionTests(TemporaryRuntime):
 class UsefulVisualPolicyTests(TemporaryRuntime):
     anchor = "Constraints can reduce experimental capacity while raising the reward for efficiency."
 
+    def test_verification_escalation_or_missing_citations_cannot_pass(self):
+        directory, run, _, _ = self.fixture()
+        self.record_text(directory, run, "draft", "A factual claim. [Source](https://example.com/evidence)", "cited-draft.md")
+        claim = {
+            "claim_id": "BLOCKER", "exact_claim": "Source retrieval unavailable", "class": "project_observation",
+            "risk": "high", "source_tier": None, "source_url_or_local_id": None,
+            "source_title_and_publisher": None, "exact_locator_or_supporting_excerpt": "No live retrieval capability",
+            "checked_at": af.utc_now(), "freshness_horizon": "Unresolved", "contradiction_status": "unresolved",
+            "allowed_wording": "Do not publish until verified", "confidence": 1, "disposition": "escalate",
+        }
+        path = directory / "submissions" / "verification.json"
+        ledger = {"claim_ledger_schema_version": "1.0.0", "run_id": run["run_id"], "generated_at": af.utc_now(), "claims": [claim]}
+        af.write_json(path, ledger)
+        outcome, findings = af.automatic_gate(directory, run, "CLAIM_VERIFICATION", path)
+        self.assertEqual(outcome, "REPAIR")
+        self.assertTrue({"unresolved_evidence_escalation", "verification_citation_coverage"} <= {f["criterion"] for f in findings})
+        ledger["claims"] = []
+        af.write_json(path, ledger)
+        self.assertIn("verification_citation_coverage", {f["criterion"] for f in af.automatic_gate(directory, run, "CLAIM_VERIFICATION", path)[1]})
+
     def fixture(self, mode="auto", include=True):
         run_id = self.start("Explain two competing effects of resource constraints.")
         directory, run = af.load_run(run_id)

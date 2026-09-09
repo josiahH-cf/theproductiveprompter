@@ -4795,6 +4795,17 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
             findings.append({"criterion": "run_identity", "artifact": str(submission), "location": "run_id", "finding": "Artifact belongs to a different run.", "repair_instruction": "Use the run_id in the current task packet."})
         if state in {"RESEARCH", "CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION"}:
             for claim in value.get("claims", []):
+                if claim.get("disposition") == "escalate":
+                    findings.append({"criterion": "unresolved_evidence_escalation", "artifact": str(submission), "location": str(claim.get("claim_id")), "finding": "The evidence worker reported an unresolved blocker.", "repair_instruction": "Resolve the missing evidence or use an eligible host with source access; do not advance on an escalation ledger."})
+            if state in {"CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION"}:
+                prose_path = artifact_path(directory, run, "draft" if state == "CLAIM_VERIFICATION" else "article")
+                prose = prose_path.read_text(encoding="utf-8") if prose_path else ""
+                cited_urls = set(re.findall(r"(?<!!)\[[^\]\n]+\]\((https?://[^)\s]+)\)", prose))
+                supported_urls = {claim.get("source_url_or_local_id") for claim in value.get("claims", []) if claim.get("disposition") in {"use", "qualify"}}
+                missing_urls = cited_urls - supported_urls
+                if missing_urls:
+                    findings.append({"criterion": "verification_citation_coverage", "artifact": str(submission), "location": "claims", "finding": "The verification ledger does not cover article citations: " + ", ".join(sorted(missing_urls)), "repair_instruction": "Verify every cited source and its associated claims, or remove unsupported claims and citations from the article before reverification."})
+            for claim in value.get("claims", []):
                 if claim.get("risk") in {"medium", "high"} and claim.get("disposition") in {"use", "qualify"}:
                     if not claim.get("source_url_or_local_id") or not claim.get("exact_locator_or_supporting_excerpt"):
                         findings.append({"criterion": "claim_evidence", "artifact": str(submission), "location": str(claim.get("claim_id")), "finding": "Medium/high-risk used claim lacks traceable support.", "repair_instruction": "Add direct support, qualify/omit the claim, or escalate."})
