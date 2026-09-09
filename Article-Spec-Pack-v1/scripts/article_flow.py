@@ -67,9 +67,10 @@ def bootstrap_payload() -> dict[str, Any]:
         "start_command": ["article-flow", "capture", "<verbatim operator seed>", "--auto", "--json"],
         "protocol": [
             "Preserve the operator's seed verbatim when replacing the placeholder in start_command.",
-            "Run only exact command arrays returned by the controller in next_command, command, submission_command, or approval_command fields.",
+            "Run only exact command arrays returned by the controller in next_command, command, submission_command, approval_command, selection_commands, or rejection_command fields.",
             "For perform_task, read only task_packet, create only expected_output, then run submission_command.",
-            "For the normal human_decision, show the controller's three voice choices plus its regeneration option and wait; never choose or reject the set without the operator's decision.",
+            "For the normal human_decision, use the host's native selectable-question control (for example request_user_input_async) to present A, B, and C as single-select options. Include all three exact passages in the question. Follow presentation; use a plain-text letter prompt only when the host has no selection control. Allow regeneration with concrete free-text feedback. Never treat a preselected option, elapsed time, or a model preference as the operator's answer.",
+            "After the operator selects a voice, run the matching exact command in selection_commands immediately and continue through editing, verification, build, automatic push, and exact live verification. Do not add a routine publication confirmation; honor explicit holds and capability blockers.",
             "For human_action, show the controller's single handoff and wait for the operator or a credentialed host to complete it.",
             "For run_command, run the exact command array returned by the controller. Use advance for active-session automation and safe resumption.",
             "Stop on complete, terminal, or an unresolved capability or decision.",
@@ -5843,6 +5844,18 @@ def next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
                 "state": state,
                 "question": "Which one of these three paragraphs sounds most like you, or should all three be regenerated? A short reason is optional for a selection and required for regeneration.",
                 "candidates": candidates,
+                "presentation": {
+                    "type": "single_select",
+                    "surface": "host_native_selection_control",
+                    "instructions": "Show all three exact passages in the question and A, B, C as selectable options in that order. Accept only an explicit operator answer. Use a plain-text letter prompt only if no native selection control exists. Offer regeneration through free-text feedback.",
+                    "options": [
+                        {"id": str(item["candidate_id"]), "label": str(item["candidate_id"]), "description": item["passage"]}
+                        for item in candidates
+                    ],
+                    "default_selection": None,
+                    "allow_free_text": True,
+                    "after_selection": "Continue automatically through editing, verification, build, push, and exact live verification, subject to explicit holds and capability blockers.",
+                },
                 "selection_commands": {
                     str(item["candidate_id"]): ["article-flow", "choose-voice", run["run_id"], str(item["candidate_id"]), "--auto"]
                     for item in candidates
@@ -10625,11 +10638,11 @@ def build_parser() -> argparse.ArgumentParser:
     advance.add_argument("--max-steps", type=int, default=100)
     add_json(advance)
 
-    choose_voice = sub.add_parser("choose-voice", help="Select one of the three voice paragraphs and optionally continue automatically.")
+    choose_voice = sub.add_parser("choose-voice", help="Select one of the three voice paragraphs and continue automatically through publication unless explicitly paused.")
     choose_voice.add_argument("run_id")
     choose_voice.add_argument("candidate_id")
     choose_voice.add_argument("--feedback")
-    choose_voice.add_argument("--auto", action="store_true")
+    choose_voice.add_argument("--auto", action=argparse.BooleanOptionalAction, default=True, help="Continue through publication by default; --no-auto records the choice and explicitly pauses.")
     add_json(choose_voice)
 
     regenerate_voice = sub.add_parser("regenerate-voice", help="Reject all three voice candidates without learning and create a new bounded set.")

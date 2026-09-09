@@ -3,7 +3,7 @@
   "workflow_version": "3.1.0",
   "hash_algorithm": "sha256",
   "generator_name_and_version": "article-flow 3.1.0",
-  "generated_at": "2026-09-09T11:12:57Z",
+  "generated_at": "2026-09-09T15:20:48Z",
   "generated_from": "index",
   "files": [
     {
@@ -27,8 +27,8 @@
       "scope": "spec",
       "role": "documentation",
       "rule_set": "overview",
-      "sha256": "0273c700eb0c441c50d46ab0e640af4de742d9d7cc6f53d776059e18cfc5adc4",
-      "byte_size": 9708
+      "sha256": "430bd157401b0378bfb2811c71527acb0db84cc7fb7197189c78eb04bf755eb9",
+      "byte_size": 10135
     },
     {
       "path": "1-Master/Article-Master-Spec.md",
@@ -59,8 +59,8 @@
       "scope": "spec",
       "role": "documentation",
       "rule_set": "generated-workflow",
-      "sha256": "7ec5fd9d8f27570b3d33cc4325fa82465ded99a30f00147e97f53d1fcd684292",
-      "byte_size": 16569
+      "sha256": "c8488d0af9a5089b347d919df459070e6c3891aa544ebdf5754eb8c7267aaeeb",
+      "byte_size": 16964
     },
     {
       "path": "1-Master/Critic-Loop-(Single-Pass-Self-Check).md",
@@ -555,8 +555,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "1894359607bbf9792e297acd9b5f718df326f529ebbf30bc734de489d90a522a",
-      "byte_size": 571801
+      "sha256": "e6bf9d484243fcf383207efe9eca8125d793d7f9ba6d4841b064b4255cf34bea",
+      "byte_size": 573570
     },
     {
       "path": "scripts/codex_exec_adapter.py",
@@ -595,8 +595,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "conformance",
-      "sha256": "00245b4f1c8e08e470b8eb2586db110b09b3556cdda76d99d4e9443618822f71",
-      "byte_size": 279834
+      "sha256": "6426bea8015b82178df6d89289603edb99660c93ff2a62926be77b61b7b66ecc",
+      "byte_size": 280467
     },
     {
       "path": "tests/test_codex_exec_adapter.py",
@@ -627,8 +627,8 @@
       "scope": "spec",
       "role": "normative",
       "rule_set": "house-policy",
-      "sha256": "7c8fa859ae85f20b1e66158c569b87e0f7dd56065cc0a5a2d3858bd860ed211e",
-      "byte_size": 8743
+      "sha256": "0dcdb3c7733d01d8173d93952819b6eefaae2e5cc6393481e08372434fff3be2",
+      "byte_size": 9256
     },
     {
       "path": "workflow/protected-paths.json",
@@ -643,8 +643,8 @@
       "scope": "spec",
       "role": "normative",
       "rule_set": "workflow",
-      "sha256": "67a0115247ef52e7b408fd081e4f4c6ae07482a09b6bf77eac87a4cf9868958c",
-      "byte_size": 28161
+      "sha256": "54c9cd0053ca9f41f4c49590a28a37d3db69cee498e2dba33c807537658713e0",
+      "byte_size": 28556
     },
     {
       "path": "workflow/workflow.v2.0.0.json",

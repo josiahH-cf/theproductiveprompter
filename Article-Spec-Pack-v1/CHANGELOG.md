@@ -9,6 +9,12 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## September 9, 2026: Selectable voice choices and automatic publication
+
+- Added a native single-select console handoff for A, B, C with the exact passages, explicit-answer semantics, and free-text regeneration feedback.
+- Made voice selection continue through editing, verification, build, push, and live verification by default. Explicit pauses, publication holds, and capability blockers remain effective; `--no-auto` records a choice without continuing.
+- Aligned the entrypoint protocol, machine workflow, house policy, generated instructions, and operational guide; exercised default selection through the full no-publish fixture.
+
 ## September 9, 2026: Useful diagrams and paragraph placement
 
 - Aligned active workflow rules, recipe guidance, task packets, schemas, and publication validation around including diagrams if and when useful. Auto and optional plans may be empty with an article-specific reason; required and off remain explicit article-specific constraints.

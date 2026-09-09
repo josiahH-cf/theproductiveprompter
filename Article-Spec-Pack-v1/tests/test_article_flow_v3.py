@@ -124,6 +124,8 @@ class WorkflowV3ContractTests(unittest.TestCase):
         choice = parser.parse_args(["choose-voice", "AF-TEST", "B", "--feedback", "More direct.", "--auto"])
         self.assertEqual(choice.candidate_id, "B")
         self.assertTrue(choice.auto)
+        self.assertTrue(parser.parse_args(["choose-voice", "AF-TEST", "B"]).auto)
+        self.assertFalse(parser.parse_args(["choose-voice", "AF-TEST", "B", "--no-auto"]).auto)
         self.assertEqual(parser.parse_args(["models", "history"]).command, "models")
         self.assertEqual(parser.parse_args(["voice", "history"]).command, "voice")
         self.assertEqual(parser.parse_args(["voice", "rollback", "VP-2"]).version, "VP-2")
@@ -3369,6 +3371,13 @@ class VoiceLearningTests(TemporaryRuntime):
         payload = af.next_state_payload(directory, escalated)
         self.assertEqual(payload["action"], "human_decision")
         self.assertEqual([item["candidate_id"] for item in payload["candidates"]], ["A", "B", "C"])
+        presentation = payload["presentation"]
+        self.assertEqual(presentation["type"], "single_select")
+        self.assertIsNone(presentation["default_selection"])
+        self.assertEqual([item["id"] for item in presentation["options"]], ["A", "B", "C"])
+        for option, candidate in zip(presentation["options"], payload["candidates"]):
+            self.assertEqual(option["description"], candidate["passage"])
+            self.assertIn("--auto", payload["selection_commands"][option["id"]])
 
     def test_probe_recorded_without_a_gate_event_keeps_prior_behaviour(self):
         run_id, directory, run, _, _ = self.prepare_voice_choice()
@@ -3695,18 +3704,13 @@ class NoPublishAutomationTests(TemporaryRuntime):
             self.assertEqual(waiting["state"], "VOICE_PROBE")
             self.assertEqual(len(waiting["candidates"]), 3)
 
-            code, chosen = call(
-                af.command_choose_voice,
-                run_id=run_id,
-                candidate_id="B",
-                feedback=None,
-                auto=False,
-            )
-            self.assertEqual(code, af.EXIT_OK, chosen)
             try:
-                code, completed = call(af.command_advance, run_id=run_id)
+                choice = af.build_parser().parse_args(["choose-voice", run_id, "B", "--json"])
+                with contextlib.redirect_stdout(io.StringIO()) as output:
+                    code = af.command_choose_voice(choice)
+                completed = json.loads(output.getvalue())
             except af.FlowError as exc:
-                self.fail(f"advance raised {exc}: {exc.details}")
+                self.fail(f"choose-voice raised {exc}: {exc.details}")
             self.assertEqual(code, af.EXIT_OK, completed)
 
         real_publish.assert_not_called()

@@ -595,7 +595,7 @@
     {
       "id": "AF-AUTO-001",
       "level": "MUST",
-      "text": "In workflow 3.1.0 the voice selection is the only routine human decision; rejecting all three candidates regenerates the set without learning, while unresolved ambiguity, exhausted repairs, missing capability, merge conflict, hold, or permanent live-verification failure remains an explicit stop."
+      "text": "In workflow 3.1.0 the voice selection is the only routine human decision. Present the exact passages with native selectable A, B, C console options; use a plain-text letter prompt only when the host lacks a selection control. Require an explicit answer, never a preselected default. A selection automatically continues editing, verification, build, push, and exact live verification without another routine confirmation. Rejecting all three candidates with concrete feedback regenerates the set without learning. An explicit pause, unresolved ambiguity, exhausted repairs, missing capability, merge conflict, publication hold, or permanent live-verification failure remains an explicit stop."
     },
     {
       "id": "AF-STYLE-001",

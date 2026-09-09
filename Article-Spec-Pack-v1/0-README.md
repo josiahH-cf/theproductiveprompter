@@ -22,8 +22,8 @@ The controller preserves that seed verbatim, creates a resumable run, and return
 
 1. Capture one natural sentence or paragraph; it does not need to be a brief.
 2. Let the controller complete research, intent, recipe, drafting, visual planning and rendering, verification, editing, packaging, publication, and exact live checks.
-3. Make the one routine human decision at the voice gate: select one of three short passages or reject the set with concrete feedback so it can be regenerated without learning from it.
-4. Continue until exact live verification returns the `theproductiveprompter.com` article URL.
+3. Make the one routine human decision at the voice gate: the host shows the three exact passages and native selectable A, B, C options in the console. Free-text feedback can reject the set for regeneration without learning. A plain-text letter prompt is the fallback only when the host has no selection control; a preselected option is never an answer.
+4. Selecting a passage automatically continues through editing, verification, build, push, and exact live verification, which returns the `theproductiveprompter.com` article URL. No further routine publication confirmation is needed. `choose-voice` continues by default; use `--no-auto` only for an explicit request to pause after recording the choice.
 
 Ambiguity, exhausted repair windows, missing capability, a publication hold, a merge conflict, or failed live verification still stops explicitly. These are exceptional safety stops, not additional editorial approvals.
 

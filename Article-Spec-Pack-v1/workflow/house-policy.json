@@ -8,6 +8,8 @@
       "VOICE_PROBE"
     ],
     "continue_after_voice_selection": true,
+    "voice_selection_presentation": "Native selectable A, B, C console options with all three exact passages; plain-text fallback only when the host has no selection control. Require an explicit answer and allow regeneration through concrete free-text feedback.",
+    "voice_selection_continuation": "Automatically edit, verify, build, push, and verify the exact live revision after selection, without another routine publication confirmation. Honor explicit pauses, publication holds, and capability blockers.",
     "blocked_conditions": [
       "material_ambiguity",
       "attempt_exhaustion",
