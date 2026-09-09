@@ -3534,7 +3534,7 @@ class NoPublishAutomationTests(TemporaryRuntime):
                 "evidence_posture": "documentary",
                 "citation_mode": "links",
                 "components": {
-                    "diagram": "off",
+                    "diagram": "auto",
                     "checklist": "optional",
                     "mental_models": "off",
                     "workflow_count": None,
@@ -5230,6 +5230,120 @@ class WorkflowV31RegressionTests(TemporaryRuntime):
         self.assertEqual(af.active_voice_profile()[2]["current_version"], prior_pointer["current_version"])
         self.assertTrue(any(event["type"] == "VOICE_SET_REJECTED" for event in af._read_jsonl(directory / "events.jsonl")))
 
+
+
+
+class UsefulVisualPolicyTests(TemporaryRuntime):
+    anchor = "Constraints can reduce experimental capacity while raising the reward for efficiency."
+
+    def fixture(self, mode="auto", include=True):
+        run_id = self.start("Explain two competing effects of resource constraints.")
+        directory, run = af.load_run(run_id)
+        recipe = af.load_json(SPEC_ROOT / "workflow" / "article-recipe.defaults.json")
+        recipe["components"]["diagram"] = mode
+        self.record_json(directory, run, "article-recipe", recipe)
+        self.record_json(directory, run, "brief", {"slug": "competing-effects"})
+        self.record_json(directory, run, "claim-ledger", {"claims": [{"claim_id": "C19", "disposition": "qualify"}]})
+        self.record_text(directory, run, "draft", "# Competing effects\n\n" + self.anchor + "\n\nThe net effect remains uncertain.\n")
+        plan = {"visual_plan_schema_version": "1.0.0", "run_id": run_id, "visuals": []}
+        if include:
+            plan["visuals"] = [{
+                "visual_id": "competing-effects", "kind": "branching_effects", "title": "Two competing effects",
+                "purpose": "Separate the two hypothesized mechanisms without asserting a measured net benefit.",
+                "placement": {"after_paragraph": self.anchor},
+                "alt_text": "Constraints can reduce experiments and reward efficiency; the combined effect remains uncertain.",
+                "caption": "Conceptual inference, not measured causal effects or a forecast.",
+                "claim_ids": ["C19"], "labels": ["Compute constraints", "Fewer experiments", "Reward for efficiency", "Net effect uncertain"],
+            }]
+        else:
+            plan["omission_reason"] = "This brief article contains no relationship that a diagram would explain better than its prose."
+        path = self.record_json(directory, run, "visual-plan", plan)
+        return directory, run, path, plan
+
+    def test_paragraph_visual_renders_once_without_invented_headings(self):
+        directory, run, path, plan = self.fixture()
+        self.assertEqual(af.automatic_gate(directory, run, "VISUAL_PLAN", path)[0], "PASS")
+        af.transition(directory, run, "VISUAL_RENDER", "test", "Render a useful diagram")
+        call(af.command_visual_render, run_id=run["run_id"])
+        directory, run = af.load_run(run["run_id"])
+        draft = af.artifact_path(directory, run, "draft").read_text(encoding="utf-8")
+        manifest = af.json_artifact(directory, run, "visual-manifest")
+        self.assertNotIn("## ", draft)
+        self.assertIn(self.anchor, draft)
+        self.assertEqual(af.materialize_manifest_visuals_markdown(draft, manifest), draft)
+        body = af.inject_manifest_visuals(directory, run, af.markdown_to_html(af.strip_planned_visual_blocks(draft, manifest)))
+        self.assertEqual(body.count('data-visual-id="competing-effects"'), 1)
+        self.assertLess(body.index(self.anchor), body.index('<figure'))
+        self.assertLess(body.index('<figure'), body.index('The net effect remains uncertain.'))
+        svg = (directory / manifest["assets"][0]["source_path"]).read_text(encoding="utf-8")
+        self.assertNotIn("telemetry", svg)
+        self.assertNotIn("integration gap", svg)
+        self.assertIn("Net effect uncertain", svg)
+
+    def test_empty_auto_plan_renders_bound_empty_manifest(self):
+        directory, run, path, plan = self.fixture(include=False)
+        self.assertEqual(af.automatic_gate(directory, run, "VISUAL_PLAN", path)[0], "PASS")
+        af.transition(directory, run, "VISUAL_RENDER", "test", "Document why no diagram helps")
+        call(af.command_visual_render, run_id=run["run_id"])
+        directory, run = af.load_run(run["run_id"])
+        manifest_path = af.artifact_path(directory, run, "visual-manifest")
+        manifest = af.load_json(manifest_path)
+        self.assertEqual(manifest["assets"], [])
+        self.assertEqual(manifest["visual_plan_sha256"], af.sha256_path(path))
+        self.assertEqual(manifest["omission_reason"], plan["omission_reason"])
+        self.assertEqual(af.validate_visual_manifest(directory, run, manifest_path), [])
+        self.assertEqual(af.inject_manifest_visuals(directory, run, "<p>Unchanged</p>"), "<p>Unchanged</p>")
+
+    def test_required_off_and_unexplained_omission_remain_enforced(self):
+        for mode, include, criterion in [("required", False, "required_visual"), ("off", True, "visual_policy")]:
+            with self.subTest(mode=mode):
+                directory, run, path, plan = self.fixture(mode, include)
+                outcome, findings = af.automatic_gate(directory, run, "VISUAL_PLAN", path)
+                self.assertEqual(outcome, "REPAIR")
+                self.assertIn(criterion, {f["criterion"] for f in findings})
+        directory, run, path, plan = self.fixture(include=False)
+        del plan["omission_reason"]
+        af.write_json(path, plan)
+        self.assertIn("visual_omission_reason", {f["criterion"] for f in af.automatic_gate(directory, run, "VISUAL_PLAN", path)[1]})
+
+    def test_ambiguous_anchor_unknown_claim_and_wrong_label_count_fail(self):
+        directory, run, path, plan = self.fixture()
+        self.record_text(directory, run, "draft", self.anchor + "\n\n" + self.anchor, "duplicate-anchor.md")
+        plan["visuals"][0]["claim_ids"] = ["MISSING"]
+        plan["visuals"][0]["labels"].pop()
+        af.write_json(path, plan)
+        outcome, findings = af.automatic_gate(directory, run, "VISUAL_PLAN", path)
+        self.assertEqual(outcome, "REPAIR")
+        self.assertTrue({"visual_placement", "visual_claim_provenance", "branching_effects_labels"} <= {f["criterion"] for f in findings})
+
+    def test_manifest_cannot_drop_or_relabel_a_planned_asset(self):
+        directory, run, path, plan = self.fixture()
+        af.transition(directory, run, "VISUAL_RENDER", "test", "Render asset")
+        call(af.command_visual_render, run_id=run["run_id"])
+        directory, run = af.load_run(run["run_id"])
+        manifest = af.json_artifact(directory, run, "visual-manifest")
+        candidate = directory / "submissions" / "tampered-manifest.json"
+        manifest["assets"][0]["caption"] = "Changed meaning without replanning."
+        af.write_json(candidate, manifest)
+        self.assertIn("visual_metadata_binding", {f["criterion"] for f in af.validate_visual_manifest(directory, run, candidate)})
+        manifest["assets"] = []
+        af.write_json(candidate, manifest)
+        self.assertIn("visual_asset_coverage", {f["criterion"] for f in af.validate_visual_manifest(directory, run, candidate)})
+
+    def test_scoped_diagram_amendment_preserves_history_and_prose(self):
+        directory, run, path, plan = self.fixture("off", include=False)
+        prior = af.artifact(run, "article-recipe").copy()
+        draft_hash = af.artifact(run, "draft")["sha256"]
+        af.transition(directory, run, "VISUAL_PLAN", "test", "Amend the operator's diagram preference")
+        code, output = call(af.command_amend, run_id=run["run_id"], diagrams="auto", reason="Include diagrams if and when useful", title=None, description=None, article=None)
+        self.assertEqual(code, af.EXIT_OK)
+        directory, run = af.load_run(run["run_id"])
+        self.assertEqual(af.json_artifact(directory, run, "article-recipe")["components"]["diagram"], "auto")
+        self.assertEqual(af.sha256_path(directory / prior["path"]), prior["sha256"])
+        self.assertEqual(af.artifact(run, "draft")["sha256"], draft_hash)
+        af.transition(directory, run, "PACKAGE", "test", "Reject late amendments without reverification")
+        with self.assertRaises(af.FlowError):
+            call(af.command_amend, run_id=run["run_id"], diagrams="off", reason="Changed preference", title=None, description=None, article=None)
 
 if __name__ == "__main__":
     unittest.main()

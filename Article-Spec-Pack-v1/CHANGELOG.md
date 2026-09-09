@@ -9,6 +9,13 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## September 9, 2026: Useful diagrams and paragraph placement
+
+- Aligned active workflow rules, recipe guidance, task packets, schemas, and publication validation around including diagrams if and when useful. Auto and optional plans may be empty with an article-specific reason; required and off remain explicit article-specific constraints.
+- Added exact paragraph placement for continuous prose and a branching-effects renderer for one premise with two competing effects and a combined implication. Included visuals retain accessibility, claim provenance, asset coverage, metadata, and hash checks through publication.
+- Added an audited diagram-policy amendment before rendering so the operator can revise an approved recipe without replacing the article or its history.
+- Fixed Windows Unicode decoding in the model adapter and added regressions for useful and omitted visuals, ambiguous placement, provenance, missing assets, immutable recipe amendments, and transport encoding.
+
 ## September 2, 2026: Article Flow workflow 3.1.0 (controller 3.1.0)
 
 Implemented the correction loop proved necessary by the first workflow 3 article, while retaining the voice decision as the only routine human pause.

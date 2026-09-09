@@ -175,7 +175,7 @@
     {
       "id": "VISUAL_PLAN",
       "actor": "model_and_policy",
-      "objective": "Plan only diagrams or labeled reconstructions that materially improve comprehension, binding each visual to an article heading, accessible explanation, and explicit claim provenance.",
+      "objective": "Include diagrams when useful for this article; otherwise explain their omission. Bind each included visual to a unique existing heading or paragraph, accessible explanation, and claim provenance.",
       "required_inputs": [
         "draft",
         "brief",
@@ -555,7 +555,7 @@
     {
       "id": "AF-VISUAL-001",
       "level": "MUST",
-      "text": "Plan visuals from the article's actual explanatory needs, render them deterministically with alt text, captions, placement, claim provenance, and content hashes, and fail packaging when a required visual is absent or unbound."
+      "text": "Include diagrams if and when they materially improve comprehension. Default the recipe to auto; do not turn diagrams off merely because an article uses continuous prose or has no section headings. For auto or optional, plan zero to four useful visuals and explain an empty plan with omission_reason. Use required or off only for an explicit article-specific requirement. Bind every included visual to one exact existing heading or unique paragraph, accessible alt text and caption, and claim provenance. Label conceptual mechanisms as inference, not measured results. Render and hash-bind every planned asset; an empty plan still requires a bound empty manifest. Packaging must reject missing or unbound assets."
     },
     {
       "id": "AF-VOICE-001",

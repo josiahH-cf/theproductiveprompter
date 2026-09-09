@@ -39,6 +39,8 @@ run overrides > approved article recipe > workflow schema > house policy > examp
 
 The generated human view is [`1-Master/Article-Workflow-v2.md`](1-Master/Article-Workflow-v2.md). Older prose specifications remain available as historical or editorial reference, but they do not override the workflow, an approved article recipe, or the house policy.
 
+Diagrams are included if and when useful. Keep `components.diagram` at `auto` unless the operator gives an explicit article-specific requirement. Continuous prose does not rule out diagrams: visuals can follow a unique paragraph as well as a section heading. A justified empty plan produces a hash-bound empty manifest; required visuals must still be present, accessible, and verified. Before visual rendering, `article-flow amend RUN_ID --diagrams auto --reason "Include diagrams when useful"` records a recipe amendment without replacing the seed or prose.
+
 This distinction is deliberate. Narrative person, article length, opening, ending, summary, components, citation mode, and shape belong to the article recipe. There is no universal skeleton, workflow count, grammatical person, word band, citation style, or closing formula.
 
 ## What code owns

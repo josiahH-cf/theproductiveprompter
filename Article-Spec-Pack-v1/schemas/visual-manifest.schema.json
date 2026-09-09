@@ -7,17 +7,18 @@
   "properties": {
     "visual_manifest_schema_version": {"const": "1.0.0"},
     "run_id": {"type": "string"},
+    "omission_reason": {"type": "string", "minLength": 20, "maxLength": 500},
     "visual_plan_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "assets": {
       "type": "array",
-      "minItems": 1,
+      "minItems": 0,
       "maxItems": 4,
       "items": {
         "type": "object",
         "required": ["visual_id", "kind", "source_path", "public_path", "sha256", "byte_size", "title", "alt_text", "caption", "placement", "claim_ids"],
         "properties": {
           "visual_id": {"type": "string"},
-          "kind": {"enum": ["console_reconstruction", "trend_gap", "delivery_loop"]},
+          "kind": {"enum": ["console_reconstruction", "trend_gap", "delivery_loop", "branching_effects"]},
           "source_path": {"type": "string"},
           "public_path": {"type": "string", "pattern": "^/assets/articles/[a-z0-9-]+/[a-z0-9-]+\\.svg$"},
           "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
@@ -27,8 +28,8 @@
           "caption": {"type": "string", "minLength": 1},
           "placement": {
             "type": "object",
-            "required": ["after_heading"],
-            "properties": {"after_heading": {"type": "string"}},
+            "oneOf": [{"required": ["after_heading"]}, {"required": ["after_paragraph"]}],
+            "properties": {"after_heading": {"type": "string", "minLength": 2}, "after_paragraph": {"type": "string", "minLength": 20, "maxLength": 3000}},
             "additionalProperties": false
           },
           "claim_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}

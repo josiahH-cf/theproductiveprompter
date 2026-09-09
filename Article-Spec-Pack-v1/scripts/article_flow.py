@@ -3348,15 +3348,15 @@ def task_packet(
         "RESEARCH_PLAN": ["AF-EVIDENCE-001"],
         "RESEARCH": ["AF-CITATION-001", "AF-EVIDENCE-001"],
         "INTENT_REVIEW": ["AF-PREC-001"],
-        "ARTICLE_RECIPE": ["AF-PERSON-001", "AF-LENGTH-001", "AF-SHAPE-001", "AF-END-001"],
-        "BRIEF": ["AF-PREC-001", "AF-LENGTH-001"],
+        "ARTICLE_RECIPE": ["AF-PERSON-001", "AF-LENGTH-001", "AF-SHAPE-001", "AF-END-001", "AF-VISUAL-001"],
+        "BRIEF": ["AF-PREC-001", "AF-LENGTH-001", "AF-VISUAL-001"],
         "VISUAL_PLAN": ["AF-VISUAL-001", "AF-EVIDENCE-001"],
         "VOICE_PROBE": ["AF-VOICE-001"],
-        "DRAFT": ["AF-SHAPE-001", "AF-CITATION-001", "AF-EVIDENCE-001", "AF-VOICE-001"],
+        "DRAFT": ["AF-SHAPE-001", "AF-CITATION-001", "AF-EVIDENCE-001", "AF-VOICE-001", "AF-VISUAL-001"],
         "CLAIM_VERIFICATION": ["AF-EVIDENCE-001", "AF-CITATION-001", "AF-VERIFY-001"],
-        "EDIT": ["AF-NATURALIZE-001", "AF-VOICE-001"],
+        "EDIT": ["AF-NATURALIZE-001", "AF-VOICE-001", "AF-VISUAL-001"],
         "POST_EDIT_CLAIM_VERIFICATION": ["AF-EVIDENCE-001", "AF-CITATION-001", "AF-NATURALIZE-001", "AF-VERIFY-001"],
-        "EDITORIAL_QA": ["AF-REPAIR-001", "AF-MATURITY-001"],
+        "EDITORIAL_QA": ["AF-REPAIR-001", "AF-MATURITY-001", "AF-VISUAL-001"],
     }
     allowed_tools = ["read_run_artifacts", "write_requested_output"]
     if state in {"RESEARCH_PLAN", "RESEARCH", "CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION"}:
@@ -3389,12 +3389,17 @@ def task_packet(
     else:
         inputs = packet_inputs(directory, run, state)
         inputs.extend(repair_inputs)
+        if state == "EDIT":
+            manifest_item = artifact(run, "visual-manifest")
+            manifest_path = artifact_path(directory, run, "visual-manifest")
+            if manifest_item and manifest_path and not any(item.get("id") == "visual-manifest" for item in inputs):
+                inputs.append({"id": "visual-manifest", "path": str(manifest_path), "sha256": manifest_item["sha256"]})
     if is_v31_run(run) and state == "VOICE_PROBE" and not any(item.get("id") == "voice-anchor" for item in inputs):
         inputs.append(ensure_voice_anchor(directory, run))
     revision_input = revision_task_input(directory, run)
     if revision_input and not any(item.get("id") == "revision-request" for item in inputs):
         inputs.append(revision_input)
-    constraints = [rule_map[item] for item in stage_rules.get(state, [])]
+    constraints = [rule_map[item] for item in stage_rules.get(state, []) if item in rule_map]
     if state in {"CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION"}:
         constraints.append(
             "Each source_url_or_local_id must contain exactly one direct HTTP(S) URL or one local input locator. "
@@ -3411,7 +3416,9 @@ def task_packet(
             "Return three genuinely different registers: direct field note, conversational reflection, and crisp engineering note. Preserve one shared claim set and keep each candidate to one paragraph.",
         ])
     if state == "VISUAL_PLAN":
-        constraints.append("Choose only useful visuals, use an exact existing Markdown heading for every placement, label reconstructions as reconstructions, and do not ask the model to produce SVG or HTML.")
+        constraints.append("Choose useful visuals only. Use an exact unique level-2-or-lower heading or complete prose paragraph for placement; do not invent headings to satisfy the renderer. An empty auto/optional plan needs omission_reason. For branching_effects provide four labels: common premise, first effect, second effect, combined implication. Label reconstructions and conceptual inferences explicitly. Do not produce SVG or HTML.")
+    if state == "EDIT":
+        constraints.append("Preserve visual references, captions, and the exact heading or paragraph placement anchors in visual-manifest; edit surrounding prose without invalidating the approved visual plan.")
     if revision_input:
         constraints.append("This is a correction run. The separate revision-request is the current operator instruction and overrides conflicting assumptions from the historical seed; preserve the seed as evidence rather than silently rewriting it.")
     if repair_context:
@@ -4913,28 +4920,7 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
             if count < 2 or count > 3:
                 findings.append({"criterion": "variation_budget", "artifact": str(submission), "location": "variation_budget.macro_dimensions", "finding": "A normal recipe should vary two or three macro dimensions.", "repair_instruction": "Choose two or three useful macro dimensions; do not create decorative randomness."})
         if state == "VISUAL_PLAN":
-            draft_path = artifact_path(directory, run, "draft")
-            draft_text = draft_path.read_text(encoding="utf-8") if draft_path else ""
-            headings = {
-                re.sub(r"\s+", " ", match.group(1)).strip().casefold()
-                for match in re.finditer(r"^#{2,6}\s+(.+?)\s*$", draft_text, flags=re.MULTILINE)
-            }
-            visual_ids: set[str] = set()
-            for index, visual in enumerate(value.get("visuals", [])):
-                if not isinstance(visual, dict):
-                    continue
-                visual_id = str(visual.get("visual_id") or "")
-                location = f"visuals[{index}]"
-                if visual_id in visual_ids:
-                    findings.append({"criterion": "unique_visual_id", "artifact": str(submission), "location": location, "finding": f"Duplicate visual_id {visual_id}.", "repair_instruction": "Give every planned visual a stable unique ID."})
-                visual_ids.add(visual_id)
-                after_heading = re.sub(r"\s+", " ", str((visual.get("placement") or {}).get("after_heading") or "")).strip().casefold()
-                if after_heading not in headings:
-                    findings.append({"criterion": "visual_placement", "artifact": str(submission), "location": f"{location}.placement.after_heading", "finding": "Placement does not match an exact level-2-or-lower heading in the draft.", "repair_instruction": "Copy one existing Markdown heading exactly, without its # prefix."})
-                if visual.get("kind") == "console_reconstruction" and "reconstruct" not in str(visual.get("caption") or "").casefold():
-                    findings.append({"criterion": "reconstruction_disclosure", "artifact": str(submission), "location": f"{location}.caption", "finding": "A screenshot-style reconstruction is not labeled as a reconstruction.", "repair_instruction": "State plainly in the caption that this is a reconstruction, not a captured product screenshot."})
-                if visual.get("kind") == "console_reconstruction" and len(visual.get("labels", [])) < 4:
-                    findings.append({"criterion": "console_sequence", "artifact": str(submission), "location": f"{location}.labels", "finding": "The console reconstruction does not contain the full observed question sequence.", "repair_instruction": "Include at least four concise interaction labels."})
+            findings.extend(visual_plan_findings(directory, run, value, str(submission)))
         if state == "EDITORIAL_QA" and value.get("outcome") != "PASS":
             supplied = value.get("findings", [])
             if supplied:
@@ -7074,6 +7060,70 @@ def _svg_wrapped_text(value: str, *, x: int, y: int, width: int, line_height: in
     return f'<text x="{x}" y="{y}" class="{css_class}">{spans}</text>'
 
 
+def visual_anchor_key(placement: dict[str, Any]) -> tuple[str, str]:
+    field = "after_paragraph" if "after_paragraph" in placement else "after_heading"
+    text = re.sub(r"\s+", " ", str(placement.get(field) or "")).strip()
+    return field, text if field == "after_paragraph" else text.casefold()
+
+
+def visual_block_key(block: str) -> tuple[str, str]:
+    heading = re.fullmatch(r"#{2,6}\s+([^\n]+)", block.strip())
+    if heading:
+        return "after_heading", re.sub(r"\s+", " ", heading.group(1)).strip().casefold()
+    return "after_paragraph", re.sub(r"\s+", " ", block).strip()
+
+
+def visual_plan_findings(directory: Path, run: dict[str, Any], plan: dict[str, Any], source: str) -> list[dict[str, Any]]:
+    findings: list[dict[str, Any]] = []
+    def fail(criterion: str, location: str, message: str, repair: str) -> None:
+        findings.append({"criterion": criterion, "artifact": source, "location": location, "finding": message, "repair_instruction": repair})
+    if plan.get("run_id") != run["run_id"]:
+        fail("run_identity", "run_id", "Visual plan belongs to another run.", "Use this run's identity.")
+    recipe = json_artifact(directory, run, "article-recipe") or {}
+    mode = recipe.get("components", {}).get("diagram", "auto")
+    visuals = plan.get("visuals", [])
+    if mode == "required" and not visuals:
+        fail("required_visual", "visuals", "The recipe requires a useful diagram.", "Plan the required diagram with evidence and accessible explanation.")
+    if mode == "off" and visuals:
+        fail("visual_policy", "visuals", "The recipe explicitly disables diagrams.", "Obtain a scoped recipe amendment before planning visuals.")
+    if not visuals and len(str(plan.get("omission_reason") or "").strip()) < 20:
+        fail("visual_omission_reason", "omission_reason", "An empty plan needs an article-specific explanation.", "Explain why a diagram would not improve comprehension.")
+    draft_path = artifact_path(directory, run, "draft")
+    draft = draft_path.read_text(encoding="utf-8") if draft_path else ""
+    blocks = re.split(r"\n\s*\n", draft.strip())
+    block_keys = [visual_block_key(block) for block in blocks]
+    ledger = json_artifact(directory, run, "verified-claim-ledger") or json_artifact(directory, run, "claim-ledger") or {}
+    claims = {claim.get("claim_id") for claim in ledger.get("claims", []) if claim.get("disposition") != "omit"}
+    ids: set[str] = set()
+    for index, visual in enumerate(visuals):
+        if not isinstance(visual, dict):
+            continue
+        location = f"visuals[{index}]"
+        visual_id = str(visual.get("visual_id") or "")
+        if visual_id in ids:
+            fail("unique_visual_id", location, "Duplicate visual ID.", "Use a unique ID for each visual.")
+        ids.add(visual_id)
+        placement = visual.get("placement") or {}
+        key = visual_anchor_key(placement)
+        if block_keys.count(key) != 1:
+            fail("visual_placement", location + ".placement", "Placement must match exactly one existing heading or complete paragraph.", "Copy a unique existing heading or prose paragraph exactly.")
+        elif key[0] == "after_paragraph":
+            raw = next(block for block in blocks if visual_block_key(block) == key)
+            if re.match(r"^\s*(?:#|!\[|```|~~~|>|[-*+]\s|\d+[.)]\s|\|)", raw):
+                fail("visual_placement", location + ".placement", "The paragraph anchor must be prose, not another block type.", "Choose a complete prose paragraph.")
+        unknown = set(visual.get("claim_ids", [])) - claims
+        if unknown:
+            fail("visual_claim_provenance", location + ".claim_ids", f"Unknown or omitted claims: {sorted(unknown)}", "Bind the visual to supported or explicitly qualified ledger claims.")
+        if visual.get("kind") == "branching_effects" and len(visual.get("labels", [])) != 4:
+            fail("branching_effects_labels", location + ".labels", "Branching effects needs exactly four labels.", "Supply the premise, two effects, and combined implication.")
+        if visual.get("kind") == "console_reconstruction":
+            if "reconstruct" not in str(visual.get("caption") or "").casefold():
+                fail("reconstruction_disclosure", location + ".caption", "The reconstruction is not disclosed.", "Label the caption as a reconstruction.")
+            if len(visual.get("labels", [])) < 4:
+                fail("console_sequence", location + ".labels", "The console sequence is incomplete.", "Include at least four interaction labels.")
+    return findings
+
+
 def render_visual_svg(visual: dict[str, Any]) -> bytes:
     """Render one schema-limited visual without accepting model-authored markup."""
     kind = str(visual["kind"])
@@ -7119,6 +7169,19 @@ def render_visual_svg(visual: dict[str, Any]) -> bytes:
             '<line x1="620" y1="270" x2="620" y2="365" stroke="#a78bfa" stroke-width="3" stroke-dasharray="8 8"/>',
             '<text x="640" y="320" class="small">integration gap</text>',
         ])
+    elif kind == "branching_effects":
+        if len(labels) != 4:
+            raise FlowError("Branching effects requires four labels", EXIT_INTEGRITY)
+        cards = [(55, 218, 240, 140), (380, 125, 245, 140), (380, 335, 245, 140), (710, 218, 240, 140)]
+        for label, (x, y, width, height) in zip(labels, cards):
+            elements.append(f'<rect x="{x}" y="{y}" width="{width}" height="{height}" rx="16" class="panel"/>')
+            wrapped = textwrap.wrap(label, width=21)
+            if len(wrapped) > 4:
+                raise FlowError("Branching-effects label is too long to render completely", EXIT_INTEGRITY)
+            spans = "".join(f'<tspan x="{x + 18}" dy="{0 if i == 0 else 25}">{_svg_text(line)}</tspan>' for i, line in enumerate(wrapped))
+            elements.append(f'<text x="{x + 18}" y="{y + 40}" class="label">{spans}</text>')
+        for path in ("M295 268 C335 268,340 195,375 195", "M295 308 C335 308,340 405,375 405", "M625 195 C670 195,665 268,705 268", "M625 405 C670 405,665 308,705 308"):
+            elements.append(f'<path d="{path}" class="arrow"/>')
     elif kind == "delivery_loop":
         count = min(6, len(labels))
         card_width = 128 if count == 6 else 150 if count == 5 else 180
@@ -7158,6 +7221,22 @@ def validate_visual_manifest(directory: Path, run: dict[str, Any], manifest_path
     plan_path = artifact_path(directory, run, "visual-plan")
     if not plan_path or value.get("visual_plan_sha256") != sha256_path(plan_path):
         findings.append({"criterion": "visual_plan_binding", "artifact": str(manifest_path), "location": "visual_plan_sha256", "finding": "Manifest is not bound to the approved visual plan.", "repair_instruction": "Render from the current plan."})
+    if value.get("run_id") != run["run_id"]:
+        findings.append({"criterion": "run_identity", "finding": "Visual manifest belongs to another run."})
+    if plan_path:
+        plan = load_json(plan_path)
+        findings.extend(visual_plan_findings(directory, run, plan, str(plan_path)))
+        planned = {item["visual_id"]: item for item in plan.get("visuals", [])}
+        assets = value.get("assets", [])
+        if len(assets) != len(planned) or {item["visual_id"] for item in assets} != set(planned):
+            findings.append({"criterion": "visual_asset_coverage", "finding": "Manifest assets must match every planned visual exactly once."})
+        for asset in assets:
+            visual = planned.get(asset["visual_id"], {})
+            for field in ("kind", "title", "alt_text", "caption", "placement", "claim_ids"):
+                if asset.get(field) != visual.get(field):
+                    findings.append({"criterion": "visual_metadata_binding", "location": field, "finding": "Asset metadata differs from its approved visual plan."})
+        if not assets and value.get("omission_reason") != plan.get("omission_reason"):
+            findings.append({"criterion": "visual_omission_binding", "finding": "Empty manifest must preserve the plan's omission reason."})
     for item in value.get("assets", []):
         source = directory / safe_relative(str(item.get("source_path") or ""))
         if not source.is_file() or sha256_path(source) != item.get("sha256") or source.stat().st_size != item.get("byte_size"):
@@ -7167,6 +7246,10 @@ def validate_visual_manifest(directory: Path, run: dict[str, Any], manifest_path
 
 def strip_planned_visual_blocks(markdown: str, manifest: dict[str, Any]) -> str:
     """Remove model-authored image placeholders in controller-owned sections."""
+    for asset in manifest.get("assets", []):
+        path = re.escape(str(asset.get("public_path") or ""))
+        caption = re.escape(str(asset.get("caption") or ""))
+        markdown = re.sub(rf"^!\[[^\n]*\]\({path}\)\s*\n\s*\*{caption}\*\s*$", "", markdown, flags=re.MULTILINE)
     lines = markdown.splitlines()
     planned_headings = {
         re.sub(r"\s+", " ", str((asset.get("placement") or {}).get("after_heading") or "")).strip().casefold()
@@ -7202,38 +7285,25 @@ def strip_planned_visual_blocks(markdown: str, manifest: dict[str, Any]) -> str:
 def materialize_manifest_visuals_markdown(markdown: str, manifest: dict[str, Any]) -> str:
     """Replace draft placeholders with the exact hash-bound public visual references."""
     cleaned = strip_planned_visual_blocks(markdown, manifest)
-    assets_by_heading: dict[str, list[dict[str, Any]]] = {}
+    assets_by_anchor: dict[tuple[str, str], list[dict[str, Any]]] = {}
     for asset in manifest.get("assets", []):
-        if not isinstance(asset, dict):
-            continue
-        heading = re.sub(r"\s+", " ", str((asset.get("placement") or {}).get("after_heading") or "")).strip().casefold()
-        assets_by_heading.setdefault(heading, []).append(asset)
-    seen = {heading: 0 for heading in assets_by_heading}
+        assets_by_anchor.setdefault(visual_anchor_key(asset["placement"]), []).append(asset)
+    seen = {key: 0 for key in assets_by_anchor}
     output: list[str] = []
-    for line in cleaned.splitlines():
-        output.append(line)
-        match = re.match(r"^#{2,6}\s+(.+?)\s*$", line)
-        if not match:
+    for block in re.split(r"\n\s*\n", cleaned.strip()):
+        output.append(block)
+        key = visual_block_key(block)
+        if key not in assets_by_anchor:
             continue
-        heading = re.sub(r"\s+", " ", match.group(1)).strip().casefold()
-        if heading not in assets_by_heading:
-            continue
-        seen[heading] += 1
-        output.append("")
-        for asset in assets_by_heading[heading]:
+        seen[key] += 1
+        for asset in assets_by_anchor[key]:
             alt = str(asset["alt_text"]).replace("]", "\\]")
-            output.append(f"![{alt}]({asset['public_path']})")
-            output.append("")
-            output.append(f"*{asset['caption']}*")
-            output.append("")
-    missing = [heading for heading, count in seen.items() if count != 1]
+            output.extend([f"![{alt}]({asset['public_path']})", f"*{asset['caption']}*"])
+    missing = [key for key, count in seen.items() if count != 1]
     if missing:
-        raise FlowError(
-            "Rendered visuals could not be materialized at exactly one Markdown heading",
-            EXIT_INTEGRITY,
-            {"headings": missing},
-        )
-    return re.sub(r"\n{3,}", "\n\n", "\n".join(output)).rstrip() + "\n"
+        raise FlowError("Rendered visuals require exactly one matching Markdown anchor", EXIT_INTEGRITY, {"anchors": missing})
+    return "\n\n".join(output).rstrip() + "\n"
+
 
 
 def command_visual_render(args: argparse.Namespace) -> int:
@@ -7251,6 +7321,9 @@ def command_visual_render(args: argparse.Namespace) -> int:
         plan_errors = validate_json_schema(plan_path, "visual-plan.schema.json")
         if plan_errors:
             raise FlowError("Visual plan is invalid", EXIT_INTEGRITY, plan_errors)
+        plan_findings = visual_plan_findings(directory, run, plan, str(plan_path))
+        if plan_findings:
+            raise FlowError("Visual plan failed semantic validation", EXIT_INTEGRITY, plan_findings)
         slug = package_metadata_slug(directory, run)
         plan_hash = sha256_path(plan_path)
         source_draft_item = artifact(run, "draft") if not refresh else None
@@ -7287,6 +7360,8 @@ def command_visual_render(args: argparse.Namespace) -> int:
             "visual_plan_sha256": plan_hash,
             "assets": assets,
         }
+        if not assets:
+            manifest["omission_reason"] = plan["omission_reason"]
         manifest_bytes = (json.dumps(manifest, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
         manifest_hash = sha256_bytes(manifest_bytes)
         manifest_path = directory / "artifacts" / f"visual-manifest-{plan_hash[:8]}-{manifest_hash[:8]}.json"
@@ -7614,9 +7689,15 @@ def inject_manifest_visuals(directory: Path, run: dict[str, Any], body: str) -> 
     manifest = load_json(manifest_path)
     rendered = body
     for asset in manifest.get("assets", []):
-        heading = str((asset.get("placement") or {}).get("after_heading") or "")
-        heading_html = markdown_inline(heading)
-        pattern = re.compile(rf"(<h([2-6])>{re.escape(heading_html)}</h\2>)")
+        placement = asset["placement"]
+        if "after_paragraph" in placement:
+            anchor_html = markdown_to_html(placement["after_paragraph"]).strip()
+            pattern = re.compile("(" + re.escape(anchor_html) + ")")
+        else:
+            heading_html = markdown_inline(placement["after_heading"])
+            pattern = re.compile(rf"(<h([2-6])>{re.escape(heading_html)}</h\2>)")
+        if len(list(pattern.finditer(rendered))) != 1:
+            raise FlowError(f"Visual {asset['visual_id']} requires one unambiguous publication anchor", EXIT_INTEGRITY)
         figure = (
             f'<figure class="article-visual" data-visual-id="{html.escape(str(asset["visual_id"]), quote=True)}" '
             f'data-asset-sha256="{html.escape(str(asset["sha256"]), quote=True)}">'
@@ -7625,9 +7706,9 @@ def inject_manifest_visuals(directory: Path, run: dict[str, Any], body: str) -> 
             f'<figcaption><strong>{html.escape(str(asset["title"]))}.</strong> {html.escape(str(asset["caption"]))}</figcaption>'
             '</figure>'
         )
-        rendered, count = pattern.subn(rf"\1\n{figure}", rendered, count=1)
+        rendered, count = pattern.subn(lambda match: match.group(1) + "\n" + figure, rendered, count=1)
         if count != 1:
-            raise FlowError(f"Visual {asset['visual_id']} could not be placed after heading {heading!r}", EXIT_INTEGRITY)
+            raise FlowError(f"Visual {asset['visual_id']} could not be placed at its approved anchor", EXIT_INTEGRITY)
     return rendered
 
 
@@ -8047,7 +8128,49 @@ def copy_private_run_archive(directory: Path, private_root: Path) -> dict[str, A
     }
 
 
+def command_amend_diagrams(args: argparse.Namespace) -> int:
+    directory, run = load_run(args.run_id)
+    if run["state"] not in {"BRIEF", "DRAFT", "VISUAL_PLAN"}:
+        raise FlowError("Diagram policy amendments require BRIEF, DRAFT, or VISUAL_PLAN; later stages must reverify visual changes", EXIT_USAGE)
+    reason = str(getattr(args, "reason", None) or "").strip()
+    if not reason:
+        raise FlowError("A diagram policy amendment requires --reason with the operator's instruction", EXIT_USAGE)
+    if any(getattr(args, key, None) is not None for key in ("title", "description", "article")):
+        raise FlowError("Amend diagram policy separately from public display text or article edits", EXIT_USAGE)
+    with run_lock(directory, run):
+        if run["state"] not in {"BRIEF", "DRAFT", "VISUAL_PLAN"}:
+            raise FlowError("Run advanced beyond the diagram policy amendment boundary", EXIT_USAGE)
+        previous = artifact(run, "article-recipe")
+        recipe = json_artifact(directory, run, "article-recipe")
+        if not previous or not recipe:
+            raise FlowError("An approved article recipe is required", EXIT_INTEGRITY)
+        prior_mode = recipe["components"]["diagram"]
+        recipe["components"]["diagram"] = args.diagrams
+        errors = validate_instance_schema(recipe, "article-recipe.schema.json")
+        if errors:
+            raise FlowError("Amended recipe is invalid", EXIT_INTEGRITY, errors)
+        path = directory / "artifacts" / f"amended-recipe-{secrets.token_hex(4)}.json"
+        write_json(path, recipe)
+        item = record_artifact(directory, run, path, "article-recipe", {"actor": "operator", "decision": "diagram-policy-amendment", "reason": reason}, inputs=[previous["artifact_id"]])
+        baseline = reset_attempt_window(directory, run, run["state"])
+        append_event(directory, run, "RECIPE_VISUAL_POLICY_AMENDED", "operator", {"from": prior_mode, "to": args.diagrams, "reason": reason, "prior_recipe_sha256": previous["sha256"], "recipe_sha256": item["sha256"], "attempt_ordinal_baseline": baseline})
+        append_event(directory, run, "REPAIR", "controller", {
+            "gate_id": state_definition(run["state"], run)["gate"],
+            "finding": "Operator amended the diagram policy: " + reason,
+            "source_state": run["state"], "repair_state": run["state"],
+            "attempt_ordinal_baseline": baseline,
+            "execution_count_baseline": run["attempt_baselines"][run["state"]],
+            "repair_context": None, "repair_context_required": False,
+            "clear_route_failures": True,
+        })
+        transition(directory, run, run["state"], "operator", "Diagram policy amended; issue a fresh task over the new recipe")
+    emit({"ok": True, "state": run["state"], "diagram": args.diagrams, "recipe": str(path), "next_command": ["article-flow", "next", run["run_id"]]}, args.json)
+    return EXIT_OK
+
+
 def command_amend(args: argparse.Namespace) -> int:
+    if getattr(args, "diagrams", None) is not None:
+        return command_amend_diagrams(args)
     directory, run = load_run(args.run_id)
     article_argument = getattr(args, "article", None)
     if args.title is None and args.description is None and article_argument is None:
@@ -10552,6 +10675,8 @@ def build_parser() -> argparse.ArgumentParser:
     amend.add_argument("run_id")
     amend.add_argument("--title")
     amend.add_argument("--description")
+    amend.add_argument("--diagrams", choices=["auto", "optional", "required", "off"], help="Amend the recipe diagram policy before visual rendering.")
+    amend.add_argument("--reason", help="Operator instruction supporting a diagram policy amendment.")
     amend.add_argument("--article", help="Revised Markdown article; deterministic naturalization checks run before downstream reverification.")
     add_json(amend)
 

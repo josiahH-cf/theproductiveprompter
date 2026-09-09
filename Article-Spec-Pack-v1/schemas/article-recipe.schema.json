@@ -36,7 +36,7 @@
       "type": "object",
       "required": ["diagram", "checklist", "mental_models", "workflow_count", "activation_header"],
       "properties": {
-        "diagram": {"enum": ["required", "optional", "off", "auto"]},
+        "diagram": {"enum": ["required", "optional", "off", "auto"], "description": "Default to auto: include diagrams if and when useful, including in continuous prose. Required and off express explicit article-specific requirements, not genre assumptions."},
         "checklist": {"enum": ["required", "optional", "off", "auto"]},
         "mental_models": {"enum": ["required", "optional", "off", "auto"]},
         "workflow_count": {"type": ["integer", "null"], "minimum": 1},

@@ -91,6 +91,7 @@ class CodexExecAdapterTests(unittest.TestCase):
             self.assertIn("JSON TRANSPORT ENVELOPE", kwargs["input"])
             self.assertIn('"additionalProperties": false', kwargs["input"])
             self.assertEqual(kwargs["cwd"], last_message.parent)
+            self.assertEqual(kwargs["encoding"], "utf-8")
             return subprocess.CompletedProcess(command, 0, stdout, "")
 
         with mock.patch.object(adapter.subprocess, "run", side_effect=completed):

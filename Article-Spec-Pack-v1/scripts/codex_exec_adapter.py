@@ -134,6 +134,7 @@ def codex_cli_version(executable: str | Path = "codex") -> str:
             [resolved, "--version"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
             timeout=15,
             check=False,
         )
@@ -386,6 +387,7 @@ def execute_codex(
                 input=transport_prompt,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
                 timeout=timeout_seconds,
                 check=False,
                 cwd=workspace,
