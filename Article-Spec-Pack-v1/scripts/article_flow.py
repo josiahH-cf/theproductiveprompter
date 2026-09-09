@@ -6992,6 +6992,26 @@ def command_gate(args: argparse.Namespace) -> int:
 
 def command_repair(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
+    if run["state"] == "VOICE_PROBE" and args.gate_id == "G-CLAIMS-VERIFIED":
+        # Recover a pre-fix run only when code can demonstrate that its
+        # previously accepted ledger does not satisfy verification.
+        with run_lock(directory, run):
+            if run["state"] != "VOICE_PROBE":
+                raise FlowError("Run advanced beyond the prior-verification recovery boundary", EXIT_WAITING)
+            ledger = artifact_path(directory, run, "verified-claim-ledger")
+            if not ledger:
+                raise FlowError("Prior verification ledger is missing", EXIT_INTEGRITY)
+            outcome, findings = automatic_gate(directory, run, "CLAIM_VERIFICATION", ledger)
+            if outcome == "PASS":
+                raise FlowError("Prior verification passes; no recovery is required", EXIT_USAGE)
+            for finding in findings:
+                finding["repair_state"] = "CLAIM_VERIFICATION"
+            prior = json_artifact(directory, run, "gate-receipt:G-CLAIMS-VERIFIED") or {}
+            binding = prior.get("task_binding") or {}
+            write_gate_receipt(directory, run, "G-CLAIMS-VERIFIED", "REPAIR", findings, {"type": "code", "version": CONTROLLER_VERSION}, "CLAIM_VERIFICATION",
+                               task_state=binding.get("state"), task_attempt=binding.get("attempt"), task_packet_sha256=binding.get("task_packet_sha256"))
+            transition(directory, run, "CLAIM_VERIFICATION", "controller", "Previously accepted evidence failed current verification; downstream voice artifacts must be rebound")
+        directory, run = load_run(args.run_id)
     definition = state_definition(run["state"], run)
     args.gate_id = args.gate_id or definition.get("gate")
     if not args.gate_id:

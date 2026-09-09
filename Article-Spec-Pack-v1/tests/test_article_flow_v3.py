@@ -5256,6 +5256,24 @@ class UsefulVisualPolicyTests(TemporaryRuntime):
         af.write_json(path, ledger)
         self.assertIn("verification_citation_coverage", {f["criterion"] for f in af.automatic_gate(directory, run, "CLAIM_VERIFICATION", path)[1]})
 
+    def test_pre_fix_voice_run_returns_to_failed_verification_without_rewriting(self):
+        directory, run, _, _ = self.fixture()
+        af.transition(directory, run, "VISUAL_RENDER", "test", "Prepare verification inputs")
+        call(af.command_visual_render, run_id=run["run_id"])
+        directory, run = af.load_run(run["run_id"])
+        self.record_text(directory, run, "draft", "A factual claim. [Source](https://example.com/evidence)", "cited-draft.md")
+        draft_hash = af.artifact(run, "draft")["sha256"]
+        with af.run_lock(directory, run):
+            packet_path, packet = af.task_packet(directory, run)
+        self.record_json(directory, run, "verified-claim-ledger", {"claim_ledger_schema_version": "1.0.0", "run_id": run["run_id"], "generated_at": af.utc_now(), "claims": []})
+        af.write_gate_receipt(directory, run, "G-CLAIMS-VERIFIED", "PASS", [], {"type": "test"}, task_state="CLAIM_VERIFICATION", task_attempt=packet["attempt"], task_packet_sha256=af.sha256_path(packet_path))
+        af.transition(directory, run, "VOICE_PROBE", "test", "Simulate a pre-fix accepted ledger")
+        code, result = call(af.command_repair, run_id=run["run_id"], gate_id="G-CLAIMS-VERIFIED", finding="Recover the incomplete verification")
+        self.assertEqual(code, af.EXIT_OK)
+        directory, run = af.load_run(run["run_id"])
+        self.assertEqual(run["state"], "CLAIM_VERIFICATION")
+        self.assertEqual(af.artifact(run, "draft")["sha256"], draft_hash)
+
     def fixture(self, mode="auto", include=True):
         run_id = self.start("Explain two competing effects of resource constraints.")
         directory, run = af.load_run(run_id)
