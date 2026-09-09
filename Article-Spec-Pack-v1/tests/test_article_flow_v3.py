@@ -1440,6 +1440,10 @@ class RepairAttemptBoundRegressionTests(TemporaryRuntime):
             _, packet = af.task_packet(directory, recovered)
         self.assertEqual(packet["task_packet_schema_version"], "1.1.0")
         self.assertEqual(packet["repair_context"]["source_stage"], "POST_EDIT_CLAIM_VERIFICATION")
+        current = next(item for item in packet["inputs"] if item["id"] == "current-article")
+        self.assertEqual(Path(current["path"]), af.artifact_path(directory, recovered, "article"))
+        self.assertEqual(current["sha256"], af.sha256_path(Path(current["path"])))
+        self.assertTrue(any("latest accepted version" in rule and "selected voice passage" in rule for rule in packet["constraints"]))
 
     def test_completed_cross_stage_context_is_not_resurrected_by_provider_exhaustion(self):
         run_id, directory, _, _ = self.post_edit_repair_run(
@@ -5079,6 +5083,38 @@ class WorkflowV31RegressionTests(TemporaryRuntime):
         self.assertFalse(payload["retryable"])
         _, run = af.load_run(run_id)
         self.assertEqual(run["status"], "BLOCKED")
+
+    def test_live_link_transport_recovery_rechecks_all_bytes_and_keeps_receipts(self):
+        run_id, directory, target, surfaces = self.live_verification_fixture()
+        surfaces["article"].write_bytes(surfaces["article"].read_bytes() + b'<a href="https://source.example/paper">Source</a>')
+        urls = {
+            target["canonical_url"].format(slug="bounded-live-verification"): surfaces["article"].read_bytes(),
+            **{target[f"{name}_url"]: surfaces[name].read_bytes() for name in ("blog", "homepage", "feed", "sitemap")},
+        }
+        def unavailable(url, timeout=30):
+            return (200, urls[url], {}) if url in urls else (0, b"", {})
+        with mock.patch.object(af, "fetch_url", side_effect=unavailable):
+            for _ in range(4):
+                code, payload = call(af.command_verify_live, run_id=run_id)
+                self.assertEqual(code, af.EXIT_FAILED)
+                self.assertEqual(payload["classification"], "external_link_transport")
+            self.assertFalse(payload["retryable"])
+        original_hash = af.sha256_path(directory / "receipts" / "live-verification-04.json")
+        code, repaired = call(af.command_repair, run_id=run_id, gate_id="G-LIVE-REVISION", finding="Connection restored.")
+        self.assertEqual(code, af.EXIT_OK)
+        self.assertEqual(repaired["state"], "LIVE_VERIFICATION")
+        with mock.patch.object(af, "fetch_url", side_effect=lambda url, timeout=30: (200, urls.get(url, b"Primary paper"), {})) as fetch:
+            code, payload = call(af.command_verify_live, run_id=run_id)
+        self.assertEqual(code, af.EXIT_OK, payload)
+        self.assertEqual(af.load_run(run_id)[1]["state"], "COMPLETE")
+        self.assertEqual(af.sha256_path(directory / "receipts" / "live-verification-04.json"), original_hash)
+        self.assertTrue((directory / "receipts" / "live-verification-05.json").is_file())
+        self.assertEqual({call.args[0] for call in fetch.call_args_list}, set(urls) | {"https://source.example/paper"})
+
+    def test_permanent_link_failures_are_not_transport_recovery(self):
+        for status in (-1, 400, 404, 410):
+            self.assertFalse(af.transient_external_link_failures([{"name": "external_link", "status": status, "ok": False}]))
+        self.assertFalse(af.transient_external_link_failures([{"name": "article_revision", "ok": False}]))
 
     def test_rejected_article_feedback_retires_provisional_learning_but_keeps_history(self):
         run_id = self.start("Record durable feedback about a published article.")

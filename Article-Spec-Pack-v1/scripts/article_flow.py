@@ -3393,6 +3393,9 @@ def task_packet(
         inputs = packet_inputs(directory, run, state)
         inputs.extend(repair_inputs)
         if state == "EDIT":
+            current_article = artifact_path(directory, run, "article")
+            if current_article and not any(item.get("id") == "current-article" for item in inputs):
+                inputs.append({"id": "current-article", "path": str(current_article), "sha256": sha256_path(current_article)})
             manifest_item = artifact(run, "visual-manifest")
             manifest_path = artifact_path(directory, run, "visual-manifest")
             if manifest_item and manifest_path and not any(item.get("id") == "visual-manifest" for item in inputs):
@@ -3422,6 +3425,7 @@ def task_packet(
         constraints.append("Choose useful visuals only. Use an exact unique level-2-or-lower heading or complete prose paragraph for placement; do not invent headings to satisfy the renderer. An empty auto/optional plan needs omission_reason. For branching_effects provide four labels: common premise, first effect, second effect, combined implication. Label reconstructions and conceptual inferences explicitly. Do not produce SVG or HTML.")
     if state == "EDIT":
         constraints.append("Preserve visual references, captions, and the exact heading or paragraph placement anchors in visual-manifest; edit surrounding prose without invalidating the approved visual plan.")
+        constraints.append("When current-article is supplied, repair that latest accepted version rather than restarting from draft. Preserve the selected voice passage and all unaffected edits; change only what the bound findings require. Use draft as historical context only.")
     if revision_input:
         constraints.append("This is a correction run. The separate revision-request is the current operator instruction and overrides conflicting assumptions from the historical seed; preserve the seed as evidence rather than silently rewriting it.")
     if repair_context:
@@ -7007,6 +7011,23 @@ def command_gate(args: argparse.Namespace) -> int:
 
 def command_repair(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
+    if run["state"] == "LIVE_VERIFICATION" and args.gate_id in {None, "G-LIVE-REVISION"}:
+        events = _read_jsonl(directory / str(run["event_log"]))
+        prior_attempts = sum(1 for event in events if event.get("type") == "VERIFICATION" and (event.get("payload") or {}).get("state") == "LIVE_VERIFICATION")
+        receipt = json_artifact(directory, run, f"live-verification-attempt:{prior_attempts}") or {}
+        checks = receipt.get("checks") or []
+        failed = [item for item in checks if not item.get("ok")]
+        if transient_external_link_failures(failed) and any(item.get("name") == "article_revision" and item.get("ok") for item in checks):
+            with run_lock(directory, run):
+                append_event(directory, run, "REPAIR", "operator_or_controller", {
+                    "gate_id": "G-LIVE-REVISION", "source_state": "LIVE_VERIFICATION", "repair_state": "LIVE_VERIFICATION",
+                    "finding": args.finding or "Retry transient citation transport failures after the public revision matched.",
+                    "live_verification_baseline": prior_attempts,
+                    "verification_receipt_sha256": sha256_path(artifact_path(directory, run, f"live-verification-attempt:{prior_attempts}")),
+                })
+                transition(directory, run, "LIVE_VERIFICATION", "controller", "Reopen a bounded live-check window; recheck every public byte and link without republishing")
+            emit({"ok": True, "state": run["state"], "next_command": ["article-flow", "verify-live", run["run_id"]]}, args.json)
+            return EXIT_OK
     if run["state"] == "VOICE_PROBE" and args.gate_id == "G-CLAIMS-VERIFIED":
         # Recover a pre-fix run only when code can demonstrate that its
         # previously accepted ledger does not satisfy verification.
@@ -9016,18 +9037,27 @@ def live_verification_failures_are_propagation(checks: list[dict[str, Any]]) -> 
     return True
 
 
+def transient_external_link_failures(failed: list[dict[str, Any]]) -> bool:
+    return bool(failed) and all(
+        item.get("name") == "external_link" and (item.get("status") == 0 or 500 <= int(item.get("status") or 0) <= 599)
+        for item in failed
+    )
+
+
 def command_verify_live(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
     if run["state"] != "LIVE_VERIFICATION":
         raise FlowError(f"Live verification requires LIVE_VERIFICATION, current state is {run['state']}")
     events = _read_jsonl(directory / str(run["event_log"]))
     prior_attempts = sum(1 for event in events if event.get("type") == "VERIFICATION" and (event.get("payload") or {}).get("state") == "LIVE_VERIFICATION")
+    baseline = max((int((event.get("payload") or {}).get("live_verification_baseline", 0)) for event in events if event.get("type") == "REPAIR"), default=0)
     maximum = int(state_definition("LIVE_VERIFICATION", run).get("max_attempts", 4))
-    if prior_attempts >= maximum:
+    if prior_attempts - baseline >= maximum:
         run["status"] = "BLOCKED"
         save_run(directory, run)
         raise FlowError("Live verification exhausted its bounded retry window", EXIT_WAITING, {"attempts": prior_attempts, "maximum": maximum})
     attempt = prior_attempts + 1
+    window_attempt = attempt - baseline
     package = load_json(directory / "package" / "package.json")
     metadata = load_json(directory / "package" / "public" / "metadata.json")
     target = load_json(SPEC_ROOT / "publication" / "theproductiveprompter.json")
@@ -9092,9 +9122,10 @@ def command_verify_live(args: argparse.Namespace) -> int:
     ok = all(item["ok"] for item in checks)
     failed = [item for item in checks if not item["ok"]]
     propagation = live_verification_failures_are_propagation(checks)
-    classification = "verified" if ok else "deployment_propagation" if propagation else "permanent_validation_failure"
+    transient_links = transient_external_link_failures(failed)
+    classification = "verified" if ok else "deployment_propagation" if propagation else "external_link_transport" if transient_links else "permanent_validation_failure"
     retry_schedule = [10, 20, 40, 60]
-    retry_after = retry_schedule[min(attempt - 1, len(retry_schedule) - 1)] if not ok and propagation and attempt < maximum else None
+    retry_after = retry_schedule[min(window_attempt - 1, len(retry_schedule) - 1)] if not ok and (propagation or transient_links) and window_attempt < maximum else None
     receipt = {
         "publication_receipt_schema_version": "1.0.0",
         "run_id": run["run_id"],

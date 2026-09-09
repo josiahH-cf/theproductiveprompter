@@ -14,6 +14,7 @@ Complete record of all changes made during migration from chapter-oriented docum
 - Added a native single-select console handoff for A, B, C with the exact passages, explicit-answer semantics, and free-text regeneration feedback.
 - Made voice selection continue through editing, verification, build, push, and live verification by default. Explicit pauses, publication holds, and capability blockers remain effective; `--no-auto` records a choice without continuing.
 - Aligned the entrypoint protocol, machine workflow, house policy, generated instructions, and operational guide; exercised default selection through the full no-publish fixture.
+- Preserve the latest accepted article in repair packets so a later adjustment cannot accidentally restart from the pre-selection draft. Treat external-link connection failures as bounded retryable failures, with an audited recovery window once connectivity returns; every live check still has to pass.
 
 ## September 9, 2026: Useful diagrams and paragraph placement
 

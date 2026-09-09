@@ -27,6 +27,8 @@ The controller preserves that seed verbatim, creates a resumable run, and return
 
 Ambiguity, exhausted repair windows, missing capability, a publication hold, a merge conflict, or failed live verification still stops explicitly. These are exceptional safety stops, not additional editorial approvals.
 
+Later editorial repairs receive the latest accepted article and preserve its selected voice passage. Live citation connection failures remain failed checks and receive bounded retries. Once connectivity recovers, `repair RUN_ID G-LIVE-REVISION` can reopen a live-check window when all public revision checks passed and only transient external-link failures remain; it rechecks every public byte and link without republishing or deleting earlier receipts.
+
 `article-flow list` is the small operational index. It shows the original idea, current state, run directory, and returned live link for every run. The same response identifies the canonical process directory, private captured-material directory, and public `docs/` directory. Windows and WSL keep separate installation and health records but use one private captured-material directory, so either command sees and resumes the same runs. A stopped session is resumed with `article-flow resume RUN_ID`; the idea does not need to be entered again.
 
 ## Authority
