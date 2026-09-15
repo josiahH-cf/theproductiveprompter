@@ -4885,7 +4885,11 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
                 source_passage = str(source_anchor.get("source_passage") or "") if isinstance(source_anchor, dict) else ""
                 if source_passage and source_anchor.get("source_passage_sha256") != sha256_bytes(source_passage.encode("utf-8")):
                     findings.append({"criterion": "source_anchor_hash", "artifact": str(submission), "location": "source_anchor.source_passage_sha256", "finding": "Source passage hash is incorrect.", "repair_instruction": "Hash the exact UTF-8 source passage."})
-                if draft_path and source_passage not in draft_path.read_text(encoding="utf-8"):
+                # Anchor selection folds whitespace; compare using the same
+                # representation while retaining the exact artifact/hash checks.
+                normalized_source = re.sub(r"\s+", " ", source_passage).strip()
+                normalized_draft = re.sub(r"\s+", " ", draft_path.read_text(encoding="utf-8")).strip() if draft_path else ""
+                if draft_path and normalized_source not in normalized_draft:
                     findings.append({"criterion": "source_anchor", "artifact": str(submission), "location": "source_anchor.source_passage", "finding": "The quoted source passage is not present in the bound rough draft.", "repair_instruction": "Select one exact rough-draft passage and preserve its verified meaning."})
                 raw_candidates = [item for item in value.get("candidates", []) if isinstance(item, dict)]
                 candidate_ids = [str(item.get("candidate_id")) for item in raw_candidates]

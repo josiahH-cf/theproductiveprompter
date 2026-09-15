@@ -4964,7 +4964,7 @@ class WorkflowV31RegressionTests(TemporaryRuntime):
     def test_controller_owns_voice_ids_hashes_anchor_and_order(self):
         run_id = self.start("Test controller-owned voice metadata.")
         directory, run = af.load_run(run_id)
-        self.record_text(directory, run, "draft", "# Title\n\nI noticed the same product asking the same four setup questions even after its underlying model became much more capable.\n\n## Why it matters\n\nThe interface can become the limit.\n")
+        self.record_text(directory, run, "draft", "# Title\n\nI noticed the same product asking the same four setup questions\n even after its underlying model became much more capable.\n\n## Why it matters\n\nThe interface can become the limit.\n")
         self.record_json(directory, run, "verified-claim-ledger", {"claims": []})
         run["state"] = "VOICE_PROBE"
         run["status"] = "ACTIVE"
@@ -4988,6 +4988,19 @@ class WorkflowV31RegressionTests(TemporaryRuntime):
         self.assertEqual(probe["comparison_orders"], [["A", "B", "C"], ["C", "B", "A"]])
         self.assertEqual(probe["source_anchor"]["source_passage_sha256"], af.sha256_bytes(probe["source_anchor"]["source_passage"].encode("utf-8")))
         self.assertTrue(all(item["passage_sha256"] == af.sha256_bytes(item["passage"].encode("utf-8")) for item in probe["candidates"]))
+        outcome, findings = af.automatic_gate(directory, run, "VOICE_PROBE", probe_path)
+        self.assertEqual(outcome, "PASS", findings)
+
+        # Recomputing a hash must not make an invented source passage valid.
+        altered = dict(probe)
+        altered["source_anchor"] = dict(probe["source_anchor"])
+        altered["source_anchor"]["source_passage"] = probe["source_anchor"]["source_passage"].replace("noticed", "invented")
+        altered["source_anchor"]["source_passage_sha256"] = af.sha256_bytes(altered["source_anchor"]["source_passage"].encode("utf-8"))
+        altered_path = directory / "artifacts" / "altered-voice-probe.json"
+        af.write_json(altered_path, altered)
+        outcome, findings = af.automatic_gate(directory, run, "VOICE_PROBE", altered_path)
+        self.assertEqual(outcome, "REPAIR", findings)
+        self.assertIn("source_anchor", {item["criterion"] for item in findings})
 
     def test_same_url_helpers_replace_in_place_without_promoting(self):
         original = '<div>before</div><article class="article-card" data-article-flow-slug="same"><h3>Old</h3></article><article class="article-card article-card--featured" data-article-flow-slug="new"><span class="article-card__badge">Latest</span></article>'
