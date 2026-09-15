@@ -18,7 +18,7 @@
         "required": ["visual_id", "kind", "source_path", "public_path", "sha256", "byte_size", "title", "alt_text", "caption", "placement", "claim_ids"],
         "properties": {
           "visual_id": {"type": "string"},
-          "kind": {"enum": ["console_reconstruction", "trend_gap", "delivery_loop", "branching_effects"]},
+          "kind": {"enum": ["console_reconstruction", "trend_gap", "delivery_loop", "branching_effects", "parallel_review"]},
           "source_path": {"type": "string"},
           "public_path": {"type": "string", "pattern": "^/assets/articles/[a-z0-9-]+/[a-z0-9-]+\\.svg$"},
           "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},

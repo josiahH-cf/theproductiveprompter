@@ -18,8 +18,9 @@
         "required": ["visual_id", "kind", "title", "purpose", "placement", "alt_text", "caption", "claim_ids", "labels"],
         "properties": {
           "visual_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,48}$"},
-          "kind": {"enum": ["console_reconstruction", "trend_gap", "delivery_loop", "branching_effects"]},
+          "kind": {"enum": ["console_reconstruction", "trend_gap", "delivery_loop", "branching_effects", "parallel_review"]},
           "title": {"type": "string", "minLength": 3, "maxLength": 100},
+          "design_rationale": {"type": "string", "minLength": 40, "maxLength": 1000},
           "purpose": {"type": "string", "minLength": 10, "maxLength": 300},
           "placement": {
             "type": "object",

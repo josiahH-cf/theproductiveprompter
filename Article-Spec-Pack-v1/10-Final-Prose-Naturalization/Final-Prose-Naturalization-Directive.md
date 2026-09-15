@@ -11,11 +11,11 @@ This is a style edit, not a summary, fact-check, authorship claim, or detector-e
 This directive is part of a CLI-driven, model-agnostic article system.
 
 - All normal execution enters through the repository's article CLI. A web interface, manual upload flow, provider-specific agent, or named model must not be a required part of the process.
-- For each task, the CLI discovers the models configured and reachable in that environment and filters out models that lack required capabilities. It selects by promoted task-specific evaluation evidence when that evidence exists; while routing is uncalibrated, it uses the active capable host and records that no “best model” claim has been earned.
+- The CLI filters configured routes by capability and recorded reachability. Drafting, voice candidates, and this edit share the run's assigned writing-experiment model. The default assignment rotates through the configured pool; it is not a quality ranking. Before voice selection, an unavailable assignment may use a recorded pool fallback, preferring promoted stage evaluations when available. Other stages use promoted task-specific evidence or explicitly uncalibrated routing.
 - Selection is task-specific. For this naturalization pass, an eligible model must be able to preserve long-form meaning, follow detailed editing constraints, and retain Markdown, links, citations, code, quotations, and identifiers accurately.
 - The operator's runtime policy may constrain quality, privacy, locality, cost, and latency. Within those constraints, demonstrated task fitness and gate performance determine the choice.
-- If the selected model cannot pass the preservation and naturalization checks, the CLI retries or repairs as allowed, then tries the next eligible model. If no available model passes, the article follows the defined hard-gate escalation path instead of publishing.
-- Provider, model, and version may be recorded as internal run metadata for traceability. They do not appear in normative prose rules or public article text unless the article itself requires them.
+- If the selected model cannot pass preservation and naturalization checks, use the bounded repair path. After the author chooses a voice, do not silently replace the writing model. An unavailable pinned writer or exhausted repairs blocks the run explicitly.
+- Preserve the workflow's truthful public drafting-model disclosure. Exact routes, versions, fallbacks, and evaluation limitations remain in the run records.
 
 The same article requirements and quality gates apply regardless of which model performs the task.
 
@@ -70,6 +70,7 @@ Use a substantive but conservative pass:
 9. Remove every U+2014 em dash from editable public prose using context-appropriate punctuation or sentence boundaries.
 10. Keep the result close to the original length unless repetition warrants removal or the article brief requests another length.
 11. Preserve natural phrasing that already works. Do not rewrite solely for surface variation.
+12. Read each section as continuous prose. Merge one-line dramatic stanzas when they repeat the surrounding explanation; inspect repeated openings, negative-positive contrasts, staged questions, symmetrical lists, and repeated conclusions across paragraphs. Preserve short paragraphs when they serve an actual instruction, transition, or example. Do not flatten useful code prompts or operational lists into prose.
 
 When a cliché carries a real proposition, keep the proposition and rewrite its delivery. Delete it only when it contributes no information.
 
@@ -175,8 +176,14 @@ Before returning it, verify silently:
 
 If the article already satisfies this directive and no supported edit improves it, return it unchanged.
 
+## 9. Contextual Review and Learning
+
+The later editorial assessment must record exact excerpts and specific reasons for four checks: language, rhetoric, structure, and preservation. A clean phrase scan cannot establish naturalness. A whole-article PASS cannot override an unresolved passage finding. Keep this review private; the naturalization editor still returns only the article.
+
+Read the active voice profile and its paired examples. A selected paragraph is local evidence about that passage's wording and cadence. Candidate letters are not stable style categories, and one choice does not isolate every declared trait. Compare selected and unselected examples, preserve shared qualities, and avoid inventing the author's reason. New guidance remains provisional until independent articles and author feedback support it. Do not treat growing profile history as proof that writing quality has improved.
+
 ---
 
-**Version:** 1.1
-**Date:** August 25, 2026
+**Version:** 1.2
+**Date:** September 15, 2026
 **Status:** Normative, model-agnostic, CLI-enforced final-prose gate for all publication candidates.

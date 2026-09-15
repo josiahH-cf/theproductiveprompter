@@ -29,6 +29,7 @@
         "additionalProperties": false
       }
     },
+    "naturalization_review": {"type": "object", "required": ["language", "rhetoric", "structure", "preservation"], "properties": {"language": {"type": "object", "required": ["status", "excerpt", "reason"], "properties": {"status": {"enum": ["PASS", "REPAIR"]}, "excerpt": {"type": "string", "minLength": 8}, "reason": {"type": "string", "minLength": 20}}, "additionalProperties": false}, "rhetoric": {"type": "object", "required": ["status", "excerpt", "reason"], "properties": {"status": {"enum": ["PASS", "REPAIR"]}, "excerpt": {"type": "string", "minLength": 8}, "reason": {"type": "string", "minLength": 20}}, "additionalProperties": false}, "structure": {"type": "object", "required": ["status", "excerpt", "reason"], "properties": {"status": {"enum": ["PASS", "REPAIR"]}, "excerpt": {"type": "string", "minLength": 8}, "reason": {"type": "string", "minLength": 20}}, "additionalProperties": false}, "preservation": {"type": "object", "required": ["status", "excerpt", "reason"], "properties": {"status": {"enum": ["PASS", "REPAIR"]}, "excerpt": {"type": "string", "minLength": 8}, "reason": {"type": "string", "minLength": 20}}, "additionalProperties": false}}, "additionalProperties": false},
     "calibration_status": {"enum": ["human", "calibrated-evaluator", "uncalibrated-advisory"]}
   },
   "additionalProperties": false

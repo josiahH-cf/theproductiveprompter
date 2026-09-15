@@ -967,7 +967,31 @@ def model_history() -> dict[str, Any]:
             "live_url": durable.get("article_url") or (live or {}).get("url"),
             "recorded_at": durable.get("recorded_at"),
         })
-    return {"ok": True, "pool": writing_model_policy(), "count": len(runs), "runs": runs}
+    feedback = _read_jsonl(voice_state_root() / "article-feedback.jsonl")
+    return {"ok": True, "pool": writing_model_policy(), "count": len(runs), "runs": runs, "comparison": model_comparison_summary(runs, feedback)}
+
+
+def model_comparison_summary(runs: list[dict[str, Any]], feedback: list[dict[str, Any]]) -> dict[str, Any]:
+    """Report experiment evidence without mistaking publication for model quality."""
+    latest_feedback = {item.get("run_id"): item.get("outcome") for item in feedback}
+    rows: dict[str, dict[str, Any]] = {}
+    for run in runs:
+        model = str(run.get("actual_model_id") or run.get("active_model_id") or run.get("assigned_model_id"))
+        row = rows.setdefault(model, {"model": model, "clean_completed": 0, "excluded_fallback_or_mixed": 0, "incomplete": 0, "operator_accepted": 0, "operator_rejected": 0, "unrated": 0})
+        if run.get("contaminated") or len(run.get("actual_models") or []) > 1:
+            row["excluded_fallback_or_mixed"] += 1
+        elif run.get("state") != "COMPLETE":
+            row["incomplete"] += 1
+        else:
+            row["clean_completed"] += 1
+            outcome = latest_feedback.get(run.get("run_id"))
+            row[{"accepted": "operator_accepted", "rejected": "operator_rejected"}.get(outcome, "unrated")] += 1
+    return {
+        "status": "descriptive_only_not_a_quality_ranking",
+        "models": [rows[key] for key in sorted(rows)],
+        "limits": "Different articles and voice-profile versions are confounded. A voice letter is a within-model passage preference, not a model win. Publication and self-assessed QA are not independent quality labels.",
+        "promotion_requirements": "Use matched held-out briefs and the same voice profile; blind and reverse candidate order; record factual preservation, contextual naturalness, human preference, repair burden, latency and token usage. Exclude mixed-model runs. Promote only human-calibrated stage evaluations through evaluation record; retain exploratory rotation.",
+    }
 
 
 def summarize_model_experiment(directory: Path, run: dict[str, Any], assignment: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -2395,6 +2419,9 @@ def pin_writing_route(run: dict[str, Any], stage: str, routes: dict[str, Any]) -
         ]
         if not fallbacks:
             return {**routes, "chosen": None, "fallbacks": [], "reason": reason, "assigned_route": unavailable}
+        # Preserve experimental assignment, but use already-promoted evidence
+        # when selecting a replacement. Pool order remains the stable tie-break.
+        fallbacks.sort(key=lambda item: (item.get("evaluation_score") is None, -float(item.get("evaluation_score") or 0)))
         fallback = fallbacks[0]
         return {
             **routes,
@@ -2507,13 +2534,18 @@ def ensure_voice_anchor(directory: Path, run: dict[str, Any]) -> dict[str, str]:
     if not draft_path or not draft_path.is_file():
         raise FlowError("Voice probing requires the recorded rough draft", EXIT_INTEGRITY)
     text = draft_path.read_text(encoding="utf-8")
+    # Keep original offsets, but never treat frontmatter or fenced examples
+    # as the author's opening paragraph.
+    body_start = markdown_body_start(text)
+    searchable = re.sub(r"[^\n]", " ", text[:body_start]) + text[body_start:]
+    searchable = re.sub(r"(?ms)^(`{3,}|~{3,})[^\n]*\n.*?(?:^\1[^\n]*(?:\n|$)|\Z)", lambda m: re.sub(r"[^\n]", " ", m.group()), searchable)
     candidates: list[tuple[int, str]] = []
-    for match in re.finditer(r"(?:\A|\n\s*\n)([^\n].*?)(?=\n\s*\n|\Z)", text, flags=re.DOTALL):
+    for match in re.finditer(r"(?:\A|\n\s*\n)([^\n].*?)(?=\n\s*\n|\Z)", searchable, flags=re.DOTALL):
         passage = re.sub(r"\s+", " ", match.group(1)).strip()
         if (
             len(passage) >= 50
-            and not passage.startswith(("#", "- ", "* ", "> ", "|"))
-            and match.start(1) <= max(1, len(text) // 3)
+            and not passage.startswith(("#", "- ", "* ", "> ", "|", "![", "```", "~~~", "<"))
+            and not re.match(r"\d+[.)]\s", passage)
         ):
             candidates.append((match.start(1), passage))
     if not candidates:
@@ -3369,6 +3401,10 @@ def task_packet(
     if is_v31_run(run) and state == "VOICE_PROBE":
         output_schema_name = "voice-candidates.schema.json"
     output_schema = load_json(SPEC_ROOT / "schemas" / output_schema_name) if output_schema_name else None
+    if is_v31_run(run) and state == "EDITORIAL_QA" and output_schema:
+        output_schema["required"].append("naturalization_review")
+    if is_v31_run(run) and state == "VISUAL_PLAN" and output_schema:
+        output_schema["properties"]["visuals"]["items"]["required"].append("design_rationale")
     if is_v3_run(run) and output_schema_name == "voice-probe.schema.json" and isinstance(output_schema, dict):
         output_schema = next(
             (
@@ -3423,9 +3459,12 @@ def task_packet(
         ])
     if state == "VISUAL_PLAN":
         constraints.append("Choose useful visuals only. Use an exact unique level-2-or-lower heading or complete prose paragraph for placement; do not invent headings to satisfy the renderer. An empty auto/optional plan needs omission_reason. For branching_effects provide four labels: common premise, first effect, second effect, combined implication. Label reconstructions and conceptual inferences explicitly. Do not produce SVG or HTML.")
+        constraints.append("Record design_rationale comparing the chosen layout with at least one concrete alternative and omission. Match topology to the explanation: independent work must branch and rejoin, conditional deferral must leave the implementation path, and a loop must identify what repeats. Use parallel_review for eight ordered labels: shared revision, reviewer A, reviewer B, reconciliation, supported implementation batch, actual-diff audit, deferred candidates, retained validated result. delivery_loop is for a genuinely sequential loop. Keep titles within 42 characters and labels within three lines; never delete a necessary step to fit a template. Prefer short source-supported labels. Explain what a reader learns from the picture beyond the adjacent prose.")
     if state == "EDIT":
         constraints.append("Preserve visual references, captions, and the exact heading or paragraph placement anchors in visual-manifest; edit surrounding prose without invalidating the approved visual plan.")
         constraints.append("When current-article is supplied, repair that latest accepted version rather than restarting from draft. Preserve the selected voice passage and all unaffected edits; change only what the bound findings require. Use draft as historical context only.")
+    if state == "EDITORIAL_QA" and is_v31_run(run):
+        constraints.append("Return naturalization_review for language, rhetoric, structure, and preservation. Each needs status PASS or REPAIR, an exact excerpt from the assessed article/title/description, and a specific reason. Inspect inflated verbs; repeated negative-positive contrasts and staged questions; one-line stanzas, repeated openings and conclusions, headings and symmetrical lists; then locked facts, code, quotations and uncertainty. A phrase blacklist or generic 'reads naturally' statement is not a contextual review. Keep deliberate useful contrasts and technical phrasing. Any unresolved finding makes outcome REPAIR. Use the naturalization-directive and full voice-profile, including selected-versus-unselected examples; candidate C is not a universal register preference.")
     if revision_input:
         constraints.append("This is a correction run. The separate revision-request is the current operator instruction and overrides conflicting assumptions from the historical seed; preserve the seed as evidence rather than silently rewriting it.")
     if repair_context:
@@ -4766,6 +4805,26 @@ def draft_coverage_findings(brief: dict[str, Any] | None, text: str, artifact: s
     return findings
 
 
+def naturalization_review_findings(directory: Path, run: dict[str, Any], assessment: dict[str, Any], source: str) -> list[dict[str, Any]]:
+    article_path = artifact_path(directory, run, "article")
+    brief = json_artifact(directory, run, "brief") or {}
+    surfaces = (article_path.read_text(encoding="utf-8") if article_path else "") + "\n" + str(brief.get("title", "")) + "\n" + str(brief.get("description", ""))
+    normalized = re.sub(r"\s+", " ", surfaces)
+    findings = []
+    review = assessment.get("naturalization_review") or {}
+    for category in ("language", "rhetoric", "structure", "preservation"):
+        item = review.get(category) if isinstance(review, dict) else None
+        excerpt = re.sub(r"\s+", " ", str((item or {}).get("excerpt", ""))).strip() if isinstance(item, dict) else ""
+        if not isinstance(item, dict) or len(excerpt) < 8 or excerpt not in normalized or len(str(item.get("reason", "")).strip()) < 20 or item.get("status") not in {"PASS", "REPAIR"}:
+            findings.append({"criterion": "naturalization_review_evidence", "artifact": source, "location": category, "finding": "The contextual review lacks an exact assessed excerpt and a specific reason.", "repair_instruction": "Inspect this category and return evidence tied to the current public prose.", "repair_state": "EDITORIAL_QA"})
+        elif item["status"] == "REPAIR":
+            findings.append({"criterion": "contextual_naturalness", "artifact": "article", "location": excerpt, "finding": item["reason"], "repair_instruction": "Repair the affected prose while preserving its proposition and locked material.", "repair_state": "EDIT"})
+    for name, item in (assessment.get("dimensions") or {}).items():
+        if isinstance(item, dict) and item.get("status") in {"REPAIR", "FAIL", "ESCALATE"}:
+            findings.append({"criterion": "editorial_dimension", "artifact": source, "location": name, "finding": "The overall outcome cannot pass with an unresolved dimension.", "repair_instruction": "Resolve this dimension and make the overall outcome consistent."})
+    return findings
+
+
 def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission: Path) -> tuple[str, list[dict[str, Any]]]:
     findings: list[dict[str, Any]] = []
     if not submission.is_file() or submission.stat().st_size == 0:
@@ -4943,7 +5002,13 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
                 findings.append({"criterion": "variation_budget", "artifact": str(submission), "location": "variation_budget.macro_dimensions", "finding": "A normal recipe should vary two or three macro dimensions.", "repair_instruction": "Choose two or three useful macro dimensions; do not create decorative randomness."})
         if state == "VISUAL_PLAN":
             findings.extend(visual_plan_findings(directory, run, value, str(submission)))
-        if state == "EDITORIAL_QA" and value.get("outcome") != "PASS":
+            if is_v31_run(run):
+                for index, visual in enumerate(value.get("visuals", [])):
+                    if len(str(visual.get("design_rationale", "")).strip()) < 40:
+                        findings.append({"criterion": "visual_design_rationale", "artifact": str(submission), "location": f"visuals[{index}]", "finding": "The layout has no article-specific comparison with an alternative and omission.", "repair_instruction": "Explain why this topology improves comprehension for this example."})
+        if state == "EDITORIAL_QA" and is_v31_run(run):
+            findings.extend(naturalization_review_findings(directory, run, value, str(submission)))
+        if state == "EDITORIAL_QA" and (value.get("outcome") != "PASS" or value.get("findings")):
             supplied = value.get("findings", [])
             if supplied:
                 # These findings come from the model. Repair routing is a
@@ -5309,7 +5374,7 @@ def rollback_voice_profile(version: str) -> dict[str, Any]:
     return {"ok": True, "current_version": version, "prior_version": prior_pointer.get("current_version"), "rollback": rollback}
 
 
-def _learning_candidate(candidate: dict[str, Any]) -> dict[str, str]:
+def _learning_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
     passage = str(candidate.get("passage") or "")
     passage_hash = str(candidate.get("passage_sha256") or "")
     if sha256_bytes(passage.encode("utf-8")) != passage_hash:
@@ -5318,7 +5383,24 @@ def _learning_candidate(candidate: dict[str, Any]) -> dict[str, str]:
         "candidate_id": str(candidate.get("candidate_id")),
         "passage": passage,
         "passage_sha256": passage_hash,
+        "intended_dimensions": list(candidate.get("intended_dimensions", [])),
+        "preserved_claim_ids": list(candidate.get("preserved_claim_ids", [])),
     }
+
+
+def voice_preference_guidance(selected: dict[str, Any], alternatives: list[dict[str, Any]], feedback: str | None = None) -> str:
+    selected_dimensions = set(selected.get("intended_dimensions", []))
+    other_dimensions = set().union(*(set(item.get("intended_dimensions", [])) for item in alternatives))
+    shared = selected_dimensions & other_dimensions
+    distinctive = selected_dimensions - other_dimensions
+    return (
+        "For comparable passages, follow the selected example's wording and cadence. "
+        f"Selected register: {', '.join(sorted(selected_dimensions)) or 'read the selected passage'}. "
+        f"Distinctive candidate labels: {', '.join(sorted(distinctive)) or 'none isolated by the labels'}. "
+        f"Shared labels, which this choice does not distinguish: {', '.join(sorted(shared)) or 'none recorded'}. "
+        "Candidate labels are model descriptions, not the operator's stated reasons. This is a local preference between whole passages, not proof of a global trait or a preferred model. "
+        + (f"Operator note: {feedback}" if feedback else "Keep the alternatives as comparison evidence; do not treat every unselected trait as forbidden.")
+    )
 
 
 VOICE_CANDIDATE_ARTIFACT_TYPE = "voice-probe-candidates"
@@ -5593,11 +5675,7 @@ def apply_voice_learning(directory: Path, run: dict[str, Any]) -> dict[str, Any]
             positive_id = f"VE-{idempotency_key[:16]}"
             guidance_id = f"VG-{idempotency_key[:16]}"
             feedback = selection.get("feedback")
-            dimension_text = ", ".join(controlled_dimensions)
-            guidance_text = (
-                f"For similar passages controlling {dimension_text}, prefer the selected example over its two rejected alternatives. "
-                + (f"Operator note: {feedback}" if feedback else "Treat this as local provisional evidence, not a global voice trait.")
-            )
+            guidance_text = voice_preference_guidance(selected, rejected, feedback)
             created_at = utc_now()
             experiment = run.get("model_experiment", {})
             stage_route = experiment.get("stage_routes", {}).get("VOICE_PROBE", {})
@@ -5650,7 +5728,7 @@ def apply_voice_learning(directory: Path, run: dict[str, Any]) -> dict[str, Any]
                 "status": "provisional",
                 "source_record_id": record_id,
                 "created_at": created_at,
-                "dimensions": controlled_dimensions,
+                "dimensions": selected.get("intended_dimensions", []),
             })
             profile.setdefault("positive_examples", []).append({
                 "example_id": positive_id,
@@ -7124,9 +7202,11 @@ def _svg_text(value: str) -> str:
 
 def _svg_wrapped_text(value: str, *, x: int, y: int, width: int, line_height: int = 24, css_class: str = "label") -> str:
     lines = textwrap.wrap(re.sub(r"\s+", " ", value).strip(), width=max(12, width)) or [""]
+    if len(lines) > 3:
+        raise FlowError("Visual label exceeds its three-line box; shorten the label or choose a wider layout", EXIT_INTEGRITY)
     spans = "".join(
         f'<tspan x="{x}" dy="{0 if index == 0 else line_height}">{_svg_text(line)}</tspan>'
-        for index, line in enumerate(lines[:3])
+        for index, line in enumerate(lines)
     )
     return f'<text x="{x}" y="{y}" class="{css_class}">{spans}</text>'
 
@@ -7192,6 +7272,10 @@ def visual_plan_findings(directory: Path, run: dict[str, Any], plan: dict[str, A
                 fail("reconstruction_disclosure", location + ".caption", "The reconstruction is not disclosed.", "Label the caption as a reconstruction.")
             if len(visual.get("labels", [])) < 4:
                 fail("console_sequence", location + ".labels", "The console sequence is incomplete.", "Include at least four interaction labels.")
+        try:
+            render_visual_svg(visual)
+        except (FlowError, KeyError, TypeError) as exc:
+            fail("visual_render_capacity", location, str(exc), "Use a truthful layout that can display every label in full.")
     return findings
 
 
@@ -7201,6 +7285,12 @@ def render_visual_svg(visual: dict[str, Any]) -> bytes:
     title = _svg_text(str(visual["title"]))
     alt = _svg_text(str(visual["alt_text"]))
     labels = [str(item) for item in visual.get("labels", [])]
+    bounds = {"console_reconstruction": (4, 7), "trend_gap": (2, 2), "branching_effects": (4, 4), "delivery_loop": (2, 8), "parallel_review": (8, 8)}
+    low, high = bounds.get(kind, (0, 0))
+    if not low <= len(labels) <= high:
+        raise FlowError(f"{kind} requires {low} to {high} labels; no label may be silently dropped", EXIT_INTEGRITY)
+    if len(str(visual["title"])) > 52:
+        raise FlowError("Visual title is too long for its heading; use at most 52 characters", EXIT_INTEGRITY)
     style = """
       .bg{fill:#0b1020}.panel{fill:#121a2d;stroke:#33415f;stroke-width:2}.muted{fill:#95a3bd}
       .title{fill:#f8fafc;font:700 30px system-ui,sans-serif}.label{fill:#e8edf7;font:500 19px system-ui,sans-serif}
@@ -7209,20 +7299,42 @@ def render_visual_svg(visual: dict[str, Any]) -> bytes:
       .arrow{fill:none;stroke:#71819d;stroke-width:3;marker-end:url(#arrow)}
     """
     defs = '<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#71819d"/></marker></defs>'
-    elements = [f'<rect class="bg" width="1000" height="560" rx="28"/>', f'<text x="60" y="66" class="title">{title}</text>']
-    if kind == "console_reconstruction":
+    canvas_width, canvas_height = 1000, 560
+    if kind == "parallel_review":
+        canvas_width, canvas_height = 760, 1180
+        style += '.label{font-size:25px}.title{font-size:27px}.defer{stroke:#fbbf24}.return{stroke-dasharray:8 6}'
+    elif kind == "delivery_loop":
+        canvas_width, canvas_height = 760, 170 + len(labels) * 125
+        style += '.label{font-size:25px}.title{font-size:27px}'
+    elements = [f'<rect class="bg" width="{canvas_width}" height="{canvas_height}" rx="28"/>', f'<text x="40" y="60" class="title">{title}</text>']
+    if kind == "parallel_review":
+        # Shared context forks into isolated reviews, then rejoins. Deferred
+        # candidates leave the implementation path and re-enter a later cycle.
+        cards = [(140, 110, 480, 100, 30), (45, 270, 320, 125, 20), (395, 270, 320, 125, 20), (140, 465, 480, 100, 30), (45, 640, 420, 110, 26), (45, 810, 420, 110, 26), (505, 635, 210, 150, 12), (45, 1000, 420, 100, 26)]
+        paths = ["M300 210 V235 H205 V265", "M460 210 V235 H555 V265", "M205 395 V430 H300 V460", "M555 395 V430 H460 V460", "M300 565 V600 H255 V635", "M530 565 V605 H610 V630", "M255 750 V805", "M255 920 V995"]
+        elements.extend(f'<path d="{path}" class="arrow"/>' for path in paths)
+        elements.extend([
+            '<path d="M45 860 H25 V695 H40" class="arrow return"/>',
+            '<path d="M465 1050 H740 V85 H380 V105" class="arrow return"/>',
+            '<path d="M715 710 H740" class="arrow return"/>',
+        ])
+        for index, (label, (x, y, width, height, wrap)) in enumerate(zip(labels, cards)):
+            extra = " defer" if index == 6 else ""
+            elements.append(f'<rect x="{x}" y="{y}" width="{width}" height="{height}" rx="16" class="panel{extra}"/>')
+            elements.append(_svg_wrapped_text(label, x=x + 18, y=y + 36, width=wrap, line_height=30))
+    elif kind == "console_reconstruction":
         elements.extend([
             '<rect x="55" y="96" width="890" height="410" rx="18" class="panel"/>',
             '<circle cx="88" cy="126" r="7" fill="#fb7185"/><circle cx="112" cy="126" r="7" fill="#fbbf24"/><circle cx="136" cy="126" r="7" fill="#4ade80"/>',
             '<text x="830" y="132" class="small">RECONSTRUCTION</text>',
         ])
-        count = min(7, len(labels))
+        count = len(labels)
         compact = count >= 6
         y = 174 if compact else 186
         row_step = 50 if compact else 66
         radius = 14 if compact else 17
         line_height = 18 if compact else 21
-        for index, label in enumerate(labels[:7], start=1):
+        for index, label in enumerate(labels, start=1):
             elements.append(f'<circle cx="98" cy="{y - 7}" r="{radius}" fill="#24324d"/><text x="92" y="{y}" class="small">{index}</text>')
             elements.append(_svg_wrapped_text(label, x=135, y=y, width=70, line_height=line_height))
             y += row_step
@@ -7254,27 +7366,17 @@ def render_visual_svg(visual: dict[str, Any]) -> bytes:
         for path in ("M295 268 C335 268,340 195,375 195", "M295 308 C335 308,340 405,375 405", "M625 195 C670 195,665 268,705 268", "M625 405 C670 405,665 308,705 308"):
             elements.append(f'<path d="{path}" class="arrow"/>')
     elif kind == "delivery_loop":
-        count = min(6, len(labels))
-        card_width = 128 if count == 6 else 150 if count == 5 else 180
-        gap = 18 if count == 6 else 22
-        total = count * card_width + max(0, count - 1) * gap
-        start = max(45, (1000 - total) // 2)
-        for index, label in enumerate(labels[:6]):
-            x = start + index * (card_width + gap)
-            elements.append(f'<rect x="{x}" y="185" width="{card_width}" height="150" rx="16" class="panel"/>')
-            elements.append(f'<text x="{x + 18}" y="218" class="small">0{index + 1}</text>')
-            elements.append(_svg_wrapped_text(label, x=x + 18, y=255, width=12 if count == 6 else 15, line_height=23))
-            if index < count - 1:
-                elements.append(f'<line x1="{x + card_width + 4}" y1="260" x2="{x + card_width + gap - 4}" y2="260" class="arrow"/>')
-        if count:
-            last_x = start + (count - 1) * (card_width + gap) + card_width // 2
-            first_x = start + card_width // 2
-            elements.append(f'<path d="M{last_x} 350 C{last_x} 455,{first_x} 455,{first_x} 350" class="arrow"/>')
-            elements.append('<text x="420" y="445" class="small">telemetry starts the next review</text>')
+        for index, label in enumerate(labels):
+            y = 110 + index * 125
+            elements.append(f'<rect x="75" y="{y}" width="580" height="100" rx="16" class="panel"/>')
+            elements.append(_svg_wrapped_text(label, x=100, y=y + 36, width=38, line_height=28))
+            if index < len(labels) - 1:
+                elements.append(f'<path d="M365 {y + 100} V{y + 120}" class="arrow"/>')
+        elements.append(f'<path d="M655 {y + 50} H710 V85 H365 V105" class="arrow"/>')
     else:
         raise FlowError(f"Unsupported deterministic visual kind: {kind}", EXIT_INTEGRITY)
     svg = (
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" role="img" aria-labelledby="title desc">'
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {canvas_width} {canvas_height}" role="img" aria-labelledby="title desc">'
         f'<title id="title">{title}</title><desc id="desc">{alt}</desc>{defs}<style>{style}</style>'
         + "".join(elements)
         + "</svg>\n"
@@ -7521,17 +7623,21 @@ def markdown_inline(value: str) -> str:
     return value
 
 
+def markdown_body_start(markdown: str) -> int:
+    """Return the end of a bounded leading metadata block, preserving offsets."""
+    match = re.match(r"\A\ufeff?---[ \t]*\r?\n(?P<fields>.*?)(?:^---[ \t]*|^\.\.\.[ \t]*)(?:\r?\n|$)", markdown, re.MULTILINE | re.DOTALL)
+    if match:
+        first = next((line for line in match.group("fields").splitlines() if line.strip()), "")
+        if re.match(r"^[A-Za-z_][\w-]*:", first):
+            return match.end()
+    return 0
+
+
 def markdown_to_html(markdown: str) -> str:
-    lines = markdown.replace("\r\n", "\n").split("\n")
+    lines = markdown[markdown_body_start(markdown):].replace("\r\n", "\n").split("\n")
     # Draft metadata belongs to the publication template, not the article body.
     # Require a bounded leading metadata block so ordinary rules and unclosed
     # blocks do not silently discard prose.
-    if lines and lines[0].lstrip("\ufeff").strip() == "---":
-        end = next((i for i in range(1, len(lines)) if lines[i].strip() in {"---", "..."}), None)
-        if end is not None:
-            first_field = next((line for line in lines[1:end] if line.strip()), "")
-            if re.match(r"^[A-Za-z_][\w-]*:", first_field):
-                lines = lines[end + 1:]
     output: list[str] = []
     paragraph: list[str] = []
     list_type: str | None = None
@@ -9542,6 +9648,55 @@ def command_voice_history(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def command_voice_refine(args: argparse.Namespace) -> int:
+    """Clarify existing selection evidence without inventing another user choice."""
+    directory, run = load_run(args.run_id)
+    if run.get("state") != "COMPLETE":
+        raise FlowError("Refine recorded voice guidance after the article is complete", EXIT_USAGE)
+    learning = json_artifact(directory, run, "voice-learning") or {}
+    probe_path = artifact_path(directory, run, "voice-probe")
+    if not probe_path or sha256_path(probe_path) != learning.get("voice_probe_sha256"):
+        raise FlowError("Voice refinement needs the original hash-bound selected probe", EXIT_INTEGRITY)
+    probe = load_json(probe_path)
+    selected_id = (probe.get("operator_selection") or {}).get("candidate_id")
+    candidates = [_learning_candidate(item) for item in probe.get("candidates", [])]
+    selected = next((item for item in candidates if item["candidate_id"] == selected_id), None)
+    if not selected or selected["passage_sha256"] != (learning.get("selected_candidate") or {}).get("passage_sha256"):
+        raise FlowError("Voice refinement cannot change the recorded selection", EXIT_INTEGRITY)
+    alternatives = [item for item in candidates if item["candidate_id"] != selected_id]
+    guidance_text = voice_preference_guidance(selected, alternatives, learning.get("operator_feedback"))
+    root = voice_state_root()
+    with shared_lock(root / ".lock"):
+        prior, _, pointer = _initialize_voice_runtime_locked()
+        profile = json.loads(json.dumps(prior))
+        matching = [item for item in profile.get("provisional_guidance", []) if item.get("source_record_id") == learning.get("record_id")]
+        if not matching:
+            raise FlowError("This selection's guidance is no longer active; refinement will not reactivate it", EXIT_USAGE)
+        if all(item["text"] == guidance_text for item in matching):
+            emit({"ok": True, "idempotent": True, "current_version": prior["version"]}, args.json)
+            return EXIT_OK
+        identity = sha256_bytes(canonical_json({"prior_version": prior["version"], "learning": learning["record_id"], "guidance": guidance_text}))
+        record_id = f"VR-{identity[:20]}"
+        version = f"runtime-{len(list((root / 'profiles').glob('runtime-*.json'))) + 1:06d}-{identity[:10]}"
+        for item in matching:
+            item["text"] = guidance_text
+            item["dimensions"] = selected["intended_dimensions"]
+        for item in profile.get("positive_examples", []):
+            if item.get("source_record_id") == learning["record_id"]:
+                item.update(selected)
+        profile.update(version=version, parent_version=prior["version"], source_learning_record_id=record_id)
+        profile["change_history"].append({"version": version, "date": dt.date.today().isoformat(), "status": "provisional", "reason": f"Clarified existing selection {learning['record_id']}; no new operator preference or baseline promotion."})
+        errors = validate_instance_schema(profile, "voice-profile.schema.json")
+        if errors:
+            raise FlowError("Refined voice profile is invalid", EXIT_INTEGRITY, errors)
+        path = root / "profiles" / f"{version}-{sha256_bytes(canonical_json(profile))[:12]}.json"
+        immutable_write(path, (json.dumps(profile, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
+        _append_jsonl(root / "refinements.jsonl", {"record_id": record_id, "run_id": run["run_id"], "source_learning_record_id": learning["record_id"], "prior_profile_version": prior["version"], "new_profile_version": version, "created_at": utc_now(), "actor": "controller"})
+        write_json(root / "current.json", {**pointer, "current_version": version, "profile_sha256": sha256_path(path), "updated_at": utc_now(), "source_learning_record_id": record_id, "previous_version": prior["version"]})
+    emit({"ok": True, "idempotent": False, "current_version": version, "profile_path": str(path), "guidance": guidance_text}, args.json)
+    return EXIT_OK
+
+
 def command_voice_feedback(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
     live_receipt = json_artifact(directory, run, "live-verification") or {}
@@ -9610,13 +9765,12 @@ def command_voice_feedback(args: argparse.Namespace) -> int:
         profile.setdefault("provisional_guidance", []).append({
             "guidance_id": guidance_id,
             "text": (
-                "For senior-engineer field notes, prefer a concrete first-person observation, short paragraphs, ordinary nouns, and a clear practical thesis. "
-                "Use technical detail only when it helps the reader see or decide something. Operator feedback: " + feedback_text
+                "Apply this published-article feedback in its stated scope; do not infer a new persona, narrative person, or register. Operator feedback: " + feedback_text
             ),
             "status": "provisional",
             "source_record_id": record_id,
             "created_at": recorded_at,
-            "dimensions": ["concrete", "conversational", "field-note", "human", "practical", "senior-engineer"],
+            "dimensions": [],
         })
         profile.setdefault("change_history", []).append({
             "version": new_version,
@@ -10707,6 +10861,9 @@ def build_parser() -> argparse.ArgumentParser:
     add_json(voice_apply)
     voice_history_parser = voice_sub.add_parser("history")
     add_json(voice_history_parser)
+    voice_refine = voice_sub.add_parser("refine", help="Clarify a completed run's active guidance from its existing voice choice; preserve immutable history.")
+    voice_refine.add_argument("run_id")
+    add_json(voice_refine)
     voice_rollback = voice_sub.add_parser("rollback")
     voice_rollback.add_argument("version")
     add_json(voice_rollback)
@@ -10866,6 +11023,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "models" and args.models_command == "history":
             return command_models_history(args)
         if args.command == "voice":
+            if args.voice_command == "refine":
+                return command_voice_refine(args)
             if args.voice_command == "apply":
                 return command_voice_apply(args)
             if args.voice_command == "history":

@@ -175,7 +175,7 @@
     {
       "id": "VISUAL_PLAN",
       "actor": "model_and_policy",
-      "objective": "Include diagrams when useful for this article; otherwise explain their omission. Bind each included visual to a unique existing heading or paragraph, accessible explanation, and claim provenance.",
+      "objective": "Include diagrams when useful for this article; otherwise explain their omission. Bind each included visual to a unique existing heading or paragraph, accessible explanation, and claim provenance. Compare the chosen topology with an alternative and omission; represent parallel work and deferrals explicitly. Every label must fit in full.",
       "required_inputs": [
         "draft",
         "brief",
@@ -324,7 +324,7 @@
     {
       "id": "EDITORIAL_QA",
       "actor": "code_and_calibrated_evaluator",
-      "objective": "Automatically assess intent, voice, naturalness, structure, length, contextual cliché variants, and every public-facing title and description; issue targeted repairs without routine operator approval.",
+      "objective": "Automatically assess intent, voice, naturalness, structure, length, contextual cliché variants, and every public-facing title and description; issue targeted repairs without routine operator approval. Record excerpt-grounded checks of wording, rhetoric, paragraph structure, and preservation; a generic pass statement is insufficient.",
       "required_inputs": [
         "article",
         "brief",
@@ -332,7 +332,9 @@
         "verified-claim-ledger",
         "post-edit-claim-ledger",
         "voice-learning",
-        "style-policy"
+        "style-policy",
+        "naturalization-directive",
+        "voice-profile"
       ],
       "output": "receipts/editorial-qa.json",
       "output_schema": "editorial-assessment.schema.json",

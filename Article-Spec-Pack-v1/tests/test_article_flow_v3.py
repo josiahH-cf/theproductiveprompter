@@ -3592,6 +3592,7 @@ class NoPublishAutomationTests(TemporaryRuntime):
                     "visual_id": "proof-boundary",
                     "kind": "trend_gap",
                     "title": "Proof stays tied to the artifact",
+                    "design_rationale": "This comparison makes the two concerns visible; a sequential loop would imply a dependency, while omission loses the comparison.",
                     "purpose": "Show that public visibility and private verification are separate concerns.",
                     "placement": {"after_heading": "What the check proves"},
                     "alt_text": "Two conceptual lines distinguish a visible public result from the private evidence that verifies it.",
@@ -3634,6 +3635,10 @@ class NoPublishAutomationTests(TemporaryRuntime):
                 "run_id": run_id,
                 "outcome": "PASS",
                 "dimensions": dimensions,
+                "naturalization_review": {
+                    key: {"status": "PASS", "excerpt": af.artifact_path(directory, run, "article").read_text(encoding="utf-8")[0:40], "reason": "The fixture preserves its stated source-supported meaning and direct phrasing."}
+                    for key in ("language", "rhetoric", "structure", "preservation")
+                },
                 "findings": [],
                 "calibration_status": "uncalibrated-advisory",
             }
@@ -4906,6 +4911,7 @@ class WorkflowV31RegressionTests(TemporaryRuntime):
             "visual_plan_schema_version": "1.0.0", "run_id": run_id,
             "visuals": [{
                 "visual_id": "capability-gap", "kind": "trend_gap", "title": "The integration gap",
+                "design_rationale": "Two trajectories express the gap over time; a branching layout would imply a cause, and omission makes the divergence harder to compare.",
                 "purpose": "Make the difference between available and used capability visible.",
                 "placement": {"after_heading": "The gap"},
                 "alt_text": "Model capability rises while the product default remains almost flat.",
@@ -5192,7 +5198,8 @@ class WorkflowV31RegressionTests(TemporaryRuntime):
         self.assertTrue(prior_path.is_file())
         current, _current_path, pointer = af.active_voice_profile()
         self.assertEqual(len(current["provisional_guidance"]), 1)
-        self.assertIn("senior-engineer field notes", current["provisional_guidance"][0]["text"])
+        self.assertIn(feedback_path.read_text(encoding="utf-8").strip(), current["provisional_guidance"][0]["text"])
+        self.assertEqual(current["provisional_guidance"][0]["dimensions"], [])
         self.assertFalse(any(item.get("source_record_id") in {"VL-one", "VL-two"} for item in current["positive_examples"]))
         self.assertEqual(current["accepted_rejected_pairs"], [])
         self.assertTrue(any(item.get("run_id") == run_id for item in current["negative_examples"]))
@@ -5356,6 +5363,7 @@ class UsefulVisualPolicyTests(TemporaryRuntime):
         if include:
             plan["visuals"] = [{
                 "visual_id": "competing-effects", "kind": "branching_effects", "title": "Two competing effects",
+                "design_rationale": "A branch shows two effects of one premise; a sequential loop would falsely order the effects, and omission hides their shared premise.",
                 "purpose": "Separate the two hypothesized mechanisms without asserting a measured net benefit.",
                 "placement": {"after_paragraph": self.anchor},
                 "alt_text": "Constraints can reduce experiments and reward efficiency; the combined effect remains uncertain.",
@@ -5451,6 +5459,98 @@ class UsefulVisualPolicyTests(TemporaryRuntime):
         af.transition(directory, run, "PACKAGE", "test", "Reject late amendments without reverification")
         with self.assertRaises(af.FlowError):
             call(af.command_amend, run_id=run["run_id"], diagrams="off", reason="Changed preference", title=None, description=None, article=None)
+
+class BackendLearningRegressionTests(TemporaryRuntime):
+    voice_probe = VoiceLearningTests.voice_probe
+    prepare_voice_choice = VoiceLearningTests.prepare_voice_choice
+
+    def test_voice_anchor_excludes_metadata_and_fenced_examples(self):
+        run_id = self.start()
+        directory, run = af.load_run(run_id)
+        prose = "Two independent reviewers inspect the same revision before any code is removed."
+        text = '---\ntitle: This metadata must never become the author voice example\n---\n\n# Heading\n\n```text\n' + ('This example is protected, not the article opening. ' * 6) + '\n```\n\n' + prose + '\n'
+        self.record_text(directory, run, "draft", text)
+        anchor = af.load_json(Path(af.ensure_voice_anchor(directory, run)["path"]))
+        self.assertEqual(anchor["source_passage"], prose)
+        self.assertEqual(anchor["locator"], f"rough draft opening, line {text[:text.index(prose)].count(chr(10)) + 1}")
+
+    def test_voice_refinement_preserves_choice_and_history_and_is_idempotent(self):
+        run_id, directory, run, probe_path, probe = self.prepare_voice_choice(selection="C")
+        prior_probe = probe_path.read_bytes()
+        af.transition(directory, run, "VOICE_LEARNING", "test", "Apply fixture selection")
+        with mock.patch.object(af, "voice_preference_guidance", return_value="Legacy guidance lists every varied dimension."):
+            result = af.apply_voice_learning(directory, run)
+        old_profile = Path(result["profile_path"])
+        old_bytes = old_profile.read_bytes()
+        af.transition(directory, run, "COMPLETE", "test", "Complete fixture")
+        code, refined = call(af.command_voice_refine, run_id=run_id)
+        self.assertEqual(code, af.EXIT_OK)
+        self.assertFalse(refined["idempotent"])
+        self.assertIn("Candidate labels are model descriptions", refined["guidance"])
+        self.assertEqual(probe_path.read_bytes(), prior_probe)
+        self.assertEqual(old_profile.read_bytes(), old_bytes)
+        profile, _, _ = af.active_voice_profile()
+        selected = next(item for item in probe["candidates"] if item["candidate_id"] == "C")
+        self.assertEqual(profile["provisional_guidance"][-1]["dimensions"], selected["intended_dimensions"])
+        _, repeated = call(af.command_voice_refine, run_id=run_id)
+        self.assertTrue(repeated["idempotent"])
+        self.assertEqual(len(af._read_jsonl(af.voice_state_root() / "refinements.jsonl")), 1)
+
+    def test_contextual_review_requires_real_excerpts_and_cannot_hide_repairs(self):
+        run_id = self.start()
+        directory, run = af.load_run(run_id)
+        prose = "Two reviewers inspect the same revision before removing an obsolete helper."
+        self.record_text(directory, run, "article", prose)
+        review = {key: {"status": "PASS", "excerpt": prose, "reason": "The sentence gives the actual review action without an inflated verb or staged contrast."} for key in ("language", "rhetoric", "structure", "preservation")}
+        value = {"naturalization_review": review, "dimensions": {}}
+        self.assertEqual(af.naturalization_review_findings(directory, run, value, "qa"), [])
+        review["rhetoric"]["excerpt"] = "This sentence was never in the article."
+        self.assertEqual(af.naturalization_review_findings(directory, run, value, "qa")[0]["repair_state"], "EDITORIAL_QA")
+        review["rhetoric"].update(excerpt=prose, status="REPAIR")
+        self.assertEqual(af.naturalization_review_findings(directory, run, value, "qa")[0]["repair_state"], "EDIT")
+        value["dimensions"]["naturalness"] = {"status": "REPAIR"}
+        self.assertTrue(any(item["criterion"] == "editorial_dimension" for item in af.naturalization_review_findings(directory, run, value, "qa")))
+
+    def test_model_comparison_excludes_fallbacks_and_keeps_unrated_runs_unrated(self):
+        runs = [
+            {"run_id": "clean", "actual_model_id": "sol", "state": "COMPLETE"},
+            {"run_id": "fallback", "actual_model_id": "sol", "state": "COMPLETE", "contaminated": True},
+            {"run_id": "unrated", "actual_model_id": "sol", "state": "COMPLETE"},
+        ]
+        summary = af.model_comparison_summary(runs, [{"run_id": "clean", "outcome": "accepted"}, {"run_id": "fallback", "outcome": "accepted"}])
+        row = summary["models"][0]
+        self.assertEqual((row["clean_completed"], row["excluded_fallback_or_mixed"], row["operator_accepted"], row["unrated"]), (2, 1, 1, 1))
+        self.assertEqual(summary["status"], "descriptive_only_not_a_quality_ranking")
+
+    def test_writing_fallback_prefers_promoted_scores_without_reassigning_writer(self):
+        run_id = self.start(draft_model="gpt-5.6-luna")
+        _, run = af.load_run(run_id)
+        candidates = [{"provider": "codex-cli", "model": model, "eligible": True, "evaluation_score": score} for model, score in (("gpt-5.5", None), ("gpt-5.6-sol", 0.9), ("gpt-5.6-terra", 0.7))]
+        route = af.pin_writing_route(run, "DRAFT", {"candidates": candidates})
+        self.assertEqual(route["chosen"]["model"], "gpt-5.6-sol")
+        candidates.append({"provider": "codex-cli", "model": "gpt-5.6-luna", "eligible": True, "evaluation_score": 0.2})
+        self.assertEqual(af.pin_writing_route(run, "DRAFT", {"candidates": candidates})["chosen"]["model"], "gpt-5.6-luna")
+
+    def test_diagram_never_drops_steps_or_long_label_text(self):
+        import xml.etree.ElementTree as ET
+        labels = [f"Required step {i}" for i in range(1, 9)]
+        visual = {"kind": "delivery_loop", "title": "Review cycle", "alt_text": "All required steps in the review cycle.", "labels": labels}
+        svg = af.render_visual_svg(visual)
+        tree = ET.fromstring(svg)
+        visible = " ".join(" ".join(node.itertext()) for node in tree.findall('.//{http://www.w3.org/2000/svg}text'))
+        for label in labels:
+            self.assertIn(label, visible)
+        self.assertNotIn("telemetry", visible)
+        with self.assertRaises(af.FlowError):
+            af.render_visual_svg({**visual, "labels": labels + ["Ninth step"]})
+        with self.assertRaises(af.FlowError):
+            af._svg_wrapped_text("required words " * 15, x=0, y=0, width=12)
+        parallel = ET.fromstring(af.render_visual_svg({**visual, "kind": "parallel_review"}))
+        paths = [node.attrib.get("d", "") for node in parallel.findall('.//{http://www.w3.org/2000/svg}path')]
+        self.assertIn("M300 210 V235 H205 V265", paths)
+        self.assertIn("M460 210 V235 H555 V265", paths)
+        self.assertIn("M715 710 H740", paths)
+
 
 if __name__ == "__main__":
     unittest.main()
