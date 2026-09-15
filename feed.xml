@@ -5,10 +5,17 @@
     <link>https://theproductiveprompter.com/docs/blog.html</link>
     <description>Practical writing on AI workflows, prompting systems, evaluation, and publication design.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 09 Sep 2026 12:00:00 -0500</lastBuildDate>
+    <lastBuildDate>Tue, 15 Sep 2026 12:00:00 -0500</lastBuildDate>
     <atom:link href="https://theproductiveprompter.com/feed.xml" rel="self" type="application/rss+xml"/>
 
     <!-- ARTICLE_FLOW_FEED_START -->
+<item>
+  <title>The Two-Model Pruning Cycle: How to Simplify an AI-Assisted Codebase Safely</title>
+  <link>https://theproductiveprompter.com/docs/two-model-pruning-cycle-ai-assisted-codebase.html</link>
+  <guid isPermaLink="true">https://theproductiveprompter.com/docs/two-model-pruning-cycle-ai-assisted-codebase.html</guid>
+  <pubDate>Tue, 15 Sep 2026 12:00:00 -0500</pubDate>
+  <description>A friendly, evidence-led guide to why successful AI-assisted feature work can leave repository residue and how to prune it with two independent model reviews, small reversible changes, and validation of the actual diff.</description>
+</item>
 <item>
   <title>What Chip Restrictions May Be Teaching China</title>
   <link>https://theproductiveprompter.com/docs/what-chip-restrictions-may-be-teaching-china.html</link>
