@@ -4870,6 +4870,21 @@ class WorkflowV31RegressionTests(TemporaryRuntime):
         )
         self.assertEqual(locked["markdown_links"], ["[Evidence](https://example.com/source)"])
 
+    def test_markdown_frontmatter_is_private_and_body_structure_is_preserved(self):
+        body = "# Hidden title\n\nFirst paragraph.\n\nSecond paragraph.\n\n## Section\n\n```yaml\ntitle: keep this example\n```\n"
+        expected = af.markdown_to_html(body)
+        for ending in ("---", "..."):
+            for newline in ("\n", "\r\n"):
+                draft = "\ufeff---\ntitle: Private title\ntags:\n  - private-tag\n" + ending + "\n\n" + body
+                rendered = af.markdown_to_html(draft.replace("\n", newline))
+                self.assertEqual(rendered, expected)
+                self.assertEqual(rendered.count("<p>"), 2)
+                self.assertNotIn("<h1>", rendered)
+                self.assertIn("title: keep this example", rendered)
+        for prose in ("---\n\nAn ordinary opening.\n\n---\n", "---\ntitle: unclosed metadata\n\nKeep this text."):
+            self.assertIn("<p>---", af.markdown_to_html(prose))
+        self.assertIn("Keep this text.", af.markdown_to_html(prose))
+
     def test_visual_plan_renders_hash_bound_assets_and_advances(self):
         run_id = self.start("Explain why a product default can lag a model.")
         directory, run = af.load_run(run_id)

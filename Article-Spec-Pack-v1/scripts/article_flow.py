@@ -7523,6 +7523,15 @@ def markdown_inline(value: str) -> str:
 
 def markdown_to_html(markdown: str) -> str:
     lines = markdown.replace("\r\n", "\n").split("\n")
+    # Draft metadata belongs to the publication template, not the article body.
+    # Require a bounded leading metadata block so ordinary rules and unclosed
+    # blocks do not silently discard prose.
+    if lines and lines[0].lstrip("\ufeff").strip() == "---":
+        end = next((i for i in range(1, len(lines)) if lines[i].strip() in {"---", "..."}), None)
+        if end is not None:
+            first_field = next((line for line in lines[1:end] if line.strip()), "")
+            if re.match(r"^[A-Za-z_][\w-]*:", first_field):
+                lines = lines[end + 1:]
     output: list[str] = []
     paragraph: list[str] = []
     list_type: str | None = None
