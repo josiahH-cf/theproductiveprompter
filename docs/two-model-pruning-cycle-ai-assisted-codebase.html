@@ -15,13 +15,13 @@
     <meta property="og:title" content="The Two-Model Pruning Cycle: How to Simplify an AI-Assisted Codebase Safely">
     <meta property="og:description" content="A friendly, evidence-led guide to why successful AI-assisted feature work can leave repository residue and how to prune it with two independent model reviews, small reversible changes, and validation of the actual diff.">
     <meta property="og:url" content="https://theproductiveprompter.com/docs/two-model-pruning-cycle-ai-assisted-codebase.html">
-    <meta property="article:published_time" content="2026-09-15T12:00:00-05:00">
-    <meta property="article:modified_time" content="2026-09-15T12:00:00-05:00">
+    <meta property="article:published_time" content="2026-09-15T09:04:24Z">
+    <meta property="article:modified_time" content="2026-09-15T10:09:45+00:00">
     <meta property="article:author" content="Josiah Hunter">
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="The Two-Model Pruning Cycle: How to Simplify an AI-Assisted Codebase Safely">
     <meta name="twitter:description" content="A friendly, evidence-led guide to why successful AI-assisted feature work can leave repository residue and how to prune it with two independent model reviews, small reversible changes, and validation of the actual diff.">
-    <meta name="article-flow-revision" content="554a358d265aa0a56fe0eb1d75f8960296c5ee78452340faf085421d7b60d6c1">
+    <meta name="article-flow-revision" content="0ad338e1eaf923f2f0c00c3580703aa60779c32c85e9eb4831d176e5b17eca58">
     <meta name="article-flow-recipe" content="{&quot;archetype&quot;:&quot;tutorial&quot;,&quot;opening&quot;:&quot;failure&quot;,&quot;ending&quot;:&quot;quiet-synthesis&quot;,&quot;summary&quot;:&quot;auto&quot;,&quot;narrative_person&quot;:&quot;mixed&quot;}">
     <script type="application/ld+json">
     {
@@ -31,10 +31,10 @@
         "description": "A friendly, evidence-led guide to why successful AI-assisted feature work can leave repository residue and how to prune it with two independent model reviews, small reversible changes, and validation of the actual diff.",
         "url": "https://theproductiveprompter.com/docs/two-model-pruning-cycle-ai-assisted-codebase.html",
         "mainEntityOfPage": "https://theproductiveprompter.com/docs/two-model-pruning-cycle-ai-assisted-codebase.html",
-        "datePublished": "2026-09-15T12:00:00-05:00",
-        "dateModified": "2026-09-15T12:00:00-05:00",
+        "datePublished": "2026-09-15T09:04:24Z",
+        "dateModified": "2026-09-15T10:09:45+00:00",
         "inLanguage": "en-US",
-        "wordCount": 2877,
+        "wordCount": 2899,
         "keywords": ["ai-assisted-development", "software-maintenance", "refactoring", "code-review", "prompting"],
         "author": {"@type": "Person", "name": "Josiah Hunter", "url": "https://theproductiveprompter.com/"},
         "publisher": {"@type": "Person", "name": "Josiah Hunter", "url": "https://theproductiveprompter.com/"},
@@ -64,43 +64,37 @@
             <article class="article-content">
                 <header class="article-header">
                     <h1>The Two-Model Pruning Cycle: How to Simplify an AI-Assisted Codebase Safely</h1>
-                    <div class="article-header__meta" role="group" aria-label="Article details"><span>By Josiah Hunter</span><span aria-hidden="true">•</span><time datetime="2026-09-15T12:00:00-05:00">September 15, 2026</time><span aria-hidden="true">•</span><span>13 min read</span></div>
+                    <div class="article-header__meta" role="group" aria-label="Article details"><span>By Josiah Hunter</span><span aria-hidden="true">•</span><time datetime="2026-09-15T09:04:24Z">September 15, 2026</time><span aria-hidden="true">•</span><span>13 min read</span></div>
                 </header>
                 <!-- GENERATED_ARTICLE_START -->
 <p>AI-assisted feature delivery and repository simplification are separate jobs: a working change can still leave duplicate implementations, dead paths, obsolete tests, or stale guidance. The two-model pruning cycle addresses that residue with independent analysis of one revision, evidence-based reconciliation, a small reversible implementation batch, and a second review of the actual diff and validation results.</p>
-<h2>The feature worked. Why is the repository harder to understand?</h2>
+<h2>A working feature can leave duplicate paths</h2>
 <p>Consider a service that already has a function for normalizing customer addresses. You ask an AI coding agent to add regional formatting. The feature ships, the tests pass, and customers get the expected result.</p>
 <p>But the agent has added a second normalization path beside the first. One endpoint calls the old path. Another reaches the new one through a wrapper. A compatibility test still describes behavior that nobody intends to support. The repository instructions tell future contributors to use a helper that the new code bypasses.</p>
-<p>The feature works. The repository is still harder to understand.</p>
-<p>It now contains two nearly equivalent answers to the same question. Before making another change, the next person or agent has to determine which answer is authoritative.</p>
+<p>The repository now contains two nearly equivalent answers to the same question. Before making another change, the next person or agent has to determine which implementation is authoritative.</p>
 <p>This example is hypothetical, but I recognize the pattern from my own AI-assisted development. Repeated feature work can leave extra implementations, wrappers, tests, and instructions behind. I have not measured a universal rate of code growth, and I do not assume that every model or feature produces this result. I am describing residue I have found while maintaining real projects.</p>
 <p>The important measure is the maintained surface: all the code and supporting material that looks active enough to demand attention. A short duplicate function can create more uncertainty than a long module with clear ownership.</p>
-<p>My working explanation is straightforward. Implementing a requested feature and simplifying the repository are separate jobs. A task can be completed correctly while retirement of the previous path remains outside its scope.</p>
-<p>I therefore assign pruning as its own maintenance job instead of expecting every feature prompt to produce it automatically.</p>
+<p>My working explanation is that a feature task can be completed correctly while retirement of the previous path remains outside its scope. I therefore assign pruning as its own maintenance job instead of expecting every feature prompt to produce it automatically.</p>
 <h2>The model does not literally hate the delete key</h2>
-<p>There is a tidy explanation for this residue: language models generate tokens, deletion produces fewer tokens, so models must prefer adding code.</p>
-<p>It is memorable, but it is not a supported technical diagnosis.</p>
+<p>Saying a model “hates the delete key” is a playful metaphor. The proposed explanation is that language models generate tokens, deletion produces fewer tokens, and models therefore prefer adding code. That conclusion does not follow from the mechanics of text generation.</p>
 <p>Autoregressive language models generate successive tokens, or pieces of text, based on the prompt and prior output. Decoding works with next-token probability distributions, and the model does not always have to choose the single most likely token. The <a href="https://huggingface.co/docs/transformers/llm_tutorial">Hugging Face text-generation guide</a> gives a useful overview of those mechanics.</p>
 <p>Those mechanics do not prevent a model from proposing a deletion. A patch that removes a thousand lines is still represented through generated tokens. Next-token generation explains how the model produces text. It does not establish a motive to preserve code in a repository.</p>
 <p>Training and runtime conditions add more to the explanation. Historical work on <a href="https://openai.com/index/instruction-following/">instruction-following language models</a> describes how demonstrations, ranked outputs, and reinforcement learning can shape behavior beyond a base next-word objective. It is historical evidence, not a disclosure of how every current system is trained. It does show why token prediction alone cannot explain the behavior we observe. Instructions, tools, retrieved context, and task scope also matter.</p>
-<p>A model that “hates the delete key” works as a playful metaphor. It does not work as the diagnosis.</p>
 <p>Research also resists the blanket claim that AI always writes more code. A <a href="https://arxiv.org/html/2601.17581v1">2026 observational study of merged GitHub pull requests</a> found that agent-authored changes in its sample were generally smaller and more localized than the human-authored changes used for comparison. The study examined pull-request characteristics. It did not establish the lifetime maintenance value of the resulting repositories or isolate a causal effect from token generation.</p>
 <p>The practical question is which working conditions allow obsolete paths to survive, and how we can check those paths safely.</p>
 <h2>Why useful feature work can still leave residue</h2>
-<p>Repository access does not give an agent simultaneous understanding of every file.</p>
-<p>Coding agents can search for symbols, inspect directories, load selected files, and retrieve more context as a task develops. Anthropic’s discussion of <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">context engineering for AI agents</a> describes this incremental, just-in-time retrieval. An agent may inspect a large part of a repository when the task calls for it. Access alone does not mean that every file is present in context or understood at once.</p>
-<p>This limits what brief reuse instructions can accomplish.</p>
+<p>Repository access does not give an agent simultaneous understanding of every file. Coding agents can search for symbols, inspect directories, load selected files, and retrieve more context as a task develops. Anthropic’s discussion of <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">context engineering for AI agents</a> describes this incremental, just-in-time retrieval. An agent may inspect a large part of a repository when the task calls for it. Access alone does not mean that every file is present in context or understood at once.</p>
 <p>Instructions such as “check first,” “reuse existing utilities,” “avoid duplication,” and “follow existing patterns” are useful starting points. Inference: they are not complete repository audits unless the search scope and supporting evidence are visible. A quick check can miss an indirect entry point, an older implementation with different terminology, or a rule stored outside the directory being searched.</p>
 <p>Feature work also rewards local completion. If the immediate request is regional address formatting, a narrow adapter may be the shortest supported route. The older path can remain untouched because the task never gathered enough evidence to retire it safely.</p>
-<p>This is a distinction between objectives, not a universal claim about a model’s motives:</p>
+<p>The two tasks have different objectives:</p>
 <ul>
 <li>Feature work asks, “How do we make this behavior work?”</li>
 <li>Pruning asks, “Which implementation should remain, what still depends on it, and what can be retired without changing required behavior?”</li>
 </ul>
 <p>If nobody assigns the second job, residue can survive even when the first job was done well.</p>
 <h2>Pruning is a behavior-preservation job</h2>
-<p>Pruning is not a contest for the smallest diff or the lowest line count. It is maintenance and refactoring: improving the internal structure while preserving required behavior. Martin Fowler’s <a href="https://martinfowler.com/bliki/DefinitionOfRefactoring.html">definition of refactoring</a> puts that preservation at the center.</p>
-<p>In my own pruning passes, I look for several kinds of residue:</p>
+<p>Pruning is maintenance and refactoring: improving the internal structure while preserving required behavior. A smaller diff or lower line count alone cannot establish that a change meets that goal. Martin Fowler’s <a href="https://martinfowler.com/bliki/DefinitionOfRefactoring.html">definition of refactoring</a> puts that preservation at the center.</p>
+<p>In my own pruning passes, I look for several kinds of residue, each of which requires evidence:</p>
 <ul>
 <li>competing implementations that can be consolidated;</li>
 <li>code shown to be unreachable or unused;</li>
@@ -108,21 +102,17 @@
 <li>stale repository guidance;</li>
 <li>workflows that still point to an older path.</li>
 </ul>
-<p>Each kind requires evidence.</p>
 <p>Suppose a text search finds no callers for a function. That makes the function a candidate, not a safe deletion. It may still be reached through an export, package entry point, configuration file, script, plugin, dynamic import, worker, generated registry, CI command, or external consumer. The documentation for <a href="https://knip.dev/explanations/entry-files">Knip’s entry-file analysis</a> shows how broad entry-point discovery can become in a JavaScript or TypeScript repository. Knip is useful in that ecosystem, but it is not a universal proof system.</p>
-<p>Tests need the same care. Age, inconvenience, or a current failure does not make a test obsolete. First identify the supported behavior it protects.</p>
-<p>Keep relevant regression coverage. Adapt useful tests when implementations are consolidated. Remove a test only when its expected behavior has been demonstrably retired or its coverage is redundant. Never delete a failing test merely to make a cleanup pass succeed.</p>
+<p>Tests need the same care. Age, inconvenience, or a current failure does not make a test obsolete. First identify the supported behavior it protects. Keep relevant regression coverage. Adapt useful tests when implementations are consolidated. Remove a test only when its expected behavior has been demonstrably retired or its coverage is redundant. Never delete a failing test merely to make a cleanup pass succeed.</p>
 <p>Repository governance belongs in the review too. In this context, governance means the material that steers future work: contributor notes, agent instructions, review checklists, CI rules, migration notes, and similar repository-local guidance.</p>
 <p>Before retiring a rule, find out why it was introduced and whether that reason still applies. When the architecture changes, update the active guidance in the same change. Otherwise the repository may teach the next contributor to recreate the structure you just removed.</p>
-<p>Inference: removing obsolete implementations and instructions can reduce what people and agents must sort through during later changes. The goal is preserved behavior, clear ownership, and a structure that is easier to understand, not minimum code.</p>
+<p>Inference: removing obsolete implementations and instructions can reduce what people and agents must sort through during later changes. The goal is preserved behavior, clear ownership, and a structure that is easier to understand; code size alone is insufficient.</p>
 <h2>One pruning cycle, two independent views</h2>
-<figure class="article-visual" data-visual-id="two-model-pruning-cycle" data-asset-sha256="ed1f0483faa65213cf45fe518727e2872e391101e519221f27c70abace9dda9c"><img src="/assets/articles/two-model-pruning-cycle-ai-assisted-codebase/two-model-pruning-cycle.svg" alt="A six-step loop: establish one revision and retained requirements; Model A and Model B analyze independently; reconcile candidates using evidence; defer unresolved cases; one model implements a small reversible batch; the other audits the actual diff and validation results." loading="lazy" decoding="async"><figcaption><strong>The two-model pruning cycle.</strong> Recommended conceptual workflow, not a measured result: independent evidence first, a small reversible change second, and audit of the actual diff last.</figcaption></figure>
-<p>I use one recurring cycle with two independent reviews.</p>
-<p>The reviewers can be different model families, different configurations, or separate sessions whose initial analyses are deliberately isolated. I often pair Claude and Codex. In my experience, that cross-review has helped me catch deletion mistakes and maintain a stable, regularly pruned codebase. That is an account of my practice, not a promise of permanent stability for every repository.</p>
-<p>The procedure matters more than the model names.</p>
-<p>Begin by fixing the object of review. Record the repository revision, preferably with an immutable commit identifier, and list the behavior and interfaces that must remain. Include relevant commands, supported platforms, public exports, compatibility requirements, and anything explicitly approved for retirement.</p>
+<figure class="article-visual" data-visual-id="two-model-pruning-cycle" data-asset-sha256="bdfc3db9be5c5f7368ae2e182c80b528f42c9e6802934731dab64c5b4f42f739"><img src="/assets/articles/two-model-pruning-cycle-ai-assisted-codebase/two-model-pruning-cycle.svg" alt="The same revision feeds isolated Model A and Model B analyses. Evidence is reconciled. Supported changes are implemented and audited; unresolved candidates are deferred. Audit findings return to implementation. Validated changes and deferred candidates feed later review cycles." loading="lazy" decoding="async"><figcaption><strong>Two-model pruning cycle.</strong> Independent analyses meet at reconciliation. Supported changes proceed to implementation and audit. The amber branch holds unresolved candidates for a later cycle; audit findings return to implementation. A conceptual recommendation, not a measured result.</figcaption></figure>
+<p>I use one recurring cycle with two independent reviews. The reviewers can be different model families, different configurations, or separate sessions whose initial analyses are deliberately isolated. I often pair Claude and Codex. In my experience, that cross-review has helped me catch deletion mistakes and maintain a stable, regularly pruned codebase. That is an account of my practice, not a promise of permanent stability for every repository.</p>
+<p>Whichever models you use, begin by fixing the object of review. Record the repository revision, preferably with an immutable commit identifier, and list the behavior and interfaces that must remain. Include relevant commands, supported platforms, public exports, compatibility requirements, and anything explicitly approved for retirement.</p>
 <p>Give Model A and Model B the same revision and retained requirements. Each should complete an initial analysis before seeing the other’s conclusions. The reports should identify what was inspected, what was not, the evidence behind each candidate, possible remaining dependencies, and the validation that would make removal safer.</p>
-<p>Reconcile the results candidate by candidate. The goal is not to decide which report won. For each candidate, determine:</p>
+<p>Reconcile the results candidate by candidate, using the evidence in both reports to determine:</p>
 <ol>
 <li>what it does;</li>
 <li>whether a retained requirement still needs it;</li>
@@ -328,12 +318,11 @@ state whether to block, revise, revert, or investigate. If no blocking
 issue is found, state the residual risks and why the available evidence
 supports keeping this batch.</code></pre>
 <h2>Make deletion an explicit recurring job</h2>
-<p>An impressive deletion count does not make a repository easier to maintain. Required behavior still has to work. Ownership needs to be clear. Obsolete paths need to be gone. Active instructions need to describe the code that remains.</p>
-<p>That work needs its own assignment.</p>
+<p>A useful pruning pass preserves required behavior, clarifies ownership, removes obsolete paths, and brings active instructions into line with the remaining code. Deletion counts alone cannot tell you whether it succeeded.</p>
 <p>I recommend pruning often enough that the evidence is still recoverable. People may still remember why a wrapper exists, migration notes may still have context, and the cleanup may still fit into a small batch separate from feature work. The right frequency depends on the repository and the team.</p>
-<p>The durable pattern is modest: gather independent evidence, make a small reversible deletion, then validate the actual diff.</p>
-<footer class="article-model-attribution" data-style-policy-sha256="f6b03e5f629ac61eda927f09c8e83854c18fd08bb44043cd2bedf3984accb701"><p>Drafting model: GPT-5.6 Sol</p></footer>
-                <!-- GENERATED_ARTICLE_END -->
+<p>Make this a recurring assignment: gather independent evidence, prune a small reversible batch, and validate the actual diff before keeping it.</p>
+<footer class="article-model-attribution" data-style-policy-sha256="f6b03e5f629ac61eda927f09c8e83854c18fd08bb44043cd2bedf3984accb701"><p>Drafting model: GPT-5.6 Sol</p><p>Revision editing and review: Codex</p></footer>
+<!-- GENERATED_ARTICLE_END -->
             </article>
         </div>
     </main>
