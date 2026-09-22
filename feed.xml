@@ -5,16 +5,16 @@
     <link>https://theproductiveprompter.com/docs/blog.html</link>
     <description>Practical writing on AI workflows, prompting systems, evaluation, and publication design.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 22 Sep 2026 14:37:52 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 22 Sep 2026 15:24:21 +0000</lastBuildDate>
     <atom:link href="https://theproductiveprompter.com/feed.xml" rel="self" type="application/rss+xml"/>
 
     <!-- ARTICLE_FLOW_FEED_START -->
 <item>
-  <title>What AI Alignment Means and Why It Might Improve</title>
+  <title>What I Mean by AI Alignment and Why I Expect It to Improve</title>
   <link>https://theproductiveprompter.com/docs/what-ai-alignment-means-and-why-it-might-improve.html</link>
   <guid isPermaLink="true">https://theproductiveprompter.com/docs/what-ai-alignment-means-and-why-it-might-improve.html</guid>
   <pubDate>Tue, 22 Sep 2026 12:00:00 -0500</pubDate>
-  <description>A first-person reflection on goal-relative alignment, a qualified expectation of improvement, and an unresolved question about explicit refusal of unsafe instructions.</description>
+  <description>A working definition of AI alignment, what benchmark progress can show, and the open question of whether explicitly refusing unsafe instructions belongs in the definition.</description>
 </item>
 <item>
   <title>The Two-Model Pruning Cycle: How to Simplify an AI-Assisted Codebase Safely</title>
