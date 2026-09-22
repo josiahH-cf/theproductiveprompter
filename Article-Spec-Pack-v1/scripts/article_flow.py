@@ -8252,8 +8252,10 @@ def validate_public_package(package_root: Path, metadata: dict[str, Any]) -> lis
                 findings.append({"criterion": "visual_manifest", "path": str(assets_path), "finding": str(exc)})
                 asset_manifest = {"assets": []}
             assets = [item for item in asset_manifest.get("assets", []) if isinstance(item, dict)]
-            if not assets:
-                findings.append({"criterion": "required_visual", "path": str(article_html), "finding": "Workflow 3.1 article has no rendered visuals."})
+            # Required diagrams and plan/manifest bindings are checked before
+            # packaging. An approved empty plan retains its omission reason.
+            if not assets and len(str(asset_manifest.get("omission_reason") or "").strip()) < 20:
+                findings.append({"criterion": "visual_omission_reason", "path": str(assets_path), "finding": "An empty visual manifest needs its approved omission reason."})
             for asset in assets:
                 visual_id = str(asset.get("visual_id") or "")
                 public_target = site_root / str(asset.get("public_path") or "").lstrip("/")

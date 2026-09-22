@@ -4496,6 +4496,30 @@ class StyleDefenseTests(TemporaryRuntime):
         broken_links = [item for item in findings if item["criterion"] == "internal_link_or_asset"]
         self.assertEqual(broken_links, [], findings)
 
+    def test_public_package_accepts_explained_empty_visual_manifest(self):
+        package_root, metadata = self.make_package()
+        metadata["workflow_version"] = "3.1.0"
+        af.write_json(package_root / "public" / "assets.json", {
+            "assets": [],
+            "omission_reason": "The brief reflection has no relationship a diagram would explain better than its prose.",
+        })
+        with mock.patch.object(af, "publication_repo_root", return_value=self.root / "repository"):
+            findings = af.validate_public_package(package_root, metadata)
+        self.assertEqual(findings, [])
+
+    def test_public_package_rejects_unexplained_empty_visual_manifest(self):
+        package_root, metadata = self.make_package()
+        metadata["workflow_version"] = "3.1.0"
+        for reason in (None, "", "Too short"):
+            with self.subTest(reason=reason):
+                manifest = {"assets": []}
+                if reason is not None:
+                    manifest["omission_reason"] = reason
+                af.write_json(package_root / "public" / "assets.json", manifest)
+                with mock.patch.object(af, "publication_repo_root", return_value=self.root / "repository"):
+                    findings = af.validate_public_package(package_root, metadata)
+                self.assertIn("visual_omission_reason", {item["criterion"] for item in findings})
+
     def test_traversal_link_cannot_escape_the_publication_repository(self):
         package_root, metadata = self.make_package()
         repository = self.root / "repository"
