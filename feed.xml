@@ -5,10 +5,17 @@
     <link>https://theproductiveprompter.com/docs/blog.html</link>
     <description>Practical writing on AI workflows, prompting systems, evaluation, and publication design.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 15 Sep 2026 10:09:45 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 22 Sep 2026 12:00:00 -0500</lastBuildDate>
     <atom:link href="https://theproductiveprompter.com/feed.xml" rel="self" type="application/rss+xml"/>
 
     <!-- ARTICLE_FLOW_FEED_START -->
+<item>
+  <title>What AI Alignment Means and How Reliability Can Improve</title>
+  <link>https://theproductiveprompter.com/docs/what-ai-alignment-means-and-why-it-might-improve.html</link>
+  <guid isPermaLink="true">https://theproductiveprompter.com/docs/what-ai-alignment-means-and-why-it-might-improve.html</guid>
+  <pubDate>Tue, 22 Sep 2026 12:00:00 -0500</pubDate>
+  <description>What coding and instruction-following benchmarks reveal about everyday AI reliability, where their evidence stops, and why improvement remains a conditional possibility.</description>
+</item>
 <item>
   <title>The Two-Model Pruning Cycle: How to Simplify an AI-Assisted Codebase Safely</title>
   <link>https://theproductiveprompter.com/docs/two-model-pruning-cycle-ai-assisted-codebase.html</link>
