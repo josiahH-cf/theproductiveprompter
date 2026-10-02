@@ -2686,6 +2686,24 @@
         "effort": "medium",
         "verbosity": "high"
       }
+    },
+    {
+      "key": "dad177da1c8b596b0680beac9c9f515cebe9bb17c9c2518708fafa23c1d995d2-attempt-2",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "attempt": 2,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T18:15:23+00:00",
+      "artifacts": {
+        "records/dad177da1c8b596b0680beac9c9f515cebe9bb17c9c2518708fafa23c1d995d2-attempt-2/response.txt": "cde7071a6c48608bd70f258279f0a3094139987e72f4a97259b04a6f877a0596",
+        "records/dad177da1c8b596b0680beac9c9f515cebe9bb17c9c2518708fafa23c1d995d2-attempt-2/evidence.json": "2abb20d0a351609ced72c84844698c2b4ac97ebf23064404f4180c098f1bb3d4"
+      },
+      "variant": {
+        "id": "effort-max",
+        "effort": "max",
+        "verbosity": "default"
+      }
     }
   ]
 }
