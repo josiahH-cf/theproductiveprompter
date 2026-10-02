@@ -1,0 +1,161 @@
+## 1. THE STORY
+
+### The White Margin
+
+At two o’clock, Mara set four order cards beneath the paperweight shaped like a pear: posters, tickets, menus, theater banners. Outside, the shop’s awning snapped in the wind. Inside, the printer smelled of hot dust even when it wasn’t running.
+
+Ivo lifted the banner card.
+
+“Those first?”
+
+“Those included,” Mara said. “Different promise.”
+
+The theater had lent the shop its folding chairs for every neighborhood meeting. Ivo had painted scenery there since he was sixteen. His sleeve still carried a streak of blue from a sea that would appear onstage tomorrow.
+
+Mara tapped her pencil against the cards. Eighty dollars of materials, exactly. One hundred twenty machine minutes, exactly. Payments of $294, less the materials, left $214. After the afternoon’s fixed $35 operating expense, the repair fund would gain $179.
+
+Forty-one dollars short.
+
+Ivo looked at the figures upside down. “That’s close.”
+
+“It’s forty-one dollars.”
+
+“You make close sound like a disease.”
+
+Mara turned the banner card toward him. “I put your sea in.”
+
+He smiled then, despite himself.
+
+Before they opened a packet of paper, Mara counted the materials envelope. She counted it twice, flattening each bill against the counter with the side of her hand.
+
+Sixty-six dollars.
+
+The eighty on her worksheet was wrong. The envelope was right.
+
+She drew a line through the four cards’ total.
+
+Ivo stopped smiling. “We can do the banners and decide the rest afterward.”
+
+“No. Payments come after production ends. We have to buy everything with what’s here.”
+
+“Then do fewer other things.”
+
+“That’s what I’m checking.”
+
+He leaned against the counter while she worked. Beyond the glass door, someone had left a bicycle chained to the empty newspaper rack. Its loose wheel clicked whenever the wind caught it.
+
+Mara moved the cards into rows, penciling totals on the backs. Twice she reached for the banner card, then set it down again.
+
+Finally she placed posters, programs, tickets, and bookmarks beneath the pear.
+
+“Sixty-six in materials. A hundred minutes. Two hundred forty-five paid afterward.”
+
+Ivo stared at the small card marked BOOKMARKS.
+
+“You’re dropping the theater for those?”
+
+“The programs are for the theater.”
+
+“You know what I mean.”
+
+She did. The banners would hang across the entrance, bright enough to make people stop. Bookmarks would disappear into books. Nobody would photograph a bookmark and thank the print shop.
+
+“These leave a hundred seventy-nine before the operating expense,” she said. “A hundred forty-four for the repair.”
+
+“And with banners?”
+
+“Banners, programs, tickets: a hundred forty-one for the repair.”
+
+“Three dollars.”
+
+“Yes.”
+
+“For three dollars, you’d tell them no?”
+
+Mara’s pencil had worn a gray crescent into her thumbnail. She looked at it instead of him.
+
+“For three dollars, I’d have to tell somebody else no. I’d still be short. I’m trying to be short by as little as I can.”
+
+Ivo rubbed the blue paint on his sleeve. It had dried too hard to move.
+
+“Someone said a donor might give a hundred tonight.”
+
+“Someone might.”
+
+“You don’t have to sound like that.”
+
+She put the pencil down.
+
+“I want them to give it,” she said. “I want to stop counting. But I can’t put a might in this envelope.”
+
+For a moment neither touched the cards.
+
+Then Ivo took out his phone and called the theater. He explained the programs would be ready, but the banners wouldn’t. He listened longer than he spoke.
+
+When he hung up, he asked, “Where’s the bookmark file?”
+
+Mara pointed to the computer.
+
+They purchased the materials. The printer began its hundred minutes of work, pulling sheets with a steady rubber whisper. Ivo caught the programs as they emerged. Mara trimmed posters. Neither mentioned the sea.
+
+The bookmarks carried a drawing of the neighborhood’s old elm. Ivo noticed that one branch ran beyond the cutting guide.
+
+“That’ll get chopped.”
+
+Mara came to look. Their shoulders touched.
+
+“Move it inward a little,” she said.
+
+He did.
+
+After production ended, they collected $245. Mara set aside $66 to restore the materials float, paid the $35 operating expense, and counted $144 toward the repair.
+
+The gap was $76. Ivo checked his phone. There was no gift, no commitment.
+
+He helped Mara tape that number inside the window. Then he held the door while she turned out the lights.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Subtracting the same fixed $35 preserves the ranking of feasible plans. Checking feasible combinations gives these maximum order surpluses by number of orders:
+
+| Orders completed | Initial: $80, 120 minutes | Revised: $66, 120 minutes |
+|---|---:|---:|
+| 1 | $82 | $82 |
+| 2 | $150 | $150 |
+| 3 | $204 | $176 |
+| 4 | **$214** | **$179** |
+| 5 | $209 | Infeasible |
+
+Six orders exceed either materials budget; the cheapest five cost $80.
+
+Initial contribution: $294 − $80 − $35 = **$179**. Revised contribution: $245 − $66 − $35 = **$144**.
+
+One feasible revised competitor is **B, C, G**: $64 materials, 105 minutes, $240 revenue, $176 order surplus, and **$141 repair contribution**—$3 less than the revised optimum.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s completed orders contributed **$144 toward our $220 repair goal**, after materials and operating expenses. **We still need $76.** The original materials float is excluded from fundraising income. A donor might give $100 tonight, but no gift or commitment has been received. The repair goal remains unmet.

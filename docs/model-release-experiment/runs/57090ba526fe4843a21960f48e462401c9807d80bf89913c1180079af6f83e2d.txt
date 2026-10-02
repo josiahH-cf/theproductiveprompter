@@ -1,0 +1,156 @@
+## 1. THE STORY
+
+### The Last Twenty Minutes
+
+The press made a sound like a spoon rattling inside a cup. Mara had stopped hearing it in August. Now, on the final afternoon before the repair deadline, every rattle seemed to pronounce her name.
+
+Ivo stood beneath the theater’s sample banner, holding its corners apart. Across the cloth, a painted moon rose over cardboard rooftops.
+
+“They’ve sold seats,” he said. “People are coming.”
+
+“People are also eating dinner,” Mara said, tapping the menu order.
+
+He lowered one corner. “You know what I mean.”
+
+She did. The theater had given the shop its first proper job, back when the press arrived on a borrowed trolley. Ivo had played a king that season. Mara remembered him carrying scenery afterward with his paper crown still on.
+
+But the repair required $220 in new money by closing. Affection had no line on the order sheet.
+
+She wrote the materials costs beside the machine minutes. They had $80 for stock and ink, and two hours left on the press. The customers would pay when the afternoon’s production was finished. Nothing earned could be spent twice.
+
+Ivo pulled up a stool.
+
+Mara crossed out combinations, checked them, crossed out others. Eventually she circled four letters: A, C, F, G.
+
+“Posters, tickets, menus, your banners.”
+
+“Our banners.”
+
+“Thirty plus eighteen plus ten plus twenty-two. Eighty dollars. Exactly two hours.”
+
+Ivo grinned.
+
+“Don’t grin yet. Payments total $294. Less eighty for materials gives $214. Then the thirty-five operating expense.”
+
+“One seventy-nine,” he said.
+
+“Forty-one short.”
+
+His grin folded, but he touched the banner’s moon as though it had survived something.
+
+Mara reached beneath the counter for the materials envelope. Before ordering any supplies, she counted it onto the scarred laminate.
+
+Three twenties. A five. A one.
+
+She counted again.
+
+Outside, a bus sighed at the curb. Inside, Ivo’s stool creaked.
+
+“The book says eighty,” he said.
+
+“The book has the fourteen-dollar entry twice.”
+
+She turned the ledger toward him. Two identical figures sat on neighboring lines, each in her handwriting.
+
+For a moment she wanted to leave the ledger open and blame it.
+
+Instead, she drew a line through the duplicate.
+
+“Sixty-six.”
+
+“We could finish the tickets first. Use that payment—”
+
+“Payments come after production ends.”
+
+He looked toward the theater’s moon.
+
+Mara began again. This time her pencil tore the paper where she erased. The banners could fit with programs and tickets: $64 in materials, 105 minutes, $176 before the operating expense. Close. Too close for comfort, far enough to matter.
+
+Then she circled A, B, C, E.
+
+“No banners?” Ivo said.
+
+“Posters, programs, tickets, bookmarks. Sixty-six in materials. A hundred minutes. Payments of $245.”
+
+He did the subtraction aloud, reluctantly.
+
+“One seventy-nine.”
+
+“Before the thirty-five. One forty-four for repairs. Seventy-six short.”
+
+“The other plan only loses three dollars.”
+
+“Yes.”
+
+“They need those banners.”
+
+Mara pressed her palms flat on the counter. It was tacky with old glue.
+
+“And if we miss by seventy-nine instead of seventy-six, which three dollars should I tell the repairer didn’t matter?”
+
+He stared at the ledger. Then he said, “Three dollars won’t save us.”
+
+“No. But I have to choose what we can actually raise.”
+
+From the doorway, Mrs. Vale, waiting to collect the postcards they would now decline, said she knew a donor who might give $100 tonight.
+
+Ivo looked up immediately.
+
+“Might,” Mara said.
+
+Mrs. Vale nodded. “I haven’t reached her.”
+
+The word stayed between them while Mara called the customers.
+
+Ivo made the theater call himself. He stood beside the press, winding its unplugged extension cord around his wrist while he explained. Mara heard him say, “She counted everything,” and was surprised by how much that helped.
+
+They bought exactly $66 of materials. They printed all four accepted orders. Programs emerged warm and smelling of ink; the bookmarks slipped into stacks like narrow doors. When the hundred machine minutes were finished, they collected $245.
+
+Mara restored the $66 float to its envelope and set aside the fixed $35. The repair pile held $144.
+
+For the remaining twenty minutes, the press stood silent.
+
+At closing, no donor had called or committed a gift. Mara wrote **$76 STILL NEEDED** beneath the repair notice.
+
+Ivo straightened the paper crown beside the till. Then he helped her switch off the press.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Checking feasible subsets gives these maximum order surpluses:
+
+| Materials limit | With G | Without G |
+|---|---:|---:|
+| $80 | $214: A, C, F, G | $212: A, B, C, D |
+| $66 | $176: B, C, G | $179: A, B, C, E |
+
+The fixed $35 deduction preserves that ranking. Initially, $294 − $80 − $35 = **$179** toward repairs. Under the revised limit, $245 − $66 − $35 = **$144**.
+
+A feasible revised competing plan is **B, C, G**: materials $64, machine time 105 minutes, revenue $240. Its repair contribution is $240 − $64 − $35 = **$141**, leaving a **$79** gap—$3 worse than the chosen plan.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s completed orders raised **$144 toward the $220 repair requirement**, after materials and the fixed operating expense. **$76 remains needed.** The materials float is excluded from that contribution. Someone suggested a donor might give $100 tonight, but no gift or commitment has been received. The repair requirement remains unmet at closing.

@@ -1,0 +1,93 @@
+## 1. THE STORY
+
+### The Blank on the Envelope
+
+The shop’s last afternoon smelled of hot toner, damp wool, and the cinnamon roll Ivo had set on the radiator. Every few seconds, the cutter gave a dry metallic cough. By closing, Mara had to answer the repair company about the $220 still needed for the press. The workroom windows had turned the color of dishwater. Ivo stood beneath the theater’s folded banner mock-up, holding its corners as if it might blow away indoors.
+
+“Banners first,” he said. “They open Friday. People see those before they see anything else.”
+
+Mara had the order sheet beside a calculator and a paper cup gone soft at the rim. “I’ve got eighty dollars for materials and 120 machine minutes. We can take each job whole or leave it. The banner order uses thirty dollars and fifty minutes.”
+
+“Then give it the fifty minutes.”
+
+“I’m trying to give the shop its next week.”
+
+Ivo had volunteered here since the theater loaned him a stage to direct his first play. The banners weren’t just another line on his sheet. “If we turn them down, they’ll remember.”
+
+Mara tapped the calculator. Her first plan was banners, menus, posters, and tickets. Thirty plus twenty-two plus eighteen plus ten: eighty dollars exactly. Fifty plus thirty plus twenty-five plus fifteen: all 120 minutes. The four customers would pay $294 after production. Subtract the materials and the fixed $35 operating expense, and the repair contribution would be $179. The gap would be $41.
+
+“That’s the best stack I can fit,” she said. “The eighty is a materials float. It doesn’t go in the repair column.”
+
+Ivo watched the number settle on the screen. “So even with the banners, we miss.”
+
+“By forty-one.”
+
+The phone rang before either of them could say more. The treasurer had checked the materials envelope again. The first figure was wrong: only $66 was available. Nothing had been bought, and the press was still idle.
+
+Ivo lowered the mock-up. “Can’t we print the banners first, take their payment, then use that for the rest?”
+
+“No. Payments come after production ends. We can’t spend money we haven’t collected.”
+
+He rubbed a crease in the paper. “They’ll think you chose everybody else over them.”
+
+Mara looked from the banner sketch to the order sheet. “Let me see what fits now.”
+
+She crossed out the first plan and wrote posters, programs, tickets, and bookmarks. The materials came to $66; the machine time came to 100 minutes. The customers would pay $245. After the materials and the same $35 operating expense, $144 would go toward the repair. Seventy-six dollars would still be missing.
+
+Ivo leaned over the figures. “Banners, programs, tickets—that’s thirty and twenty-four and ten. Sixty-four dollars, 105 minutes. We could keep them in.”
+
+“We could,” Mara said. “But that leaves $141 for the repair after the expense. Three dollars less.”
+
+“Three dollars buys nothing.”
+
+“It buys three dollars we don’t have yet.”
+
+For a moment, the only sound was the cutter settling back into silence. Then Ivo took the banner slip from beneath his arm and set it on the desk, carefully, so its curled edge wouldn’t catch.
+
+“I’ll tell them myself,” he said. “Don’t make it sound like they didn’t matter.”
+
+“I won’t.”
+
+They started the four chosen orders. The press warmed the room with a dry, electrical breath. Posters came out first, then programs, then tickets and bookmarks. Ivo stacked each finished bundle square, his thumbs blackened at the creases. When the last run was done, Mara marked the 100 machine minutes against the plan. Customer payments could now be counted; the $35 charge came out afterward.
+
+A supporter’s message appeared on Ivo’s phone: someone might give $100 tonight. He read it twice, then showed Mara.
+
+“Could cover what’s left,” he said.
+
+“Could,” she answered, and left the donation line blank.
+
+At closing, Mara wrote **$144 received toward repair; $76 still needed** on the envelope. Ivo folded the theater’s unprinted mock-up along its old crease and tucked it under his arm. The shop’s press stood ready for repair, but the money for it had not all arrived. On the envelope, beneath the shortfall, the space for a promised gift stayed empty.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+The initial plan uses all $80 of materials and all 120 machine minutes: $294 revenue minus $80 materials gives a $214 order surplus; subtracting the $35 expense leaves $179. The revised plan uses $66 of materials and 100 minutes: $245 revenue minus $66 materials gives $179; after the expense, $144 remains.
+
+One feasible competing revised plan is G+B+C: $64 materials, 105 minutes, $240 revenue, and a $176 order surplus. After the $35 expense, its repair contribution would be $141.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s revised orders contribute **$144** toward the shop’s repair goal, leaving **$76** still needed. A supporter mentioned that someone might give $100 tonight, but no gift or commitment has been received. We have not counted that possible donation toward the goal.
