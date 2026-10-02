@@ -1,0 +1,306 @@
+{
+  "schema_version": 1,
+  "experiment": "model-release-v1",
+  "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+  "models": [
+    {
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "aliases": [
+        "gpt-6-astra"
+      ],
+      "display_name": "GPT-6-Astra",
+      "source": "codex debug models (remote refresh)",
+      "release_date": "2026-09-03",
+      "release_date_source": "https://openai.com/index/safety-overview-gpt-6-astra/",
+      "revision_status": "revision not exposed",
+      "effort_levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+        "ultra"
+      ],
+      "first_seen": "2026-10-02T12:25:02+00:00",
+      "release_date_precision": "day"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-5.6-sol",
+      "aliases": [
+        "gpt-5.6-sol"
+      ],
+      "display_name": "GPT-5.6-Sol",
+      "source": "codex debug models (remote refresh)",
+      "release_date": "2026-07-09",
+      "release_date_source": "https://openai.com/index/gpt-5-6/",
+      "revision_status": "revision not exposed",
+      "effort_levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+        "ultra"
+      ],
+      "first_seen": "2026-10-02T12:25:02+00:00",
+      "release_date_precision": "day",
+      "release_date_note": "General availability; limited preview began June 26, 2026."
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-5.6-terra",
+      "aliases": [
+        "gpt-5.6-terra"
+      ],
+      "display_name": "GPT-5.6-Terra",
+      "source": "codex debug models (remote refresh)",
+      "release_date": "2026-07-09",
+      "release_date_source": "https://openai.com/index/gpt-5-6/",
+      "revision_status": "revision not exposed",
+      "effort_levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+        "ultra"
+      ],
+      "first_seen": "2026-10-02T12:25:02+00:00",
+      "release_date_precision": "day",
+      "release_date_note": "General availability; limited preview began June 26, 2026."
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-5.6-luna",
+      "aliases": [
+        "gpt-5.6-luna"
+      ],
+      "display_name": "GPT-5.6-Luna",
+      "source": "codex debug models (remote refresh)",
+      "release_date": "2026-07-09",
+      "release_date_source": "https://openai.com/index/gpt-5-6/",
+      "revision_status": "revision not exposed",
+      "effort_levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "first_seen": "2026-10-02T12:25:02+00:00",
+      "release_date_precision": "day",
+      "release_date_note": "General availability; limited preview began June 26, 2026."
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-5.5",
+      "aliases": [
+        "gpt-5.5"
+      ],
+      "display_name": "GPT-5.5",
+      "source": "codex debug models (remote refresh)",
+      "release_date": "2026-04-23",
+      "release_date_source": "https://openai.com/index/introducing-gpt-5-5/",
+      "revision_status": "revision not exposed",
+      "effort_levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh"
+      ],
+      "first_seen": "2026-10-02T12:25:02+00:00",
+      "release_date_precision": "day"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5",
+      "display_name": "claude-opus-5",
+      "aliases": [
+        "default",
+        "opus[1m]"
+      ],
+      "source": "Claude CLI initialization model catalog",
+      "release_date": "2026-07-24",
+      "release_date_source": "https://www.anthropic.com/news/claude-opus-5",
+      "effort_levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "revision_status": "revision not exposed",
+      "first_seen": "2026-10-02T12:25:02+00:00",
+      "release_date_precision": "day"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-fable-5-1",
+      "display_name": "claude-fable-5-1",
+      "aliases": [
+        "claude-fable-5-1[1m]"
+      ],
+      "source": "Claude CLI initialization model catalog",
+      "release_date": "2026-09",
+      "release_date_source": "https://www.anthropic.com/claude-fable-and-mythos-5-1",
+      "effort_levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "revision_status": "revision not exposed",
+      "first_seen": "2026-10-02T12:25:02+00:00",
+      "release_date_precision": "month"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-sonnet-5",
+      "display_name": "claude-sonnet-5",
+      "aliases": [
+        "sonnet"
+      ],
+      "source": "Claude CLI initialization model catalog",
+      "release_date": "2026-06-30",
+      "release_date_source": "https://www.anthropic.com/research/claude-sonnet-5",
+      "effort_levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "revision_status": "revision not exposed",
+      "first_seen": "2026-10-02T12:25:02+00:00",
+      "release_date_precision": "day"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-haiku-4-5-20251001",
+      "display_name": "claude-haiku-4-5-20251001",
+      "aliases": [
+        "haiku"
+      ],
+      "source": "Claude CLI initialization model catalog",
+      "release_date": "2025-10-15",
+      "release_date_source": "https://www.anthropic.com/news/claude-haiku-4-5",
+      "effort_levels": [],
+      "revision_status": "snapshot ID",
+      "first_seen": "2026-10-02T12:25:02+00:00",
+      "release_date_precision": "day"
+    }
+  ],
+  "records": [
+    {
+      "key": "6ed2466972d11f8d26dcdb06886549c8c5a65d5e1eee06dc43f2c4f98ff7b9fa",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T12:25:02+00:00",
+      "artifacts": {
+        "records/6ed2466972d11f8d26dcdb06886549c8c5a65d5e1eee06dc43f2c4f98ff7b9fa/response.txt": "4ac70bf2c31006671fa86947185a99e746ffc44e4ba046a0e6694c0ad3ea1b29",
+        "records/6ed2466972d11f8d26dcdb06886549c8c5a65d5e1eee06dc43f2c4f98ff7b9fa/evidence.json": "8f746239e55b732459c639c3538b0af6e9c9873ef3c0aa7e58bb4f3100527228"
+      }
+    },
+    {
+      "key": "4fb23020441c3a1b0a10d2a3d33702dec6b24d787bad5173e7a5754f64a6b4ad",
+      "provider": "codex",
+      "model": "gpt-5.6-sol",
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T12:26:48+00:00",
+      "artifacts": {
+        "records/4fb23020441c3a1b0a10d2a3d33702dec6b24d787bad5173e7a5754f64a6b4ad/response.txt": "766dcd2bd967442db22254ac42a95a69342cb7d4bcf4629d42fdde4d22330bba",
+        "records/4fb23020441c3a1b0a10d2a3d33702dec6b24d787bad5173e7a5754f64a6b4ad/evidence.json": "92ee17de7701eb4d7c6140f13c450d0bcd11f224898f9037a88cf088b75c9efb"
+      }
+    },
+    {
+      "key": "26663899f5a65834f4b4e8c78e22f9b29f7cd8440b2d69a7ec3bcd1d24c24bf2",
+      "provider": "codex",
+      "model": "gpt-5.6-terra",
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T12:28:07+00:00",
+      "artifacts": {
+        "records/26663899f5a65834f4b4e8c78e22f9b29f7cd8440b2d69a7ec3bcd1d24c24bf2/response.txt": "d8a9cb8b71d746f4157bd0f4312eee8293e65300bca07ca764781dfedf723057",
+        "records/26663899f5a65834f4b4e8c78e22f9b29f7cd8440b2d69a7ec3bcd1d24c24bf2/evidence.json": "f2028aaa882d28d1dea33075d68172d2ddab53566b2486f4c78c773bfcc5326f"
+      }
+    },
+    {
+      "key": "d9932656f91f65b1526e0c11f8949e7dcf620cc684c14dc0f37bf540e1cfeff2",
+      "provider": "codex",
+      "model": "gpt-5.6-luna",
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T12:29:00+00:00",
+      "artifacts": {
+        "records/d9932656f91f65b1526e0c11f8949e7dcf620cc684c14dc0f37bf540e1cfeff2/response.txt": "c0594ed37c9daf855b5ddfd8f86b9414ba90804d382161678e78ac0c80264ffc",
+        "records/d9932656f91f65b1526e0c11f8949e7dcf620cc684c14dc0f37bf540e1cfeff2/evidence.json": "9d3f6cb71dce7c7389f21bd27da74acaddfae063605ef09a9fd193df72959479"
+      }
+    },
+    {
+      "key": "dde1fdf6a378e52492d8930fa87160ea2d28fc3a5b6f4f7dbb49d6b20a0d72f6",
+      "provider": "codex",
+      "model": "gpt-5.5",
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T12:29:55+00:00",
+      "artifacts": {
+        "records/dde1fdf6a378e52492d8930fa87160ea2d28fc3a5b6f4f7dbb49d6b20a0d72f6/response.txt": "4e412700b688312c49f18e15e359213bfb78714a1e9386b35886f918226891df",
+        "records/dde1fdf6a378e52492d8930fa87160ea2d28fc3a5b6f4f7dbb49d6b20a0d72f6/evidence.json": "d0f87ebbc95253067cdd20a19b5d91fae997ccc3ac64f33c9575b166c07dbc2d"
+      }
+    },
+    {
+      "key": "2bf1a5e4bacc116fec75e01eb80d1f38c774e16a671ec9e1ef4a23ba81f3b09a",
+      "provider": "claude",
+      "model": "claude-opus-5",
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "generation failed",
+      "tested_at": "2026-10-02T12:31:48+00:00",
+      "artifacts": {
+        "records/2bf1a5e4bacc116fec75e01eb80d1f38c774e16a671ec9e1ef4a23ba81f3b09a/response.txt": "2d2ff3671030ded95b7109c06ca665afd08226952594b17d4d5216b089586a67",
+        "records/2bf1a5e4bacc116fec75e01eb80d1f38c774e16a671ec9e1ef4a23ba81f3b09a/evidence.json": "4f8f50e55404e188d93e08bec3217e4bc4a70b4035f237d4f4fbcaa642124151"
+      }
+    },
+    {
+      "key": "97840a47fe6f826d9dcc67363933897844baa2986ac23674e60714c3130a2231",
+      "provider": "claude",
+      "model": "claude-fable-5-1",
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "generation failed",
+      "tested_at": "2026-10-02T12:31:49+00:00",
+      "artifacts": {
+        "records/97840a47fe6f826d9dcc67363933897844baa2986ac23674e60714c3130a2231/response.txt": "2d2ff3671030ded95b7109c06ca665afd08226952594b17d4d5216b089586a67",
+        "records/97840a47fe6f826d9dcc67363933897844baa2986ac23674e60714c3130a2231/evidence.json": "c5d213e03ebc3b5710b94c48706050fe34c85d1c0cf562d5c16c06e864271bf9"
+      }
+    },
+    {
+      "key": "4e574925c139c955f247cf1e06acd62a737d6e4a0abed46ae1420e628c5cd9df",
+      "provider": "claude",
+      "model": "claude-sonnet-5",
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "generation failed",
+      "tested_at": "2026-10-02T12:31:51+00:00",
+      "artifacts": {
+        "records/4e574925c139c955f247cf1e06acd62a737d6e4a0abed46ae1420e628c5cd9df/response.txt": "2d2ff3671030ded95b7109c06ca665afd08226952594b17d4d5216b089586a67",
+        "records/4e574925c139c955f247cf1e06acd62a737d6e4a0abed46ae1420e628c5cd9df/evidence.json": "022ba4e9f196773df1c502f0a51350288b0f994fc4446bff06395c28bcce9cbe"
+      }
+    },
+    {
+      "key": "62d95531b86e7295f64558c6b6f4c982bebe85f3dde198cae79045d7b8bbd1e2",
+      "provider": "claude",
+      "model": "claude-haiku-4-5-20251001",
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "generation failed",
+      "tested_at": "2026-10-02T12:31:52+00:00",
+      "artifacts": {
+        "records/62d95531b86e7295f64558c6b6f4c982bebe85f3dde198cae79045d7b8bbd1e2/response.txt": "2d2ff3671030ded95b7109c06ca665afd08226952594b17d4d5216b089586a67",
+        "records/62d95531b86e7295f64558c6b6f4c982bebe85f3dde198cae79045d7b8bbd1e2/evidence.json": "f7208903e2635e272346fbe5de1af3dbd8e83f35959681d7e6db4c78018a05b6"
+      }
+    }
+  ]
+}

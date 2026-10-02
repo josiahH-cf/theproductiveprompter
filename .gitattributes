@@ -1,3 +1,7 @@
 .gitattributes -text
 .github/copilot-instructions.md -text
 Article-Spec-Pack-v1/** -text
+
+# Keep the frozen challenge and captured evidence byte-for-byte on every platform.
+experiments/model-release/prompt.txt -text
+experiments/model-release/records/** -text

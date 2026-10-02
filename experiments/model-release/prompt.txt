@@ -1,0 +1,36 @@
+PRINT-SHOP CHALLENGE v1.0
+
+Write an original short story in which a practical calculation changes a human decision. Choose your own voice, point of view, and tone.
+
+The setting is a community print shop on its final afternoon before a repair deadline. Mara runs the shop. Ivo, a volunteer, wants her to prioritize the theater's banners. They need $220 in new money toward a repair bill.
+
+Mara initially has $80 available for materials and 120 minutes of machine time. Customer payments arrive only after production ends, so they cannot finance materials for another order that afternoon. Each order below can be completed once, in full, or declined. Materials and machine minutes add across orders. There are no shared setup savings, overlapping machine runs, extra orders, borrowing, or other confirmed income.
+
+Order | Item | Materials ($) | Machine minutes | Customer payment ($)
+A | Posters | 18 | 25 | 68
+B | Programs | 24 | 40 | 90
+C | Tickets | 10 | 15 | 38
+D | Postcards | 28 | 35 | 96
+E | Bookmarks | 14 | 20 | 49
+F | Menus | 22 | 30 | 76
+G | Theater banners | 30 | 50 | 112
+H | Maps | 16 | 25 | 58
+
+Her initial plan must maximize customer payments minus materials while respecting both limits. An additional fixed $35 operating expense is deducted from that surplus after production; it does not reduce the materials budget or machine time. Only the remaining contribution counts toward the $220 repair goal. The original materials float is not new fundraising income.
+
+Before any materials are purchased or work begins, Mara learns that only $66 is available for materials. Machine time remains 120 minutes, and everything else stays unchanged. She must replace her initial plan with the plan that maximizes the contribution under the revised limits.
+
+Someone says a donor might give $100 tonight. No gift or commitment has been received by the end of the story.
+
+Return these three parts:
+
+1. THE STORY
+Give it a title and write 600–800 words, excluding the title. Let the numerical decision affect what the characters actually do and how they relate to each other. Include disagreement, concrete sensory detail, and an ending that follows from the confirmed circumstances. Invent background and dialogue freely; preserve the numerical facts and constraints. Avoid turning the story into an instructional essay.
+
+2. THE RECEIPT
+Return one JSON object with "initial" and "revised" objects. Each must contain "orders" (an array of order IDs), "materials", "minutes", "revenue", "order_surplus", "repair_contribution", and "shortfall". Define shortfall as max(0, 220 minus repair_contribution). Add "donation_confirmed" as a boolean at the top level. Follow the JSON with a brief, checkable explanation of the choice and one feasible competing plan. Give useful calculations, without an internal reasoning transcript.
+
+3. THE PUBLIC UPDATE
+Write a notice of at most 80 words for the shop's supporters. State the confirmed repair contribution, the remaining gap, and the donor's actual status. Make it understandable without reading the story.
+
+Use only this supplied scenario. Do not browse, call tools, or ask follow-up questions. Return the requested work directly.

@@ -1,0 +1,42 @@
+{
+  "gpt-5.5": {
+    "date": "2026-04-23",
+    "source": "https://openai.com/index/introducing-gpt-5-5/"
+  },
+  "gpt-5.6-sol": {
+    "date": "2026-07-09",
+    "source": "https://openai.com/index/gpt-5-6/",
+    "note": "General availability; limited preview began June 26, 2026."
+  },
+  "gpt-5.6-terra": {
+    "date": "2026-07-09",
+    "source": "https://openai.com/index/gpt-5-6/",
+    "note": "General availability; limited preview began June 26, 2026."
+  },
+  "gpt-5.6-luna": {
+    "date": "2026-07-09",
+    "source": "https://openai.com/index/gpt-5-6/",
+    "note": "General availability; limited preview began June 26, 2026."
+  },
+  "gpt-6-astra": {
+    "date": "2026-09-03",
+    "source": "https://openai.com/index/safety-overview-gpt-6-astra/"
+  },
+  "claude-haiku-4-5-20251001": {
+    "date": "2025-10-15",
+    "source": "https://www.anthropic.com/news/claude-haiku-4-5"
+  },
+  "claude-sonnet-5": {
+    "date": "2026-06-30",
+    "source": "https://www.anthropic.com/research/claude-sonnet-5"
+  },
+  "claude-opus-5": {
+    "date": "2026-07-24",
+    "source": "https://www.anthropic.com/news/claude-opus-5"
+  },
+  "claude-fable-5-1": {
+    "date": "2026-09",
+    "precision": "month",
+    "source": "https://www.anthropic.com/claude-fable-and-mythos-5-1"
+  }
+}

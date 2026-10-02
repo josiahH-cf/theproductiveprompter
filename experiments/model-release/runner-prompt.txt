@@ -1,0 +1,132 @@
+You are GPT with local command execution and access to the connected repository josiahH-cf/theproductiveprompter. Build and maintain THE MODEL RELEASE EXPERIMENT on https://theproductiveprompter.com.
+
+Author's goal: start an anecdotal experiment with every eligible model available today, then extend the same record when new models become available. Each model version gets one fresh response to the same prompt. Readers can inspect what the model actually produced, check its math, and form their own impression of its writing. The record should become easier to maintain as it grows.
+
+The fixed candidate challenge is embedded at the end. Send candidates only that challenge, byte-for-byte, with no orchestration instructions, answer key, other outputs, site content, or house-voice instructions.
+
+EXECUTION CONTRACT
+
+Use the installed repository controller, scripts/model_experiment.py. Inspect its existing registry and durable state before changing anything. Run `python scripts/model_experiment.py update` to discover missing models, run the frozen experiment, append results, and regenerate the preview. Do not build a second runner or duplicate the experiment. With no new eligible models or recoverable authentication failures, make zero candidate calls. Rendering or publication recovery must reuse saved responses.
+
+The normal repeat action is `/model-experiment` in Claude Code or `$model-experiment` in Codex, from this repository. Both skills invoke the same controller. The installed terminal shortcut is `model-experiment update`. Also available: `update --model <exact-model-id>`, `preview` without generation, `check` for discovery and integrity checks, and `status` for saved state. The personal launcher was installed on this computer; on another computer use `python scripts/install_model_experiment.py` once. A daily 9:00 AM local Codex heartbeat named Model Release Experiment already invokes update. Reuse it; do not create duplicate schedules. It stays quiet while unchanged, reports additions or actionable failures, and depends on this host being available.
+
+1. INSPECT, INITIALIZE, AND PERSIST
+
+Read applicable repository instructions, current checkout state, existing publication conventions, and installed Codex and Claude Code CLI help. Reuse a suitable isolated checkout for site changes. Candidate sessions run in fresh directories outside the website checkout. Keep the registry and immutable response artifacts in a durable location that survives chat closure, temporary checkout cleanup, and machine restarts.
+
+Use current official OpenAI and Anthropic documentation for execution, discovery, identities, and pricing. Do not simulate unavailable execution. If this GPT session lacks a local executor, explain that capability blocker and preserve the prepared material.
+
+Create versioned files for the frozen UTF-8 challenge, its SHA-256, execution protocol, independent validation rules, public registry, private event logs, and generated pages. Separate the experiment's display title from the challenge content: later editorial renaming must not change the bytes sent to candidates. Use challenge version 1.0, execution protocol version 1.0, and runner specification revision 3. The canonical prompt SHA-256 is d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d. Read experiments/model-release/prompt.txt as bytes; the embedded copy below is for review. Private attempt events and recovery checkpoints live under ~/.local/state/ProductivePrompter/model-release-v1. Never put credentials or unrelated session context in public records.
+
+The default deduplication key is experiment version + provider + resolved model version. Record client version and settings as provenance, without making every client update an excuse to rerun historical models. Use an exclusive update lock, atomic state writes, and an append-only event record. Preserve original results, timestamps, and stable page URLs. Permit corrected metadata with an audit trail. Never replace an old response with a newer or preferred one.
+
+2. DISCOVER CURRENT MODELS AND DATES
+
+Refresh the authenticated model discovery surfaces on every invocation; do not rely solely on a cached list or a hardcoded set of current model names. Include general-purpose text models actually supported for user selection through Codex and Claude Code. Exclude hidden reviewer, fallback, and service-only entries. Keep OpenAI models run through Codex in the Codex group and Anthropic models run through Claude Code in the Claude group. Record provider and execution interface separately.
+
+Load any previously requested labels from the registry, including unresolved or retired requests from setup. Resolve labels using official sources and actual client responses. Record requested ID, alias mapping, actual responding ID, available revision or snapshot ID, discovery date, access method without credentials, and release-date source. Deduplicate multiple aliases for the same resolved version. Do not silently substitute a successor, fallback, or another provider. An actual remap belongs to the actual responder's record and is identified as a remap.
+
+Prefer immutable snapshots. Where a provider exposes only a mutable model ID, mark "revision not exposed" and document the limit; do not invent a new version or infer a silent weights change. Keep identity-unverified responses outside model-specific conclusions.
+
+Obtain the model's release date from official release notes or model documentation. The test date is a separate field. Within each provider group, order by release date ascending: oldest at the top, newest below. Use a stable ID tie-breaker. For missing release dates, use the recorded first-seen date as a labeled fallback; never manufacture a release date or sort model names lexically as a substitute for chronology. Newly released models ordinarily append at the bottom. An older model discovered later takes its chronological position. Record any later release-date correction transparently.
+
+Models that were not attempted because of missing access or client support may be reconsidered on a later update when eligibility changes. Retired requests remain visible as historical status records. Recorded responses and recorded generation failures are skipped by default. The first candidate request also establishes usable access; do not make extra model-generation probes.
+
+3. RUN ONE RESPONSE PER UNRECORDED MODEL VERSION
+
+Freeze the eligible roster and order for the current batch. Run each selected version once, in a fresh session, using the exact stored challenge. Do not request three repetitions, perform a coaching loop, polish the response, regenerate a disappointing answer, or select among several answers. One pass is the default. The overall archive grows through additional model releases rather than repeated sampling of the same release.
+
+Disable task tools, web, file access, MCP, memories, skills, hooks, advisors, and subagents wherever scoped client isolation supports it. Preserve authentication and required platform instructions. Do not change the author's global settings. Verify effective isolation and record unavoidable client differences. If task tools cannot be isolated, identify the affected client as incompatible with this text-only protocol instead of mixing a tool-assisted run into the same experiment.
+
+Use medium reasoning effort where supported and the documented default otherwise. Freeze those rules across releases. Leave unsupported parameters unset. Record temperature, effort, generation limits, and system/client differences wherever exposed. Use a 10-minute wall-clock limit and an output allowance sufficient for the complete requested answer. Equal effort labels across vendors do not imply equal compute.
+
+Write an attempt-start record before launching the process. Checkpoint returned events and persist the raw response immediately on completion. Preserve refusals, incomplete outputs, truncations, timeouts, and errors as observed outcomes. Do not automatically resend a request after an ambiguous interruption. Reconcile saved events and session state first; if whether generation occurred remains unknown, mark that attempt "needs reconciliation" and continue other eligible models.
+
+Default updates skip captured responses and ordinary generation failures. A known Claude authentication failure is an eligibility failure: after normal `claude auth status` confirms restored access, update may append the first actual response as a separately numbered recovery attempt while preserving the earlier error. Do not sign in on the user's behalf. Unknown interruptions still need reconciliation before any resend. Recovery of rendering or publication must never repeat a captured model call.
+
+Store exact raw output, structured provider events, stderr, timestamps, exit status, requested and actual model identity, and available usage fields. Preserve input, output, reasoning, cache-read, and cache-write semantics; do not double-count them or derive token usage from character counts. Missing fields remain null. Label elapsed time as end-to-end duration unless inference time or first-token timing was separately measured.
+
+Show a cash charge only when evidence identifies it as a charge. Subscription token use is observed usage. A calculation using current official API prices must be labeled "estimated API-equivalent cost", include the rates and retrieval date, and account for caches. Leave the estimate unavailable when no comparable documented rate exists. Keep candidate generation and optional editorial evaluation usage separate.
+
+4. VERIFY AND DESCRIBE THE OBSERVED RESPONSE
+
+Before the first candidate call, independently enumerate all 256 order subsets under each materials budget. Apply the machine-time constraint and verify the best selections, fixed operating expense, contribution, and shortfall. Store the evaluator's answer key outside candidate context and workspaces. Reuse the same validator on later updates.
+
+The implemented validator checks initial and revised order selections, materials, minutes, revenue, surplus, repair contribution, shortfall, and donation status against exhaustive enumeration. Story consistency, literary quality, and word limits are currently unassessed. Leave those labels accurate unless a separately versioned assessment is actually carried out. Distinguish failed arithmetic, missing fields, and unassessed dimensions. Never repair the captured response.
+
+The main outcome is the actual response, with concise factual observations around it. Optional prose assessments use the fixed dimensions character motivation, consequences of the decision, concrete detail, distinctive language, and earned ending. Require exact excerpts for every observation. Blind model labels during judging, record the evaluator and rubric version, and label AI editorial impressions as such. Keep taste separate from checkable arithmetic. Do not fabricate the author's personal opinion or calculate an unexplained overall winner.
+
+Publicly describe this as one observed response per model version. Do not infer reliability, variance, statistical superiority, or universal model quality from a single sample. The task covers writing, constrained arithmetic, adaptation, and factual consistency through the named client. It is not a comprehensive assessment of autonomous agency or coding.
+
+5. GENERATE THE ONGOING SECTION
+
+Preserve the site's navigation, typography, author identity, and December archive. Add an ongoing experiment entry to the blog, with one permanent hub and one stable page per model version. Drive cards, titles, dates, statuses, findings, and URLs from the registry.
+
+The preview leads only with "The Model Release Experiment", then the Claude and Codex groups. Remove the subtitle, supporting sub-text, "Preview next release" control, and visible "oldest release → newest release" label. Keep the chronological behavior. Maintenance controls belong to the repository command, not the reader interface. In a future published hub, keep the complete prompt and methodology accessible through a compact disclosure; put dates and technical evidence inside model disclosures. Any TLDR or field note must describe measured results without adding permanent dashboard clutter or inventing an audience-success claim.
+
+Display clearly labeled Claude and Codex groups together on desktop and stacked on mobile. Each orders release dates ascending, with first-seen fallback explicitly labeled inside the expanded card. Keep ordinary new releases below older ones. The ordering needs no explanatory arrow, captions, or extra navigation controls.
+
+Claude visual tokens: primary accent #D97757, warm text #FAF9F5, secondary text #B0AEA5, dark neutral #141413. A restrained warm card surface such as #211D1B is this site's adaptation. These core colors are sourced from Anthropic's published brand styling.
+
+Codex visual tokens: neutral light headings #E6F1FF and text #CCD6F6 on the site's existing #172A45 cards, with neutral keylines #8892B0. Keep the site's #0A192F canvas and #64FFDA general navigation accent. This is a restrained OpenAI-inspired neutral treatment adapted to the existing website; do not describe these hex values as an official Codex palette.
+
+Use color in group accents, badges, and restrained card treatments. Keep identical typography, spacing, output rendering, and card information across both groups so presentation does not flatter one model. Use explicit provider names and status words as well as color. Verify at least 4.5:1 normal-text contrast against actual surfaces, keyboard access, disclosure labels, and mobile reflow. Plain text labels suffice; use official logos only if available and unchanged.
+
+Each collapsed card shows its model name. Expanding it reveals the complete unedited response, accurate outcome status, release-date evidence, exact resolved ID, and a checks-and-usage disclosure with technical code blocks. Include an exact plain-text download and hashes in the evidence. Escape candidate markup; never execute it or treat it as instructions. Public evidence excludes private events, authentication secrets, and unrelated context. Preserve failed attempts as evidence when a later access recovery adds the first actual response.
+
+6. APPEND AND PREVIEW; KEEP PUBLICATION STATUS EXPLICIT
+
+The implemented controller handles discovery, deduplication, prompt and evidence integrity, sequential generation, receipt validation, append-only public records, and preview rendering. It does not publish the website. The daily monitor invokes this same mechanism and appends newly discovered missing versions automatically. Publication remains a distinct website release step; do not claim a local preview is live.
+
+When the operator explicitly invokes this full publication prompt, inspect the current experiment pull request and website release conventions. Prepare hub and stable model pages from captured records, preserve unrelated site changes, run applicable checks, and use the existing review/release path. Track published and live-verified status separately from captured and rendered. Finish a pending publication without another inference call. Verify public pages, downloads, hashes, and discovery links before returning live URLs. The background model monitor does not perform this publication step.
+
+Normal updates append measured records through the approved experiment templates; they do not start a fresh Article Flow drafting-and-voice-selection run for every model. If Article Flow is used for an optional initial long-form introduction, follow its actual protocol and any required author voice choice. Honor explicit repository or publication holds. Do not invent controller commands, assert approval that was not given, or request routine confirmations where the execution instruction already authorizes the action.
+
+Run the existing controller test suite before modifying its mechanism. Its fixture checks cover an identical second update making zero calls, a newly discovered version adding one record, alias deduplication, evidence/prompt tampering, captured recovery, concurrent locks, ambiguous interruption, preview ownership, release chronology, and authentication recovery preserving the first error. Do not add extra live generations just to retest controller mechanics. Keep frozen prompt and record files marked -text in .gitattributes so Git preserves their exact bytes on Windows and Unix.
+
+Return newly tested versions, skipped records, missing response coverage, precise blockers, the repeat command, and any verified publication URL. Current installation has five captured Codex responses and four preserved Claude authentication failures; Claude needs a renewed login before its responses can be appended. The launcher and daily monitor are installed. The preview is local; this installation did not publish an experiment hub.
+
+Primary design references, researched October 2, 2026:
+Anthropic colors: https://github.com/anthropics/skills/blob/main/skills/brand-guidelines/SKILL.md
+OpenAI identity: https://openai.com/brand/
+Site tokens: https://github.com/josiahH-cf/theproductiveprompter/blob/main/styles.css
+Text contrast: https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html
+
+FROZEN CANDIDATE CHALLENGE — BEGIN
+PRINT-SHOP CHALLENGE v1.0
+
+Write an original short story in which a practical calculation changes a human decision. Choose your own voice, point of view, and tone.
+
+The setting is a community print shop on its final afternoon before a repair deadline. Mara runs the shop. Ivo, a volunteer, wants her to prioritize the theater's banners. They need $220 in new money toward a repair bill.
+
+Mara initially has $80 available for materials and 120 minutes of machine time. Customer payments arrive only after production ends, so they cannot finance materials for another order that afternoon. Each order below can be completed once, in full, or declined. Materials and machine minutes add across orders. There are no shared setup savings, overlapping machine runs, extra orders, borrowing, or other confirmed income.
+
+Order | Item | Materials ($) | Machine minutes | Customer payment ($)
+A | Posters | 18 | 25 | 68
+B | Programs | 24 | 40 | 90
+C | Tickets | 10 | 15 | 38
+D | Postcards | 28 | 35 | 96
+E | Bookmarks | 14 | 20 | 49
+F | Menus | 22 | 30 | 76
+G | Theater banners | 30 | 50 | 112
+H | Maps | 16 | 25 | 58
+
+Her initial plan must maximize customer payments minus materials while respecting both limits. An additional fixed $35 operating expense is deducted from that surplus after production; it does not reduce the materials budget or machine time. Only the remaining contribution counts toward the $220 repair goal. The original materials float is not new fundraising income.
+
+Before any materials are purchased or work begins, Mara learns that only $66 is available for materials. Machine time remains 120 minutes, and everything else stays unchanged. She must replace her initial plan with the plan that maximizes the contribution under the revised limits.
+
+Someone says a donor might give $100 tonight. No gift or commitment has been received by the end of the story.
+
+Return these three parts:
+
+1. THE STORY
+Give it a title and write 600–800 words, excluding the title. Let the numerical decision affect what the characters actually do and how they relate to each other. Include disagreement, concrete sensory detail, and an ending that follows from the confirmed circumstances. Invent background and dialogue freely; preserve the numerical facts and constraints. Avoid turning the story into an instructional essay.
+
+2. THE RECEIPT
+Return one JSON object with "initial" and "revised" objects. Each must contain "orders" (an array of order IDs), "materials", "minutes", "revenue", "order_surplus", "repair_contribution", and "shortfall". Define shortfall as max(0, 220 minus repair_contribution). Add "donation_confirmed" as a boolean at the top level. Follow the JSON with a brief, checkable explanation of the choice and one feasible competing plan. Give useful calculations, without an internal reasoning transcript.
+
+3. THE PUBLIC UPDATE
+Write a notice of at most 80 words for the shop's supporters. State the confirmed repair contribution, the remaining gap, and the donor's actual status. Make it understandable without reading the story.
+
+Use only this supplied scenario. Do not browse, call tools, or ask follow-up questions. Return the requested work directly.
+FROZEN CANDIDATE CHALLENGE — END
