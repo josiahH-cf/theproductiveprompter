@@ -1,0 +1,118 @@
+## 1. THE STORY
+
+### Three Dollars
+
+By noon the bucket under the skylight had found its rhythm, a flat tock every few seconds that Ivo no longer heard. Mara laid an index card on the counter.
+
+"Posters, tickets, menus, banners. Eighty dollars of stock, a hundred twenty minutes on the press. Not a penny or a minute left over."
+
+Ivo, who had asked about nothing else since Monday, read the card twice to make sure the last word was real. Banners: red vinyl that would say THE LANTERN IS OPEN across a theater that had been dark two years.
+
+"They're in because they pencil out," Mara said, "not because you asked. Two-fourteen over materials. Less the thirty-five for overhead, one seventy-nine toward the roof. Forty-one short of the two-twenty Delgado needs by nine tomorrow."
+
+"Renata says Halloran might give us a hundred tonight, at the preview."
+
+"Might," Mara said, and went for the float envelope. The supply house on Dorr Street closed at two, and not a sheet had been bought yet.
+
+Mara came back slower and shook the envelope out on the counter: three twenties, a five, a one, and a postage receipt folded small. *IOU $14, newsletter stamps. —Dell*
+
+"Sixty-six," Ivo said.
+
+"Sixty-six."
+
+Mara didn't swear, just carried a fresh card to the stool by the guillotine. Ivo watched the pencil do what it always did: move steadily and decline to explain itself. Once Mara laughed, not happily.
+
+The new card said: posters, programs, tickets, bookmarks.
+
+"Sixty-six of stock, a hundred minutes. One seventy-nine over materials, one forty-four after overhead." Mara slid it across. "Seventy-six short."
+
+"Where are the banners?"
+
+"If the banners stay, the best I can do is programs, tickets, banners. Sixty-four of stock, a hundred five minutes. One forty-one."
+
+Ivo did the subtraction aloud, hoping it would come out wrong. "Three dollars."
+
+"Three dollars."
+
+"Mara. If Halloran comes through, we clear the roof either way. If not, we're short either way. Those three dollars don't change anything except whether the Lantern has a face tomorrow."
+
+"They change what I still have to find." Mara's voice stayed level, as it always did, which was worse. "I'm not turning seventy-six into seventy-nine because somebody might feel generous at a party."
+
+"The Lantern was our first customer."
+
+"The choir was our second." Mara took a raincoat off the hook. "I told Renata yes this morning. I'll make the no call myself."
+
+Ivo heard half of it through the glass and watched the rest: Mara under the awning, hunched, one palm flat against the brick as if holding the building up. Back inside, the report was two words: "Renata understands." Which meant Renata didn't.
+
+Mara handed over the sixty-six for Dorr Street, and Ivo walked it there because walking was better than talking.
+
+Then there was the work, which did not care. The press warmed and gave off its smell of hot toner and dust. Posters for the library's jazz night came down the tray in blacks that looked wet; the pantry's raffle tickets crackled when fanned. Ivo fed bookmarks to the guillotine in stacks of fifty, the blade landing with a cough of air, and said nothing. Mara called the bakery about the menus and was gentler with Samir than with Ivo. Ivo noticed, and knew it was earned.
+
+When the last program dropped, the press still had twenty minutes in it and no paper to spend them on. It hummed. Ivo looked at it a long time.
+
+The customers came at five: the librarian with a canvas tote, two altos under one umbrella, the pantry treasurer paying in ones. Mara counted two hundred forty-five on the counter and dealt it like cards: sixty-six back into the float, around Dell's IOU; thirty-five into the overhead tin; the rest into a manila envelope labeled ROOF, and under that, $144.
+
+Mara held out the pencil. "You want to write the other number?"
+
+Under $144, Ivo wrote *short $76*, pressing hard enough to dent the paper.
+
+"I'm going to the preview. I'm going to find Halloran."
+
+"For the banners?"
+
+"For the roof." Ivo pulled on a cap. "If Halloran says yes, I'll call. If it's maybe, I'll call and say maybe."
+
+"Not probably," Mara said.
+
+"Not probably."
+
+Ivo went out into the rain and, at the corner, looked back. Through the glass, Mara was sliding the bucket six inches left, to where the drip had wandered, then setting the phone face-up beside the envelope. There was nothing to tell yet. Ivo walked faster.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Order surplus (payment − materials): A 50, B 66, C 28, D 68, E 35, F 54, G 82, H 42. Contribution = surplus − 35. Shortfall = max(0, 220 − contribution).
+
+The table gives the best surplus in each case, split on the two costliest orders by materials (D $28, G $30):
+
+| Case | Initial ($80 / 120 min) | Revised ($66 / 120 min) |
+|---|---|---|
+| D and G | D+F+G: 204 | D+G: 150 |
+| G, not D | **A+C+F+G: 214** | B+C+G: 176 |
+| D, not G | A+B+C+D: 212 | B+D+E: 169 |
+| Neither | A+B+F+H: 212 | **A+B+C+E: 179** |
+
+- **Initial winner:** materials are $18+10+22+30 = $80. Machine time is 25+15+30+50 = 120 min.
+- **Revised winner:** materials are $18+24+10+14 = $66. Machine time is 25+40+15+20 = 100 min.
+  - No five-order set fits, because the cheapest five orders cost $80.
+  - Any four-order set containing D or G costs at least $68.
+  - The other four-order sets that fit within $66 all score lower: A+C+F+H 174, B+C+E+H 171, A+C+E+F 167, C+E+F+H 159, A+C+E+H 155.
+- **Competing feasible plan (keeps the banners):** B+C+G uses $64 and 105 min. Revenue is $240, surplus $176, contribution $141, shortfall $79. That is $3 worse than A+B+C+E.
+- **Possible $100 gift:** not counted, because nothing was received or committed.
+
+## 3. THE PUBLIC UPDATE
+
+**Repair fund update:** Today's print orders raised $144 toward the $220 we need for our roof repair, after materials and the day's $35 operating cost. We are still $76 short, with the deadline at 9 a.m. tomorrow. A possible $100 gift has been mentioned, but nothing has been received or pledged, so we are not counting it. If you can help close the gap, please contact Mara at the shop.
