@@ -1,0 +1,109 @@
+## 1. THE STORY
+
+### The Last Pull
+
+At four o’clock, the press made a sound like a spoon dropped into a sink.
+
+Mara stopped the flywheel. The shop went quiet except for the ceiling fan and rain ticking against the front windows. On the counter, the repair estimate lay under a jar of dried-up brushes: $220, due by closing tomorrow. Without the repair, the old press would stay locked and the community print shop would lose its lease on the room.
+
+Ivo stood beside a stack of theater-banner proofs. Their red letters read **ONE NIGHT ONLY**. “They need these by seven,” he said. “If we don’t take the job, they’ll send it to the sign place on Grand.”
+
+“They pay after the run,” Mara said. She turned the estimate facedown. “And we need new money for the repair, not promises.”
+
+She had eighty dollars in the materials envelope and two hours of press time before the shop’s final pickup. She’d spent lunch checking every order, then checked again on the back of a scrap envelope. Posters, programs, tickets, postcards: A, B, C, D. The orders would use all eighty dollars of materials and 115 minutes. Together, their payments came to $292. After the materials, that left $212. The shop’s fixed $35 operating expense would come out afterward, leaving $177 for the repair.
+
+Not enough, but the best she could do with the orders on the table.
+
+Ivo tapped the banner proof. “Fifty minutes. Thirty dollars in stock. A hundred and twelve back. The theater will remember we helped.”
+
+“So will the people whose programs and tickets we don’t print.”
+
+He looked at the proofs, not at her. “The theater is the reason half the neighborhood knows this place exists.”
+
+“And the repairman doesn’t take applause.”
+
+Mara reached for the order book. She had not opened a package or started the press. The phone rang before she could write the first job.
+
+The caller was the theater manager, apologizing: their treasurer could not confirm payment until tomorrow. Ivo’s jaw tightened as Mara hung up.
+
+Then she opened the materials envelope and counted again. A supplier had collected an old balance against it that morning. The envelope held sixty-six dollars.
+
+For a moment, neither of them spoke. Rainwater shivered down the glass. From the back room came the sweet, dusty smell of paper and machine oil.
+
+“The four orders are eighty,” Ivo said.
+
+“Eighty exactly.”
+
+“And the machine has five minutes to spare.”
+
+“Not enough money.”
+
+He dragged a chair out with a scrape. “Couldn’t we run the banners first, then use what comes in to buy the rest?”
+
+“Nothing comes in until production ends.” Mara laid the order sheet between them. “No shared setup, no second float, no borrowing. If we buy stock for one order, that money is gone until we finish it.”
+
+“So you’re cutting the theater.”
+
+“I’m choosing what fits.”
+
+She marked through the postcards. The line felt heavier than the pen. Instead, she circled the bookmarks order: fourteen dollars of stock, twenty minutes, forty-nine dollars paid on completion. Posters, programs, and tickets stayed. The revised set used sixty-six dollars in materials and one hundred minutes of press time. It brought in $245. After materials and the $35 expense, $144 would go to the repair—$76 short.
+
+Ivo read the figures twice. “You could do banners, programs, and tickets. That uses sixty-four. One hundred and five minutes.”
+
+“It leaves $141 for the repair after expenses. Three dollars less.”
+
+“Three dollars is nothing.”
+
+“It’s a whole sheet of bookmarks,” Mara said. “And we haven’t received the other seventy-six.”
+
+He frowned, then slid the theater proofs away from the press bed. “I’ll call them. Tell them we can’t do tonight.”
+
+Mara watched him pick up the phone. His shoulders were set, but his voice softened when the manager answered. He explained the deadline, the reduced float, the machine time. Then he listened.
+
+When he hung up, he put the proofs in the theater’s pickup folder instead of the wastebasket. “They’ll take the banners somewhere else. They still want us to print the season programs next month.”
+
+Mara nodded and handed him the first stack of poster stock. He aligned the corners with the care he usually reserved for banners.
+
+At five, they started the press. The first poster came off warm, its black ink shining wetly under the work lamp. The machine shuddered through the run, each stroke a measured knock. Programs followed, then tickets, then the bookmarks. Ivo fed the sheets; Mara watched the registration marks and called the counts.
+
+At closing, all four orders sat wrapped on the pickup table. Their envelopes held customer payments, but the repair envelope did not yet hold a promise from anyone else. Someone had said a donor might give a hundred dollars tonight. No one had called back. Mara wrote **$144 confirmed** on the repair estimate and below it **$76 still needed**.
+
+Ivo put the theater proofs in his bag to return. “I’ll bring the programs order next month,” he said.
+
+“Bring the payment terms too.”
+
+He almost smiled. Outside, the rain had stopped. Inside, the press cooled with a series of small metallic clicks, while the estimate stayed faceup beneath the lamp.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "B", "C", "D"],
+    "materials": 80,
+    "minutes": 115,
+    "revenue": 292,
+    "order_surplus": 212,
+    "repair_contribution": 177,
+    "shortfall": 43
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Order surplus is customer payments minus materials; repair contribution is that surplus minus the fixed $35 expense. The initial plan uses the full $80 materials budget and 115 of 120 minutes. After the materials limit falls to $66, the revised plan fits both limits and yields the highest surplus.
+
+A feasible competing revised plan is **B, C, G**: $64 materials, 105 minutes, $240 revenue, $176 order surplus, and $141 repair contribution. The donor’s possible $100 is not counted because no gift or commitment was received.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s completed orders will contribute **$144** toward the shop’s **$220** repair bill, leaving **$76** to raise. A possible $100 gift was mentioned, but we have received no donation or commitment. The shop’s repair goal remains open.

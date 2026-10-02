@@ -1,0 +1,120 @@
+**1. THE STORY**
+
+**Twenty Minutes of Quiet**
+
+The banner sample hung above the cutter, one red corner curled like a tongue. Every time the radiator knocked, it trembled. Ivo kept looking up at it. Mara kept looking at the repair invoice beneath her mug, where a brown ring had settled around the words PAYMENT DEADLINE.
+
+They had this last afternoon to raise another $220. After that, without the repair paid for, the community print shop would close. Mara had $80 for materials and two hours on the machine. The customers would pay only when production was over. There would be no buying the next job’s paper with the last job’s proceeds.
+
+“The theater gave us that cutter,” Ivo said. “They lent us chairs. Remember the flood?”
+
+“I remember carrying those chairs upstairs.”
+
+He stroked the banner’s loose corner. “Then remember them now.”
+
+Mara turned her laptop toward him. She had checked the possible combinations: posters, tickets, menus, and the theater banners together used exactly $80 and all 120 minutes. They gave the highest surplus. Payments would total $294. Subtract materials, then the fixed $35 operating expense, and $179 could go to the repair. They would still be $41 short.
+
+“The banners are in,” she said.
+
+Ivo’s face opened. He pulled his apron from its hook. For a moment she let herself enjoy being the person who could say yes.
+
+Before she bought anything, the treasurer called.
+
+Mara listened, gripping a pencil hard enough to feel the hexagonal edges. When she hung up, she wrote 66 beneath 80. The treasurer had corrected the available balance. No materials had been purchased; the machine hadn’t run.
+
+“Fourteen dollars,” Ivo said. “That’s all?”
+
+“That’s what we haven’t got.”
+
+She opened the spreadsheet again.
+
+The new best combination was posters, programs, tickets, and bookmarks. Exactly $66 in materials, 100 machine minutes, $245 in payments. After materials and the operating expense, the repair would receive $144. The gap grew to $76.
+
+Ivo stared at the bookmarks on the order list. “Those instead of our banners?”
+
+“Programs too. We have to change the whole mix.”
+
+He dragged a stool beside her. Its rubber foot squealed. Together they tried keeping the banners. Programs and tickets fitted with them: $64 in materials, 105 minutes, $240 coming back. That was the best banner combination now. But after costs, it left $141 for the repair.
+
+“Three dollars,” he said.
+
+Mara rubbed the old scar on her thumb, a pale comma from a blade changed too quickly. Three dollars was little enough to find in a winter coat. She had searched her coats already.
+
+“They’ll think we used them.”
+
+“They might.”
+
+“Someone said a donor might give a hundred tonight.”
+
+She looked at the silent phone. “Has anyone promised?”
+
+He shook his head.
+
+She wanted to take down the banner sample gently, as though gentleness could make the answer different. Instead she left it where it was.
+
+“If we ask people for seventy-six dollars,” she said, “I need to know we earned everything we could first.”
+
+“I told them I’d look after it.”
+
+Now she understood the apron, his hovering, the red corner worn soft between his fingers.
+
+“I’ll call them,” she said.
+
+“I’ll do it.” He took his phone outside.
+
+She bought the four lots of materials. When Ivo returned, he put on his apron without looking at her. The machine warmed the room with its dusty, metallic breath. Posters emerged first. Ivo caught each sheet beneath its curling edge.
+
+During the bookmarks, he said, “They weren’t pleased.”
+
+“I know.”
+
+“You don’t, actually.”
+
+She nodded. “No. I don’t.”
+
+He squared the stack against the bench. Then he moved it into the clean tray, away from her leaking mug.
+
+Production ended after 100 machine minutes. Only then did the payments arrive: $245. Mara restored $66 to the materials float, set aside $35 for operating costs, and put $144 against the repair bill. The remaining $76 stayed unpaid.
+
+At the deadline there was no donor message, no gift. Twenty unused machine minutes sat on the job sheet. Mara wrote CLOSED PENDING REPAIR across the back of the invoice. Ivo held it level against the window while she taped the corners. Neither let go until the tape held.
+
+**2. THE RECEIPT**
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+The fixed $35 deduction preserves the ranking by order surplus. Comparing feasible subsets gives these maxima; every entry respects the 120-minute limit:
+
+| Materials limit | Best surplus excluding G | Best surplus including G |
+|---|---:|---:|
+| $80 | $212 — A, B, C, D | $214 — A, C, F, G |
+| $66 | $179 — A, B, C, E | $176 — B, C, G |
+
+Initial contribution: $294 − $80 − $35 = **$179**. Revised contribution: $245 − $66 − $35 = **$144**. Returned materials float contributes no new repair money.
+
+A feasible revised competitor, **B, C, G**, uses $64 and 105 minutes, earns $240, and contributes $240 − $64 − $35 = **$141**, which is $3 less.
+
+**3. THE PUBLIC UPDATE**
+
+Today’s orders contributed **$144** toward the print shop’s repair after materials and the $35 operating expense. We remain **$76 short** of the $220 needed. A possible $100 donation tonight has been mentioned, but no gift or commitment has been received. The shop is closed pending repair.

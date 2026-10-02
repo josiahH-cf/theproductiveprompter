@@ -1,0 +1,121 @@
+# 1. THE STORY
+
+## The Weight of Eleven Dollars
+
+The fluorescent tube above the Gestetner had been buzzing since August. Mara had stopped hearing it the way you stop hearing traffic, but today—the last afternoon before Kretchmer's Repair would cut them off—she heard it like a wasp trapped in her skull.
+
+She'd taped the order list to the wall beside the machine, six columns in her tight draftsman's print. The arithmetic was clean. Theater banners, menus, posters, tickets: eighty dollars in materials, a hundred and twenty minutes on the drum, and after the operating costs cleared, a hundred and seventy-nine dollars toward the repair bill. Forty-one short. But forty-one short was a different universe from two-twenty short.
+
+"We're on the board," she told Ivo when he came in smelling like sawdust and cold October air. He set his bike helmet on the paper cutter—she moved it without comment—and studied the list.
+
+"You've got the banners in."
+
+"I do."
+
+"Good." He rubbed his hands. "Declan's losing his mind. Opening night is Friday and the lobby looks like a waiting room."
+
+The phone rang at 1:17. Mara listened, wrote a number on the back of an envelope, hung up, and sat down on the stool by the register. The vinyl seat exhaled under her.
+
+"What?" Ivo said.
+
+"That was the bank. The check from the Howell job bounced. We're at sixty-six, not eighty."
+
+Ivo picked up the envelope and looked at the number as though better handwriting might change it. "Sixty-six."
+
+"Sixty-six."
+
+She pulled a fresh sheet from the scratch drawer and started over. Fourteen dollars gone meant the banners plan was dead—she couldn't fit them in at thirty dollars for materials and fifty minutes on the press without gutting everything else. She tried. G plus B plus C came to sixty-four dollars and left a surplus of a hundred seventy-six—three dollars less than the best alternative, which didn't include banners at all.
+
+Programs, posters, tickets, bookmarks. Twenty-four plus eighteen plus ten plus fourteen: sixty-six on the nose. A hundred minutes on the machine. After the thirty-five-dollar operating draw, one forty-four toward the repair bill.
+
+"We lose the banners," she said.
+
+"You can't." Ivo braced both palms on the counter. A stack of sample cardstock fanned under his wrist. "Declan specifically—"
+
+"If I keep the banners, the best I can clear is a hundred and forty-one. Without them it's a hundred and forty-four. Every dollar matters when we're seventy-six short."
+
+"Three dollars, Mara. Three dollars and Declan gets his banners."
+
+"Three dollars we don't have. The gap's already seventy-six."
+
+Ivo turned to the window. Across the street the marquee of the Alcazar still read COMING SOON in crooked plastic letters, one O missing. He'd built the set for their last production, carried lumber on his bike rack.
+
+"Beth told me the Padillas might donate tonight," he said quietly. "A hundred dollars."
+
+"Might."
+
+"Probably."
+
+"There's no probably in the register, Ivo. There's sixty-six dollars and a repair bill due tomorrow at nine." She underlined the number on her sheet. "If the Padillas come through, we'll be sixty-eight past what we need and I'll print Declan's banners on Sunday for free. If they don't, we need every cent of that one forty-four or we don't open Monday at all."
+
+He stared at the list. She let him stare.
+
+"We could do the banners and drop the bookmarks," he tried. "That gets you—"
+
+"I ran it. Every combination. The four without banners win."
+
+The buzzing tube caught his eye. He looked up at it, then at her, and she saw the moment he stopped arguing—not because he agreed but because he understood that the machine would do what the numbers allowed and nothing else.
+
+"Fine," he said. He unclipped his sleeves and reached for the first paper tray. "Posters?"
+
+"Posters."
+
+They worked without music, which was unusual. Mara fed stock; Ivo pulled sheets and stacked them on the drying rack, aligning edges with the flat of his hand. The drum turned. Ink smell filled the room, sharp and mineral, the scent she associated with every good and desperate afternoon she'd spent here. Tickets ran fast. Programs slower—the two-color registration took a careful eye, and Ivo had a careful eye.
+
+At 3:40 the bookmarks came off the press. Mara wrote up the invoices while Ivo swept. Two hundred forty-five dollars in revenue, sixty-six in materials, thirty-five in overhead. One forty-four confirmed. Seventy-six still to find.
+
+"I'll call Beth," Ivo said at the door.
+
+"Call her."
+
+"If the Padillas say yes—"
+
+"Then we print banners Sunday. I already said."
+
+He nodded, pulled on his helmet, and biked into the thin late light. Mara locked the door, turned off the fluorescent tube by hand, and stood in the silence of the shop. The number on the envelope hadn't changed. She folded it into her apron pocket and began reconciling the day's accounts, because that was what you did when the math was the math and the evening hadn't happened yet.
+
+---
+
+# 2. THE RECEIPT
+
+```json
+{
+  "donation_confirmed": false,
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  }
+}
+```
+
+**Explanation.**
+
+*Initial plan (budget $80, 120 min):* Orders G+F+A+C use exactly $80 in materials and 120 minutes. Revenue $294 − $80 materials = $214 surplus; minus $35 operating expense = $179 contribution. Shortfall: $220 − $179 = $41.
+
+*Revised plan (budget $66, 120 min):* G+F+A+C requires $80, so it's infeasible. Orders B+A+C+E use exactly $66 in materials and 100 minutes. Revenue $245 − $66 = $179 surplus; minus $35 = $144 contribution. Shortfall: $220 − $144 = $76.
+
+*Competing plan (revised):* G+B+C uses $64 materials and 105 minutes, giving surplus $176 and contribution $141 — $3 less than B+A+C+E. This is the best feasible plan that includes the theater banners. Other strong alternatives: B+F+A ($64 materials, 95 min, surplus $170, contribution $135) and G+A+H ($64, 100 min, surplus $174, contribution $139).
+
+The $100 donation is unconfirmed and excluded from all figures.
+
+---
+
+# 3. THE PUBLIC UPDATE
+
+**Community Print Shop — Repair Fund Update (Oct 2)**
+
+Today's production run confirmed $144 toward our $220 repair goal. We are $76 short. A potential $100 donation has been mentioned but has not been received or pledged. Until that changes, our verified gap remains $76. If you can help close it before tomorrow morning, please contact Mara at the shop. Thank you for supporting the press that supports this community.

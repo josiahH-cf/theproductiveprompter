@@ -1,0 +1,88 @@
+# 1. THE STORY
+
+**The Short Run**
+
+The press had sounded like a man clearing his throat all week, and by Tuesday afternoon Mara had stopped pretending she didn't hear it. One more run before the repair crew came. One more chance to put money against the bill.
+
+She had chalked the plan on the board that morning, back when the cash box was supposed to hold eighty dollars. Posters, tickets, menus, the theater's banners — eighty dollars of stock, every last one of the hundred and twenty minutes the old machine had in it. The arithmetic was tidy: two hundred fourteen dollars over what the paper cost, a hundred seventy-nine once she'd set aside the thirty-five the landlord dryly called keeping the lights on. Short of the two-twenty they owed, but only by forty-one. Forty-one she could almost taste.
+
+Then she'd opened the box.
+
+"Sixty-six," she said.
+
+Ivo looked up from the banner proofs he'd been fussing with since noon, the theater's gold lettering catching the low window light. "Sixty-six what?"
+
+"Dollars. For stock. Not eighty." She didn't explain where the difference had gone; a community shop was a sieve, and everyone who used it knew it. "So the plan on the board is dead."
+
+He came to stand beside her, smelling of the cold coffee he nursed all day. "Fine. Keep the banners. We cut something small."
+
+"That's the problem." She wiped the board with the side of her fist and started again, pencil this time, in the margin of a delivery slip. Sixty-six dollars. A hundred and twenty minutes still — the machine didn't care about her budget. She wrote the jobs out and their stock costs and what each one paid, and she moved them around the way she'd moved them a thousand times, the way that had kept the doors open.
+
+"Posters," she said. "Programs. Tickets. Bookmarks. Sixty-six on the nose. A hundred minutes."
+
+Ivo read it twice. "There's no banners on that list."
+
+"No."
+
+"Mara." He set the coffee down hard enough to slop. "The theater's whole season is riding on those banners. They've been telling people. You can't just—"
+
+"I can put the banners in." She tapped the slip. "If I do, the best I can run around them pays a hundred seventy-six over stock. The list without them pays a hundred seventy-nine. Three dollars, Ivo. The banners cost us three dollars we don't have to give."
+
+"Three dollars." He laughed, not kindly. "You'd break a promise to the theater for three dollars."
+
+"I'd keep the lights on with it." She heard her own voice go flat, the way it did when she was too tired to soften anything. "A hundred seventy-nine, minus the thirty-five. A hundred forty-four toward the bill. The banner version leaves us a hundred forty-one. Every version leaves us short, so I take the one that's short by the least. That's the whole job. That's been the whole job for six years."
+
+The window light had moved off the gold lettering and onto the floor. Ivo picked the proofs up anyway, rolled them, held them against his chest like something he was rescuing.
+
+"Carrow might give a hundred tonight," he said. "At the fundraiser. He said he was thinking about it."
+
+"Thinking."
+
+"It would clear it. A hundred forty-four and a hundred is—"
+
+"Two forty-four, yes, I can add." She almost smiled. "If it comes. It isn't a plan until it's in the box, and I've got to feed the machine now, not tonight. Payments don't land till the run's done. I can't buy paper with a maybe."
+
+He didn't argue that. He'd been here long enough to know the paper had to be bought first and believed in after.
+
+So she bought it — posters, programs, tickets, bookmarks — sixty-six dollars counted twice, and she fed the press until it quit clearing its throat and simply ran, warm and ragged, for a hundred minutes. Ivo stayed. He didn't have to; he ran the trimmer anyway, and the banners sat rolled on the end of the table, gold side in.
+
+When the last sheet dropped and the payments came in, she did the only sum that was real. A hundred forty-four dollars against two hundred twenty. Seventy-six to go, and a dark window where Carrow's hundred might be, and might not.
+
+She wrote the number on the board so no one could pretend otherwise, and turned off the light.
+
+# 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+**Explanation.** Each order's surplus = payment − materials: A 50, B 66, C 28, D 68, E 35, F 54, G 82, H 42. The objective maximizes total surplus under materials and minute caps; repair_contribution = surplus − 35, shortfall = max(0, 220 − contribution).
+
+- *Initial (≤$80, ≤120 min):* {A,C,F,G} uses exactly 80 materials and 120 minutes for surplus 214 → contribution 179. No feasible set beats 214: the top-three-surplus set {G,D,B} needs $82 and 125 min (infeasible); the best non-banner alternative {A,B,C,D} ties at surplus 212 but is below 214.
+- *Revised (≤$66, ≤120 min):* {A,B,C,E} uses exactly $66 and 100 minutes for surplus 179 → contribution 144. The tighter cash cap forces the banners out. No 4-order set fits a 5th order (five cheapest total $68 > $66), and no feasible 4-set exceeds 179.
+
+**Feasible competing plan (Ivo's banner preference), revised limits:** {G,B,C} — materials $64, minutes 105, revenue 240, surplus 176, contribution **141**, shortfall **79**. It keeps the banners but earns $3 less toward the bill than {A,B,C,E}.
+
+# 3. THE PUBLIC UPDATE
+
+Final-run update: today's print jobs contributed **$144** toward our $220 repair bill after the $35 operating cost. That leaves a **$76 gap**. A supporter has mentioned possibly giving $100 at tonight's fundraiser, but **no gift or commitment has been received** — nothing is confirmed. To fully cover the repair, we still need $76 in pledges or donations. Thank you for keeping the presses running.

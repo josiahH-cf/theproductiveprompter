@@ -1,0 +1,93 @@
+# 1. THE STORY
+
+**Grove Street Press, Last Thursday**
+
+The developer tray smelled like warm vinegar and old pennies. Mara wiped her thumb on her apron and looked at the board where she'd pinned the eight work orders with magnets shaped like tiny irons.
+
+"Banners first," Ivo said. He was leaning in the doorway, hoodie damp from the drizzle outside, a hand curled around a paper cup from the café two doors down. "The theater opens Saturday. They've been loyal."
+
+"Everyone's been loyal, Ivo."
+
+"The theater's been loyal with money."
+
+She let that sit. He wasn't wrong, exactly. The banners paid $112 and the theater had sent four jobs this quarter without arguing about turnaround. But the banners also ate thirty dollars of PVC and fifty minutes on the big flatbed, and she had — she tapped the little pencil against the board — eighty dollars and two hours.
+
+"I can fit the banners," she said. "I'm going to."
+
+She lined the magnets up on the warm metal of the proofing cabinet and moved them around like checkers. The banners stayed. Posters next, because they were quick and the margin was clean. Then menus for the Vietnamese place on the corner, and the ticket run for the cinema club. That filled the two hours exactly and used every dollar she had. Two hundred and fourteen dollars of surplus if everything printed clean. Minus the thirty-five for the keypad on the back door, which the landlord had made a condition of staying open through winter. One hundred and seventy-nine toward the folder repair.
+
+"That's not two-twenty," Ivo said.
+
+"I know what it isn't."
+
+"The donor —"
+
+"The donor said *might.*"
+
+He didn't answer. He drank his coffee. Outside, a truck wheezed past and a wet magazine flapped against the window.
+
+She was reaching for the first ream of poster stock when her phone rang. It was Lily at the bank, apologetic, the kind of apologetic that meant something had already been subtracted. The float transfer had not cleared the full eighty. There was sixty-six available until tomorrow morning. Mara stood with the ream of paper against her chest for a long second and then set it carefully back on the shelf.
+
+"Sixty-six," she said.
+
+Ivo put the cup down. "So we drop something."
+
+"We drop the banners."
+
+He laughed, once, like she'd pushed him. "You're joking."
+
+"I'm not." She was already moving magnets. "Thirty dollars of PVC I don't have. If I keep the banners I can't afford the ink for anything else that fits in the time. The programs cost less and pay almost as much. Programs, posters, bookmarks, tickets. Twenty-four plus eighteen plus fourteen plus ten. Sixty-six exactly. A hundred minutes on the press. One-seventy-nine in margin."
+
+"That's — that's the same margin."
+
+"Before the keypad. One-forty-four to the folder after."
+
+Ivo stared at the board. The banner magnet was in her palm. He reached for it like he was going to argue, and then he didn't. His hand hung there, and he let it drop.
+
+"They'll be furious," he said.
+
+"They might. Call them now, so they can go to Reprographics by three. Tell them I'm sorry. Tell them it's the materials, not the hours."
+
+He nodded, but he didn't move. "If the donor comes through tonight we could still —"
+
+"If the donor comes through tonight I take the whole hundred and we're at two-forty-four and I buy you a decent coffee." She almost smiled. "No gift tonight means no gift tonight, Ivo. We don't buy PVC on a *might.*"
+
+He pulled his phone out of his back pocket and walked toward the loading bay to make the call where she wouldn't have to hear it. The door clanged. The flatbed hummed into readiness, a low animal sound through the floorboards.
+
+She fed the programs first, because the folds were fussy and she wanted to be fresh for them. Ink on her fingertips, the smell of toner, the clean mechanical click of the registration arm. Posters next. Then bookmarks, which came up pink and clean and almost pretty. Tickets last, numbered by hand because the sequence drum was what the hundred and forty-four was supposed to help repair.
+
+By seven the shop was quiet. One hundred and forty-four dollars in the envelope under the till. Seventy-six still to find. The phone did not ring, and the drizzle thickened into rain, and Mara locked the door behind Ivo and turned off the lights.
+
+# 2. THE RECEIPT
+
+```json
+{
+  "donation_confirmed": false,
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  }
+}
+```
+
+**Initial (≤$80 / ≤120 min).** A+C+F+G: materials 18+10+22+30 = 80; minutes 25+15+30+50 = 120; revenue 68+38+76+112 = 294; surplus 294−80 = 214; contribution 214−35 = 179; shortfall 41. Competing feasible plan: A+B+C+D with materials 18+24+10+28 = 80, minutes 25+40+15+35 = 115, revenue 68+90+38+96 = 292, surplus 212 (−2 vs. chosen).
+
+**Revised (≤$66 / ≤120 min).** G now costs out: keeping G leaves only $36 for other jobs, capping surplus at G+F+E = 171. Dropping G, the best feasible set is A+B+C+E: materials 18+24+10+14 = 66; minutes 25+40+15+20 = 100; revenue 68+90+38+49 = 245; surplus 245−66 = 179; contribution 179−35 = 144; shortfall 76. Competing feasible plan: A+C+F+H with materials 18+10+22+16 = 66, minutes 25+15+30+25 = 95, revenue 68+38+76+58 = 240, surplus 174 (−5 vs. chosen).
+
+# 3. THE PUBLIC UPDATE
+
+Grove Street Press completed four jobs this afternoon — programs, posters, bookmarks, and tickets — on a reduced $66 materials budget. After materials and the $35 operating expense, we are contributing $144 toward the $220 folder-repair bill. That leaves a gap of $76. A possible $100 donation was mentioned but has not been received or committed. If you can help close the gap tonight, please stop by or call.

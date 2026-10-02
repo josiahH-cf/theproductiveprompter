@@ -1,0 +1,109 @@
+## 1. THE STORY
+
+# Five Dollars Closer
+
+The smell of toner hung like a permanent guest in the air of PressWorks Community Print Shop. Mara stood at the counter, her reading glasses pushed up into her hair, a pencil behind each ear — one for writing, one because she'd forgotten the first. Taped to the register was the repair estimate: $220 for the Chandler press's main bearing assembly, due by morning.
+
+Ivo arrived at half past twelve, carrying two coffees and the anxious energy of a man whose community theater season opened in nine days.
+
+"Tell me the banners are on the schedule," he said, setting her cup on the only clean surface — the paper cutter's guard.
+
+"They're on." She turned the clipboard toward him. "I worked it out last night. We take the poster job from Reyna, your banners, the café menus for Sal, and that ticket run for the youth orchestra. Uses every dollar and every minute we've got."
+
+Ivo scanned the list. Eighty dollars in materials, a hundred and twenty minutes of machine time, not a second to spare.
+
+"And the repair fund?"
+
+"Two-fourteen in surplus after materials. Minus thirty-five for the electric and the lease payment, that's one seventy-nine toward the two-twenty." She tapped the estimate. "Leaves us forty-one short, but it's the best the numbers allow."
+
+"Forty-one dollars." Ivo nodded slowly. "We can find forty-one dollars."
+
+Then the phone rang.
+
+The paper supplier's voice was apologetic. A pricing error on the heavy card stock; an invoice correction was coming through. When Mara put down the phone, she pulled the pencil from behind her right ear and recalculated. The shop's available float had dropped from eighty to sixty-six dollars. Fourteen dollars gone before a single sheet hit the press.
+
+"We can still do the banners," Ivo said immediately, reading her face.
+
+"I have to rerun everything." She sat on the stool behind the counter, clipboard balanced on her knee. The banners alone cost thirty in materials and fifty minutes of press time. At sixty-six dollars, the best she could do with banners was to pair them with the map order and Reyna's posters — sixty-four in materials, a hundred minutes — for a surplus of a hundred seventy-four. After the operating expense, that left a hundred thirty-nine toward the repair.
+
+Or she could drop the banners entirely. Programs, posters, tickets, bookmarks. Sixty-six dollars exactly, a hundred minutes on the press, a surplus of a hundred seventy-nine. After the thirty-five, that was a hundred forty-four.
+
+Five dollars. The banners cost five dollars in repair money.
+
+"It's five dollars, Mara. Five."
+
+"Five dollars closer to keeping this place open."
+
+Ivo set his coffee down. "The theater has supported this shop for three years. Every program, every poster —"
+
+"And I want to print your banners. But if the Chandler press isn't fixed by tomorrow, there's no shop to print anything." She held up the clipboard so he could see both columns, her handwriting cramped and slanting where she'd run out of room. "With the banners, we're eighty-one short. Without, seventy-six. Neither one closes the gap, but seventy-six is closer to possible."
+
+The shop felt very quiet. Afternoon light came through the front window and caught the dust motes drifting above the folding table where finished jobs were stacked. From outside came the muffled bass of someone's car stereo passing on Delancey Street.
+
+"Patricia Huang mentioned a donor," Ivo said. "Someone who might give a hundred tonight."
+
+"Might."
+
+"She said probably."
+
+"Probably isn't a deposit, Ivo."
+
+He exhaled through his nose. She watched him look at the Chandler press in the corner — its green enamel body, the hand crank that hadn't turned smoothly since August, the OUT OF SERVICE tag she'd written in her own block capitals.
+
+"Run the programs," he said finally. "And the rest."
+
+She loaded the first paper tray at 12:52. Reyna's posters came off clean at 1:17. The bookmarks followed, then the tickets — quick little cuts, the guillotine snapping down in steady rhythm. The programs took longest, forty minutes of careful registration, Ivo feeding sheets while Mara watched the alignment marks. Neither of them spoke much. The machine spoke for them, its rhythmic clatter filling the room with the sound of work getting done.
+
+At 3:32, the last program came off the press. Mara boxed each order, wrote the invoices, and taped them shut. Four boxes on the folding table, sixty-six dollars spent, a hundred forty-four dollars confirmed toward the repair fund. Seventy-six still missing.
+
+Ivo swept the floor without being asked. At the door he paused, hand on the frame.
+
+"I'll call Patricia," he said.
+
+"Call her," Mara said. "But I'm not writing it in the book until the check clears."
+
+He nodded once and stepped out into the late afternoon. The door swung shut behind him, and the shop was quiet except for the tick of the cooling press.
+
+---
+
+## 2. THE RECEIPT
+
+```json
+{
+  "donation_confirmed": false,
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  }
+}
+```
+
+**Initial plan (A, C, F, G).** Per-order surpluses: A = 68−18 = 50, C = 38−10 = 28, F = 76−22 = 54, G = 112−30 = 82. Total surplus = 214. Materials 80/80, minutes 120/120 — both limits exactly met. Contribution = 214 − 35 = 179. Shortfall = 220 − 179 = 41.
+
+**Feasible competitor:** A, B, C, D. Materials = 18+24+10+28 = 80, minutes = 25+40+15+35 = 115. Surplus = 50+66+28+68 = 212. Contribution = 177, shortfall = 43. Two dollars worse; it swaps F and G for B and D, gaining on D but losing more on G.
+
+**Revised plan (A, B, C, E).** Per-order surpluses: A = 50, B = 66, C = 28, E = 35. Total = 179. Materials 66/66, minutes 100/120. Contribution = 179 − 35 = 144. Shortfall = 76.
+
+This is the unique optimum among all 255 subsets at the $66 limit. Every feasible four-item combination was checked; the next best is A, C, F, H at surplus 174 (contribution 139, shortfall 81). The best plan that retains the theater banners (G) is G, H, A at surplus 174 (same 139 contribution) — it sacrifices $5 in surplus to keep G, which is the trade-off Mara and Ivo weigh in the story.
+
+No five-item subset fits within $66; the lightest five items (A, C, E, H, F) cost $80.
+
+---
+
+## 3. THE PUBLIC UPDATE
+
+PressWorks completed four print jobs this afternoon, raising **$144 in confirmed funds** toward the $220 Chandler press repair. We remain **$76 short** of our goal. A potential donor has been mentioned by a community member, but no gift has been received or committed. If you are able to help close the remaining gap, please contact the shop directly. The press cannot operate until the repair is funded.

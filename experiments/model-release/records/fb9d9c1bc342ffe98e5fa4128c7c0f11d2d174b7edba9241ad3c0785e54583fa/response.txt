@@ -1,0 +1,117 @@
+# 1. THE STORY
+
+**Short Run**
+
+The Risograph had been failing politely for three weeks — a hitch in the drum, a smell like hot pennies when it ran long — and the quote taped to the corkboard said $220, Friday, no extensions. It was Thursday. The shop smelled like ink and the inside of a radiator.
+
+At nine that morning Mara had counted the tin: eighty dollars, soft bills, one of them taped. Eighty dollars of paper and masters, a hundred and twenty minutes on the drum before she'd promised the repair tech she'd stop, and eight jobs on the clipboard, each one yes-or-no, no halves. Customers paid on pickup, which meant tonight, which meant this afternoon's paper had to come out of the tin or not at all.
+
+She'd worked it out twice with a pencil on a scrap of newsprint and then written it on the whiteboard in her squarest capitals: **POSTERS. TICKETS. MENUS. BANNERS.** Eighty dollars of materials exactly. A hundred and twenty minutes exactly. Two hundred ninety-four dollars coming back, two hundred fourteen over the paper cost, and then the thirty-five for the month's electric and the dumpster, which left one seventy-nine toward the drum.
+
+Ivo had come in at ten and seen BANNERS on the board and actually put his hand flat on it, the way you'd touch a dog.
+
+"You put the theater first."
+
+"The theater priced out first," Mara said. "Don't get sentimental. It's the biggest single job on the list."
+
+He made coffee that tasted like a penny too, and squared the banner stock on the long table, and hummed something from the show, and at eleven-forty Ruth from the Tuesday collective came in holding a receipt and looking apologetic in the way that meant money.
+
+Fourteen dollars. The replacement blade for the guillotine cutter, which had been sharpened two weeks ago, which Mara had told her to go ahead and handle, which Ruth had handled out of the tin. Before any of it. Before a single sheet was bought.
+
+So: sixty-six dollars.
+
+Mara sat down on the stool with the newsprint scrap and did it again. She was aware of Ivo behind her, not breathing much.
+
+Banners took thirty dollars of paper. Thirty out of sixty-six was almost half the shop's whole afternoon spent on one job, and the money came back fine, it always came back fine, but fine wasn't the question anymore. The question was what sixty-six dollars could carry.
+
+She wrote the new board: **POSTERS. PROGRAMS. TICKETS. BOOKMARKS.** Sixty-six dollars of materials. A hundred minutes.
+
+"A hundred," Ivo said. "You've got twenty minutes sitting there doing nothing."
+
+"I know."
+
+"The drum's dying tomorrow and you're going to let it idle for twenty minutes."
+
+"Minutes aren't the wall," she said. "Paper's the wall. I could stand here with four hours and it wouldn't buy me a sheet."
+
+"Then run the banners instead of the bookmarks and the posters—"
+
+"I did that. On paper. Banners, programs, tickets — that's sixty-four dollars, a hundred five minutes, and it comes in at a hundred forty-one after the thirty-five." She held the scrap up like a receipt. "This board comes in at a hundred forty-four."
+
+Ivo looked at it a long moment. "Three dollars."
+
+"Three dollars."
+
+"Mara. Three dollars is not a reason. That theater let us use their lobby when the roof went. Dana's been handing out our flyers at intermission for a year."
+
+"I know what Dana's done."
+
+"Then act like it."
+
+"I am," she said. "The gap's seventy-six dollars either way we're short, and I'm not going to be short *and* have picked the worse number on purpose. If it survives, we print their banners Monday and I'll eat the master."
+
+"If."
+
+"If."
+
+He went and unsquared the banner stock, slid it back into the flat file, and the drawer shut with a sound like the cutter. Then he inked the drum for the posters anyway, because he was that kind of angry.
+
+They ran until four-ten. Posters, programs, tickets, bookmarks. Her hands were cyan to the second knuckle. Payments came in as people came in — two hundred forty-five dollars, and sixty-six of it was already paper, and thirty-five of it was already the dumpster and the lights, and what sat in the tin at the end, clean, countable, new, was a hundred forty-four dollars.
+
+Seventy-six short.
+
+At five, Theo from the co-op stuck his head in and said he'd talked to someone who *might* put in a hundred tonight, might, he'd know by nine.
+
+"Might," Mara said, and wrote $144 on the board, and under it, $76 TO GO, and nothing about Theo at all.
+
+They cleaned the rollers. The phone didn't ring. Ivo stayed to sweep, which was how she knew it would be all right between them eventually, and at six they locked up with a hundred forty-four dollars in the tin and no gift in it.
+
+# 2. THE RECEIPT
+
+```json
+{
+  "donation_confirmed": false,
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  }
+}
+```
+
+**Initial plan (≤$80, ≤120 min).** A+C+F+G: materials 18+10+22+30 = 80 (binding); minutes 25+15+30+50 = 120 (binding); revenue 68+38+76+112 = 294; surplus 294−80 = 214; contribution 214−35 = 179; shortfall 220−179 = 41.
+
+Why it wins: both limits are exactly saturated, and no feasible set reaches 215. Six or more orders are impossible (six cheapest = $104 of materials). The only feasible five-order set is A+C+E+F+H ($80, 115 min, surplus 209). Among four-order sets, the best without banners tie at 214's heels: A+B+C+D ($80, 115 min, revenue 292, surplus 212) and A+B+F+H ($80, 120 min, revenue 292, surplus 212).
+
+*Feasible competing initial plan:* A+B+C+D — materials 80, minutes 115, revenue 292, surplus 212, contribution 177, shortfall 43. That is $2 worse.
+
+**Revised plan (≤$66, ≤120 min).** A+B+C+E: materials 18+24+10+14 = 66 (binding); minutes 25+40+15+20 = 100; revenue 68+90+38+49 = 245; surplus 245−66 = 179; contribution 179−35 = 144; shortfall 220−144 = 76.
+
+Why it wins: materials, not machine time, is the binding constraint — 20 minutes go unused and cannot be converted into paper. Five orders are infeasible (five cheapest = $80 > $66), so the search is over sets of four or fewer. The best four-order sets at or under $66 are A+B+C+E (179), A+C+F+H ($66, 95 min, 174), and B+C+E+H ($64, 100 min, 171); the best three-order set is B+C+G ($64, 105 min, 176).
+
+*Feasible competing revised plan:* B+C+G (programs, tickets, banners) — materials 64, minutes 105, revenue 240, surplus 176, contribution 141, shortfall 79. This is the best plan that includes the theater banners, and it is $3 worse than the chosen plan.
+
+Note: the original $80 materials float is not fundraising income, so only the $144 post-expense contribution counts toward the $220.
+
+# 3. THE PUBLIC UPDATE
+
+**Repair fund update — Thursday**
+
+Today's print run is finished and paid. After materials ($66) and our $35 operating expense, the shop cleared **$144 toward the $220 repair bill**. That leaves a **$76 gap**.
+
+A supporter has mentioned a possible $100 gift, but **no donation has been received or committed**, so we are not counting it.
+
+Theater banners were postponed; our thanks to the theater for its patience. We'll post again as soon as anything changes.

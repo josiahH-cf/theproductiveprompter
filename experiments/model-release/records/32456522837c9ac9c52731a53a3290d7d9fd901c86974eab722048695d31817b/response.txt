@@ -1,0 +1,117 @@
+## 1. THE STORY
+
+### The Last Run
+
+At four o’clock, the shop smelled of hot toner and the burnt-coffee dregs Ivo had forgotten in the pot. Rain ticked against the front windows. On the counter, beneath a jar of bent paper clips, Mara had taped the repair notice: **PAY $220 BY 6:00 OR THE PRESS STAYS OFFLINE.**
+
+Ivo stood beside the machine with a roll of theater-banner vinyl tucked under one arm. “The banners go first,” he said. “The theater’s opening Friday. They’ve already paid.”
+
+“They haven’t paid until we finish,” Mara said. She turned her pencil over and wrote on the back of an envelope. “And we need money for materials before we can finish anything.”
+
+“You always make it sound like the machine’s the only thing that matters.”
+
+“It’s the thing they’re coming to repair.”
+
+She spread the order slips across the counter. Posters, programs, tickets, postcards, bookmarks, menus, banners, maps. The paper edges lifted slightly in the damp. Ivo’s finger landed on G.
+
+“Fifty minutes,” Mara said, tapping the machine schedule. “Thirty dollars in materials. One hundred twelve when it’s done.”
+
+“So do it.”
+
+“I’ve got eighty dollars for materials and one hundred twenty minutes. I need to choose the whole orders that leave us the most after materials. Then the shop takes thirty-five for operating costs. Only what’s left can go toward that notice.”
+
+Ivo frowned at the envelope. “You’ve got eighty. That’s not nothing.”
+
+“It isn’t repair money,” she said. “It’s the float that gets the paper through the machine.”
+
+She worked the figures in the margin, quiet except for the scratch of pencil. Then she set the pencil down.
+
+“Posters, programs, tickets, and menus,” she said. “Seventy-four in materials. One hundred ten minutes. Two hundred seventy-two in payments, once they’re done. That leaves one hundred ninety-eight after materials. One hundred sixty-three for the repair after expenses.”
+
+“And the banners?”
+
+“Not in that plan.”
+
+Ivo’s mouth tightened. The vinyl roll creaked in his grip. “They trusted us.”
+
+“I know.” Mara looked at the theater slip, not at him. “I’m not saying they don’t matter.”
+
+The phone rang before either of them could say more. Mara answered, listened, and reached for the clipboard. The caller from the neighborhood association apologized twice: the promised materials money had fallen through. “I can get you sixty-six,” the woman said. “That’s all I can make available today.”
+
+Mara thanked her and hung up.
+
+Ivo stared at the envelope. “You still have the hour and a half.”
+
+“But not the materials for the menus.”
+
+“Couldn’t we run those first and use the payment—”
+
+“No.” Mara’s voice cut sharper than she meant it to. She rubbed at a gray smudge on her thumb. “They pay after production. That money can’t buy the next job’s stock today. And we can’t split an order.”
+
+The rain filled the pause. Ivo set the banner roll down carefully, as if it might hear them.
+
+Mara drew one line through “menus.” “Posters, programs, tickets, bookmarks. Sixty-six dollars of materials. One hundred minutes. Two hundred forty-five in payments. One hundred seventy-nine after materials. After the thirty-five, one hundred forty-four for the repair.”
+
+“Less than before,” Ivo said.
+
+“Less than the bill.”
+
+“And less than the banners could bring us.”
+
+“Maybe.” She put a hand on the vinyl. “But the banners cost thirty dollars and take fifty minutes. If we take them, we lose the programs and other orders that fit this plan. This is the best contribution under the money we actually have.”
+
+He lifted the roll again. For a moment she thought he’d carry it to the back and start cutting anyway. Instead, he slid it beneath the counter, out of the splash from the open door.
+
+“I’ll call the theater,” he said. “Tell them what happened.”
+
+“Tell them I’m sorry.”
+
+“Tell them yourself.”
+
+Mara nodded. When he held out the phone, she took it.
+
+By five thirty, the selected jobs were stacked beside the press. Programs made a neat white pile; the tickets were small enough to vanish under Mara’s palm. Ivo fed the posters, then returned to the control panel when the machine gave a dry clack. They worked without talking for several minutes. When the first sheets came out warm, he checked their alignment and nudged the guide straight.
+
+At six, the notice still said $220. Mara counted the completed orders’ contribution on the envelope: $144. The shop had the materials float back only after the customers paid, and even then it would remain the shop’s working money, not a donation.
+
+“One of them said a donor might give a hundred tonight,” Ivo said, folding the theater’s unfinished banner mockup in half. “Might.”
+
+Mara looked at the blank line on the repair notice. “Then we wait for a real yes.”
+
+Ivo placed the mockup beside the finished stacks. He didn’t apologize for wanting the banners. She didn’t ask him to. Together they carried the jobs to the pickup shelf, leaving the repair notice taped to the glass between them and the rainy street.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "B", "C", "F"],
+    "materials": 74,
+    "minutes": 110,
+    "revenue": 272,
+    "order_surplus": 198,
+    "repair_contribution": 163,
+    "shortfall": 57
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Order surplus is revenue minus materials; repair contribution is order surplus minus the $35 operating expense. The original $80 float is not counted as new income.
+
+The initial plan uses $74 and 110 minutes, leaving $198 before expenses, or $163 toward the repair. Under the revised $66 materials limit, replacing menus (F) with bookmarks (E) gives a $179 surplus, or $144 toward the repair.
+
+A feasible competing revised plan is **B, D, E**: $66 materials, 95 minutes, $235 revenue, $169 order surplus, and $134 repair contribution. It contributes $10 less than the selected revised plan.
+
+## 3. THE PUBLIC UPDATE
+
+The shop has completed posters, programs, tickets, and bookmarks, contributing **$144** toward the **$220** repair bill. The remaining gap is **$76**. A possible $100 gift was mentioned, but no donation or commitment has been received.

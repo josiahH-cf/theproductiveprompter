@@ -1,0 +1,81 @@
+# 1. THE STORY
+
+## Three Dollars
+
+By three o'clock the chalkboard behind the register held the whole afternoon: posters, tickets, menus, banners. Eighty dollars of stock, every one of the press's hundred and twenty safe minutes, and at the bottom, boxed twice, the number that mattered — $179 toward the $220 the technician needed by eight tomorrow, when she came to rebuild the roller or didn't. Forty-one short. Close enough to feel like a plan.
+
+Ivo read it twice, tapping the word *banners* with one inky finger. "You kept them in."
+
+"They earned their spot," Mara said. "A hundred and twelve dollars is a hundred and twelve dollars."
+
+He grinned and went to square the vinyl rolls, and for ten minutes the shop was only sounds: the compressor, radio static, tape screeching off its ring. Then Mara counted the cash tin before walking to the paper supplier, counted it again, and set it down like something that had bitten her.
+
+Sixty-six dollars. Not eighty. The refund she'd handed the knitting circle on Tuesday — fourteen dollars she'd meant to replace and only remembered replacing. Materials were cash up front, and no customer paid a cent until their job was boxed tonight. Nothing had been bought yet. There was also no floating it.
+
+"So we trim," Ivo said. "Drop the menus. Something."
+
+She was already at the whiteboard, chalk squeaking through combinations the way other people chew their nails. The banners wanted thirty dollars of vinyl all by themselves and fifty minutes of press time. Every lineup that kept them starved something better. The strongest she could build around them — programs, tickets, banners — left a hundred forty-one for the repair envelope after the thirty-five that always went out for power and the evening courier. Without them: posters, programs, tickets, bookmarks. A hundred forty-four.
+
+"Three dollars," Ivo said. "You're cutting the theater loose over three dollars."
+
+"I'm not cutting anyone loose. I'm choosing the bigger number."
+
+"Nine years they've sent us work. The opening's Friday. Rosa will stand in that lobby in front of bare walls—"
+
+"And if the press dies for good, she stands in front of bare walls every Friday after, too." Mara set the chalk down. "Sentiment is how that machine got this sick. I kept saying next month, next month. The arithmetic doesn't care that I love them. Neither does the technician."
+
+Ivo's jaw worked. He looked at the vinyl he'd squared so neatly it could have been furniture. "Rosa says one of their board people might bring a hundred dollars by tonight."
+
+"Might."
+
+"Probably, she said."
+
+"Might isn't money. If it were, I'd have rebuilt that roller in March." She turned the board so he could read it. "If the hundred walks through that door, I'll sing in the street and bank it. I'm not planning our last afternoon on a rumor."
+
+He didn't answer for a while. The radio found its station again. Then he lifted the banner order off the spike and said, quietly, "I'll call Rosa myself. It shouldn't come from a voicemail." That was Ivo — argued like a lawyer, apologized like a neighbor.
+
+They ran it her way. Posters first in a quick bright clatter, then the long program job through the heat of the afternoon, tickets, bookmarks last, the paper coming off warm and smelling of ink, the windows going gold. Ivo boxed each order and taped the invoices down with two exact strips, his silence slowly turning back into whistling. Twice during the programs the press knocked — a knuckle on a door — and Mara laid her palm flat on its cover the way you'd gentle a horse. Twenty minutes still on the clock when the last bookmark dropped. She let the machine rest.
+
+At seven she counted it out where Ivo could watch: two hundred forty-five in from four customers, sixty-six back into the materials tin where it had started, thirty-five aside for the lights and the courier. A hundred forty-four into the envelope marked TECHNICIAN, and the chalkboard rewritten in figures anyone could check from the sidewalk: $76 TO GO.
+
+No board member came. The door stayed shut; the hundred stayed a sentence somebody had said once.
+
+"Monday," Ivo said, hauling the gate half down, "the minute she's running — banners first. Before anything."
+
+"Before anything," Mara said, and boxed the number twice, because a true number, she'd decided, was worth more than a kind one.
+
+# 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+**Initial ($80, 120 min):** A+C+F+G costs 18+10+22+30 = $80 and 25+15+30+50 = 120 min, both exactly at the limits. Revenue 68+38+76+112 = $294; surplus 294−80 = $214; minus the fixed $35 → $179; shortfall 220−179 = $41. Best alternative found: A+B+C+D ($80, 115 min) gives surplus $212 — $2 worse.
+
+**Revised ($66, 120 min):** A+C+F+G is no longer affordable. A+B+C+E costs 18+24+10+14 = $66 and 25+40+15+20 = 100 min. Revenue 68+90+38+49 = $245; surplus $179; minus $35 → $144; shortfall $76.
+
+**Feasible competing plan (revised):** B+C+G keeps the banners at $64 materials and 105 minutes; revenue 90+38+112 = $240, surplus $176, contribution $141 — feasible, but $3 below the optimum, which is why the banners are dropped.
+
+# 3. THE PUBLIC UPDATE
+
+**Shop update, end of day:** Today's press run is complete. We banked a confirmed **$144** toward the **$220** repair deposit due tomorrow morning, leaving a **$76** gap. You may have heard a supporter might contribute $100 tonight — as of closing, no gift or pledge has been received, so we are not counting it. If you can help close the remaining $76, please stop by or message the shop. Thank you for keeping the press running.

@@ -1,0 +1,164 @@
+**1. THE STORY**
+
+**The Unprinted Sky**
+
+The theater’s banner proof lay across the cutting table: a blue sky, three yellow windows, the words COME IN FROM THE COLD. Ivo had drawn the windows himself. He kept smoothing the paper, although it was already flat.
+
+Outside, rain ticked against the shop’s metal letterbox. Inside, the press smelled of warm rubber and the orange cleaner Mara bought by the gallon.
+
+“Banners first,” Ivo said. “They open tomorrow.”
+
+Mara set eight order slips beside the calculator. The repair deadline was five. They needed $220 in new money, and the press had 120 minutes available this afternoon. Her materials allowance was $80. Customers would pay after production ended; nothing coming in could buy supplies for another run.
+
+“The theater let us use their lobby when the ceiling fell,” Ivo said.
+
+“I remember carrying the buckets.”
+
+“I mean we owe them.”
+
+Mara remembered more than buckets. She remembered Ivo standing on a chair beneath the leak, holding an umbrella over their donated paper. He had volunteered here for eleven years. When someone called the place hers, he always corrected them: ours.
+
+She worked through the slips, making small piles, undoing them, writing totals. Ivo watched with the expression he reserved for people who talked through performances.
+
+At last she put the banners beside posters, tickets, and menus.
+
+“All four,” she said. “Eighty in materials. Exactly two hours.”
+
+His hand stopped moving over the blue sky.
+
+“They’re the best combination,” she added. “Two hundred fourteen after materials.”
+
+“So we’re nearly there.”
+
+“After the thirty-five operating expense, we have a hundred seventy-nine for the repair. Forty-one short.”
+
+He looked at the cash box.
+
+“The materials float has to come back,” she said. “It isn’t new money.”
+
+Still, he smiled. The banners had earned their place. He rolled the proof carefully and reached for the supply cupboard key.
+
+Before she gave it to him, Mara’s phone rang.
+
+Their treasurer had checked the balance. A fourteen-dollar entry had been counted twice. There was only $66 available for materials.
+
+Mara wrote the number on the back of an old delivery label.
+
+Nothing had been purchased. Nothing had started. That ought to have felt like luck.
+
+“Take something else out,” Ivo said.
+
+She sat down again.
+
+Rainwater dripped from his jacket onto the floor. He had come straight from hanging theater posters, without going home for lunch. Mara pushed half her untouched sandwich toward him. He didn’t take it.
+
+This calculation was quicker.
+
+“Posters, programs, tickets, bookmarks,” she said. “Sixty-six. A hundred minutes.”
+
+“You’ve taken the banners out.”
+
+“Yes.”
+
+“What’s the best we can do with them?”
+
+“Banners, programs, tickets. A hundred seventy-six after materials.”
+
+“And your pile?”
+
+“A hundred seventy-nine.”
+
+Ivo laughed once, without amusement.
+
+“Three dollars.”
+
+She looked at the rolled sky beneath his hand.
+
+“Yes.”
+
+“Three dollars to tell them we can’t help.”
+
+Mara wanted a larger number. A number large enough to stand behind without feeling mean.
+
+“We’re seventy-six short even with this pile,” she said. “I can’t make the gap bigger because I know whose disappointment I’ll have to see.”
+
+Ivo turned toward the window.
+
+“Len says a donor might give a hundred tonight.”
+
+“Has anyone promised it?”
+
+“No. Might.”
+
+The press clicked as it cooled.
+
+Finally Ivo picked up the sandwich.
+
+“I’ll tell the theater,” he said. “They should hear before they send someone.”
+
+Mara nodded. She didn’t thank him yet.
+
+They bought the materials for the four orders. Ivo fed the posters while Mara checked registration. For the programs, he folded a spoiled sheet and used it to steady a wobbling stack. By the bookmarks, he was pointing out crooked edges before she saw them.
+
+After one hundred machine minutes, Mara switched off the press.
+
+Twenty minutes remained unused. There was no materials money left to turn them into anything.
+
+The customers collected their finished orders and paid $245. Mara counted back the $66 float and deducted the $35 operating expense. She placed the remaining $144 in the repair envelope.
+
+At five, no gift or commitment had arrived.
+
+She wrote a notice announcing that printing would pause until they could cover the remaining $76. Ivo read it, then held the glass door steady while she taped it up.
+
+His banner proof was still on the table.
+
+“Leave that here,” Mara said.
+
+He laid it on the highest shelf, above the old waterline.
+
+---
+
+**2. THE RECEIPT**
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Contribution equals revenue minus materials minus $35. Because the operating expense is fixed, maximizing order surplus also maximizes contribution.
+
+The best feasible surpluses, separating plans by whether they include banners, are:
+
+| Materials limit | With G | Without G |
+|---|---:|---:|
+| $80 | $214: A, C, F, G | $212: A, B, C, D |
+| $66 | $176: B, C, G | $179: A, B, C, E |
+
+Thus the initial contribution is $294 − $80 − $35 = **$179**. The revised contribution is $245 − $66 − $35 = **$144**.
+
+A feasible revised competitor, **B, C, G**, uses $64 and 105 minutes, earns $240, and contributes $240 − $64 − $35 = **$141**. Its shortfall is $79—$3 worse than the revised optimum.
+
+---
+
+**3. THE PUBLIC UPDATE**
+
+Today’s completed orders contributed **$144 toward our $220 repair goal**, after materials and operating costs. **We still need $76.** A donor might give $100 tonight, but no gift or commitment has been received. Printing is paused while the repair remains unfunded. Thank you to our customers and volunteers for helping us get this far.

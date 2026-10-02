@@ -1,0 +1,103 @@
+# 1. THE STORY
+
+## The Surplus Problem
+
+The smell of warm ink hit Ivo when he pushed through the door at quarter past one, and he stood breathing it in the way he always did—cedar-sharp and faintly chemical, the private weather of Inkwall Press.
+
+Mara was already at the counter with a yellow legal pad and her reading glasses down her nose. She had the repair estimate pinned under a coffee mug: $220, or the cylinder press sat idle by Tuesday. Behind her, the machine filled half the wall like a cast-iron argument.
+
+"Tell me you ran the banners," Ivo said.
+
+"I'm running them this afternoon. I ran the numbers first." She turned the pad toward him. Eight orders listed. Four circled in red: theater banners, posters, menus, tickets. "Eighty dollars in materials, hundred and twenty minutes. That combination pulls two-ninety-four in revenue—order surplus of two-fourteen, minus thirty-five operating, contribution one-seventy-nine. Forty-one short of the repair."
+
+"Forty-one's close."
+
+"Forty-one's still short." She set down the pencil. "Domenica's calling around tonight."
+
+Ivo sat on the stool beside the paper-cutter. He'd been volunteering here since the spring, and he knew the theater's opening was Friday, and he knew what banners cost elsewhere, and he was prepared to feel useful. The legal pad had the numbers on it in Mara's compressed handwriting and they looked, to him, like good news.
+
+Then her phone buzzed.
+
+She read it standing, and the expression that crossed her face was careful and contained, the expression of someone absorbing something they'd half expected.
+
+"Sixty-six," she said.
+
+"What?"
+
+"Not eighty. The float is sixty-six. Insurance pulled the difference this morning for the liability renewal."
+
+She picked up the pencil and began crossing out lines.
+
+The shop went quiet except for the tick of the press cooling from the morning run. Ivo watched her work—short decisive strokes, margins filled with small numbers, the scratch of lead on yellow paper. Dust floated in the light from the transom window.
+
+"Banners need thirty in materials," she said without looking up. "Sixty-six minus thirty leaves thirty-six for everything else. Best I can do with the banners is add programs and tickets—sixty-four dollars, hundred-five minutes, contribution one-forty-one." She set the pencil flat. "But if I drop them, I can run programs, posters, bookmarks, and tickets. Sixty-six dollars even, hundred minutes, contribution one-forty-four."
+
+Three dollars.
+
+"Mara." His voice came out quieter than he meant. "Three dollars."
+
+"Three dollars is three dollars. And the theater confirmed they're reprinting regardless—they found another shop for Friday morning."
+
+"What about the donor? Domenica said someone might put in a hundred tonight."
+
+She took off her reading glasses. Through the window, a truck was passing, and the glass shivered in its frame. "Might," she said. "I can't run a job on might. Customer payments come in after the work is done. I can't spend money I don't have yet."
+
+Ivo looked at the legal pad. The original plan was still visible under the crossing-out—the version of the afternoon where the banners had been in it, where the numbers had been sufficient. He understood, technically, that she was right. The banners were thirty dollars in material and fifty minutes of press time, and the press had only this afternoon.
+
+"One-forty-four," he said.
+
+"One-forty-four confirmed. Seventy-six short of two-twenty."
+
+She was already at the stock shelves, pulling the program stock. Ivo sat another moment with the legal pad, reading the crossed-out line—*G: Theater banners. $30. 50 min. $112.*
+
+Then he folded the page over so he couldn't see it anymore.
+
+The afternoon light came through the transom in long flat rectangles. He got up and washed his hands at the utility sink, and when the water had run cold he heard the press begin its warmup cycle—a slow mechanical knock, then the rhythm finding itself, then the whole room vibrating faintly underfoot.
+
+The machine was going to run. The banners were not going to be in it. A donor might appear tonight and might not. Nothing beyond those three facts was settled.
+
+---
+
+# 2. THE RECEIPT
+
+```json
+{
+  "donation_confirmed": false,
+  "initial": {
+    "orders": ["G", "A", "F", "C"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["B", "A", "E", "C"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  }
+}
+```
+
+**Initial plan explanation (budget $80, 120 min).**
+G+A+F+C consumes exactly $80 and all 120 minutes: materials 30+18+22+10 = 80, minutes 50+25+30+15 = 120, revenue 112+68+76+38 = 294, order surplus 294−80 = 214, contribution 214−35 = **179**.
+
+Feasible competing plan — D+B+A+C: materials 28+24+18+10 = 80, minutes 35+40+25+15 = 115, revenue 96+90+68+38 = 292, order surplus 212, contribution **177**, shortfall 43. G+A+F+C wins by 2 because G's banner surplus (82) outperforms D's poster surplus (68) in the slot that fits exactly within both caps.
+
+**Revised plan explanation (budget $66, 120 min).**
+G requires $30, leaving only $36 for other orders; the cheapest eligible pair is B+C at $34 (G+B+C: mat 64, min 105, surplus 176, contribution **141**). Dropping G frees $30, enabling four lighter orders: B+A+E+C uses exactly $66 and 100 minutes: revenue 90+68+49+38 = 245, order surplus 245−66 = 179, contribution 179−35 = **144**. No five-item combination is feasible (the five cheapest items by material total $80 > $66).
+
+Feasible competing plan — G+B+C: materials 30+24+10 = 64, minutes 50+40+15 = 105, contribution **141**, shortfall 79. Includes theater banners but trails B+A+E+C by $3 in contribution.
+
+---
+
+# 3. THE PUBLIC UPDATE
+
+**Inkwall Press — Repair Fund Status**
+
+This afternoon's production run confirmed a repair contribution of **$144** toward the $220 deadline. The remaining gap is **$76**. A potential donor was mentioned this evening; no gift or commitment has been received. We are counting only money in hand. If you can help close the gap before Tuesday, please contact the shop directly. Thank you for your support.

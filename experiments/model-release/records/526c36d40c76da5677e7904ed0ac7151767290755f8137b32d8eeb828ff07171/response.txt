@@ -1,0 +1,121 @@
+# 1. THE STORY
+
+## The Numbers That Stayed
+
+The Chandler 4200 smelled like hot iron and old ink. Mara pressed her palm against its side—still warm from the morning's charity flyers—and studied the order sheet taped above the feed tray.
+
+"If we run the banners," Ivo said from the doorway, "the Avalon gets their set pieces promoted for opening night."
+
+"Everything's worth something." Mara uncapped a marker and started writing on the back of a misprinted envelope. "The question is what's worth enough."
+
+She had eighty dollars for materials, two hours of machine time, and eight orders on the board. Customer payments came only after production, so she couldn't reinvest mid-afternoon. After jobs were done and she subtracted the thirty-five-dollar operating expense, whatever surplus remained was their contribution toward the two-hundred-twenty-dollar repair bill.
+
+Ivo leaned over her shoulder. She could smell the coffee on his breath, the faint turpentine from the theater's paint crew. "The banners pay a hundred and twelve. Best single order up there."
+
+"Thirty dollars in materials, fifty minutes on the press." She wrote columns: surplus per order, cumulative costs. The marker squeaked on the waxy paper. "It's not about one order. It's about which set maxes out both limits."
+
+She ran the numbers twice. Banners, posters, tickets, menus. Thirty plus eighteen plus ten plus twenty-two: eighty even. Fifty plus twenty-five plus fifteen plus thirty: a hundred and twenty minutes flat. Every dollar and minute spoken for.
+
+"Two-fourteen surplus," she said, circling the number. "Minus thirty-five overhead, that's a hundred seventy-nine toward repairs. Forty-one short, but the best we can do."
+
+"And the banners are in," Ivo said. His shoulders dropped half an inch—relief he'd been holding since he walked in.
+
+Mara was reaching for the paper stock when her phone buzzed. She read the message, read it again, set the phone face-down.
+
+"Linda says the account's light. Sixty-six for materials, not eighty."
+
+Ivo went still. "How?"
+
+"Fourteen dollars gone is fourteen dollars gone."
+
+She drew a line through her plan. The banners cost thirty. With sixty-six total, the combinations shrank. She tried to keep them—banners, programs, tickets: sixty-four dollars, a hundred and five minutes, surplus a hundred seventy-six. She tried banners with posters and tickets: fifty-eight dollars, ninety minutes, surplus a hundred sixty. Worse each time.
+
+"There has to be a way," Ivo said.
+
+"There's a best way. It's not the one with banners." She wrote the new set: posters, programs, tickets, bookmarks. Eighteen plus twenty-four plus ten plus fourteen: sixty-six exactly. A hundred minutes on the press. Surplus: a hundred seventy-nine—the same margin as before, as if the numbers had rearranged to hold the line. Minus overhead, a hundred forty-four toward repairs.
+
+"Seventy-six short," Ivo said quietly.
+
+"Yes."
+
+He pulled a stool from the counter and sat. Through the front window, Mara could see the Avalon's marquee, its dead bulbs like missing teeth.
+
+"Patrice Chen told me she might give a hundred tonight," Ivo said. "She's been talking about it for weeks."
+
+"Might."
+
+"She cares about this place."
+
+Mara turned to face him. Afternoon light through the dusty glass gave everything a sepia weight—the press, the empty drying rack, Ivo's paint-flecked hands.
+
+"I can't buy materials with someone's intention. If Patrice brings a hundred dollars, we'll have two-forty-four and the repair is covered with room to spare. But right now I have sixty-six dollars and a machine that needs to start in the next ten minutes or we lose the afternoon."
+
+Ivo looked at the press. "Run the programs first. They take the longest. I'll stage the bookmark stock."
+
+She loaded the plates and set the counter. The Chandler shuddered to life—a slow heartbeat finding its rhythm—and the first sheets began to feed.
+
+They worked without speaking. The press thumped. Paper slid into the tray with a soft hiss. Ivo trimmed bookmark blanks at the cutting station, measuring each one with a steel rule, precise despite the shaking in his hands.
+
+At ten to five, the last sheet cleared the rollers. Mara wiped the ink plates while Ivo stacked the finished orders into labeled bins.
+
+"Hundred and forty-four confirmed," she said, writing the number on the deposit slip.
+
+Ivo hung his apron by the door. "I'll talk to Patrice."
+
+"I hope she comes through."
+
+He paused. "What if she doesn't?"
+
+Mara capped her pen. The shop was quiet—just the tick of the press cooling and traffic on Grover Street. "Then we find seventy-six dollars the hard way. But we start tomorrow with a hundred forty-four we didn't have this morning."
+
+Ivo pushed the door open. The bell rang once, clear and small. He stepped into the long October light and turned toward the theater.
+
+---
+
+# 2. THE RECEIPT
+
+```json
+{
+  "donation_confirmed": false,
+  "initial": {
+    "orders": ["G", "A", "C", "F"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  }
+}
+```
+
+**Explanation**
+
+This is a two-constraint knapsack: maximize (revenue − materials) subject to materials ≤ budget and minutes ≤ 120.
+
+**Initial plan (budget $80).** Orders G+A+C+F use all $80 in materials (30+18+10+22) and all 120 minutes (50+25+15+30). Revenue is $294, giving order surplus $214. After the $35 operating expense: contribution = $179, shortfall = $41.
+
+*Competing plan:* {A, B, C, D} — materials $80 (18+24+10+28), minutes 115 (25+40+15+35), revenue $292, surplus $212, contribution $177, shortfall $43. Two dollars less surplus because D's surplus-per-minute (1.94) is slightly lower than G's effective contribution when paired optimally with F.
+
+**Revised plan (budget $66).** G requires $30, making it hard to pair profitably under $66. The best banner-inclusive combo is {G, B, C} at surplus $176. Without G, orders A+B+C+E use exactly $66 (18+24+10+14), 100 minutes (25+40+15+20), revenue $245, surplus $179. After overhead: contribution = $144, shortfall = $76.
+
+*Competing plan:* {G, B, C} — materials $64 (30+24+10), minutes 105 (50+40+15), revenue $240, surplus $176, contribution $141, shortfall $79. Including the banners costs $3 in surplus versus the optimal revised plan.
+
+The potential $100 donation is unconfirmed and excluded from all figures.
+
+---
+
+# 3. THE PUBLIC UPDATE
+
+**Community Print Shop — Repair Fund Update, October 2**
+
+Today's final production run generated a confirmed **$144** toward our $220 repair goal. The remaining gap is **$76**. A possible donation of $100 has been discussed by a community member but has **not** been received or committed. We are proceeding on confirmed funds only and will continue fundraising to close the shortfall. Thank you for your continued support.

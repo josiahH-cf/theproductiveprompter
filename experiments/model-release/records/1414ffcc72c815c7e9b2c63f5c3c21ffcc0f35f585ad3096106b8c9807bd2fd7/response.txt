@@ -1,0 +1,71 @@
+## 1. THE STORY
+
+### The Red Curtain
+
+At half past two, the community print shop smelled of warm paper and the bitter orange cleaner Mara used on the rollers. The press stood still. It had 120 usable minutes left before the afternoon’s work had to end. At six, Mara owed the repairer an answer about the $220 in new money they needed toward the bill. She had written the amount on masking tape above the feed tray. Ivo stood beneath it, holding a proof of the theater’s banners against his coat. A painted red curtain ran across the page.
+
+“Please tell me these made the cut,” he said. “The cast made the lettering themselves.”
+
+“They did.” Mara showed him four circled order slips: posters, tickets, menus, and banners. Materials would cost exactly the $80 she believed they had, and the jobs would use all 120 minutes. The customers would pay $294 after production ended. Once she subtracted materials and the fixed $35 operating expense, $179 would go toward repair. She had compared every combination of orders the night before. This one earned the most. It still left $41 to find.
+
+Ivo looked past the gap and lifted the proof toward the window. Sunlight made the curtain glow. He had spent three evenings helping the theater letter it, then come to the shop early to check its size. Mara watched him smooth the crease with his thumb. He had volunteered here long enough to know which drawer held the good blades, but she had never seen him so reluctant to set down a sheet of paper.
+
+Mara opened the materials envelope before going to buy stock. Inside was $66. She counted it twice, then checked the figure she had copied into her ledger. The envelope was right. No materials had been bought; the press had not run.
+
+“Maybe we can do the banners first,” Ivo said.
+
+“If we buy their stock first, we still have to choose the rest from sixty-six dollars.”
+
+He pulled a pencil from behind his ear and tried. Banners, programs, and tickets would fit: $64 in materials and 105 machine minutes. He pushed the slips across the counter like an answer. Mara added their payments and showed him what remained after materials and the operating expense: $141 for repair.
+
+“That’s close,” he said.
+
+“Three dollars close.” Mara placed the posters, programs, tickets, and bookmarks together. They would use all $66 of the available materials money and 100 minutes on the press. The payments would total $245, leaving $179 after materials and $144 after the operating expense. The repair gap would be $76. She checked the slips again, hoping she had overlooked a better set. She had not.
+
+Ivo tapped the banner proof against the counter. “They’ll have a bare entrance.”
+
+“I know.”
+
+“You could tell them why.”
+
+“I’m going to.” She picked up the telephone, but he held out his hand for it. He knew the stage manager. Mara let him make the call and heard him say, carefully, that the shop could not take the banner order that afternoon. When he hung up, he folded the proof once more along its old crease. He did not say he agreed with her.
+
+Someone had mentioned a donor who might give $100 that night. Ivo brought it up while Mara loaded the posters. She glanced at the empty repair envelope beside the machine.
+
+“If it comes, we can count it then,” she said.
+
+The press began its hundred minutes with a low shudder. Posters emerged smelling of ink; programs stacked warm against Ivo’s forearm. He cut the tickets and gathered the bookmarks into square bundles, keeping the theater proof safely away from the wet sheets. Mara found herself asking him to check each count. He answered without looking up, and she knew he was still hurt. She was glad he stayed.
+
+After the last bookmark came off the press, Mara shut it down. Only then did the four customers pay. She restored the $66 materials float and set aside the $35 operating expense. The new contribution was $144. At six, she gave the repairer that figure and the $76 gap. No donor had called or arrived. Ivo put the folded red curtain on the counter for the theater to collect, then helped Mara turn out the shop lights.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Comparing feasible combinations gives maximum order surpluses of $214 under the initial limits and $179 under the revised limits. The fixed $35 expense is then deducted from each. As a feasible revised alternative, **B+C+G** uses $64 and 105 minutes; its $240 payment yields $176 in order surplus and $141 for repair, $3 less than the chosen plan.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s completed orders contributed **$144 in new money** toward the print shop’s repair bill. We remain **$76 short** of the $220 goal. Someone mentioned a possible $100 donation, but we have received neither the gift nor a commitment, so it is not included in these figures.

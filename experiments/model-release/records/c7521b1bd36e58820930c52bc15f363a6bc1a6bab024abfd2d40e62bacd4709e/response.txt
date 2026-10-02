@@ -1,0 +1,150 @@
+## 1. THE STORY
+
+### The Twenty Minutes Left
+
+At two o’clock, the print shop smelled of hot rubber and the orange Ivo had peeled over the wastebasket. Rain stippled the window behind a paper sun advertising last summer’s street fair. Mara had never taken it down. Its yellow was still good.
+
+“The banners first,” Ivo said, laying the theater’s artwork beside her elbow.
+
+Mara moved it away from her coffee. “The repair first.”
+
+“They’re the same thing to some people.”
+
+Through the wall came a thin metallic ticking from the machine. The technician had given them until this afternoon to put the repair money together. They needed another $220. Mara had $80 for materials and two hours of machine time; after that, she would shut it down.
+
+Ivo had volunteered here for eleven years. His daughter’s first speaking part was in the theater’s new production. Mara knew both facts, and disliked how knowing them made the order sheet feel heavier.
+
+She wrote the letters A through H across scrap paper. Beside each she put what the customer would pay less what the materials would cost.
+
+“You could just say you don’t want to,” Ivo said.
+
+“I haven’t said no.”
+
+“You’ve brought out the pencil.”
+
+Mara kept working. The customers paid only when production ended. A promising payment could not buy paper now. Neither could the same machine occupy two minutes at once, however urgently someone needed a banner.
+
+Finally she circled four letters.
+
+“Posters, tickets, menus, banners.”
+
+Ivo stopped rolling the orange peel into a spiral.
+
+“All eighty dollars,” she said. “All hundred and twenty minutes. Payments of two hundred ninety-four. Less materials, two hundred fourteen.”
+
+“And we’re nearly there.”
+
+“Thirty-five for operating expenses. One hundred seventy-nine toward the repair. Forty-one still missing.”
+
+He looked at the circled G.
+
+“So the pencil likes the theater.”
+
+“Today it does.”
+
+She showed him the nearest alternatives: posters, programs, tickets, postcards left $212 before expenses; the five smallest material orders left $209. Neither beat the plan with his banners.
+
+Ivo smoothed the artwork with both palms. “I’ll get the stock.”
+
+“Wait until I check the cash.”
+
+Nothing had been bought, nothing started. Mara opened the envelope beneath the till and counted it twice. Then she checked the available balance against the figure she had copied that morning.
+
+“Sixty-six,” she said.
+
+Ivo stood with his hand on the stockroom latch.
+
+“I thought there was eighty. There’s only sixty-six.”
+
+The ticking behind the wall seemed suddenly elaborate, like a small person patiently assembling something they would never see.
+
+“Then lose the menus,” Ivo said.
+
+Mara made another sheet.
+
+Outside, a bus pushed dirty water against the curb. Ivo watched it while she recalculated. When she turned the paper toward him, he did not look down immediately.
+
+“Posters. Programs. Tickets. Bookmarks,” she said. “Sixty-six in materials. A hundred minutes. Two hundred forty-five coming back.”
+
+“No banners.”
+
+“One hundred seventy-nine after materials. One hundred forty-four after operating expenses.”
+
+“Seventy-six short,” he said.
+
+“Yes.”
+
+“What about banners, programs, tickets?”
+
+“Sixty-four in materials. One hundred seventy-six before expenses. Three dollars less for the repair.”
+
+“Three dollars.” His voice had gone flat. “That’s what this comes down to?”
+
+Mara looked at his daughter’s name, small beneath the title on the artwork.
+
+“I can’t ask everyone else to help close a gap I chose to make bigger.”
+
+Ivo folded his arms. For a while neither spoke.
+
+“Someone at rehearsal said a donor might give a hundred tonight.”
+
+“Has anyone promised?”
+
+“No.”
+
+Mara left the $76 uncovered on the page.
+
+At last Ivo picked up the telephone.
+
+“I should tell them,” he said. “They know me.”
+
+He turned away for the call. Mara heard him say the banners would not be made, then, after a pause, “No. Mara didn’t pick against us.”
+
+They bought the materials for the four orders. Ivo fed the programs; Mara caught the warm stacks. By the time the bookmarks emerged, ink had settled into the creases of his thumbs.
+
+Twenty machine minutes remained. No material money did.
+
+After production, the payments came in. Mara separated the $66 float, paid the $35 expense, and put $144 toward the repair. No donor’s gift or commitment arrived.
+
+At closing, she switched off the machine. Ivo stayed to help her pull down the blind.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+There are \(2^8=256\) possible order subsets. Comparing feasible subsets gives these maximum order surpluses:
+
+| Materials limit | Including G | Excluding G |
+|---|---:|---:|
+| $80 | $214: A, C, F, G | $212: A, B, C, D |
+| $66 | $176: B, C, G | $179: A, B, C, E |
+
+The fixed $35 deduction preserves those rankings. Initial contribution: \(294-80-35=\$179\). Revised contribution: \(245-66-35=\$144\).
+
+A feasible revised competitor is **B, C, G**: $64 materials, 105 minutes, $240 revenue, and \(240-64-35=\$141\) toward repairs—$3 less than the chosen plan. The recovered materials float is excluded from fundraising income.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s completed orders contributed **$144 toward the print shop’s repair**, after materials and operating expenses. We remain **$76 short** of the $220 needed. A possible $100 donation was mentioned, but no gift or commitment has been received. The machine is shut down, and the repair remains unfunded. Thank you to our customers and volunteers for today’s work.

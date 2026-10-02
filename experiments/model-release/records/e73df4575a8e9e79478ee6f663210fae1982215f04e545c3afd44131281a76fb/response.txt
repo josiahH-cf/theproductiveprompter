@@ -1,0 +1,91 @@
+## THE STORY
+
+### The Slot for G
+
+At one o’clock on the final afternoon before the repair deadline, Common Thread Print Shop smelled of wet wool, hot toner, and the metallic breath of its old press. Its rollers clicked every sixth turn, a sound Mara heard even while the machine rested. Beneath the cash drawer lay the repair estimate: $220 in new money. The materials float did not count; by evening it would be paper, ink, and trimmings on the floor. Rain filmed the front window and blurred the pharmacy sign across the street.
+
+Mara had written A, C, F, and G on the grease-pencil board: posters, tickets, menus, theater banners. “This is the best run,” she told Ivo, the Tuesday volunteer, tapping the board with a capped marker. “Eighty dollars in materials, exactly. One hundred twenty minutes, exactly. Two hundred ninety-four in customer payments.”
+
+After materials, the jobs made $214. The fixed $35 operating expense came afterward, leaving $179 for the repair and a $41 gap. It was not triumph, but it was a narrow kind of breathing room.
+
+Ivo arrived with rain sparkling in his beard and a roll of scarlet banner cloth under one arm. He grinned at G. “You gave the theater its slot.”
+
+“Because it earned it,” Mara said.
+
+“It needs it,” he corrected. The theater’s opening was Saturday; its old banner had a tear through the word *tonight*. “Put it first. The kids are already painting their faces.”
+
+Mara looked at the schedule. “First or last, the payment comes only after the job is done. We buy all the materials before we start.”
+
+The bell over the back door rang. Leni emerged from the bookkeeping nook holding the materials envelope and a yellow log. “I checked it again,” she said. “It’s sixty-six, Mara. Not eighty.”
+
+“The entry that made it eighty was an error, not cash.”
+
+Mara held still. No paper had been bought yet, and no press had turned; the correction was clean and brutal. No customer would pay until production ended, so their payments could not buy material for another job that afternoon. Her A-C-F-G line no longer existed in the real room.
+
+Ivo set the scarlet cloth on the cutting table. “Then keep G. Programs, tickets, banners: B, C, G. Sixty-four dollars and one hundred five minutes. We can do it.”
+
+Mara wrote it beneath the erased line: $240 in payments, minus $64 in materials, $176 before the operating expense. “It works,” she said. “But it isn’t the best.”
+
+Beneath it she wrote A, B, C, E—posters, programs, tickets, bookmarks. “Sixty-six dollars, one hundred minutes, $245 in payments. One hundred seventy-nine after materials; $144 for the repair.”
+
+“Three dollars,” Ivo said. “That’s what keeps a theater curtain from having a street outside it?”
+
+“Three dollars is what the people who ordered bookmarks are worth in this room,” Mara said, then regretted the hardness. “And it is three dollars we know we can put toward the belt.”
+
+“Jules said a donor might give a hundred tonight.”
+
+“Might is not a gift.”
+
+“Jules doesn’t make things up.”
+
+“No,” Mara said. “But neither does this press.” It clicked once in the quiet, as if it had been waiting.
+
+She wiped away F and G. The cloth made a soft throat-clearing sound as Ivo lifted it. “I’ll call the theater,” he said.
+
+“Tell them we cannot take work we cannot fund today,” Mara said. Then she softened. “Tell them I’m sorry.”
+
+He stood by the rain-striped window with the receiver to his ear. When he returned, his beard had stopped glittering. “They were quiet,” he said. He set the scarlet roll aside, then carried poster stock to the feed table without waiting to be asked.
+
+They ran A, B, C, and E in the color and smell of hot paper: broad blue posters, cleanly scored programs, numbered tickets snapping beneath the cutter, bookmarks sliding into a neat fan. Ivo did not speak much, but he caught the curl at each exit and stacked it square. The press used one hundred minutes; the spare twenty felt less like time than a door they were forbidden to open.
+
+At four forty-five, production was over. Only then did the customer payments arrive: $245. Mara recorded the $66 material cost and the $35 operating expense, then transferred $144 to the repair line. The telephone stayed silent. No donor called, and no gift or promise appeared.
+
+Ivo capped the marker and looked at the blank space where G had been. “Seventy-six left,” he said.
+
+Mara switched off the front sign. “Seventy-six we can name.”
+
+He carried the scarlet roll to the door and held it open for her.
+
+## THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+The fixed $35 operating expense is deducted after each order surplus. Under the original limits, A+C+F+G produces $294 − $80 = $214, then $179 for repairs. Under revised limits, A+B+C+E produces $245 − $66 = $179, then $144.
+
+A relevant feasible revised competitor is B+C+G: $64 materials, 105 minutes, $240 revenue, $176 order surplus, and $141 repair contribution—$3 below the revised maximum.
+
+## THE PUBLIC UPDATE
+
+Today’s completed work generates a confirmed $144 repair contribution, leaving a $76 gap toward the $220 repair bill. A donor may still give $100 tonight, but no gift or commitment has been received.

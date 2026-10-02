@@ -1,0 +1,83 @@
+# THE PRINT SHOP'S LAST RUN
+
+Mara had the numbers taped to the Heidelberg press by two in the afternoon, grease-penciled on a strip of masking tape because she didn't trust herself to remember them under pressure: eighty dollars, one-twenty minutes. The press ticked and hissed behind her, warming up, smelling like solvent and hot paper.
+
+Ivo came in with a roll of banner stock under his arm, the theater's logo already visible through the translucent paper. "Just do the banners first," he said. "Thirty bucks materials, fifty minutes, and they pay a hundred and twelve. Biggest order on the sheet."
+
+"Biggest payment isn't the same as biggest help," Mara said, not looking up from the clipboard. "I've got four other tickets sitting here that all need paper and ink before anybody sees a dime. Once I spend the eighty, it's gone till the customers pay — and they don't pay till the job's done."
+
+"So spend it on the job that pays the most."
+
+"It's not about which pays most. It's about what fits." She tapped the tape. "Eighty dollars. Hundred twenty minutes. Everything else is just numbers until it fits inside that box."
+
+She ran the combinations in the margin of a program flyer — posters, programs, tickets, postcards, bookmarks, menus, banners, maps — crossing out, circling, crossing out again. Ivo leaned over her shoulder, impatient, tapping the banner roll against his leg.
+
+"Posters, programs, tickets, and postcards," she finally said. "Eighty dollars exactly. Hundred fifteen minutes. No banners."
+
+"That's insane. The banners are for the opening tonight."
+
+"The banners are eighty-two dollars of help for thirty dollars and fifty minutes. The combination I picked gives me two hundred twelve dollars of help for the same eighty and fifteen fewer minutes. I'm not doing this to be stubborn, Ivo. I ran it four different ways. This is the best one."
+
+He didn't like it, but before he could argue further, her phone buzzed — a text from the shop's accountant. Mara read it twice, then set the phone face-down on the counter like it had bitten her.
+
+"Sixty-six," she said. "Not eighty. The float got pulled for the electric bill this morning and nobody told me."
+
+"So the plan changes."
+
+"The plan changes." She crossed out the whole margin and started over, jaw tight. Minutes stayed the same — a hundred twenty — but every dollar now mattered twice as much. She tried the banners again, out of fairness to Ivo, paired them with tickets and posters. It didn't come close. She tried programs, postcards, tickets — sixty-two dollars, ninety minutes — and the number that came back was the best she could find under the new ceiling.
+
+"Programs, postcards, tickets," she said. "No banners. Still no banners. I'm sorry."
+
+Ivo set the roll down on the counter, finally, defeated by arithmetic rather than by her. "The donor might cover the gap anyway. Delia said someone might give a hundred tonight."
+
+"Might," Mara said. "I'll believe it when it's in the account. Until then I'm running the numbers I actually have, not the ones somebody might hand me at intermission."
+
+She started loading the press with postcard stock, her hands quick and certain now that the decision was made. Ivo watched a moment longer, then picked the banner roll back up and set it on the shelf behind the counter instead of walking out with it — not asking again, but not leaving either.
+
+"After the rent's paid," Mara said, not turning around, "banners. I promise you that much."
+
+The press caught its rhythm, paper feeding through with a sound like a held breath let out slow. Outside, the afternoon light was already going long and amber across the shop window, and the tape on the press still read eighty and one-twenty, numbers that no longer meant anything, waiting for someone to peel them off.
+
+---
+
+# THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "B", "C", "D"],
+    "materials": 80,
+    "minutes": 115,
+    "revenue": 292,
+    "order_surplus": 212,
+    "repair_contribution": 177,
+    "shortfall": 43
+  },
+  "revised": {
+    "orders": ["B", "C", "D"],
+    "materials": 62,
+    "minutes": 90,
+    "revenue": 224,
+    "order_surplus": 184,
+    "repair_contribution": 149,
+    "shortfall": 71
+  },
+  "donation_confirmed": false
+}
+```
+
+**Explanation:**
+
+*Initial ($80/120 min):* A+B+C+D uses $18+24+10+28 = $80 materials and 25+40+15+35 = 115 minutes (both within limits). Revenue = 68+90+38+96 = $292; surplus = $292−$80 = $212. After the $35 operating expense: $212−35 = $177 contribution; shortfall = $220−177 = $43.
+Competing plan: A+C+E+G ($72 materials, 110 minutes) gives surplus $195 — feasible but $17 worse than the chosen plan, confirming A+B+C+D is better.
+
+*Revised ($66/120 min):* B+C+D uses $24+10+28 = $62 materials and 40+15+35 = 90 minutes. Revenue = 90+38+96 = $224; surplus = $224−$62 = $184. After expense: $184−35 = $149 contribution; shortfall = $220−149 = $71.
+Competing plan: B+D+E ($66 materials, 95 minutes) gives surplus $169 — feasible (uses the full $66 budget) but $15 worse than B+C+D, confirming the chosen plan.
+
+Banners (G) do not appear in either optimal plan — their $30 materials cost crowds out combinations of smaller, equally time-efficient orders that generate more total surplus per dollar of the scarce materials budget.
+
+---
+
+# THE PUBLIC UPDATE
+
+Update on the repair fund: this afternoon's print run contributed $149 toward our $220 goal, leaving a $71 gap. A reduced materials budget forced a smaller order mix than originally planned, and theater banners were not included this round. A possible $100 donation has been mentioned but is **not yet received or committed** — we're counting only confirmed funds. Thank you for your patience.
