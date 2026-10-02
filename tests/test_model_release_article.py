@@ -1,5 +1,6 @@
 """Meaningful publication and voice authorization boundaries, without live calls."""
 import argparse
+import base64
 import importlib.util
 import json
 import os
@@ -19,6 +20,31 @@ import model_experiment_views as views
 
 
 class PublicationTests(unittest.TestCase):
+    def test_same_url_revision_is_reconciled_without_starting_another_article(self):
+        with tempfile.TemporaryDirectory() as temporary, patch.object(af,"runs_root",return_value=Path(temporary)), \
+             patch.object(bridge,"CAMPAIGN",Path(temporary)/"campaign.json"):
+            child = Path(temporary)/"AF-child"
+            child.mkdir()
+            af.write_json(child/"run.json",{"run_id":"child","parent_run_id":"source",
+                "run_overrides":{"model_release":"model-release-v1","model_release_campaign_id":"campaign"}})
+            value={"articles":[],"pending_article":{"id":"campaign","run_id":"source","models":["m"]}}
+            bridge.reconcile_article_revision(af,value)
+            self.assertEqual(value["pending_article"]["run_id"],"child")
+            self.assertEqual(value["pending_article"]["replaces_run_id"],"source")
+            self.assertEqual(value["pending_article"]["models"],["m"])
+
+    def test_wsl_campaign_dispatch_keeps_arguments_literal(self):
+        with tempfile.TemporaryDirectory() as temporary, patch.object(af,"windows_user_root",return_value=Path(temporary)), \
+             patch.dict(os.environ,{"WSL_DISTRO_NAME":"Ubuntu"}):
+            launcher=Path(temporary)/"AppData/Local/Microsoft/WindowsApps/article-flow.cmd"
+            launcher.parent.mkdir(parents=True)
+            launcher.write_text("rem article-flow managed launcher",encoding="utf-8")
+            args=["model-release","status","--model","name';$(secret)","--json"]
+            command=af.wsl_model_release_command(args)
+            script=base64.b64decode(command[-1]).decode("utf-16-le")
+            self.assertIn("'name'';$(secret)'",script)
+            self.assertIsNone(af.wsl_model_release_command(["status"]))
+
     def test_controller_source_integrity_does_not_follow_publication_checkout(self):
         with patch.object(af,"publication_repo_root",return_value=Path("another-checkout")):
             self.assertEqual(af.source_bytes("scripts/model_experiment.py","worktree","source"),
@@ -130,6 +156,20 @@ class ApprovedVoiceTests(unittest.TestCase):
             bridge.captured_call(af.command_advance,argparse.Namespace(run_id=run["run_id"],max_steps=1,json=True))
         _,updated = af.load_run(run["run_id"])
         self.assertEqual(updated["state"],"VOICE_PROBE")
+
+    def test_revision_preserves_authorized_voice_and_campaign_scope(self):
+        directory,run=self.start_at_voice()
+        af.transition(directory,run,"COMPLETE","test","Fixture only; no publication")
+        af.write_json(directory/"package/public/metadata.json",{"slug":"model-release-experiment","date":"2026-10-02"})
+        request=directory/"request.txt"
+        request.write_text("Keep the introduction concise.",encoding="utf-8")
+        code,result=bridge.captured_call(af.command_revise,argparse.Namespace(source_run_id=run["run_id"],
+            request_file=str(request),draft_model=None,hold_before_publish=False,auto=False,json=True))
+        self.assertEqual(code,0)
+        _,revision=af.load_run(result["run_id"])
+        self.assertEqual(revision["run_overrides"]["model_release"],"model-release-v1")
+        self.assertIn("reuse_approved_voice",revision["run_overrides"])
+        self.assertEqual(revision["parent_run_id"],run["run_id"])
 
 
 if __name__ == "__main__":

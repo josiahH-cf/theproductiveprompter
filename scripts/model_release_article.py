@@ -69,13 +69,17 @@ def article_seed(models, initial=False):
     subject = "Introduce The Model Release Experiment as an ongoing section of my blog." if initial else (
         "Write the next article in The Model Release Experiment about these newly identified models.")
     return (
-        subject + "\nUse my existing approved author voice automatically. Write a short TLDR and a few clear paragraphs. "
+        subject + "\nUse my existing approved author voice automatically. Write a short TLDR and a few clear paragraphs, 300–650 words of prose. "
+        "This explicit compact form takes precedence over recent-post variety and recipe word-count defaults. "
+        "Open with my anecdotal feel for Claude and Codex and my reason for starting this repeatable experiment. "
         "Explain why I am running the same creative story plus checkable arithmetic challenge on successive model releases. "
         "This is an anecdotal field experiment with one original response per model/settings combination, not a universal ranking. "
         "Describe the frozen PRINT-SHOP CHALLENGE v1.0 and its story, order-selection arithmetic, changed budget, and unconfirmed donation. "
         "Preserve the 600–800 word story, JSON receipt, and at-most-80-word notice requirements. "
         "No diagrams are required. The readable model cards and linked run pages will be attached by the controller after publication. "
-        "For this article, the experiment has not yet run in this campaign. Do not invent findings, costs, usage, model availability, or a live results link. "
+        "Do not invent findings, costs, usage, model availability, or a live results link. "
+        "Explain the publication sequence briefly without global claims that results are absent; a results section will follow this introduction. "
+        "Keep engineering evidence in the linked runs. Omit hash strings and internal draft or verification notes from the public introduction. "
         "The results updater will then run missing trials and republish the backend section. "
         "Discuss separate native thinking and verbosity controls and the distinction between client settings and internal reasoning verification. "
         "Research direct official release and retirement sources; account access must remain an observation, not a documentation assumption. "
@@ -100,6 +104,27 @@ def require_verified_article(af, entry):
     if os.environ.get("ARTICLE_FLOW_TEST_NO_PUBLISH") == "1":
         raise m.ExperimentError("A simulated article cannot authorize live experiment publication.")
     return directory, run, receipt
+
+
+def reconcile_article_revision(af, value):
+    """Continue an explicitly created same-URL revision without creating another article."""
+    pending = value.get("pending_article")
+    entries = [pending] if pending else value["articles"]
+    runs = [af.load_json(path) for path in af.runs_root().glob("AF-*/run.json")]
+    for entry in entries:
+        if not entry or not entry.get("run_id"):
+            continue
+        children = [run for run in runs if run.get("parent_run_id") == entry["run_id"]
+                    and run.get("run_overrides", {}).get("model_release") == "model-release-v1"
+                    and run.get("run_overrides", {}).get("model_release_campaign_id") == entry["id"]]
+        if len(children) > 1:
+            raise m.ExperimentError("Conflicting article revisions need reconciliation.")
+        if children:
+            updated = {**entry, "run_id": children[0]["run_id"],
+                       "replaces_run_id": entry.get("replaces_run_id", entry["run_id"])}
+            value["pending_article"] = updated
+            m.atomic_json(CAMPAIGN, value)
+            return
 
 
 def result_section(registry):
@@ -143,13 +168,16 @@ def prepare_publication(af, value, repository, registry):
     article_url = value["articles"][0]["url"]
     files = site_bundle(m, registry, m.PACK, article_url)
     ownership = (value.get("publication") or {}).get("files", {})
+    approved_revisions = set()
     for entry in value["articles"]:
         directory, run, receipt = require_verified_article(af, entry)
         relative = receipt["url"].removeprefix(SITE + "/")
         path = m.safe_path(repository, relative)
         current = path.read_bytes()
+        packaged = directory / "package" / "site" / relative
+        if entry.get("replaces_run_id") and packaged.is_file() and packaged.read_bytes() == current:
+            approved_revisions.add(relative)
         if relative not in ownership:
-            packaged = directory / "package" / "site" / relative
             if not packaged.is_file() or m.sha(packaged.read_bytes()) != m.sha(current):
                 raise m.ExperimentError("The original article changed before its first results attachment.")
         files[relative] = augment_article(current.decode("utf-8"), result_section(registry)).encode()
@@ -159,7 +187,7 @@ def prepare_publication(af, value, repository, registry):
         if path.exists():
             digest = m.sha(path.read_bytes())
             expected = ownership.get(relative)
-            if expected is not None and digest != expected:
+            if expected is not None and digest != expected and relative not in approved_revisions:
                 raise m.ExperimentError("Published content has unowned changes: " + relative)
             if relative.startswith(PUBLIC + "/runs/") and digest != m.sha(content):
                 if relative.endswith('.html') and expected == digest:
@@ -275,6 +303,7 @@ def coordinate(af, args):
         if errors:
             af.emit({"ok": False, "action": "catalog_incomplete", "errors": errors}, args.json)
             return 10
+        reconcile_article_revision(af, value)
         if args.model:
             catalog = [r for r in catalog if r["model"] == args.model]
             if not catalog:
@@ -322,6 +351,8 @@ def coordinate(af, args):
                     return code
                 _, _, receipt = require_verified_article(af, entry)
                 entry["url"] = receipt["url"]
+                value["articles"] = [old for old in value["articles"]
+                                     if old["run_id"] != entry.get("replaces_run_id")]
                 value["articles"].append({k: v for k, v in entry.items() if k != "seed"})
                 value["pending_article"] = None
                 m.atomic_json(CAMPAIGN, value)

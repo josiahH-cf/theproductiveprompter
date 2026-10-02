@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import contextlib
 import datetime as dt
 import difflib
@@ -6186,6 +6187,9 @@ def command_revise(args: argparse.Namespace) -> int:
         draft_model=getattr(args, "draft_model", None),
         auto=False,
         hold_before_publish=bool(getattr(args, "hold_before_publish", False)),
+        model_release=source_run.get("run_overrides", {}).get("model_release") == "model-release-v1",
+        approved_voice=bool(source_run.get("run_overrides", {}).get("reuse_approved_voice")),
+        model_release_campaign_id=source_run.get("run_overrides", {}).get("model_release_campaign_id"),
         json=True,
     )
     code, created = _silent_command(command_start, start_args)
@@ -11047,6 +11051,27 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def wsl_model_release_command(argv: Sequence[str]) -> list[str] | None:
+    # The campaign uses the authenticated Windows CLIs and one durable history.
+    if not os.environ.get("WSL_DISTRO_NAME") or not argv or argv[0] != "model-release":
+        return None
+    user_root = windows_user_root()
+    launcher = user_root / "AppData/Local/Microsoft/WindowsApps/article-flow.cmd" if user_root else None
+    if not launcher or not launcher.is_file() or "article-flow managed launcher" not in launcher.read_text(encoding="utf-8"):
+        raise FlowError("The shared model-release campaign requires its managed Windows launcher", EXIT_USAGE)
+    arguments = list(argv)
+    for index, argument in enumerate(arguments[:-1]):
+        if argument == "--seed-file":
+            arguments[index + 1] = subprocess.run(
+                ["wslpath", "-w", str(Path(arguments[index + 1]).expanduser().resolve())],
+                check=True, capture_output=True, text=True).stdout.strip()
+    literal = lambda value: "'" + value.replace("'", "''") + "'"
+    script = "$ErrorActionPreference='Stop'; & " + literal(windows_path(launcher)) + " @(" + ",".join(
+        literal(value) for value in arguments) + "); exit $LASTEXITCODE"
+    encoded = base64.b64encode(script.encode("utf-16-le")).decode("ascii")
+    return ["powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded]
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -11069,6 +11094,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "capture":
             return command_start(args)
         if args.command == "model-release":
+            native = wsl_model_release_command(list(argv) if argv is not None else sys.argv[1:])
+            if native:
+                return subprocess.run(native).returncode
             sys.path.insert(0, str(REPO_ROOT / "scripts"))
             from model_release_article import coordinate
             try:
