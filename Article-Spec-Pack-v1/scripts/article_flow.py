@@ -266,9 +266,24 @@ def safe_relative(value: str) -> Path:
 
 def git(args: Sequence[str], *, cwd: Path | None = None, check: bool = True, binary: bool = False) -> bytes | str:
     cwd = cwd or REPO_ROOT
+    command = ["git", "-C", str(cwd), *args]
+    git_file = cwd / ".git"
+    if os.environ.get("WSL_DISTRO_NAME") and git_file.is_file() and re.match(
+            r"gitdir: [A-Za-z]:[\\/]", git_file.read_text(encoding="utf-8").strip()):
+        native_git = shutil.which("git.exe")
+        if not native_git:
+            raise FlowError("This Windows-created worktree requires Windows Git from WSL", EXIT_USAGE)
+        converted = []
+        for argument in args:
+            if argument.startswith("/mnt/"):
+                argument = windows_path(Path(argument))
+            elif argument.startswith("--pathspec-from-file=/mnt/"):
+                argument = "--pathspec-from-file=" + windows_path(Path(argument.split("=", 1)[1]))
+            converted.append(argument)
+        command = [native_git, "-C", windows_path(cwd), *converted]
     try:
         result = subprocess.run(
-            ["git", "-C", str(cwd), *args],
+            command,
             check=check,
             capture_output=True,
             text=not binary,

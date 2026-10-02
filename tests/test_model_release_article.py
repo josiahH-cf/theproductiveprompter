@@ -45,6 +45,15 @@ class PublicationTests(unittest.TestCase):
             self.assertIn("'name'';$(secret)'",script)
             self.assertIsNone(af.wsl_model_release_command(["status"]))
 
+    def test_wsl_reads_windows_worktree_with_native_git(self):
+        with tempfile.TemporaryDirectory() as temporary, patch.dict(os.environ,{"WSL_DISTRO_NAME":"Ubuntu"}), \
+             patch.object(af.shutil,"which",return_value="git.exe"), patch.object(af.subprocess,"run") as invoke:
+            root=Path(temporary)
+            (root/".git").write_text("gitdir: C:/repo/.git/worktrees/feature",encoding="utf-8")
+            invoke.return_value.stdout="commit\n"
+            self.assertEqual(af.git(["rev-parse","HEAD"],cwd=root),"commit\n")
+            self.assertEqual(invoke.call_args.args[0][0],"git.exe")
+
     def test_controller_source_integrity_does_not_follow_publication_checkout(self):
         with patch.object(af,"publication_repo_root",return_value=Path("another-checkout")):
             self.assertEqual(af.source_bytes("scripts/model_experiment.py","worktree","source"),
