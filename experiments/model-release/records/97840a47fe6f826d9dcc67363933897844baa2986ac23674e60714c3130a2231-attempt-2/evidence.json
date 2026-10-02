@@ -1,0 +1,113 @@
+{
+  "key": "97840a47fe6f826d9dcc67363933897844baa2986ac23674e60714c3130a2231-attempt-2",
+  "provider": "claude",
+  "model": "claude-fable-5-1",
+  "attempt": 2,
+  "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+  "started_at": "2026-10-02T13:11:22+00:00",
+  "settings": {
+    "effort": "medium",
+    "isolation": "safe mode; no built-in tools, skills, or MCP"
+  },
+  "client_version": "2.1.263 (Claude Code)",
+  "actual_model": "claude-fable-5-1",
+  "usage": {
+    "aggregate": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 5212,
+      "cache_read_input_tokens": 0,
+      "output_tokens": 4914,
+      "output_tokens_details": {
+        "thinking_tokens": 2657
+      },
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 5212,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "not_available",
+      "iterations": [
+        {
+          "input_tokens": 2,
+          "output_tokens": 4914,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 5212,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 5212
+          },
+          "type": "message",
+          "model": null
+        }
+      ],
+      "speed": "standard"
+    },
+    "by_model": {
+      "claude-haiku-4-5-20251001": {
+        "inputTokens": 1659,
+        "outputTokens": 16,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0,
+        "webSearchRequests": 0,
+        "costUSD": 0.001739,
+        "contextWindow": 200000,
+        "maxOutputTokens": 32000,
+        "thinkingTokens": 0,
+        "canonicalModel": "claude-haiku-4-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      },
+      "claude-fable-5-1": {
+        "inputTokens": 2,
+        "outputTokens": 4914,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 5212,
+        "webSearchRequests": 0,
+        "costUSD": 0.34996,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 64000,
+        "thinkingTokens": 2657,
+        "canonicalModel": "claude-fable-5-1",
+        "provider": "firstParty",
+        "costBasis": "list"
+      }
+    }
+  },
+  "client_cost_estimate_usd": 0.351699,
+  "tool_used": false,
+  "failed": false,
+  "status": "response captured",
+  "exit_code": 0,
+  "ended_at": "2026-10-02T13:12:29+00:00",
+  "elapsed_seconds": 66.969,
+  "cash_charge_usd": null,
+  "validation": {
+    "validator_version": "1.0",
+    "receipt_checks": {
+      "initial.orders": "pass",
+      "initial.materials": "pass",
+      "initial.minutes": "pass",
+      "initial.revenue": "pass",
+      "initial.order_surplus": "pass",
+      "initial.repair_contribution": "pass",
+      "initial.shortfall": "pass",
+      "revised.orders": "pass",
+      "revised.materials": "pass",
+      "revised.minutes": "pass",
+      "revised.revenue": "pass",
+      "revised.order_surplus": "pass",
+      "revised.repair_contribution": "pass",
+      "revised.shortfall": "pass",
+      "donation_confirmed": "pass"
+    },
+    "receipt_passed": true,
+    "story_consistency": "not assessed",
+    "literary_quality": "not assessed",
+    "word_limits": "not assessed"
+  },
+  "identity_evidence": "provider response"
+}

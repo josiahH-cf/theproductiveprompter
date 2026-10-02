@@ -19,3 +19,11 @@ The independent checker enumerates all 256 order subsets and checks receipt arit
 The preview contains only the title and provider groups; technical details appear when a model is expanded. Ordering uses sourced release dates, with explicitly labeled first-seen fallback for unknown dates. `release-dates.json` can supply dated official sources for new releases. Website publication is a separate release step described in `runner-prompt.txt`; generation does not establish live publication.
 
 Validation: `python -m unittest discover -s tests -p test_model_experiment.py -v`.
+
+## Initial completed run
+
+All 9 discovered model versions now have a captured response: 5 Codex and 4 Claude. The 4 initial Claude authentication errors remain preserved as earlier attempts. No model entries or actual responses are missing from the current client catalogs.
+
+7 responses passed the independent receipt checker and 2 failed it. Passed: gpt-6-astra, gpt-5.6-terra, gpt-5.5, claude-opus-5, claude-fable-5-1, claude-sonnet-5, claude-haiku-4-5-20251001. Failed: gpt-5.6-sol, gpt-5.6-luna. All responses remain unedited. Story consistency, literary quality, and word limits remain unassessed.
+
+Claude's per-model usage reports also contain an auxiliary Haiku entry in some runs. Both aggregate and per-model fields are preserved; the CLI does not expose that entry's purpose. Client contexts and usage semantics differ, so reported totals describe the recorded CLI execution. Thinking tokens are not added again to output totals. Dollar figures from Claude are client estimates; a cash charge is not verified.

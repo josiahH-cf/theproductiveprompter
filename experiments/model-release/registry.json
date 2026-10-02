@@ -301,6 +301,58 @@
         "records/62d95531b86e7295f64558c6b6f4c982bebe85f3dde198cae79045d7b8bbd1e2/response.txt": "2d2ff3671030ded95b7109c06ca665afd08226952594b17d4d5216b089586a67",
         "records/62d95531b86e7295f64558c6b6f4c982bebe85f3dde198cae79045d7b8bbd1e2/evidence.json": "f7208903e2635e272346fbe5de1af3dbd8e83f35959681d7e6db4c78018a05b6"
       }
+    },
+    {
+      "key": "2bf1a5e4bacc116fec75e01eb80d1f38c774e16a671ec9e1ef4a23ba81f3b09a-attempt-2",
+      "provider": "claude",
+      "model": "claude-opus-5",
+      "attempt": 2,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T13:09:34+00:00",
+      "artifacts": {
+        "records/2bf1a5e4bacc116fec75e01eb80d1f38c774e16a671ec9e1ef4a23ba81f3b09a-attempt-2/response.txt": "29eb526898280c10bb78ebcce10d1563fb91810b87a9be79734af604431c46d2",
+        "records/2bf1a5e4bacc116fec75e01eb80d1f38c774e16a671ec9e1ef4a23ba81f3b09a-attempt-2/evidence.json": "41ad4fb5b823d30b18d13f4ed99ab853f519010ed70e8775e13540b234a26ba0"
+      }
+    },
+    {
+      "key": "97840a47fe6f826d9dcc67363933897844baa2986ac23674e60714c3130a2231-attempt-2",
+      "provider": "claude",
+      "model": "claude-fable-5-1",
+      "attempt": 2,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T13:11:22+00:00",
+      "artifacts": {
+        "records/97840a47fe6f826d9dcc67363933897844baa2986ac23674e60714c3130a2231-attempt-2/response.txt": "98ddbbd85ef404e8eaf67b959739353c0ff39b2a0bf660e4ec90dcd8702917f4",
+        "records/97840a47fe6f826d9dcc67363933897844baa2986ac23674e60714c3130a2231-attempt-2/evidence.json": "a54204683e39613ea48efc73df36888542cce712a89e0ad6372fede927e52168"
+      }
+    },
+    {
+      "key": "4e574925c139c955f247cf1e06acd62a737d6e4a0abed46ae1420e628c5cd9df-attempt-2",
+      "provider": "claude",
+      "model": "claude-sonnet-5",
+      "attempt": 2,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T13:12:29+00:00",
+      "artifacts": {
+        "records/4e574925c139c955f247cf1e06acd62a737d6e4a0abed46ae1420e628c5cd9df-attempt-2/response.txt": "5cba22476e20c5309b21b9ba9f6375944d5008d23c986992e5cd7c39ac940609",
+        "records/4e574925c139c955f247cf1e06acd62a737d6e4a0abed46ae1420e628c5cd9df-attempt-2/evidence.json": "8f78df66c2f753ebfe387963a456e19624f43e2c84d1f4e35a0b9d58b6ebd1af"
+      }
+    },
+    {
+      "key": "62d95531b86e7295f64558c6b6f4c982bebe85f3dde198cae79045d7b8bbd1e2-attempt-2",
+      "provider": "claude",
+      "model": "claude-haiku-4-5-20251001",
+      "attempt": 2,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T13:13:53+00:00",
+      "artifacts": {
+        "records/62d95531b86e7295f64558c6b6f4c982bebe85f3dde198cae79045d7b8bbd1e2-attempt-2/response.txt": "830298a0a18b240e2848e8138d768de78f6bb4a95842ec6dab462b04731e99f6",
+        "records/62d95531b86e7295f64558c6b6f4c982bebe85f3dde198cae79045d7b8bbd1e2-attempt-2/evidence.json": "f23a0c354407ae352de6e28db76e5b0e0e2b111613913432e8d9d71720fcacf8"
+      }
     }
   ]
 }

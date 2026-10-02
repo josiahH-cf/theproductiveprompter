@@ -1,0 +1,95 @@
+# 1. THE STORY
+
+## Sixty-Six Dollars
+
+The shop smelled like warm toner and the lemon cleaner Mara used on the platen glass, and under that, faintly, the river. Four hours of daylight left. Tomorrow at nine the repair crew came for the duplicator's drive assembly, and they wanted $220 before they'd open the lid.
+
+Ivo arrived with the banner files on a thumb drive and rain in his eyebrows. "Fifty minutes on the press," he said. "Thirty dollars of vinyl. The theater pays one-twelve. That's the fattest job on the board, Mara."
+
+"It was." She had the board in front of her: eight jobs chalked in her small square handwriting, materials, minutes, payment. "This morning I had eighty dollars and two hours of machine time. Banners were in. Posters, menus, tickets, banners — eighty dollars exactly, a hundred and twenty minutes exactly. Two hundred fourteen in surplus. I was proud of it for about an hour."
+
+"So what changed?"
+
+"Fourteen dollars in the cash box isn't ours. It's the Nowaks' deposit on the wedding invitations. I counted it twice because I wanted it to be ours." She tapped the drawer. "Sixty-six. That's the materials float. And nobody pays us until the run's done, so I can't spend a customer's money to buy another customer's paper."
+
+Ivo set the thumb drive on the counter like a small flat stone. "Then drop the menus. Keep banners."
+
+"I did the arithmetic three ways." She turned the pad toward him. "Banners, programs, tickets fits — sixty-four in materials, a hundred five minutes. One hundred seventy-six surplus. Programs, posters, tickets, bookmarks fits too — sixty-six in materials, a hundred minutes, two hundred forty-five in payments. One hundred seventy-nine."
+
+"Three dollars." His laugh came out flat. "You're cutting the theater for three dollars."
+
+"I'm cutting the theater for three dollars and twenty minutes of press I'll want tomorrow." She rubbed her wrist, the one that ached in weather. "And the thirty dollars of vinyl is the problem, not the fifty minutes. Vinyl eats almost half the float and leaves me nothing to put behind it. Four small jobs beat one big one when the money is the wall."
+
+"The money is always the wall here. That's not news, that's the building." Ivo pushed off the counter and walked the length of the shop, past the drying rack where yesterday's recital programs hung in their rows, past the Risograph with its masking-tape label that said BE KIND. "Do you know what I told Teodora? I told her the banners were going up Friday. She's got a dress rehearsal and a bare lobby."
+
+"I know."
+
+"They've papered every one of our fundraisers. They let us use their lobby when the ceiling leaked."
+
+"I know that too." Mara's voice didn't rise, which was worse. "Ivo. If I run banners instead, the shop gives the repair fund a hundred forty-one dollars. If I run the four, it gives a hundred forty-four. Either way the thirty-five for electric and the dumpster comes off the top, and either way we don't reach two hundred twenty. So I'd like, please, to lose by three dollars less."
+
+He stopped at the window. Rain was braiding down it. Somewhere behind the drywall the sump pump kicked on.
+
+"Rosalie says a donor might send a hundred tonight," he said.
+
+"Might."
+
+"She sounded sure."
+
+"She sounded hopeful. Those sound identical through a phone." Mara pulled the first stack of cover stock and squared it on her hip, three sharp taps. "If it comes, it comes after I've already bought paper I can't unbuy. I can't print a maybe."
+
+Ivo stood there long enough for the pump to finish. Then he took off his jacket, hung it on the nail, and rolled his sleeves.
+
+"Programs first," he said. "Forty minutes is the long one. I'll feed."
+
+They worked. The press settled into its tick and sigh; Mara's hands got the gray film on them that never quite washed off; Ivo talked, then didn't, then started humming something from the theater's spring show, which Mara chose not to comment on. Programs, posters, tickets, bookmarks. A hundred minutes of machine time and sixty-six dollars turned into two hundred forty-five, and after materials and the thirty-five, a hundred forty-four dollars sat in the box in bills she'd smoothed flat.
+
+Seventy-six short. The phone did not ring.
+
+At six Ivo copied the banner files onto the shop's drive and labeled the folder NEXT WEEK, which was a kind of forgiveness and also a kind of invoice.
+
+"Teodora's going to ask me what happened," he said at the door.
+
+"Tell her sixty-six dollars happened." Mara switched off the overheads. "And that we're seventy-six out, and nobody's promised us anything yet. She'll understand that. Theater people can count."
+
+# 2. THE RECEIPT
+
+```json
+{
+  "donation_confirmed": false,
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  }
+}
+```
+
+**Per-order surplus (payment − materials):** A 50, B 66, C 28, D 68, E 35, F 54, G 82, H 42.
+
+**Initial plan (≤$80, ≤120 min):** A+C+F+G uses 18+10+22+30 = $80 and 25+15+30+50 = 120 min, both exactly at the limits. Revenue 68+38+76+112 = 294; surplus 214; minus $35 = **$179**; shortfall $41. No feasible set beats it: six orders are impossible (cheapest six cost $104), the only five-order set within $80 is A+C+E+F+H (surplus 209), and among sets containing G the best alternatives are G+D+F (204) and G+B+F (202); without G the best is D+B+A+C (212).
+
+**Revised plan (≤$66, ≤120 min):** A+B+C+E uses 18+24+10+14 = $66 and 25+40+15+20 = 100 min. Revenue 68+90+38+49 = 245; surplus 179; minus $35 = **$144**; shortfall $76. Five orders are impossible at $66 (cheapest five cost $80). Banners (G) consume $30 of a $66 float, capping any G plan at G+B+C: $64, 105 min, revenue 240, surplus 176, contribution $141, shortfall $79 — a feasible competing plan that is $3 worse. Other near-misses: G+F+E (surplus 171), D+B+E (169), A+C+F+H (174).
+
+The $80 and $66 floats are revolving materials money, not fundraising income, so only the post-expense surplus counts toward the $220. No donation was received, so nothing is credited.
+
+# 3. THE PUBLIC UPDATE
+
+**Print shop update.** Our final production run is finished. After materials and $35 in operating costs, the shop is contributing **$144** toward the $220 repair bill, leaving a gap of **$76**.
+
+A possible $100 gift was mentioned to us, but no donation or commitment has been received, so we are not counting it.
+
+Theater banners were declined this round; we'll print them once the press is repaired. Thank you for your orders today.
