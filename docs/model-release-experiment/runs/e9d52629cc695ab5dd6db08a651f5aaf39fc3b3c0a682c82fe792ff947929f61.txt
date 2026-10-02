@@ -1,0 +1,118 @@
+# Fourteen Dollars
+
+The cutter blade came down with its usual wet crunch, and Ivo said "banners" again, as if the word were a lever that would eventually move me.
+
+"I heard you."
+
+"You heard me at noon. You haven't *done* anything about it." Ivo had the theater's proof unrolled across the light table, its corners pinned with a stapler, a tape gun, and my cold coffee. GREAT EXPECTATIONS, crimson on cream, forty inches wide. "A hundred and twelve dollars."
+
+The board was a strip of cork by the door with eight order slips on it, A through H, and a ninth slip in red: the press repair, two hundred and twenty dollars, due by six. If the rollers didn't get rebuilt tonight, the technician would move on to Duluth in the morning, and we'd be hand-feeding the Heidelberg until spring.
+
+I had worked it out over lunch on the back of a misprinted flyer. There were eighty dollars of paper and ink money in the float tin and a hundred and twenty minutes before the rollers came off. Banners, posters, menus, tickets. Eighty dollars exactly, a hundred and twenty minutes exactly, tight as a drum. Two ninety-four coming in, two-fourteen over materials, minus the thirty-five for rent and power that comes out whether we print or not. That left one seventy-nine toward the repair. It was short, but the banners were in it, and Ivo had hugged me, smelling of rain and turpentine.
+
+Then Dell came back from the supplier with the float tin and a face.
+
+"They wouldn't release the card stock till we cleared last month's balance," Dell said. "Fourteen dollars. You've got sixty-six."
+
+Ivo looked at me. I looked at the flyer.
+
+You can't cut fourteen dollars out of a plan like that and keep the plan. Every line had been load-bearing. I sat on the paper crate and started over. Ivo stood over me, which I hate, and hummed, which is worse.
+
+"Drop the tickets," Ivo said. "Keep the banners."
+
+"Then I'm at seventy. Still over."
+
+"Drop the menus instead."
+
+"Then it's banners, posters, tickets, and eight dollars and thirty minutes sitting idle."
+
+It took twenty minutes and both sides of the flyer. The banners ate thirty dollars of a sixty-six-dollar budget and fifty minutes of press time, and whatever I fit around them came out a little worse. The best I could build with them was banners, programs, and tickets: sixty-four dollars, two-forty in payments, one seventy-six over materials. That meant one forty-one for the repair.
+
+Without them, I could run posters, programs, tickets, and bookmarks. That was sixty-six dollars to the penny, a hundred minutes of press time, two forty-five coming in, and one seventy-nine over. One forty-four for the repair.
+
+"Three dollars," Ivo said, reading upside down. "You're cutting the theater for three dollars."
+
+"I'm cutting the theater for the bigger number. That's the only rule I've got today."
+
+"They've used this shop for eleven years."
+
+"So has the library. So has the café whose menus I just dropped."
+
+Ivo went to the window. Rain was coming down the glass in ropes, pink from the laundromat's neon across the street. "Rosa from the board said a donor might give a hundred tonight. If that comes through, three dollars is nothing."
+
+"If it comes through, we're covered either way. If it doesn't, three dollars is three dollars closer. I can't print on *might*."
+
+We printed. The programs went first, forty minutes of the old press thumping like someone climbing stairs in boots. Ivo didn't leave. Without being asked, Ivo took the bookmarks to the cutter and squared each stack against the fence with the heel of a hand, harder than necessary. The posters came off warm and smelling of linseed. The tickets went last, perforated, a ribbon of little paper doors.
+
+By five-forty the customers had come and gone, their wet umbrellas dripping on the mat. I counted the money twice on the light table. Two hundred forty-five. Sixty-six went back into the float tin, because that money was never ours to raise. Thirty-five went into the rent envelope. One hundred forty-four was left.
+
+I wrote it on the red slip: *$144 toward the repair. $76 to go.*
+
+Ivo's phone lay face up on the counter the whole time. It never lit.
+
+"Rosa might still call," Ivo said.
+
+"Might."
+
+"I'm still angry about the banners."
+
+"I know."
+
+Ivo unrolled the proof once more. The crimson letters had blurred at one corner where my coffee had sweated through. Then Ivo rolled it tight and pinned it to the cork under the red slip, where I'd see it every time I opened the door.
+
+"First job when the rollers are fixed," Ivo said.
+
+"First job," I said. We sat in the pink window light, listening to the press tick as it cooled, beside a phone that stayed dark.
+
+---
+
+# The Receipt
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+**Per-order surplus (payment − materials):** A 50, B 66, C 28, D 68, E 35, F 54, G 82, H 42.
+
+**Initial plan ($80 / 120 min):**
+- A+C+F+G uses $18+10+22+30 = $80 and 25+15+30+50 = 120 minutes. Both limits are hit exactly.
+- Surplus is 50+28+54+82 = 214. After the $35 expense, the contribution is $179.
+- The best runner-up is A+B+C+D, with surplus 212 ($80, 115 min).
+
+**Revised plan ($66 / 120 min):**
+- A+B+C+E uses $18+24+10+14 = $66 and 100 minutes.
+- Surplus is 50+66+28+35 = 179. After the $35 expense, the contribution is $144.
+- Five orders can't fit: the five cheapest already cost $80.
+
+**Feasible competing plan (keeps the banners):** B+C+G.
+- Materials $64, 105 minutes, revenue $240.
+- Surplus 176, contribution $141, shortfall $79.
+- It is $3 worse than the chosen plan. It is also the best plan that includes G; the alternatives are A+G+H at 174 and A+E+G at 167.
+
+**Donor:** The possible $100 gift is unconfirmed, so it is excluded. It would close the gap under either plan ($144 + 100 ≥ 220, and $141 + 100 ≥ 220), but it was not received.
+
+---
+
+# The Public Update
+
+**Repair Fund Update:** This afternoon's print orders raised $144 toward our $220 press repair, after materials and a $35 operating cost. We are still $76 short. A donor was mentioned as possibly giving $100 tonight, but no gift or commitment has been received, so we are not counting it. Our materials budget dropped to $66 today, so we couldn't take the theater's banner order this time. Thank you to everyone who printed with us.

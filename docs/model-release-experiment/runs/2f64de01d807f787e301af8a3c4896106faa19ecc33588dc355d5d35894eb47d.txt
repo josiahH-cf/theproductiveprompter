@@ -1,0 +1,99 @@
+# The Last Run
+
+---
+
+The press room smelled of warm polymer and cutting solvent—twenty years of ink soaked into the walls. Mara stood at the layout table with a legal pad and a stubby pencil, working the numbers for the third time.
+
+She had $80 for materials and 120 minutes of machine time. The repair bill needed $220 in new money. She'd found a path: theater banners, posters, menus, tickets—orders G, A, F, and C. Exactly $80 in materials, exactly 120 minutes, $294 coming in when customers paid. Subtract costs and the $35 operating overhead and you had $179 toward the repair. Still $41 short, but $179 was the best the afternoon could yield.
+
+Ivo came in at quarter past two with a coffee from the cart down the block, that expectant look he got when he assumed things were already settled.
+
+Mara showed him the pad. He relaxed.
+
+"The banners," he said. "Good. The theater's been waiting three weeks."
+
+"Including them gives us the best margin," she said. "I went through every combination."
+
+Then her phone rang. Dani, the building bookkeeper, apologetic and quick: the co-op had pulled its contribution. Only $66 available for materials. Not $80.
+
+Mara said thank you and hung up.
+
+"What happened?" Ivo said.
+
+"Budget dropped." She drew a line through the plan and started again.
+
+Thirty dollars for the vinyl stock. Out of sixty-six. She worked it out: with the banners in, the best she could build was G, B, and C—$64 in materials, 105 minutes, profit of $176. Less the $35: contribution $141.
+
+Without the banners, she could run A, B, C, and E. Posters, programs, tickets, bookmarks. $66 in materials on the nose. 100 minutes. Payments of $245. Subtract $66, subtract $35: contribution $144.
+
+Three more dollars. The theater's banners didn't get made.
+
+"The banners have to come out," she said.
+
+Ivo set down his coffee. "Those are for opening night."
+
+"I know." She turned the pad toward him. "With sixty-six dollars, the banners get us a hundred and forty-one toward the repair. Without them, running these four—" she tapped the list—"we get a hundred and forty-four. Three dollars more."
+
+"Three dollars." His voice was flat.
+
+"Three dollars we don't have otherwise." She met his eyes. "The repair goal is two-twenty. We're already landing short either way. But I don't leave three dollars on the table."
+
+He went to the window and looked at the alley. The press idled in the back room, its low vibration patient and indifferent.
+
+"Someone told me a donor might give a hundred tonight," he said.
+
+"Might." She didn't look up from the pad. "Nothing confirmed."
+
+"If it came through—"
+
+"We'd still be seventy-six short. The gift and the shop's contribution together still don't cover it. There's no version where I plan around a *might*." She set down the pencil. "If we lose the press, nobody's banners get made. Not now, not ever."
+
+Ivo didn't answer. She walked to the back room and pulled the first materials: poster stock, program blanks, bookmark roll, ticket card. She heard him follow. He started laying materials alongside her without being asked, in the running order—posters first, then programs, tickets, bookmarks—his hands knowing the sequence from years of afternoons in this room.
+
+They worked through the afternoon without talking much. The press ran clean. By six o'clock the receivable tally read $245 against $66 in materials and the $35 overhead. Net: $144. Gap to the $220 goal: $76.
+
+Somewhere in the city, someone may have been thinking about writing a check. Mara didn't know. She sealed the completed orders into their envelopes, stacked them on the pickup shelf, and switched off the press.
+
+The room went quiet at 6:04.
+
+---
+
+## THE RECEIPT
+
+```json
+{
+  "donation_confirmed": false,
+  "initial": {
+    "orders": ["G", "A", "F", "C"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  }
+}
+```
+
+**Initial plan — why G+A+F+C:**
+Each order's net margin: G=82, A=50, F=54, C=28, D=68, B=66, H=42, E=35. The knapsack problem (mat ≤ $80, min ≤ 120) is solved by exhaustive search of candidate sets. G+A+F+C uses all $80 and all 120 minutes and yields order surplus 294−80=214, then 214−35=**179**. The runner-up is **A+B+C+D** (mat=80, min=115, revenue=292, surplus=212, contribution=177, shortfall=43)—two dollars less, no banners.
+
+**Revised plan — why A+B+C+E:**
+With mat ≤ $66, including G ($30) leaves only $36 for other orders. The best G-inclusive set is G+B+C (mat=64, min=105, surplus=176, contribution=141). Dropping G frees the full $66: A+B+C+E uses mat=18+24+10+14=66, min=25+40+15+20=100, revenue=68+90+38+49=245, surplus=179, contribution=**144**—three dollars more. The runner-up is **A+F+C+H** (mat=66, min=95, revenue=240, surplus=174, contribution=139, shortfall=81).
+
+---
+
+## THE PUBLIC UPDATE
+
+**Westside Community Print Shop — Repair Drive Update**
+
+This afternoon's production contributed **$144** toward our $220 press repair goal. The confirmed gap is **$76**. A community member has mentioned the possibility of a $100 gift this evening, but no donation has been received or committed. We will share any updates as they arrive. Thank you for your continued support.

@@ -1,0 +1,89 @@
+# THE STORY
+
+**The Last Run**
+
+The risograph smelled of warm soy ink and scorched dust, and by two o'clock the whole shop smelled like it. Mara had taped the repair bill to the paper cutter, where nobody could pretend not to see it. Two hundred twenty dollars in new money, due by morning.
+
+"Banners first," Ivo said, dragging the vinyl roll across the concrete. It squealed. "The Lantern is why half this neighborhood walks in here."
+
+"The Lantern pays $112 for those banners. I'm not arguing that." Mara didn't look up from the delivery slip she was using as scratch paper. "I'm arguing about what else the afternoon can hold."
+
+They had a plan, in her blocky pencil: posters, tickets, menus, banners. Eighty dollars of stock, all 120 minutes, $294 arriving only after the last sheet came off the machine. Subtract the $80, subtract the $35 the shop owed no matter what, and $179 went toward the bill. Forty-one short. Ivo had said they'd find forty-one. Mara had said nothing, which was how Ivo knew to worry.
+
+At 2:40 the phone buzzed against the light table. The bookkeeper. The account would release only $66 for materials. Not eighty. Sixty-six, and nothing bought yet.
+
+Mara read it twice, then turned the slip over.
+
+"Say it," Ivo said.
+
+"The plan doesn't fit." She tapped the pencil against her teeth. "Banners take thirty of the sixty-six. After that I'm choosing among scraps."
+
+She tried it both ways, murmuring numbers over the clatter of the drum warming up. Banners with programs and tickets: $64 of stock, 105 minutes, $240 coming in. That left $141 after everything. Then she tried it without banners: programs, posters, bookmarks, tickets. Exactly $66. A hundred minutes. $245 in, and $144 left after the fixed expense.
+
+"Three dollars," Ivo said, when she showed him. "You'd turn the theater away for three dollars."
+
+"Yes."
+
+"They trusted us with their opening."
+
+"And I'll tell them so myself." She kept her voice level. "We're seventy-six short on this plan and seventy-nine on yours. Neither one closes the gap. I'd rather be short by the smaller number with jobs I know will finish."
+
+Ivo stared at the vinyl as if it had betrayed him. "Pell said a donor might give a hundred tonight. That covers it. That covers more than it."
+
+"Might." Mara pulled a ream of cream stock from the shelf and slit the wrapping with her thumbnail. The paper smelled sweet and dry. "Nobody has called. Nobody has promised anything. And customers pay when they pick up, not before. I can't buy ink with a maybe."
+
+"That's not being careful. That's being small."
+
+It landed where he meant it to. Mara set the paper down, and for a moment the only sound was the machine ticking as it cooled and heated. "Maybe," she said. "But it's the only number I can stand behind."
+
+Ivo hauled the vinyl back to the storeroom harder than it needed. The door banged. Mara loaded the master for the programs, and the first sheet came out warm enough to hold against her cheek, ink still tacky, the title line crisp and black.
+
+She phoned the Lantern's stage manager between runs. There was a long exhale on the line. "Honestly? I figured," the stage manager said. "We'll try the copy place on Delmar. Thanks for telling me straight."
+
+By four, the posters were stacked in drying sleeves, tickets guillotined into a drift of tiny rectangles that stuck to her sweater. Ivo came out of the storeroom without being asked and took the cutter. He squared the bookmarks, tapped the edges flat, and fed them through. The blade came down with that clean thunk. Neither of them mentioned the vinyl.
+
+At 5:50 the last bookmark dropped off the drum. The motor wound down to a sigh, and the shop settled into the smell of hot paper and the sharp tang of the cleaning solvent. A hundred minutes of machine time, twenty left unused. Four orders done, boxed, labeled.
+
+The phone sat face up on the counter, dark. No call from Pell. No donor, no promise.
+
+Mara took the pencil and wrote on the repair bill: **$144.** Underneath it: **$76 to go.**
+
+Ivo read it over her shoulder. He didn't argue. He took the broom from its hook and began sweeping the paper dust and trimmed slivers toward the door, where the late light came in orange and the street was quiet.
+
+"Leave the phone," Mara said, when he reached for it. "If it rings, it rings."
+
+He leaned the broom against the cutter and stayed.
+
+# THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+**Initial (≤$80, ≤120 min).** A+C+F+G: materials 18+10+22+30 = 80; minutes 25+15+30+50 = 120; revenue 68+38+76+112 = 294; surplus 294−80 = 214; contribution 214−35 = 179; shortfall 41. Competing feasible plan: A+B+C+D uses $80 and 115 min, revenue 292, surplus 212, contribution 177, shortfall 43. I checked all subsets that fit both limits; none beats 214. The only five-order set that fits the budget (A,C,E,F,H) yields 209, and the one 218 candidate (B,C,G,H) needs 130 minutes.
+
+**Revised (≤$66, ≤120 min).** A+B+C+E: materials 18+24+10+14 = 66; minutes 25+40+15+20 = 100; revenue 68+90+38+49 = 245; surplus 245−66 = 179; contribution 179−35 = 144; shortfall 76. Competing feasible plan: B+C+G uses $64 and 105 min, revenue 240, surplus 176, contribution 141, shortfall 79. Another competitor, A+C+F+H, gives surplus 174. Banners (G) drop out because they use $30 of the reduced budget for a worse total.
+
+# THE PUBLIC UPDATE
+
+**Print-shop update:** After a materials budget cut to $66, we completed four orders: programs, posters, tickets and bookmarks. They bring $144 toward the $220 repair goal, after production and fixed costs. We are still $76 short. A donor may give $100 tonight, but no gift or commitment has been received, so we are not counting it. Thank you for your support.

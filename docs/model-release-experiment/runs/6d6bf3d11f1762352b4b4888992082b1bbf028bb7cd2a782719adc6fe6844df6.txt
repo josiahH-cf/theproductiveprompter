@@ -1,0 +1,103 @@
+# 1. THE STORY
+
+## The Last Afternoon
+
+Noon sun striped the worn linoleum floor of the community print shop, and the repairman's quote glared from the bulletin board: $220 more by close of business, or the 30-year-old Heidelberg press would stay silent.
+
+"The theater's banners have to come first." Ivo stood in the doorway, messenger bag still slung over one shoulder. He'd been volunteering here since the spring production, when the Ridgewood Players discovered they could get programs printed at cost. "The show opens Thursday. They're counting on us."
+
+"Everyone's counting on us." Mara flattened the order sheet with her palm. Eight orders, one afternoon, and exactly 120 minutes of machine time before the motor's bearings failed for good. "Eighty dollars in materials, and customer payments don't hit the drawer until I hand over finished work."
+
+She walked Ivo through the arithmetic aloud—materials costs, machine minutes, what each order would pay. The theater banners would bring in $112, but they needed $30 in vinyl and fifty minutes of press time. Profitable, yes. But the postcards, programs, posters, and tickets? Together they used every dollar of the materials budget and cleared $212 in gross surplus.
+
+"After thirty-five for electric and ink, that's one-seventy-seven toward the repair." She tapped the line. "Forty-three short. Still our best shot."
+
+Ivo frowned. "And the banners?"
+
+"Out." The word tasted like dust. The Ridgewood Players had brought sandwiches during last month's all-nighter. "If I swap postcards for banners, we drop below two hundred in surplus. We can't afford that."
+
+The argument died before it started. Ivo knew the math wasn't personal.
+
+Then Mara's phone buzzed. The paper supplier, apologetic: a billing delay meant her available credit had dropped from eighty to sixty-six dollars. The ink was prepaid, but there wasn't a cent more for materials today.
+
+She stared at the numbers. The neat four-order plan fell apart—postcards alone cost twenty-eight.
+
+Ivo leaned over her shoulder. "What now?"
+
+Mara rebuilt the puzzle. Programs, posters, tickets—those still fit. But to hit the materials ceiling exactly, she needed something light: bookmarks at fourteen, not postcards at twenty-eight. No room for banners either way.
+
+"Sixty-six spent," she muttered. "One hundred minutes of press time. Revenue two-forty-five." She subtracted, then subtracted again for operating costs. "Contribution drops to one-forty-four. Shortfall is seventy-six."
+
+Ivo exhaled slowly. Outside, a sparrow thudded against the window and recovered, wheeling back into the sky. "That's almost double what it was."
+
+"I know."
+
+He pulled out his phone. "There's a donor I was going to call. She mentioned she might give a hundred—"
+
+"Mentioned isn't a check." Mara shook her head. "I can't budget a maybe. If I leave slack hoping money appears, and it doesn't, we're worse off."
+
+For a long moment neither spoke. The Heidelberg's green housing caught the light, brass fittings dulled by decades of ink.
+
+"Run the four orders," Ivo said finally. "I'll call her tonight—after. No strings attached."
+
+"And the theater?"
+
+"I'll tell them we couldn't fit it. Maybe the frame shop on Elm will manage." He smiled, though it didn't reach his eyes. "Math is math."
+
+Mara nodded. She pulled paper stock from the shelf—bond for programs, cardstock for posters. At twelve-fifteen, the Heidelberg coughed to life, bearings grinding faintly, and the first run began.
+
+By four o'clock, the shop smelled of solvent and warm paper. Mara stacked the final bundle of bookmarks, slid a receipt into each envelope, and collected $245 from four customers. She deducted $66 for materials, then thirty-five for overhead. $144 went into the repair envelope.
+
+Ivo was sweeping when his phone lit up. He glanced at the screen, hesitated, then silenced it. "She says she's still thinking."
+
+"That's not a no."
+
+"It's also not a yes."
+
+Mara taped the envelope to the register. Tomorrow she'd visit the repair fund's treasurer, lay out the numbers, and ask for options. Seventy-six dollars remained to find—somehow.
+
+The Heidelberg sat silent now, patient, waiting.
+
+---
+
+# 2. THE RECEIPT
+
+```json
+{
+  "donation_confirmed": false,
+  "initial": {
+    "orders": ["A", "B", "C", "D"],
+    "materials": 80,
+    "minutes": 115,
+    "revenue": 292,
+    "order_surplus": 212,
+    "repair_contribution": 177,
+    "shortfall": 43
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  }
+}
+```
+
+**Explanation:**
+
+*Initial:* ABCD maximizes surplus at $212. Materials: 18+24+10+28=80. Minutes: 25+40+15+35=115. Revenue: 68+90+38+96=292. After $35 expense: 212−35=177. Shortfall: 220−177=43.
+
+*Revised:* With $66 materials, ABCE is optimal at surplus $179. Materials: 18+24+10+14=66. Minutes: 100. Revenue: 245. After expense: 144. Shortfall: 76.
+
+*Competing plan (revised):* G+B+C (theater banners included) uses $64 materials, 105 minutes, surplus=82+66+28=176—$3 worse than ABCE's 179. Theater banners cannot be included optimally under either budget.
+
+---
+
+# 3. THE PUBLIC UPDATE
+
+**Print Shop Repair Fund Update – October 2, 2026**
+
+Today's production contributed **$144** toward our Heidelberg repair. We still need **$76** to meet the deadline. A potential donor is considering support, but no gift has been confirmed or received. If you can help close the remaining gap, please contact us. Thank you to everyone who placed orders—your support keeps community printing alive.

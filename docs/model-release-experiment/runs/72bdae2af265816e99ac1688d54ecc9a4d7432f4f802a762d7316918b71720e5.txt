@@ -1,0 +1,139 @@
+1. THE STORY
+
+**What the Clock Would Print**
+
+By two o'clock, the community print shop smelled like warm toner, cut paper, and the lemon oil Mara used on the front counter when she wanted a room to believe it was cleaner than it was. The old press ticked to itself behind the glass partition, cooling from the morning's church bulletins. A strip of red tape marked the floor under the leaky ceiling vent. Tomorrow at nine, the repair crew would come; by then Mara had to put another $220 of new money toward the bill, or the landlord would change the lock and call the machinery "abandoned equipment."
+
+Ivo arrived with the theater banners rolled under one arm, even though they existed only as proofs. He was nineteen, all elbows and certainty, with a purple scarf looped twice around his neck despite the heat from the machines.
+
+"They open Friday," he said. "Mara, the banners have to go first."
+
+Mara had eight order slips spread on the guillotine table and a pencil behind her ear. "Everything has to go first. That's why paper invented numbers."
+
+"The theater brings people in," Ivo said. "Everyone sees the banners."
+
+"Everyone also sees locked doors."
+
+He looked hurt, which made her feel older than she wanted. The shop had raised half the block's events into visibility: lost-cat flyers, quinceanera invitations, strike placards, little league schedules, memorial programs. The theater kids had painted sets in the alley last summer and bought Mara coffee on long nights. She wanted to say yes because Ivo wanted it so purely.
+
+Instead she tapped the slips. "Customer payments don't arrive until after production. We can't use one job's payment to buy paper for another. We have eighty dollars for materials and two hours of machine time. That's the whole afternoon."
+
+Ivo leaned in. "So choose the banners."
+
+"The banners cost thirty dollars in material and fifty minutes. They pay one twelve. Good job, but not sacred."
+
+He winced at the word sacred. "You make it sound like we're selling bolts."
+
+Mara sorted the slips with stained fingers. "Posters: eighteen materials, twenty-five minutes, sixty-eight paid. Tickets: ten, fifteen, thirty-eight. Menus: twenty-two, thirty, seventy-six. Banners: thirty, fifty, one twelve." She wrote the letters in a column: A, C, F, G. "Those four use exactly eighty dollars and exactly one hundred twenty minutes. They bring in two hundred ninety-four. After materials, that's two hundred fourteen. Then the fixed operating expense takes thirty-five. One hundred seventy-nine toward the repair."
+
+Ivo's face opened. "So banners are in."
+
+"For now," Mara said, allowing herself one small smile. "Because the math lets them in."
+
+They shook hands on it like children inventing a country.
+
+Then the phone rang.
+
+Mara listened, pencil still in her hand. The woman from the co-op apologized three times. A promised cash box had been counted wrong; only sixty-six dollars was available for materials, not eighty. Machine time was unchanged. The clock over the door clicked once, firmly, as if it had been waiting to speak.
+
+When Mara hung up, Ivo already knew.
+
+"No," he said.
+
+"We haven't bought anything. We haven't started."
+
+"The banners are thirty. We still have sixty-six."
+
+"And not enough room for the best set."
+
+"Best for who?"
+
+"For the door." Mara's voice came out sharper than she meant. She softened it with breath. "For keeping the shop here."
+
+He snatched up the banner slip. "One hundred twelve dollars."
+
+"Minus thirty materials is eighty-two. Strong. But if we take programs, posters, tickets, and bookmarks, materials are sixty-six exactly. Minutes are one hundred. Customer payments total two forty-five. Surplus is one seventy-nine, then thirty-five operating expense leaves one forty-four for the repair."
+
+He blinked. "That's less than before."
+
+"Because we lost the float."
+
+"Then why not banners, programs, tickets?" he demanded, grabbing for the pencil. "Thirty plus twenty-four plus ten is sixty-four. Fifty plus forty plus fifteen is one hundred five. They pay two forty."
+
+Mara let him do it. His arithmetic had anger in it, heavy dark lines. "Two forty minus sixty-four is one seventy-six. After the expense, one forty-one. Three dollars less."
+
+"Three dollars." He laughed once, not happily. "You're cutting the theater for three dollars."
+
+"I am choosing the plan with three more confirmed dollars."
+
+Outside, a bus sighed at the curb. A boy pressed his nose to the window to look at the paper snowflakes taped there last winter and never taken down.
+
+Ivo said, "Someone told me a donor might give a hundred tonight."
+
+"Might is not a drawer I can open."
+
+"He usually comes through."
+
+"Has he committed?"
+
+Ivo looked at the floor.
+
+"Has anyone received it?"
+
+"No."
+
+Mara nodded. "Then it isn't in the shop."
+
+For a while they stood with the orders between them: the theater banners bright in Ivo's mind, the repair invoice bright in hers. The copier's plastic casing clicked as it cooled. Somewhere in the back, water ticked into a bucket under the vent.
+
+Finally Ivo folded the banner proof with more care than anger. "If I help with programs, will you call them first tomorrow?"
+
+"If we still have a tomorrow, yes."
+
+They worked without speeches. Mara loaded the poster stock, counted bookmark sheets twice, and trimmed tickets so their edges fell in neat pale curls. Ivo collated programs at the long table, jaw tight, then less tight, then simply tired. When the last bookmark came warm from the cutter, he held one up. It showed a child reading under a black oak tree.
+
+"Looks good," he said.
+
+"It does."
+
+At closing, Mara wrote the numbers on the chalkboard by the door: CONTRIBUTION CONFIRMED TODAY: $144. REMAINING REPAIR GAP: $76. DONOR: POSSIBLE, NOT CONFIRMED.
+
+Ivo stood beside her in the blue dusk of the shop. "People won't like seeing possible."
+
+"They know what possible means," Mara said, capping the chalk. "Tonight we tell them what is real."
+
+2. THE RECEIPT
+
+```json
+{
+  "donation_confirmed": false,
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  }
+}
+```
+
+Initial choice: A+C+F+G uses exactly `$80` and `120` minutes, with surplus `294 - 80 = 214`; after the fixed `$35` expense, contribution is `$179`.
+
+Revised choice: A+B+C+E uses exactly `$66` and `100` minutes, with surplus `245 - 66 = 179`; after `$35`, contribution is `$144`.
+
+One feasible competing revised plan is B+C+G: materials `$64`, minutes `105`, revenue `$240`, surplus `$176`, contribution `$141`, which is `$3` lower.
+
+3. THE PUBLIC UPDATE
+
+Today’s confirmed production adds `$144` toward the repair bill, leaving a `$76` gap. We heard that a donor might give `$100` tonight, but no gift or commitment has been received yet, so it is not counted in the repair total.

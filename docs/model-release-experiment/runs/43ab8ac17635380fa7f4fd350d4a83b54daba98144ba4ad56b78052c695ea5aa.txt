@@ -1,0 +1,123 @@
+# 1. THE STORY
+
+## Ink and Numbers
+
+The October light through the print shop's front window had turned the color of weak tea. Mara stood at the workbench, a calculator in one hand and a delivery receipt in the other, surrounded by the familiar smells of ink solvent and warm toner.
+
+"The banners," Ivo said for the third time. He'd arrived forty minutes ago with a thermos of coffee and a cause. "The community theater has been waiting two weeks. Patricia called me this morning—twice."
+
+"I heard you." Mara set down the receipt. The Heidelberg press behind her ticked as it cooled. "But we need two-twenty in new money by close of business tomorrow, or Darnell won't finish the repair. He's already given us an extension."
+
+"And Patricia's given us her patience."
+
+Mara pulled the order folder from beneath a stack of uncut cardstock. Eight pending jobs, each with its own envelope of specifications. She'd spent her lunch calculating the math: eighty dollars in materials budget, one hundred twenty minutes of machine time before the building's electrical inspection at six.
+
+"Look." She spread the sheets across the workbench. "Banners cost thirty in materials and fifty minutes on the press. They pay one-twelve. That's eighty-two dollars surplus."
+
+"Eighty-two sounds excellent."
+
+"It's not enough." She tapped the calculator. "If I run banners plus postcards plus menus, I max out materials at eighty. Surplus comes to two-oh-four. Minus the thirty-five operating expense, that's one-sixty-nine toward the repair. We're still short."
+
+Ivo picked up one of the order sheets—Programs for the historical society, typed on their old letterhead. "What's your actual best?"
+
+"Posters, programs, tickets, postcards. Uses exactly eighty in materials, one-fifteen minutes. Gives us two-twelve surplus, one-seventy-seven contribution. Still forty-three short, but closer." She met his eyes. "No banners."
+
+The fluorescent light above the press flickered. Ivo set down his thermos with more force than necessary. "Patricia's been a patron of this shop since your mother ran it."
+
+"I know."
+
+"She's bringing students to the matinee on Saturday. They've already sold tickets."
+
+"Ivo." Mara kept her voice level. "The machine won't run at all if Darnell doesn't fix it. Then no one gets anything."
+
+Her phone buzzed on the workbench. A text from her supplier: *Inventory correction. Your account shows $66 available, not $80. Sorry for the error.*
+
+The numbers she'd spent an hour assembling crumbled. Mara stared at the screen, then laughed—a short, humorless sound.
+
+"What?" Ivo leaned closer.
+
+"We just lost fourteen dollars of materials budget." She was already recalculating. The postcards order alone needed twenty-eight—more than she could combine with the others now. "Programs, posters, tickets, bookmarks. Sixty-six exactly. One-seventy-nine surplus, minus thirty-five—one-forty-four contribution."
+
+"That's seventy-six short of the repair."
+
+"I can count."
+
+The press ticked again. Outside, a truck downshifted on Maple, its engine note vibrating the old window glass. Mara thought about the summer her mother had taught her to run the first prints—the satisfaction of watching blank paper become something useful.
+
+"My cousin mentioned a donor," Ivo said. "Someone who might give a hundred tonight at the council meeting."
+
+"Might."
+
+"It's something."
+
+"It's a rumor." Mara began sorting the order sheets into two piles: possible and declined. "I can't buy ink with might. The contribution we can confirm is one-forty-four. The shortfall we can confirm is seventy-six. That's what I'm working with."
+
+Ivo watched her sort. The banners went into the declined pile, along with the postcards, menus, and maps. Four orders left: posters for the brewery, programs for the historical society, tickets for the fall raffle, bookmarks for the library gala.
+
+"Tell Patricia I'm sorry," Mara said.
+
+"Tell her yourself. She'll be at the council meeting."
+
+Mara loaded the first paper stock into the tray—cream-colored, 80-pound. The Heidelberg hummed to life, its mechanical rhythm filling the shop.
+
+"I'll tell her the truth," she said over the sound. "We're seventy-six dollars short, and we had to choose. Maybe next week, after the repair."
+
+Ivo didn't answer. He picked up his thermos and walked to the window, watching the street. The light had gone from weak tea to amber. In ninety minutes the inspection would come, the shop would close, and the numbers would be whatever the numbers were.
+
+The first poster emerged from the press, still warm. Mara checked the registration, the color density. Perfect. She loaded the next sheet.
+
+Behind her, Ivo sighed. "I'll stay," he said. "Help you finish."
+
+"You don't have to."
+
+"I know." He took off his jacket and hung it on the coat hook by the door. "But the library's expecting their bookmarks. And someone has to sweep up after."
+
+Mara nodded without looking up. The press kept running. Outside, the amber light finally faded to gray.
+
+---
+
+# 2. THE RECEIPT
+
+```json
+{
+  "donation_confirmed": false,
+  "initial": {
+    "orders": ["A", "B", "C", "D"],
+    "materials": 80,
+    "minutes": 115,
+    "revenue": 292,
+    "order_surplus": 212,
+    "repair_contribution": 177,
+    "shortfall": 43
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  }
+}
+```
+
+**Explanation:**
+
+*Initial ($80 materials, 120 min):* A+B+C+D uses exactly $80 materials and 115 minutes. Revenue $292 − $80 materials = $212 surplus. After $35 operating expense: $177 contribution.
+
+*Revised ($66 materials, 120 min):* D requires $28 materials alone, making A+B+C+D impossible ($80 > $66). A+B+C+E uses exactly $66 materials, 100 minutes. Revenue $245 − $66 = $179 surplus → $144 contribution.
+
+*Competing feasible plan (revised):* G+B+C (banners, programs, tickets) = $64 materials, 105 minutes, $176 surplus, $141 contribution. This is $3 worse than A+B+C+E and still excludes banners from the optimal choice.
+
+---
+
+# 3. THE PUBLIC UPDATE
+
+**Print Shop Repair Fund — October 2 Update**
+
+Today's confirmed production generated **$144** toward the $220 repair bill. We remain **$76 short** of the amount needed.
+
+A potential $100 donation has been mentioned but **not yet confirmed or received**. We will post an update if and when any gift is finalized.
+
+Thank you for your continued support.

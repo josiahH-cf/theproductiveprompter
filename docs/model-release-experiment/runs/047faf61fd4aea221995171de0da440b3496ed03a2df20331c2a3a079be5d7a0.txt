@@ -1,0 +1,124 @@
+# The Last Run
+
+By three o’clock, the print shop smelled of hot rubber, paper dust, and the coffee Mara had forgotten beside the cutter. Sunlight pressed through the front windows in pale rectangles, catching the loose scraps that skittered across the floor whenever the press exhaled.
+
+On the wall, beneath a crooked sign that said COMMUNITY PRINTING, Mara had written the repair figures in blue marker:
+
+**Repair bill: $220**  
+**Confirmed new money: none**
+
+“The theater is asking again,” Ivo said.
+
+He stood beside the counter with a roll of crimson fabric under one arm, though the shop did not print on fabric. The theater banners were his project. He had painted the first sketches himself: masks, stars, and the name of the old Rialto Theater in letters wide enough to read from the square.
+
+“They need the banners before tonight,” he said. “If we run them first, the opening still looks like an opening.”
+
+Mara kept sorting the order slips. “If we run them first, we may not have enough materials for the orders that actually pay.”
+
+“They pay the shop.”
+
+“After production.” She tapped the ledger. “Not before. Ink and stock have to leave this room before anyone hands us a dollar.”
+
+Ivo looked at the blue figures. “We have eighty dollars.”
+
+“We have eighty dollars to put into materials. And one hundred twenty minutes before the machine has to be opened for the repair inspection.”
+
+“The banners are fifty minutes.”
+
+“And thirty dollars.”
+
+“And one hundred twelve back.”
+
+“Eventually,” Mara said.
+
+He leaned closer to the slips. “Then take the banners and one other order.”
+
+Mara had already done the arithmetic three times. Her first plan was A, B, C, and D: posters, programs, tickets, and postcards. Together they needed all eighty dollars of available materials and one hundred fifteen machine minutes. They would bring in $292, leaving $212 after materials. Once the shop’s fixed $35 operating expense came out, $177 would count toward the repair. The shop would still be $43 short.
+
+It was not enough, but it was the strongest plan she could find.
+
+The banners were beautiful in Ivo’s sketches. They were also an expensive fifty minutes for $82 of surplus, and they crowded out combinations that earned more. Mara knew that saying this aloud would sound like she had put money above the theater.
+
+“I’m not choosing against the banners,” she said. “I’m choosing the plan that gets the shop closest to staying open.”
+
+Ivo’s mouth tightened. “That’s what people say when they mean the banners don’t matter.”
+
+The press gave a sudden metallic clack. Mara flinched and shut off the switch. For a moment, the shop was quiet except for the radiator ticking in the back room.
+
+Then she reached for the order slips. “Help me load the posters.”
+
+He did not move.
+
+At last he picked up the paper. “The theater will remember this.”
+
+“Maybe,” Mara said. “So will the people whose programs and tickets we print today.”
+
+They worked without speaking. The posters came first, their blue ink shining wet under the lamps. Programs followed, then tickets, then postcards. Ivo fed sheets into the press with careful, irritated precision. The machine’s rhythm gradually filled the room again: pull, kiss, release; pull, kiss, release.
+
+Near five, just as Mara stacked the postcards, a woman in a green coat called from the doorway. “Is it true someone might donate a hundred dollars tonight?”
+
+Ivo turned sharply. “Who said that?”
+
+“Someone at the bakery heard it.”
+
+Mara wiped ink from her thumb. “A possibility isn’t money.”
+
+The woman nodded apologetically and left.
+
+Before Mara could begin the final count, the phone rang. It was the repair company. They could come tomorrow morning, but only if the shop had the deposit ready. Mara wrote the amount on the ledger and stared at the neat rows of completed work.
+
+Then she noticed a fresh envelope on the counter: the theater’s revised order. The banners were no longer needed tonight. The opening committee had found old cloth signs in storage.
+
+Ivo read her face. “So we could have done them.”
+
+“We could have,” Mara said.
+
+He looked toward the press. “And you still wouldn’t have?”
+
+Mara thought of the $43 gap, the rumor with no name attached to it, and the machine’s tired clack. “Not with the numbers we had.”
+
+He was silent. Then he took the next stack of paper from her hands. “What’s left?”
+
+“Nothing confirmed.”
+
+“That’s not what I asked.”
+
+Mara looked at him. “Tomorrow, if we find the materials.”
+
+He nodded, not quite forgiving her, but no longer standing across the room from her either. Together they swept the paper dust into a small gray mound while the last light drained from the windows.
+
+The banners waited in his sketches. The repair bill waited in the ledger. And the rumored donor remained exactly what the donor had been all afternoon: a rumor.
+
+## The Receipt
+
+```json
+{
+  "initial": {
+    "orders": ["A", "B", "C", "D"],
+    "materials": 80,
+    "minutes": 115,
+    "revenue": 292,
+    "order_surplus": 212,
+    "repair_contribution": 177,
+    "shortfall": 43
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+The initial plan maximizes order surplus under the $80 materials and 120-minute limits: $292 revenue − $80 materials = $212; subtracting the fixed $35 expense gives a $177 repair contribution.
+
+With only $66 for materials, A+B+C+E uses exactly $66 and 100 minutes, producing $245 revenue and $179 order surplus; after the $35 expense, the contribution is $144. One feasible competing revised plan is C+F+G: it uses $62 and 95 minutes, earns $226, yields $164 order surplus, and contributes $129 after the expense.
+
+## The Public Update
+
+Confirmed repair contribution: $144. The remaining gap is $76 toward the $220 repair goal. A possible $100 donor was mentioned, but no gift or commitment has been received, so it is not included in the total.

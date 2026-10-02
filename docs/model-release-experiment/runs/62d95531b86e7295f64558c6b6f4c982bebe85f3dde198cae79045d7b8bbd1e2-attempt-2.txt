@@ -1,0 +1,95 @@
+# THE STORY
+
+**The Last Margin**
+
+The repair estimate sat on Mara's desk: $220. The shop's 1987 Heidelberg was leaking hydraulic fluid, and this afternoon was the final window to plan before the repair deadline. She'd done the mathematics that morning on her third coffee, with her notebook open and the morning light turning the numbers both concrete and abstract. Eighty dollars of materials. One hundred twenty minutes of machine time. The orders stacked in the intake folder like a puzzle someone had already solved.
+
+Theater banners. Neighborhood posters. Co-op programs. Community center tickets. She'd sketched it all carefully, calculating which to take and which to turn away. The banners would go—the theater was artists like her, running on donations and dreams.
+
+Ivo arrived at 2 p.m. for their volunteer shift.
+
+"You are doing the banners," they said. It wasn't quite a question. Ivo directed the theater's new season and had been counting on Mara. The banners were essential—the first visual announcement that fall was coming, that the season existed.
+
+"That was the plan," Mara said.
+
+But at 1 p.m., Marcus had called from the main office. The materials supplier was raising prices retroactively on all the big orders. The shop's materials float, which Mara had so carefully budgeted, was dropping by fourteen dollars. Eighty became sixty-six. This afternoon. Before she could purchase anything.
+
+Ivo was still standing by the paper cutter, still waiting for confirmation.
+
+Mara opened her notebook to a fresh page and began recalculating. She already knew what she would find. The banners were expensive: thirty dollars in materials, fifty minutes of machine time, an eighty-two-dollar profit margin. But they consumed too much of both constraints. If she did the banners, she couldn't afford the co-op programs. If she kept the programs, there was no room for the banners.
+
+She worked through the combinations methodically. Posters: eighteen materials, twenty-five minutes, fifty profit. Programs: twenty-four materials, forty minutes, sixty-six profit. Tickets: ten materials, fifteen minutes, twenty-eight profit. Bookmarks: fourteen materials, twenty minutes, thirty-five profit.
+
+Take those four. Exactly sixty-six dollars in materials. One hundred minutes used. Revenue of two hundred forty-five dollars. Profit of one hundred seventy-nine. After the thirty-five-dollar operating expense, her contribution to the repair would be one hundred forty-four dollars.
+
+The banners version, any way she calculated it, was worse.
+
+"What are you doing?" Ivo asked.
+
+"Redoing the math."
+
+"And?"
+
+Mara set down the pencil. "I can't do the banners. The constraint doesn't allow it."
+
+Ivo sat on the counter—a thing Mara normally asked them not to do—and was silent. Outside, a delivery truck parked across the street. The Heidelberg ticked as it cooled, the familiar sound of the machine settling into rest.
+
+"So what," Ivo said quietly. "The theater doesn't get them."
+
+"Not this time."
+
+"The season's announcement."
+
+"I know," Mara said. "But I can't plan for maybe-money. The donor hasn't committed. I need real numbers."
+
+Ivo understood. They ran the theater the same way—donated time, volunteer hours, margins so tight you had to calculate every choice. But understanding didn't erase the disappointment. Mara watched it settle on their face—not anger, which would have been easier to witness, but resignation.
+
+"I'll call them," Ivo said. "Tell them it's not possible this time."
+
+They left without looking back. Mara could still see the ink on their fingers.
+
+She worked through the evening, running each order through the machine. Posters first. Then programs. Tickets. Bookmarks. Smaller pieces, smaller margins, but they accumulated. By 6 p.m., when the day's revenue finally cleared the account, Mara tallied the numbers one more time. One hundred forty-four dollars toward the two-hundred-twenty repair bill.
+
+Seventy-six dollars short.
+
+She locked the shop and walked home, passing the dark theater on the way. Its marquee was blank. Someone would decide what came next, but not tonight.
+
+---
+
+# THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "F", "G", "C"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+**Explanation:** The initial plan (A + F + G + C) uses $80 materials and all 120 minutes, yielding $294 revenue and $179 repair contribution. When materials drop to $66, order G (theater banners: $30 materials, 50 minutes, $82 profit) becomes incompatible with other high-value orders. The revised plan A + B + C + E uses exactly $66 materials and 100 minutes, generating $245 revenue and $144 repair contribution—the maximum achievable under the constraint.
+
+**Competing feasible plan:** B + D + E (materials $66, minutes 95, profit $169, contribution $134) is suboptimal by $10 because it excludes the high-efficiency posters order (A: 2.0 profit per minute vs. D's 1.94).
+
+---
+
+# THE PUBLIC UPDATE
+
+**Print Shop Repair Update**
+
+Today's production raised $144 toward our $220 equipment repair goal. We remain $76 short. A potential $100 donor gift has not been confirmed. We're grateful for community support and will share updates as the situation develops. The repair is essential to continue serving our community.

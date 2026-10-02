@@ -1,0 +1,168 @@
+## 1. THE STORY
+
+### Twenty Minutes of Quiet
+
+At three o’clock, the cutter made a noise like a spoon caught in a drain.
+
+“Don’t,” Mara told it.
+
+The cutter stopped. Beyond the front window, afternoon sunlight illuminated the paper dust over the community print shop’s counter. Someone had taped a child’s drawing of the building to the glass. In the drawing, the shop had a chimney and smoke shaped like hearts.
+
+Ivo stood beneath it holding the theater’s banner proof.
+
+“They’ve already hung the ropes,” he said.
+
+Mara had eighty dollars for materials, two hours of machine time, and a repair deadline that evening. The repair company needed another $220. After today, without the repair, the shop would close.
+
+“The ropes don’t make it cheaper.”
+
+“It’s their first show since the flood.”
+
+She knew. Ivo had spent six Saturdays digging mud from the theater basement. He still wore the ruined shoes.
+
+Eight order slips lay on the counter. Mara moved them with a blunt pencil, adding figures on the backs of spoiled wedding invitations. Ivo kept the banner proof upright, as though it were a person waiting to be introduced.
+
+Finally she tapped four slips.
+
+“Posters. Tickets. Menus. Your banners.”
+
+His shoulders dropped.
+
+“Eighty in materials,” she said. “Every minute we’ve got. Two hundred ninety-four coming back. Less eighty, that’s two hundred fourteen. Then thirty-five to operate today. One hundred seventy-nine for the repair.”
+
+“Forty-one short.”
+
+“Yes.”
+
+“But the banners work.”
+
+“They work,” she agreed.
+
+For a moment, they were on the same side of the counter.
+
+Then Mara opened the cash tin.
+
+She counted twice, smoothing each bill against her apron. Under the tray lay a washer, three foreign coins, and the tiny brass key nobody could identify.
+
+“Sixty-six.”
+
+“You said eighty.”
+
+“I know what I said.”
+
+She checked the envelope where she had written the available float. Eighty, in her own handwriting. Inside was sixty-six. Whatever mistake she had made, the paper supplier would not accept her handwriting for the difference.
+
+Nothing had been purchased. Nothing had run.
+
+Ivo lowered the proof.
+
+“Keep the banners. Change the others.”
+
+Mara began again.
+
+The shop smelled of warm rubber and the orange Ivo had peeled over the wastebasket. Through the wall came the muffled thumping of someone upstairs practicing a dance.
+
+“With banners,” she said eventually, “the best we can do is banners, programs, tickets. Sixty-four in materials. One hundred seventy-six before operating.”
+
+“That sounds all right.”
+
+“Posters, programs, tickets, bookmarks gives us one hundred seventy-nine.”
+
+He stared at her.
+
+“Three dollars?”
+
+“Yes.”
+
+“You’re dropping the theater for three dollars?”
+
+She pressed the pencil so hard its point snapped.
+
+“I’m dropping the banners because we need seventy-six dollars even after taking the best work available. I can’t make the gap bigger because I like your people.”
+
+“They’re your people too.”
+
+That was the thing that hurt.
+
+Mara turned the banner proof toward herself. Ivo had drawn the lettering by hand before scanning it. The long tail of the final letter became a river.
+
+“They are,” she said.
+
+Neither spoke until the upstairs footsteps stopped.
+
+“Someone said a donor might give a hundred tonight,” Ivo offered.
+
+“Has anyone received it?”
+
+“No.”
+
+“Has anyone promised?”
+
+“No. Someone’s asking.”
+
+Mara set the proof on the shelf above the telephone, where it would stay clean.
+
+Ivo called the theater himself.
+
+Then he carried the accepted slips to the worktable.
+
+They bought sixty-six dollars of stock. The posters emerged first, damp-looking black against yellow. Programs followed, then tickets, then bookmarks with a crooked little owl that made Ivo smile despite himself.
+
+At a hundred machine minutes, Mara switched off the press.
+
+“We’ve got twenty left,” Ivo said.
+
+She nodded. Their materials money was spent. Payments would come after production ended; they could not turn those payments into another run.
+
+He swept while she collected the $245, restored the $66 float, and set aside the fixed $35 expense. She put the remaining $144 in the repair envelope and wrote **76 STILL NEEDED** beneath it.
+
+No donation had arrived. No commitment had come.
+
+At closing, Mara turned the sign around. Ivo reached past her to straighten the child’s drawing.
+
+“Leave that up,” he said.
+
+She did.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+The fixed $35 deduction makes maximizing order surplus equivalent to maximizing repair contribution. Checking the feasible subsets gives these maximum order surpluses:
+
+| Materials limit | Including G | Excluding G |
+|---|---:|---:|
+| $80 | $214 — A, C, F, G | $212 — A, B, C, D or A, B, F, H |
+| $66 | $176 — B, C, G | $179 — A, B, C, E |
+
+Initial contribution: $294 − $80 − $35 = **$179**.
+
+Revised contribution: $245 − $66 − $35 = **$144**.
+
+A feasible revised competitor is **B, C, G**: $64 materials, 105 minutes, and $240 revenue. Its contribution is $240 − $64 − $35 = **$141**, leaving a $79 shortfall—$3 worse than the selected plan.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s completed orders contributed **$144 toward the repair**, after materials and the fixed operating expense. **We still need $76** to meet the $220 goal. A possible $100 donation has been mentioned, but no gift or commitment has been received. The shop is closing pending repair; we cannot confirm a reopening date. Thank you to everyone who ordered, volunteered, and helped care for this space.

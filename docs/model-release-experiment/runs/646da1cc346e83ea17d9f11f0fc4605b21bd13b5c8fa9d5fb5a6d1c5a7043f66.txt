@@ -1,0 +1,91 @@
+## 1. THE STORY
+
+**Sixty-Six Dollars**
+
+The press smelled like warm oil and paper dust, the way it always did by mid-afternoon, and Mara had the orders fanned across the counter like a losing hand of cards.
+
+"Banners first," Ivo said. He had the theater's mockup under his arm, crimson letters on cream. "Opening night's Friday. They're our biggest single payment — a hundred twelve dollars."
+
+"Biggest payment isn't biggest help." Mara tapped her pencil down the column she'd worked out that morning. "Banners cost thirty in materials and eat fifty minutes. The postcards, programs, posters, and tickets together pay three hundred twelve on eighty dollars of materials and a hundred fifteen minutes. That's two hundred twelve dollars of surplus. Your banners don't fit in that plan at all."
+
+Ivo set the mockup down carefully, like it might bruise. "The theater's been with us eight years."
+
+"And the repair bill is due tomorrow. Two-twenty, Ivo. After the thirty-five we owe for the afternoon's operating costs, the best plan leaves us forty-three short. Every weaker plan leaves us shorter." She didn't enjoy saying it. The banners were beautiful. The math didn't care.
+
+He might have kept arguing, but the phone rang. Mara listened, said "I understand" twice, and hung up with her jaw set.
+
+"The supply account," she said. "Dennis bounced part of the deposit. We've got sixty-six for materials, not eighty."
+
+Ivo laughed, one short, bitter note. "So the postcards —"
+
+"Don't fit anymore." She pulled a fresh sheet toward her and started over, pencil scratching while the afternoon light moved across the floor. The old plan needed eighty dollars; fourteen of it had just evaporated. She tried dropping the postcards and keeping the big orders — banners, programs, tickets came to sixty-four dollars and a hundred five minutes, a hundred seventy-six in surplus. Ivo, reading over her shoulder, actually brightened.
+
+"There. Banners are back in."
+
+"Hold on." She ran one more line. Programs, posters, tickets, bookmarks: sixty-six dollars exactly, a hundred minutes, and the surplus came to one seventy-nine. Three dollars better than the banner plan, and twenty minutes of machine time to spare if anything jammed.
+
+Ivo stared at the figures. "Three dollars. You're cutting the theater for three dollars."
+
+"I'm cutting the theater because sixty-six dollars has to do the work of eighty, and this is the most it can do." She turned the sheet toward him. "Check it yourself. I'd rather be wrong."
+
+He checked it. She watched him want to find an error and not find one. Outside, a delivery truck downshifted on the hill, and the window glass hummed.
+
+"Rosa Delgado said she might bring a hundred tonight," he said finally. "From the theater board. If that comes in —"
+
+"If it comes in, I'll hug her. We don't buy paper with *might*." Mara was already pulling the program stock off the shelf, the heavy cream sheets cool under her fingers. "What I can do is this: bookmarks finish in twenty minutes. If Rosa walks through that door with cash before the machine's free, we run your banners with the time we have left. Her money buys the materials. That's the only version where it works."
+
+Ivo was quiet for a long moment. Then he picked up the ticket stock and carried it to the feed tray himself. "Posters first or programs?"
+
+"Posters. Shortest setup."
+
+They worked through the afternoon without much talking, the press thumping its steady heartbeat, posters stacking up in blue-black rows, then programs, then tickets, then bookmarks with their deckled edges that Ivo trimmed by hand because the cutter blade was dull. By six the machine had run a hundred minutes and the counter held four finished orders, bundled and labeled.
+
+Rosa did not come.
+
+Mara totaled it under the desk lamp: two hundred forty-five in payments due, sixty-six spent, thirty-five for the afternoon's costs. A hundred forty-four toward the repair. Seventy-six short, written in her own square handwriting at the bottom of the sheet.
+
+Ivo stood at the door with the banner mockup rolled under his arm. "Monday," he said. "After the repair guy's paid what we've got. Banners Monday?"
+
+"Banners Monday. First run." She held the door for him. "Tell the theater I'm sorry."
+
+"Tell them yourself Friday," he said. "You're coming to opening night. You can see the empty space where the banners should be."
+
+She laughed, and locked up, and left the shortfall sitting on the counter where tomorrow could find it.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "B", "C", "D"],
+    "materials": 80,
+    "minutes": 115,
+    "revenue": 312,
+    "order_surplus": 212,
+    "repair_contribution": 177,
+    "shortfall": 43
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+**Explanation.** Per-order surplus (payment − materials): A=50, B=66, C=28, D=68, E=35, F=54, G=82, H=42.
+
+- **Initial ($80, 120 min):** A+B+C+D uses exactly $80 and 115 minutes for a surplus of 212. Adding G to any high-surplus trio breaks the materials cap (e.g., B+D+G = $82). Contribution = 212 − 35 = 177; shortfall = 43.
+- **Revised ($66, 120 min):** A+B+C+E uses exactly $66 and 100 minutes, surplus 179. Contribution = 179 − 35 = 144; shortfall = 76.
+- **Competing feasible plan (revised):** B+C+G = $64 materials, 105 minutes, surplus 66+28+82 = 176 — feasible but $3 worse, which is why the banners are dropped.
+
+The $80 float and the possible donation are not income; only order surplus minus the $35 operating expense counts.
+
+## 3. THE PUBLIC UPDATE
+
+**Print Shop repair fund — status.** This afternoon's production run (posters, programs, tickets, bookmarks) earned a confirmed $144 toward our $220 repair bill after materials and operating costs. That leaves a $76 gap before tomorrow's deadline. A supporter has mentioned a possible $100 gift, but no donation has been received or pledged, so we are not counting it. Any contribution tonight or early tomorrow closes the gap. Thank you for keeping the presses running.

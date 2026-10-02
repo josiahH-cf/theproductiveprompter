@@ -1,0 +1,81 @@
+## 1. THE STORY
+
+**Contribution Margin**
+
+The afternoon light came through the print shop's front window the color of weak tea, catching the dust above the old Heidelberg. Mara had the orders fanned out on the counter like a losing hand of cards, and Ivo stood across from her with ink on his thumb and the theater's banner mockup rolled under his arm.
+
+"They open Friday," he said. "Fifty minutes of machine time. That's all the banners need."
+
+"Fifty minutes and thirty dollars of vinyl," Mara said. "Look at what they pay against that. Posters, programs, tickets, postcards — that lineup spends my whole eighty, fits the machine with minutes to spare, and clears two-twelve before the fixed costs. The banners don't make the cut. They never made the cut, Ivo. I ran it twice."
+
+"You ran it like a spreadsheet."
+
+"The repair bill doesn't read stories." She tapped the yellow invoice taped to the register. Two hundred twenty dollars by tomorrow or the compressor stayed dead and the shop stayed dark. "Two-twelve minus the thirty-five we owe for the afternoon's operating costs leaves one seventy-seven toward it. Forty-three short, but short enough to beg for."
+
+Ivo set the mockup on the counter anyway. The sketch showed the theater's name in letters tall as a child. "The theater's been sending us work for nine years."
+
+"And they'll get paid Friday whether I print banners or bookmarks. Nobody pays until the work's done. I can't float what I don't have."
+
+That was when Dalia came out of the back room holding the cash box like it had bitten her. "Mara. The materials envelope. It's sixty-six."
+
+Mara counted it twice. Sixty-six dollars, soft worn bills, where eighty should have been. No note, no explanation that mattered now. The machine hummed its idle hum, indifferent.
+
+"Fourteen dollars," Ivo said quietly. "That changes things?"
+
+"It changes everything." She pulled the orders back toward her and started moving them like chess pieces. Postcards were her second-best earner, sixty-eight clear, but they wanted twenty-eight in card stock, and with sixty-six total the arithmetic snapped shut. Postcards out. She slid the bookmark order into the gap — fourteen in materials, thirty-five clear. "Posters, programs, tickets, bookmarks. Sixty-six exactly. A hundred minutes on the machine. One seventy-nine before expenses."
+
+"You have twenty minutes left over now," Ivo said, leaning in. "Put the banners back."
+
+"With what money? I have zero dollars left after those four. Zero. The vinyl costs thirty I don't have." She hated how flat her voice came out. "If I swap the banners in for anything, the numbers get worse, not better. I checked the banner lineups too — best one comes in three dollars behind. I'm sorry."
+
+Ivo looked at the mockup a long moment, then rolled it up slowly, the paper crackling. "Lena from the theater board said a donor might come through tonight. A hundred dollars."
+
+"Might," Mara said. "When it's in my hand, it's real. Until then I print what feeds the compressor."
+
+They worked without much talking after that. The machine's rollers took the poster stock with a wet slap, over and over, and the shop filled with the hot-solvent smell Mara had loved since she was nineteen. Ivo ran the ticket perforations himself, lining each sheet with a care that felt like an argument he was still having. Dalia stacked programs, squaring the edges with her palms. By six the bookmarks lay in bright ranks across the drying table, and the counter held the whole afternoon's output: two hundred forty-five dollars of promised payments, due when customers collected.
+
+Mara did the last subtraction on the back of the yellow invoice. Two-forty-five in, sixty-six out for materials, thirty-five for the afternoon's costs. One hundred forty-four toward two-twenty. Seventy-six dollars of daylight still showing.
+
+Ivo stopped at the door, banner mockup under his arm, and didn't leave. "If the donor's real," he said, "the gap closes. Mostly."
+
+"If," Mara said. But she wrote the number on the chalkboard by the window where the street could see it — $144 raised, $76 to go — and underneath, because Ivo was watching and because nine years counted for something even in arithmetic, she added: *Banners Monday. First job when the machine lives.*
+
+He nodded once, and the bell over the door rang him out into the evening, where the donor was still only a rumor, and the number on the board was the only thing that was true.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "B", "C", "D"],
+    "materials": 80,
+    "minutes": 115,
+    "revenue": 292,
+    "order_surplus": 212,
+    "repair_contribution": 177,
+    "shortfall": 43
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+**Explanation.** Per-order surplus (payment − materials): A=50, B=66, C=28, D=68, E=35, F=54, G=82, H=42.
+
+- **Initial (≤$80, ≤120 min):** A+B+C+D uses exactly $80 and 115 minutes, surplus 50+66+28+68 = 212. Contribution = 212 − 35 = 177; shortfall = 220 − 177 = 43. No feasible set beats 212 (e.g., the only affordable five-order set A+C+E+F+H yields 209).
+- **Revised (≤$66, ≤120 min):** D ($28) no longer fits with A+B+C ($52 base); swapping in E gives A+B+C+E at exactly $66 and 100 minutes, surplus 179. Contribution = 179 − 35 = 144; shortfall = 76.
+- **Feasible competing plan (revised):** G+B+C — materials $64, 105 minutes, revenue $240, surplus 176, contribution 141. Feasible, includes the banners, but $3 worse than the optimum.
+
+## 3. THE PUBLIC UPDATE
+
+**Print Shop Repair Fund — Update**
+
+Today's production run is complete. After materials and operating costs, the shop confirmed **$144** toward the $220 compressor repair due tomorrow, leaving a **$76 gap**. A supporter has mentioned a possible $100 donation tonight, but no gift or pledge has been received, so we are not counting it. Any contribution before tomorrow morning helps close the remaining $76 and keeps the presses running. Thank you for standing with the shop.

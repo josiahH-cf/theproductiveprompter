@@ -1,0 +1,95 @@
+# THE STORY
+
+**Sixty-Six Dollars**
+
+The shop smelled of warm toner and burnt coffee, the way it had for eleven years. On the last afternoon before the repair deadline, I wanted a window open more than I wanted anything.
+
+On the whiteboard, in green marker, I had written the plan: Banners, Posters, Tickets, Menus. A hundred and twenty minutes of machine time, eighty dollars of materials, and after the thirty-five the shop owed just for existing, a contribution of $179. That was short of the $220 the repair bill demanded, but near enough to look at.
+
+Then the phone buzzed. Dell at the paper supplier: the account was capped. Sixty-six dollars for materials, not eighty. Nothing else had changed.
+
+Ivo was already at the vinyl roll, thumbing its curled edge. "Sixty-six is still enough. Banners first. The theater opens Friday, Mara."
+
+"Banners eat thirty dollars and fifty minutes."
+
+"They pay a hundred and twelve."
+
+"I know what they pay." I wiped the green plan off with the heel of my hand, and it smeared to a pale ghost. "I'm redoing it."
+
+I did it on the back of a misprinted menu, pencil squeaking. Banners with menus broke the budget outright. Banners, programs and tickets fit: sixty-four dollars, a hundred and five minutes, $141 once the thirty-five came off. Then I tried the small jobs: posters, programs, tickets, bookmarks. Sixty-six dollars to the dollar. A hundred minutes. Two hundred forty-five in payments, a hundred seventy-nine over materials, a hundred forty-four after the thirty-five.
+
+I turned the menu around. "Three dollars."
+
+"Three dollars," Ivo said, as if I'd offered them a stale biscuit. "You're dropping the theater for three dollars."
+
+"I'm taking the plan that gets us closest."
+
+"Closest to what? Neither plan gets us there. We're seventy-some short either way, so why not be short alongside people who've bought from us for a decade?"
+
+That landed, and I let it. The theater had paid for our first laminator. Ivo had hand-stuffed their programs every season, humming the overtures wrong.
+
+"Because I don't get to spend the gap on loyalty," I said. "If the bank is a hair short Monday, I want to know I didn't choose that."
+
+Ivo set the vinyl down. The roll rocked once on the table and went still. The compressor ticked in the back.
+
+"Priya's cousin says a donor might give a hundred tonight," Ivo said finally. It sounded like a dare.
+
+"Might."
+
+"A hundred would nearly close it."
+
+"It would. It hasn't come. Nobody's called, nobody's promised. I won't buy paper against a might."
+
+Ivo looked at the ceiling, then at me. "I'll call the theater. If it comes from you they'll hear a no. From me they might hear a favor." A pause. "I'm still annoyed."
+
+"Noted."
+
+We worked. Ivo loaded cardstock for the bookmarks, jaw tight, and I fed the posters. They came out warm and curling, smelling of hot ink. Programs stacked in the tray in slow, even bricks. The ticket perforator zipped. Through the back wall I could hear Ivo on the phone, saying "no, really, it's the supplies" in a voice that was gentler than I'd earned.
+
+At ten past six the last bookmark dropped. Twenty minutes of machine time sat unused and the materials money was gone to the penny. Ivo ran a thumb down a bookmark and said, grudgingly, "These are good."
+
+I picked up the green marker and wrote: **144 in. 76 to go.** Ivo watched me draw the line under it.
+
+"Do I write the hundred?" I asked.
+
+"Write it small," Ivo said.
+
+I wrote: *donor: no call yet.* Then I set the phone face up on the counter, where we could both see it, and turned off the machines one by one.
+
+# THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+**Initial ($80, 120 min).** A+C+F+G uses 18+10+22+30 = $80 and 25+15+30+50 = 120 min. Net per order (payment − materials) is 50+28+54+82 = 214, and 214 − 35 = 179.
+- Competitor: B+D+A+C uses $80 and 115 min, with surplus 66+68+50+28 = 212 and contribution 177. It is feasible but $2 lower.
+
+**Revised ($66, 120 min).** A+B+C+E uses 18+24+10+14 = $66 and 25+40+15+20 = 100 min. Net is 50+66+28+35 = 179, and 179 − 35 = 144.
+- Competitor: B+C+G uses $64 and 105 min, with surplus 66+28+82 = 176 and contribution 141. It is feasible, includes the banners, and is $3 lower.
+
+I checked the revised search by item count. No 5-order set fits $66, because the cheapest five cost $80. Every 4-order set with G exceeds the budget. The best 4-order set without G is A+B+C+E. The best set with G is 176 or lower.
+
+# THE PUBLIC UPDATE
+
+Print-shop update: after a materials cap cut our budget to $66, our best production plan contributes $144 toward the $220 repair bill, after expenses. That leaves a $76 gap. A possible $100 donor has been mentioned, but no gift or commitment has been received, so we are not counting it. Theater banners were declined. Thank you for your patience and support.

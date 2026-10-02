@@ -1,0 +1,89 @@
+# 1. THE STORY
+
+**The Last Afternoon on Carver Street**
+
+The press smelled like warm rubber and lemon cleaner, the way it always did on a Friday. Mara had the window propped open with a brick because the thermostat had died in August and nobody had the heart to fix it before the big thing — the roof, the compressor, the loan payment with teeth. Two hundred and twenty dollars by Monday morning. That was the number taped above the till in Ivo's slanted handwriting, under a smiley face that was starting to look sarcastic.
+
+Ivo came in through the back with a cardboard tube under his arm and a smear of blue paint on his jaw. "I brought the proof," he said. "Banners. Fifty minutes on the big press. I already told Delia we'd have them tonight."
+
+"You told her." Mara didn't look up. She was pencilling numbers on the back of a receipt — orders in one column, materials in another, machine minutes in a third. Posters. Programs. Tickets. Postcards. Bookmarks. Menus. Banners. Maps. Eight jobs, eighty dollars, two hours of press time, and a city's worth of small loyalties.
+
+"Mara."
+
+"I had the plan," she said. "Banners, bookmarks— no, tickets. Posters. Menus. It fit. Clean to the minute, clean to the dollar. One-seventy-nine clear after Harold's thirty-five for the lights. Still short of the loan, but closer than Thursday."
+
+He waited. He knew her math-voice.
+
+"Then Harold called from the credit union." She set the pencil down. "The hold on the account is tighter than I thought. I have sixty-six for materials. Not eighty."
+
+Ivo put the tube down carefully, like it might detonate. "So drop the posters."
+
+"Posters are the second-best margin on the board after your banners."
+
+"So drop a small one."
+
+"Ivo. The banners cost thirty in vinyl. If I buy that vinyl, I can't buy the paper for anything else that pays. Delia pays a hundred and twelve, which is lovely, but it eats a third of my budget and half the press."
+
+"She's a *friend* of the shop."
+
+"She's a client who pays Tuesday. I need cash Monday."
+
+He pulled the stool over and sat on it backward, chin on the backrest. Outside, a kid on a scooter rattled past the glass. Mara pushed the receipt across the counter.
+
+"Look. Without the banners I can run four jobs. Programs, posters, tickets, bookmarks. Sixty-six in paper, exactly. A hundred minutes on the press. Two-forty-five in payments. Minus the paper, minus Harold's thirty-five — one hundred forty-four toward the loan. Seventy-six short of two-twenty."
+
+"And with the banners?"
+
+"With the banners I can't afford the programs. Or the posters. Pick one. The arithmetic doesn't bend for anyone, you know that."
+
+Ivo's jaw worked. "Jim at the diner said he might kick in a hundred tonight."
+
+"*Might.*"
+
+"He said it twice."
+
+"He said it twice last spring for the window. I love him. I am not spending vinyl money on a sentence with the word *might* in it."
+
+They sat with that. The press ticked as the drum cooled from its warm-up cycle. Somewhere in the back the fluorescent was buzzing in the key of a wasp.
+
+"Delia'll be hurt," Ivo said finally, quiet.
+
+"Delia will be hurt on Tuesday instead of Monday. I'll call her myself. We'll run the banners first thing next week on new stock, no charge for the rush. She gets a better banner and we stay open to print it." Mara reached for the phone. "You cut the program covers while I call. Twenty-four dollars of cardstock, forty minutes. Then posters, then tickets, then the bookmarks for the library. In that order so the ink dries clean."
+
+Ivo didn't move for a second. Then he picked up the rotary blade and the ruler and went to the long table without saying anything, which was how she knew he was angry and also how she knew he'd do it right.
+
+She dialled Delia. The line rang twice. Through the window the afternoon had gone the color of weak tea, and the taped number above the till kept its arithmetic, patient as weather. One-forty-four, if everything ran. Seventy-six still to find, from somewhere that wasn't a maybe.
+
+# 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+**Explanation.** Initial: with $80/120 min, A+C+F+G uses exactly 80 materials and exactly 120 minutes; surplus 50+28+54+82 = 214; minus $35 op = 179. A competing plan G+B+F uses 76 materials and 120 minutes for surplus 202 — feasible but inferior by 12.
+
+Revised: with $66/120 min, G (30 mat) is too expensive to pair with the next-best mix. A+B+C+E uses exactly 66 materials and 100 minutes; surplus 50+66+28+35 = 179; minus $35 op = 144. A feasible competing plan is G+B+C (64 materials, 105 min, surplus 176 → 141 contribution), which is 3 short. Other G-inclusive combinations peak at 176; the banners cost too much paper under the tighter cap.
+
+# 3. THE PUBLIC UPDATE
+
+Friends of the Carver Street Print Shop — this afternoon's run will contribute **$144** toward our $220 Monday repair bill, leaving a **$76 gap**. A rumored $100 donation has **not** been confirmed or received. If you can help close the shortfall before Monday morning, please stop by or call the shop. Thank you for keeping the presses turning.

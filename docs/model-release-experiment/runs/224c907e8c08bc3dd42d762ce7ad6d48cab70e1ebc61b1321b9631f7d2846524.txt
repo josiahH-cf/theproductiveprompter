@@ -1,0 +1,95 @@
+# THE STORY
+
+## Full Capacity
+
+The paper cutter had been ticking as it cooled for ten minutes before Mara noticed the quiet underneath it — the compressor on the old Heidelberg humming low and steady, like it knew it only had one afternoon left before the regulator finally gave out.
+
+"Banners first," Ivo said again, leaning both forearms on the counter so the ink on his sleeve smeared against the laminate. "The Henderson gets ladders up Thursday morning. If we don't run them today, they go up blank."
+
+"I heard you the first time." Mara had the order sheet flattened under a jar of binder clips, numbers penciled in the margin in her small, cramped hand. Eighty dollars for materials. A hundred twenty minutes before the compressor needed a cooldown cycle nobody trusted it to survive twice. "I'm not saying no to the banners. I'm saying I have to say yes to the right four things."
+
+She'd already run it twice. Posters, tickets, menus, banners — eighteen and ten and twenty-two and thirty dollars of stock, seventy-five minutes shy of the ceiling, and it paid out further than anything else she could stack against it. The banners fit. That part, at least, she could hand him without an argument.
+
+"Four orders," she said, turning the sheet so he could see. "Posters, tickets, menus, and yes — the banners. We clear two hundred fourteen over materials before the shop's own bill comes out of it."
+
+Ivo exhaled like he'd been holding it since open. "So I didn't need to make my case."
+
+"You still would have," she said, and almost smiled.
+
+She was reaching for the materials box — the good cardstock, the roll of banner vinyl — when Deb from the co-op office put her head through the curtain. "Mara. Before you buy anything. Petty cash took a hit this week, insurance draft went out early. You've got sixty-six for stock today, not eighty."
+
+The pencil stopped.
+
+"Sixty-six," Mara repeated, like saying it twice might argue it back up.
+
+"I'm sorry. I only just saw it on the statement."
+
+Ivo straightened off the counter. "That doesn't change the time. Still two hours."
+
+"Minutes don't buy vinyl, Ivo." She was already crossing out the old column, the machine's idle tick suddenly loud in the gap while she worked the new numbers in the margin, order by order, checking what fourteen fewer dollars took off the table. The banners alone were thirty dollars of stock — more than a third of what was left.
+
+It didn't take long to see it wouldn't close. Drop the menus, drop the banners, and in their place she could run programs and bookmarks alongside the posters and tickets — four orders again, sixty-six dollars exactly, a hundred minutes instead of a hundred twenty. Less machine time than she was allowed, but every dollar of stock spent where it earned the most back.
+
+"You're cutting the banners," Ivo said. It wasn't a question.
+
+"I'm cutting whatever the budget won't carry. The banners cost more material than almost anything on that sheet, and with sixty-six dollars I can't buy my way into them and still come out ahead." She turned the sheet again. "Programs and bookmarks instead. It's less than the first plan — a hundred seventy-nine against materials and overhead instead of two hundred fourteen. But it's the most this version of today can do."
+
+"The Henderson's going to ask me why the ladders are going up to blank poles."
+
+"Tell them we ran what we could pay for." She said it flatly, not unkindly, already pulling stock for the posters.
+
+Across the room, someone — Carl, probably, from the sound of it — said half to himself, half to the room, that a donor might come through with a hundred dollars tonight, that it wasn't worth tearing up the plan over sixty-six versus eighty.
+
+Mara didn't look up from the cutter. "Might isn't a number I can spend this afternoon. If it lands, it lands on tomorrow's sheet." She squared the posters stock against the blade. "Today's sheet runs on sixty-six dollars and the two hours I've actually got."
+
+Ivo watched her a moment longer, then picked up the banner vinyl — unopened, unpaid for — and set it back on the shelf himself, careful, like it might still be needed.
+
+"Save the measurements," he said. "In case."
+
+"I always do," Mara said, and started the first run.
+
+---
+
+# THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+**Explanation**
+
+*Initial plan (budget $80 / 120 min):* A+C+F+G uses exactly $80 materials and 120 minutes. Revenue = 68+38+76+112 = 294; surplus = 294−80 = 214; minus the $35 fixed expense = 179 toward the goal; shortfall = 220−179 = 41.
+
+*Competing plan (feasible but worse):* A+B+F+H costs $80 materials and 120 minutes, surplus = (68+90+76+58)−80 = 212 — two dollars less than the chosen plan, confirming A+C+F+G is better, not just feasible.
+
+*Revised plan (budget $66 / 120 min):* Materials now bind before minutes do. A+B+C+E spends exactly $66 and only 100 of the 120 minutes (20 unused, since no remaining order's materials cost fits in what's left). Revenue = 68+90+38+49 = 245; surplus = 245−66 = 179; minus $35 = 144; shortfall = 220−144 = 76.
+
+*Competing plan (feasible but worse):* B+C+G costs $64 materials, 105 minutes, surplus = (90+38+112)−64 = 176 — three dollars less than the chosen plan.
+
+The donor's $100 is mentioned only as a possibility by a third party; it is not received, pledged, or counted in either plan.
+
+---
+
+# THE PUBLIC UPDATE
+
+Today's print run brings the repair fund $144 closer to goal — leaving $76 still needed. A tighter materials budget this afternoon meant the theater banners couldn't be produced alongside everything else; posters, programs, tickets, and bookmarks went out instead. A possible $100 gift was mentioned tonight but has not been received or promised. We'll update you the moment that changes.

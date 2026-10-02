@@ -1,0 +1,121 @@
+## 1. THE STORY
+
+**The Last Afternoon at River Street Print**
+
+At two o’clock, the shop smelled like hot toner, lemon cleaner, and rain steaming off wool coats. The front window of River Street Print had been lettered by hand ten years ago, back when Mara still believed a town could keep anything if enough people loved it.
+
+Now the press sounded wrong.
+
+Every fourth sheet, the machine gave a click like a tooth cracking. The repairman had stood beside it that morning with his cap in his hands and said, “I need two-twenty by Monday to order the part. Otherwise I can’t hold the slot.”
+
+Mara had eighty dollars in the materials tin and two hours before he locked his van and left for the county road. Customer payments would come after pickup, which meant after production, which meant useless for buying paper this afternoon. The shop could not spend money it had not yet made. She had said that twice already, once to herself and once to Ivo.
+
+Ivo was taping a curling corner on the theater’s banner proof. “The banners are the point,” he said. “Opening night is tomorrow. Half the town sees those before they see anything else.”
+
+Mara ran a pencil down the order sheet. Posters. Programs. Tickets. Postcards. Bookmarks. Menus. Theater banners. Maps. Each could be done once, fully, or not at all. No half orders. No favors pretending to be invoices.
+
+“I’m not refusing the theater,” she said.
+
+“You’re moving us behind menus.”
+
+“I’m choosing what keeps the press alive.”
+
+The words landed harder than she meant them to. Ivo looked away, toward the drying rack where last week’s memorial programs hung in careful rows. He had started volunteering after his wife died, first to avoid his silent apartment, then because the shop needed hands. Mara knew what the theater meant to him: noise, rehearsals, teenagers slamming prop doors, a place where absence had to sit in the back row.
+
+She turned the sheet around so he could see. “With eighty dollars and one hundred twenty minutes, the best confirmed plan is banners, menus, posters, and tickets. G, F, A, C. Materials exactly eighty. Machine time exactly one-twenty. Payments two-ninety-four. After materials, two-fourteen. Then thirty-five for operating expense, so one-seventy-nine toward the repair.”
+
+Ivo blinked. “So banners stay.”
+
+“They stay.”
+
+For a moment he looked young with relief. He picked up the roll of vinyl and cradled it like scenery. “Then why do you sound like someone just unplugged the sun?”
+
+The door opened before Mara could answer. Mrs. Pell from the library came in, rain silvering her hair, and handed over an envelope. “Bad news, dear. The guild check cleared lower than we expected. You’ve got sixty-six for materials, not eighty. I’m sorry. That’s all that’s liquid today.”
+
+Mara did not touch the envelope at first. The press clicked behind her, patient and terrible.
+
+Ivo said, “But we already decided.”
+
+“No materials have been bought,” Mara said.
+
+“It’s fourteen dollars.”
+
+“It’s fourteen dollars we don’t have.”
+
+“Then run the banners and drop something else.”
+
+Mara’s pencil moved before her anger did. She wished she could hate the arithmetic for being so clean. With sixty-six dollars, the old plan was dead by exactly fourteen. She tried the banners with programs and tickets: sixty-four in materials, one hundred five minutes, one hundred seventy-six surplus before the expense. Good, but not best. Banners with posters and bookmarks and tickets: sixty-two, ninety-five, one hundred sixty-seven. Worse. Without banners: posters, programs, tickets, bookmarks. Materials sixty-six exactly, one hundred minutes, revenue two-forty-five, surplus one-seventy-nine. Minus the fixed thirty-five, one-forty-four for the repair.
+
+Ivo watched her circle A, B, C, E.
+
+“No,” he said quietly.
+
+Mara heard rain ticking against the window letters. She heard the press fan spin down and the old wall clock shove the afternoon forward. She also heard what he did not say: that the theater had already lost lights, costumes, patience; that he had asked for one bright thing and she was taking it.
+
+“Ivo,” she said, “if I run the banners now, the shop contributes one-forty-one at best. If I don’t, it contributes one-forty-four. Three dollars sounds stupid until Monday tells us no.”
+
+His mouth worked. “Someone said a donor might give a hundred tonight.”
+
+“Might is not money.”
+
+“It could be.”
+
+“It isn’t, not by closing.”
+
+He took the banner proof off the counter and stared at it. The black ink had feathered slightly where his thumb was damp. “So what do I tell them?”
+
+Mara picked up the stack for posters, programs, tickets, bookmarks. “Tell them the truth. Tell them I chose the repair over the banner because the repair is how any of us print next week.”
+
+He laughed once, without humor. Then he set the proof down flat so it would not curl. “And if they hate you?”
+
+“Then you can hate me with company.”
+
+He looked at her then, and something in his face gave way, not forgiveness exactly, but a tired respect. “I don’t hate you.”
+
+They worked without music. Mara cut paper while Ivo loaded trays. The press clicked and breathed and spat out tickets in tidy little sheets, then bookmarks bright as candy wrappers, then programs warm enough to fog Mara’s glasses when she lifted them. At four, the last poster slid into the output tray with a sigh.
+
+They had not saved the shop. They had made one hundred forty-four real dollars toward saving it, leaving seventy-six still missing. Mara wrote the number on a receipt and taped it inside the front window where everyone could see.
+
+At dusk, Ivo came back from the theater empty-handed.
+
+“No donor yet,” he said.
+
+Mara nodded. Outside, people slowed at the window to read the update. Some frowned. One woman pressed her palm to the glass.
+
+Ivo stood beside Mara, close enough that their sleeves touched, both of them looking at the unfinished number as if it were a door they might still push open.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "donation_confirmed": false,
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  }
+}
+```
+
+Initial plan: A+C+F+G uses exactly `$80` and `120` minutes, earning `$294`; surplus is `294 - 80 = 214`, and repair contribution is `214 - 35 = 179`.
+
+Revised plan: A+B+C+E uses exactly `$66` and `100` minutes, earning `$245`; surplus is `245 - 66 = 179`, and repair contribution is `179 - 35 = 144`.
+
+One feasible competing revised plan is B+C+G: materials `$64`, minutes `105`, revenue `$240`, surplus `$176`, contribution `$141`, which is `$3` worse than the revised optimum.
+
+## 3. THE PUBLIC UPDATE
+
+River Street Print confirmed `$144` toward the repair today, leaving a `$76` gap. We had to base production on funds actually available before work began. A possible `$100` donation was mentioned, but no gift or commitment has been received yet.

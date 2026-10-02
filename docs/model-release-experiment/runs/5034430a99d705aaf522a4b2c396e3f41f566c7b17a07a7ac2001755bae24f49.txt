@@ -1,0 +1,104 @@
+## 1. THE STORY
+
+**Margins**
+
+The roof over the paper racks had dripped since March, so the last afternoon before the roofer's deadline smelled of damp cardboard and warm ink. A bucket went *plink* every few seconds. Eight orders hung on the spike by the cutter, dog-eared and coffee-ringed. We needed two hundred twenty dollars of new money toward the roofer's bill by morning. I had eighty dollars of float for paper and ink, two hours on the press, and thirty-five dollars of overhead to subtract at the end.
+
+Ivo, who volunteers Thursdays and had come in on a Friday anyway, hovered while I ran the adding machine. The tape curled onto the floor. Ivo had promised the theater its banners by Saturday, in writing, with a smiley face.
+
+"Banners first," Ivo said. "Please."
+
+"I don't do first. I do what fits." Posters, tickets, menus, banners: exactly eighty dollars of materials, exactly a hundred twenty minutes. "They clear two-fourteen. Minus overhead, one seventy-nine."
+
+"And we already have eighty," Ivo said. "That's a third of the way."
+
+"That's float. It turns into paper. It isn't raised." I circled the total. "We're forty-one short, banners and all."
+
+"The banners are in!"
+
+"Because they earn. Not because you asked."
+
+Then the bank called. A hold I hadn't known about: sixty-six dollars available, not eighty.
+
+Ivo went quiet. The circled plan needed money we no longer had. I tore a fresh length of tape and dealt the order slips across the counter like solitaire, adding, swapping, adding again. The banners alone swallowed thirty of the sixty-six. When the numbers settled, the banners were out, and posters, programs, tickets, and bookmarks were in: sixty-six dollars, a hundred minutes. Two-fourteen had shrunk to one seventy-nine; after overhead, one forty-four.
+
+"Fourteen dollars off the float," I said, "and thirty-five off what we clear."
+
+Ivo read over my shoulder. "Banners, programs, tickets. That fits."
+
+"It fits. It clears one seventy-six."
+
+"Three dollars." Ivo laughed once, without pleasure. "Mara, I put a smiley face on that promise. You'd drop the theater for three dollars."
+
+"We'd be seventy-nine short instead of seventy-six. I told the roofer I'd bring the biggest number this shop could make. I won't bring less so we can feel loyal."
+
+"Those banners hang on Main Street for a month. They're how people find us."
+
+"I know what they do."
+
+"Somebody at the theater says a donor might give a hundred tonight. That covers everything."
+
+"Might." I kept my eyes on the tape. "Customers pay after the run, Ivo, and a donor who might come tonight comes after, too. I can't buy paper with might."
+
+"You've already decided we lose."
+
+"I've decided to count what's real."
+
+Ivo slapped the counter and the tape fluttered. Then Ivo took the banner slip off the spike and held it like a ticket stub. "You wanted them in, too."
+
+"For about forty minutes." I hadn't known that was true until I said it.
+
+Ivo folded the slip into a back pocket. "Tell me what to feed it."
+
+For the next hundred minutes the press thumped like a slow heart and the sheets came out warm, sharp with ozone. The tube over the cutter buzzed like a trapped fly. Ivo fanned posters dry between the racks. I ran the cutter, red guard down, blade clacking through bookmarks, and ink blackened both our thumbs. Around three, Ivo said I'd have made a decent stage manager. "I'd have cut the third act," I said, and Ivo, to my relief, laughed.
+
+At six the last customer paid. I counted the drawer twice. After paper and overhead: one hundred forty-four dollars of new money toward two hundred twenty. Seventy-six to go. I circled it.
+
+The phone lay face-up between us, silent. Ivo checked it twice, and I said nothing. Then Ivo turned the banner slip over and wrote on the back. The first line leaned on the donor. Ivo crossed it out and wrote instead: *A donor may give a hundred tonight. Nothing has arrived. We are seventy-six short.*
+
+"Good," I said.
+
+"I'll tell the theater about the banners myself," Ivo said. "Before they find out from an empty lamppost."
+
+A hundred forty-four was real. The rest was still only might. Behind us, the bucket plinked on.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Per-order surplus (payment − materials): A 50, B 66, C 28, D 68, E 35, F 54, G 82, H 42. The fixed $35 is the same for every plan, so it doesn't change which set wins. Contribution = surplus − 35.
+
+- **Initial (≤ $80, ≤ 120 min):** A+C+F+G uses 18+10+22+30 = $80 and 25+15+30+50 = 120 min. Revenue is 68+38+76+112 = 294.
+  - With G in, only $50 and 70 min remain, and the best fill is A+C+F (132), giving 214.
+  - With G out, the other seven orders total $132, 190 min and 343 surplus. At least $52 and 70 min must be dropped, and the cheapest drop forfeits 131, so the best is 212.
+- **Revised (≤ $66, ≤ 120 min):** A+B+C+E uses 18+24+10+14 = $66 and 25+40+15+20 = 100 min. Revenue is 68+90+38+49 = 245.
+  - The five cheapest orders cost $80, so at most four fit.
+  - Only six four-order sets fit within $66, and the best is 179. The best three-order set is 176. G can't join three others, since 30 + 40 = $70.
+- **Competing plan (revised):** B+C+G (programs, tickets, banners) uses $64 and 105 min, with revenue 240. Surplus is 176, contribution 141, shortfall 79. It is feasible but $3 worse.
+- **Excluded:** the unconfirmed $100 donor, and the float, which isn't new money.
+
+## 3. THE PUBLIC UPDATE
+
+Print shop update: today's completed orders have added a confirmed $144 toward our $220 repair goal, leaving a $76 gap. We have heard a donor might give $100 tonight, but no gift or commitment has been received, so we are not counting it. If you can help close the gap, please contact the shop. Thank you for standing with us.

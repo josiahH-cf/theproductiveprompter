@@ -1,0 +1,89 @@
+## 1. THE STORY
+
+### The Color of the Last Sheet
+
+At two minutes past three on the community print shop’s final afternoon before the repair deadline, the Heidelberg printer clicked as it cooled, ticking like a kitchen clock. Mara, who ran the place, stood at the cutting table with eight order slips arranged beneath her blue pencil. The shop smelled of hot toner, paper dust, and the rain blowing through the warped back window. Above the slips, the repair invoice was taped to the wall: $220 needed by tomorrow. The machine had two usable hours left that afternoon.
+
+She had already done the ugly part. Posters A, tickets C, menus F, and the theater banners G fit with no slack: $80 in materials, 120 machine minutes. Their customers would pay $294 only after the production window ended. Subtract the materials and the order surplus was $214; subtract the fixed $35 operating expense and $179 could go toward the repair. The cash float itself was not a donation. They would still be $41 short, but no other complete combination earned more.
+
+“Good,” Ivo said, leaning over the circle around G. A crescent of magenta ink marked his sleeve. “The theater opens Friday. Those banners face the whole square.”
+
+“Good for them and best for us,” Mara said. She let herself smile. Ivo had spent six winters volunteering in the shop, but the theater had given him his first stage job and, lately, somewhere to be after his father died. She knew what the banners meant.
+
+Then the treasurer called. The envelope marked MATERIALS had contained fourteen dollars belonging to the youth-zine account. Mara listened twice, looked at the sealed packet by the register, and crossed out 80.
+
+“We have sixty-six,” she said.
+
+Ivo’s smile vanished. “The vinyl is thirty. We can still do the banners.”
+
+“We can do them,” Mara said, “but I have to find the best afternoon again.”
+
+She moved the slips into little islands, whispering totals. The rain strengthened until it hissed against the window. Ivo paced between racks of cream card stock.
+
+“Banners, programs, tickets,” he said. “G, B, C. Sixty-four dollars. A hundred five minutes.”
+
+Mara added the payments: $112, $90, $38. “Two hundred forty in, less sixty-four, less thirty-five. That puts $141 toward the repair. We miss by $79.”
+
+“For three dollars?” His palm struck the table, fluttering the order slips. “You’re dropping the theater for three dollars?”
+
+She flattened them. “A, B, C, E: posters, programs, tickets, bookmarks. Sixty-six dollars, one hundred minutes, $245 paid. The order surplus is $179; after operating expense, the repair gets $144. The gap is $76.”
+
+“Then run those first and buy vinyl with their payments.”
+
+“They pay after production ends. Not soon enough to finance another order, and twenty minutes cannot make a fifty-minute banner run. We cannot split an order, overlap runs, borrow, or invent a setup saving.” Her voice had sharpened. “I want the banners, Ivo. Wanting is not a line in the ledger.”
+
+His phone buzzed. A theater cast member had heard that a donor might bring $100 that night. Ivo held up the screen like a reprieve.
+
+“Might,” Mara said. “Did they promise?”
+
+No. There was no name, no transfer, no commitment.
+
+Ivo stared at G, then at the repair invoice. “If we keep the shop alive, the theater can ask again,” he said, though each word seemed to cost him.
+
+“Will you tell them?”
+
+He nodded. “I’ll tell them it was arithmetic, not indifference.”
+
+They worked. Ivo loaded the poster stock; Mara watched the first orange sheet slide out warm and faintly curled. Programs followed, black type crisp beneath the fluorescent hum. Tickets chattered into the tray. The bookmarks came last, green and narrow, smelling of fresh ink. At 4:40, the machine stopped with twenty minutes unused and no affordable complete order left. The unused time felt louder than printing.
+
+After the customers paid, Mara counted $245. She restored the $66 materials float to its proper measure, recorded the $179 order surplus, paid the $35 operating expense, and sealed $144 in an envelope for the repair. She wrote “$76 REMAINS” on the invoice.
+
+By closing time, no donor had appeared and no message had become a promise. Ivo stood in the doorway with the theater’s unprinted banner slip in his hand. Mara expected him to leave it on the counter like an accusation. Instead he tucked it beneath the repair notice.
+
+“Tomorrow,” he said, “I’ll help ask for the seventy-six.”
+
+Mara switched off the press. Its fan wound down through the smell of rain and warm paper. They locked the door on $144 confirmed, a $76 gap, and no imaginary hundred dollars—less rescued than they had hoped, but honest enough to face together.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Comparing all complete-order subsets gives A+C+F+G as the initial maximum: $294 − $80 = $214 order surplus; $214 − $35 = $179 for repairs. Under the revised limit, A+B+C+E is optimal: $245 − $66 − $35 = $144.
+
+A feasible competitor under both limits is B+C+G: $64 in materials, 105 minutes, and $240 revenue, yielding $240 − $64 − $35 = $141—three dollars below the revised choice.
+
+## 3. THE PUBLIC UPDATE
+
+Today we confirmed $144 for the print shop’s repair fund after materials and the fixed operating expense. That leaves a $76 gap toward the $220 repair bill. A donor was reported as possibly giving $100 tonight, but no gift or commitment has been received, so no donation is included in these figures.

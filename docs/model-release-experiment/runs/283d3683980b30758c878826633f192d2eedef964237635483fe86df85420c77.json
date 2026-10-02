@@ -1,0 +1,61 @@
+{
+  "key": "283d3683980b30758c878826633f192d2eedef964237635483fe86df85420c77",
+  "provider": "codex",
+  "model": "gpt-5.6-luna",
+  "attempt": 1,
+  "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+  "started_at": "2026-10-02T14:16:52+00:00",
+  "settings": {
+    "effort": "low",
+    "verbosity": "default",
+    "configuration_evidence": "explicit CLI configuration; provider does not expose internal effort verification",
+    "isolation": "scoped config; empty workspace; task tools removed from catalog; no observed tool calls required"
+  },
+  "client_version": "codex-cli 0.153.4",
+  "variant": {
+    "id": "effort-low",
+    "effort": "low",
+    "verbosity": "default"
+  },
+  "actual_model": null,
+  "usage": {
+    "input_tokens": 70916,
+    "cached_input_tokens": 0,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 1916,
+    "reasoning_output_tokens": 469
+  },
+  "client_cost_estimate_usd": null,
+  "tool_used": false,
+  "failed": false,
+  "status": "response captured",
+  "exit_code": 0,
+  "ended_at": "2026-10-02T14:17:32+00:00",
+  "elapsed_seconds": 40.407,
+  "cash_charge_usd": null,
+  "validation": {
+    "validator_version": "1.0",
+    "receipt_checks": {
+      "initial.orders": "fail",
+      "initial.materials": "fail",
+      "initial.minutes": "fail",
+      "initial.revenue": "fail",
+      "initial.order_surplus": "fail",
+      "initial.repair_contribution": "fail",
+      "initial.shortfall": "fail",
+      "revised.orders": "fail",
+      "revised.materials": "fail",
+      "revised.minutes": "fail",
+      "revised.revenue": "fail",
+      "revised.order_surplus": "fail",
+      "revised.repair_contribution": "fail",
+      "revised.shortfall": "fail",
+      "donation_confirmed": "pass"
+    },
+    "receipt_passed": false,
+    "story_consistency": "not assessed",
+    "literary_quality": "not assessed",
+    "word_limits": "not assessed"
+  },
+  "identity_evidence": "CLI selection and catalog; responder ID not exposed"
+}

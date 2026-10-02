@@ -1,0 +1,113 @@
+# The Arithmetic of Ink
+
+The ventilation fan in the back of Copperline Community Press had a rattle on its third blade, a dry tick every half-second. Mara had stopped hearing it years ago. This afternoon she heard every tick.
+
+"Banners first," Ivo said. He had the theater's proof unrolled across the cutting table, weighted at the corners with a stapler, a tape gun, and two coffee mugs. *THE LANTERN KEEPER — OPENING NOVEMBER*, in ochre on charcoal. "They're the biggest order. A hundred and twelve dollars."
+
+"They're also the most expensive to make." Mara tapped the clipboard. "Thirty in vinyl and ink. Fifty minutes on the wide-format."
+
+"So we make them. We have the money."
+
+They had eighty dollars in the materials envelope and two hours of machine time before the repair tech's deadline. The fuser on the big press was failing, and the quote was taped to the register, the total circled twice. The shop needed two hundred and twenty dollars of new money to keep the job on the books.
+
+Mara had already worked the plan in pencil at lunch. "Banners, posters, tickets, menus. Eighty dollars exactly, a hundred and twenty minutes exactly. Two hundred ninety-four back from customers. Take out the eighty for materials and the thirty-five for the electric we owe, and we keep a hundred seventy-nine for the repair."
+
+Ivo grinned. "With the banners."
+
+"With the banners."
+
+He was already pulling the vinyl roll off the rack when her phone buzzed. She read it twice, then set it face-down beside the clipboard.
+
+"Deshawn pulled fourteen from the envelope this morning for the toner deposit. He forgot to tell me." She opened the envelope and fanned the bills on the table. Three twenties, a five, a one. "Sixty-six."
+
+The fan ticked. Ivo set the vinyl roll down slowly, like it might break.
+
+"Okay," he said. "So drop the menus. Banners, posters, tickets. That's still fifty-eight."
+
+"That's a hundred sixty profit before the electric. One twenty-five for the repair." She was writing fast now, crossing things out. "If I drop the banners instead and run programs, posters, tickets, and bookmarks, it's sixty-six even, a hundred minutes, and we clear a hundred seventy-nine before the electric. One forty-four for the repair."
+
+"Nineteen dollars, Mara."
+
+"Nineteen dollars is nineteen dollars closer."
+
+"It's the theater." His voice cracked on the word. "They lent us their lobby for three years of zine fairs. Hollis is going to walk in here tomorrow expecting banners, and I'm the one who told him yes."
+
+She didn't answer right away. She smelled the sharp chemical sweetness of the vinyl he'd half-unrolled, felt the grit of the cutting mat under her palm. She thought about Hollis, who brought donuts to every fair and never once asked for a booth fee.
+
+"Every other plan I find is worse," she said finally. "I checked the banners every way I could fit them. Sixty-six dollars won't carry them and still do the most for the press. And if the press stops, nobody prints anything for the theater next season."
+
+From the front, Wren called out over the paper cutter. "Somebody on the board said the Alderwood lady might give a hundred tonight!"
+
+Ivo looked up, hopeful.
+
+"Might," Mara said. "Has she said yes?"
+
+A pause. "...No."
+
+"Then we can't spend it." She held his eyes. "I'm sorry."
+
+Ivo stood very still. Then he rolled the banner proof up, carefully, and slid a rubber band over it. "I'll call Hollis. I'll tell him myself. Next week, if we're still here."
+
+"Tell him I'll do them at cost."
+
+"You can't afford at cost."
+
+"Then I'll do them at cost later."
+
+He almost smiled.
+
+They ran programs first, the press thumping its old rhythm, warm paper sliding into the tray smelling of toner and dust. Posters next, then tickets, perforated in long strips Wren tore with her teeth when she thought nobody was looking. Bookmarks last, tassels threaded by hand at the counter while the light outside turned the color of weak tea.
+
+At six-forty, the machines were quiet with twenty minutes unused. Mara wrote on the whiteboard by the door: *144 raised. 76 to go.* Under it, smaller, in Ivo's handwriting: *Donor: maybe. Not yet.*
+
+He capped the marker and stood beside her.
+
+"Seventy-six," he said.
+
+"Seventy-six."
+
+The fan ticked. Neither of them turned it off.
+
+---
+
+## THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+**Order surpluses (payment − materials):** A 50, B 66, C 28, D 68, E 35, F 54, G 82, H 42.
+
+**Initial ($80, 120 min):** A+C+F+G uses exactly $80 and 120 min, with surplus 50+28+54+82 = 214. Contribution = 214 − 35 = 179. The nearest rival, A+B+C+D, also uses $80 and 115 min, but its surplus is 212.
+
+**Revised ($66, 120 min):** A+B+C+E uses $66 and 100 min, with surplus 50+66+28+35 = 179. Contribution = 179 − 35 = 144. No feasible set does better. With $66, G can only pair with $36 of other materials, and its best feasible combination (G+B+C, $64) reaches 176.
+
+**Competing feasible plan (keep the banners):** A+C+G costs $58 and 90 min, with revenue 218 and surplus 160. Contribution is 125, leaving a shortfall of 95. That is $19 worse than the chosen plan.
+
+---
+
+## THE PUBLIC UPDATE
+
+**Copperline Press Repair Fund: Update**
+
+Today's print orders raised **$144** toward our $220 fuser repair, after materials and a $35 operating cost. We still need **$76**. A possible $100 donation has been mentioned, but **no gift or pledge has been received**, so we aren't counting it. The theater's banners were postponed so we could raise the most possible today. Thank you for standing with us. Every dollar toward the remaining $76 helps.

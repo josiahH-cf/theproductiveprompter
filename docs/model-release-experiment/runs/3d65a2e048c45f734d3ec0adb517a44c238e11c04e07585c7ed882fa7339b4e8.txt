@@ -1,0 +1,107 @@
+# 1. THE STORY
+
+## Ink and Arithmetic
+
+The Gestetner had been making a sound like a cat in a dryer since Tuesday. Mara stood over it now, her fingers black to the second knuckle, watching the drum shudder through its last reliable rotations. Friday at five, Denny Kovacs would arrive with his invoice and his silence and his expectation of two hundred and twenty dollars she did not have.
+
+"We've got the whole afternoon," Ivo said from the doorway, his shoulder against the frame. He was wearing the Avalon Players shirt again, the one with the comedy-tragedy masks screen-printed slightly off-center. "Fifty minutes on the banners. That's it. Then you can run whatever else you want."
+
+Mara pulled a sheet from the output tray and held it to the window light. Clean. For now. "Sit down. I need to show you something."
+
+She'd drawn up the list on the back of a menu proof. Eight orders waited. She had eighty dollars in the cashbox for paper and ink, one hundred and twenty minutes before the machine had to cool, and the fixed thirty-five dollars she owed the landlord for the power draw regardless. Customer payments wouldn't come until everything was delivered. No borrowing from one order to buy stock for the next.
+
+"I need to pick the combination that leaves the most money after materials and that thirty-five-dollar operating hit." She tapped the pencil against each line. "Your banners pay a hundred and twelve, but they cost thirty and eat fifty minutes. Here—"
+
+She'd already run the numbers. Postcards, programs, posters, tickets. Twenty-eight plus twenty-four plus eighteen plus ten equaled eighty exactly. Minutes: thirty-five, forty, twenty-five, fifteen—a hundred and fifteen, with five to spare. Payments totaled two hundred and ninety-two. Minus the eighty in materials, minus the thirty-five operating cost: one hundred and seventy-seven dollars toward the repair.
+
+"That's still forty-three short," Ivo said.
+
+"Forty-three short. But it's the best the numbers give."
+
+He leaned forward. "Put the banners in instead of the postcards. You'd still have—"
+
+"I tried. Banners plus programs plus posters plus tickets runs to eighty-two dollars in materials. Two over. I can't buy what I can't pay for."
+
+He opened his mouth, then closed it. Through the shop's propped-open back door came the smell of the alley: hot asphalt, cardboard, the faintly sweet rot of the recycling bins. Someone's radio played cumbia two buildings over.
+
+Mara's phone buzzed. She read the text, and her expression flattened.
+
+"Celia says the paper supplier shorted us. We've only got sixty-six dollars in usable stock."
+
+"Sixty-six? That kills your plan."
+
+"It kills that plan." She was already scribbling. The postcards alone cost twenty-eight; with programs, posters, and tickets, she'd need eighty. Gone. She worked through combinations, crossing out lines, circling others. Ivo watched her pencil move with a kind of reluctant admiration.
+
+"Programs, posters, tickets, bookmarks," she said. "Twenty-four plus eighteen plus ten plus fourteen. Sixty-six on the nose. Minutes: forty, twenty-five, fifteen, twenty—exactly a hundred. Payments come to two forty-five, minus sixty-six in materials, minus the thirty-five operating charge." She wrote the number and underlined it twice. "A hundred and forty-four."
+
+"That's seventy-six short."
+
+"I know what it is, Ivo."
+
+He stood up and paced the narrow aisle between the proof shelves and the cutter. A rim of afternoon sun caught the dust he kicked up, turning it briefly golden.
+
+"Pauline said she might give a hundred tonight."
+
+"Might. Pauline says a lot of things."
+
+"If she does, you'd be over."
+
+Mara set the pencil down. "If she does, I'll be grateful. But I'm not telling Denny Kovacs that a donor *might* cover us. I'm telling him what we made. One forty-four confirmed."
+
+"And the banners?"
+
+She looked at him directly. "They don't fit. Not today. Not at sixty-six dollars. I'm sorry."
+
+He picked up the Avalon Players script he'd left on the folding chair that morning, rolled it into a tube, and tapped it against his thigh. For a moment she thought he'd argue. Instead, he said, "What do you need me to do?"
+
+"Load the program stock. Heavier bond, second shelf. And set the guide rails to eleven-by-seventeen for the posters."
+
+He moved toward the shelves. The Gestetner hummed to life, not beautifully, but steadily. Mara fed the first sheet in and listened to the drum take hold. The ink smelled like iron and vinegar. One hundred and forty-four dollars was not enough, and she could not pretend otherwise, but it was the number the afternoon actually produced, and she would deliver it with clean hands.
+
+Outside, the cumbia station switched to a ballad. The sun dropped behind the roofline. The machine printed.
+
+---
+
+# 2. THE RECEIPT
+
+```json
+{
+  "donation_confirmed": false,
+  "initial": {
+    "orders": ["A", "B", "C", "D"],
+    "materials": 80,
+    "minutes": 115,
+    "revenue": 292,
+    "order_surplus": 212,
+    "repair_contribution": 177,
+    "shortfall": 43
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  }
+}
+```
+
+**Initial plan (A, B, C, D):** Materials 18+24+10+28 = $80 (limit). Minutes 25+40+15+35 = 115 ≤ 120. Revenue 68+90+38+96 = $292. Surplus 292−80 = $212. After $35 operating expense: $177. Shortfall: 220−177 = $43.
+
+A competing plan with the same surplus is **B, F, A, H**: materials 24+22+18+16 = $80, minutes 40+30+25+25 = 120, surplus 212, contribution $177. It ties exactly but uses all available minutes.
+
+No five-order combination fits within $80 and 120 minutes while exceeding $212 surplus. Adding any fifth order to {A,B,C,D} exceeds the $80 materials limit.
+
+**Revised plan (A, B, C, E):** Materials 18+24+10+14 = $66 (limit). Minutes 25+40+15+20 = 100 ≤ 120. Revenue 68+90+38+49 = $245. Surplus 245−66 = $179. After $35: $144. Shortfall: $76.
+
+A competing revised plan is **G, B, C**: materials 30+24+10 = $64, minutes 50+40+15 = 105, surplus 176, contribution $141—$3 less. The theater banners (G) cannot appear in any revised combination that beats $179 surplus.
+
+---
+
+# 3. THE PUBLIC UPDATE
+
+**Community Print Shop — Repair Fund Update (Oct 2)**
+
+Today's production run confirmed **$144** toward our $220 repair bill, leaving a **$76 gap**. We completed programs, posters, tickets, and bookmarks under tighter-than-expected supply limits. A potential donor gift of $100 has been mentioned but **has not been received or committed**. We will post again when the fund status changes. Thank you for your continued support.

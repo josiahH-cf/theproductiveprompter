@@ -1,0 +1,97 @@
+## 1. THE STORY
+
+### The Quiet Twenty Minutes
+
+By two o’clock, the community print shop smelled of hot dust, citrus cleaner, and the iron tang of the old guillotine cutter. Rain stippled the street-facing glass. Mara had eight order slips clipped across the drying rack, A through H, and a repair estimate taped above them like a verdict. The press needed $220 in new money by tomorrow.
+
+Ivo came in carrying a roll of theater sketches under his raincoat. “Their opening is tonight,” he said. “Do the banners first. The whole neighborhood will see who printed them.”
+
+“The whole neighborhood won’t pay the repairman,” Mara said, though she softened it by handing him the red grease pencil.
+
+She had already found the best fit for the afternoon’s limits: eighty dollars for materials, 120 machine minutes, no partial jobs. Posters A, tickets C, menus F, and the theater banners G used every dollar and every minute. Their payments would total $294. After $80 in materials, the order surplus was $214; after the fixed $35 operating expense, $179 could go to the repair. Forty-one dollars would still be missing.
+
+“See?” Ivo tapped G. “The banners belong.”
+
+Then Mara’s phone rang. The treasurer’s voice, thin through the cracked speaker, corrected the materials balance. A debit had settled late. Not eighty: sixty-six dollars. The machine time stayed at 120 minutes, but no customer would pay until production was over. They could not turn one pickup’s money into paper for another job.
+
+Ivo stared at the slips. “Then keep G and cut something else.”
+
+Mara began moving magnets on the steel cabinet. The press ticked as it cooled, an impatient little sound. She tried every whole-order combination that fit the smaller cash envelope. Ivo paced between the ink tins and argued for the theater’s years of benefit shows, for the children who painted scenery upstairs, for visibility.
+
+“The best plan with banners is G, B, and C,” Mara said at last. “Sixty-four dollars, 105 minutes, $240 paid. That leaves $176 before the operating charge, or $141 for the repair.”
+
+“And without them?”
+
+“A, B, C, and E. Posters, programs, tickets, bookmarks. Exactly $66 in materials, 100 minutes, $245 paid. Surplus $179. After the thirty-five, contribution $144.”
+
+Ivo’s mouth tightened. “Three dollars.”
+
+“Three confirmed dollars,” Mara said.
+
+He unrolled the sketches anyway: a blue moon, silver lettering, two dancers cut from black paper. “Someone told me a donor might give a hundred tonight.”
+
+“Might isn’t in the drawer.”
+
+“You make people sound like bad arithmetic.”
+
+“No,” she said. “I make promises wait until they become money.”
+
+For a moment, rain and the wall clock filled the shop. Then Ivo took the theater slip from the rack. Mara thought he might tear it. Instead, he laid it beside the telephone.
+
+“I’ll call them,” he said. “You’d sound too calm.”
+
+The theater manager was disappointed; everyone in the room could hear that much. Ivo listened, shoulders high, then said, “Yes. We’re trying to keep the press here next month.” When he hung up, he did not look at Mara, but he put on an apron.
+
+They ran the programs first, warm stacks shivering into the tray. Black ink stippled Ivo’s wrists. Tickets followed with a metallic chatter; posters emerged smelling faintly sweet, then bookmarks in green so dark they looked wet. Twenty machine minutes remained unused. Ivo kept glancing at the idle display.
+
+“We could have filled some of that,” he said.
+
+“Not without paper money we don’t have, and not with half an order.”
+
+He nodded once. “I know. I still hate it.”
+
+“I know,” Mara said, and passed him the bone folder. It was the closest they had come to agreement all year.
+
+At five, after production ended, the four customers arrived and paid $245 altogether. Mara restored the $66 materials float; she did not call it fundraising. She paid the fixed $35 operating expense and placed the remaining $144 in the repair envelope. On its face she wrote, GAP: $76.
+
+Ivo checked his phone. No transfer. No pledge. Not even the donor’s name—only the same message saying someone might give.
+
+He turned the theater’s beautiful unused sketch faceup beside the envelope. “Tomorrow we tell them the truth?”
+
+“Tonight,” Mara said.
+
+Together they taped a notice to the rain-streaked window: $144 confirmed. $76 still needed. The press behind them was silent, but neither of them pretended it had been saved.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Because the $35 expense is fixed, maximizing contribution is equivalent to maximizing revenue minus materials. Initially, A+C+F+G gives `294 − 80 − 35 = 179`. With the revised limit, A+B+C+E gives `245 − 66 − 35 = 144`.
+
+A feasible revised competitor is B+C+G: $64 in materials, 105 minutes, $240 revenue, $176 order surplus, and a $141 repair contribution—$3 below the revised optimum.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s confirmed production generated $144 in new money for the repair after materials and the fixed operating expense. We remain $76 short of our $220 goal. A possible $100 donor gift was mentioned, but no gift or commitment has been received, so it is not included in these figures.

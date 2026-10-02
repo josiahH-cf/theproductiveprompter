@@ -1,0 +1,162 @@
+## 1. THE STORY
+
+### What the Drawer Could Promise
+
+At two o’clock, Mara took the OPEN sign out of the window and laid it face down beside the guillotine. The shop would remain open until four, but she couldn’t bear another person bringing in something urgent.
+
+The cutter smelled of iron and orange hand cleaner. Beyond it, the printer waited with its green eye lit. By closing, the repair company needed the money. Otherwise, tomorrow’s appointment would go to somebody else.
+
+Ivo had brought the theater’s banner design on a memory stick shaped like a strawberry.
+
+“They’ve already hung the ropes,” he said.
+
+“They should have waited.”
+
+“It’s a children’s production, Mara. Waiting isn’t their strongest department.”
+
+She had eighty dollars for materials and two hours of machine time. Eight customers had left orders. Each would pay when the afternoon’s production was finished; none of that money could buy supplies for another job today.
+
+Ivo pushed the strawberry across the counter.
+
+“My niece’s name is on this one.”
+
+Mara opened the ruled book she normally used for deliveries. She wrote the letters of the orders, then crossed out combinations and wrote others underneath.
+
+“Banners take fifty minutes,” she said.
+
+“They’re big.”
+
+“That isn’t a defense.”
+
+“It’s an explanation.”
+
+He watched her pencil until she boxed four letters: A, C, F, G.
+
+“Posters, tickets, menus, and your banners. Eighty in materials. Exactly a hundred and twenty minutes.”
+
+“So we can.”
+
+“We can do those.”
+
+The customers would pay $294. After replacing the eighty dollars spent on materials, they would have $214. After the fixed thirty-five-dollar operating expense, $179 would remain for the repair.
+
+“Forty-one short,” Mara said.
+
+Ivo rubbed a thumb over the strawberry’s molded seeds.
+
+“Len said a donor might give a hundred tonight.”
+
+“Len said might.”
+
+“I heard him.”
+
+“Then hear that part too.”
+
+For a moment they stood on opposite sides of the counter, both looking at the same small piece of plastic.
+
+Before Mara bought anything, she opened the cash drawer to count the materials money. Beneath the twenties lay a receipt she had mistaken for a folded bill. She counted twice, then checked the balance against the morning’s entries.
+
+“Sixty-six,” she said.
+
+Ivo looked toward the wall clock.
+
+“No.”
+
+“That’s what’s available.”
+
+“We haven’t started.”
+
+“Good thing.”
+
+She drew a line through the box.
+
+Ivo put his palm over the banner design. “Can’t we keep these and lose something else?”
+
+Mara worked through the smaller combinations. The pencil had worn flat; its broad marks made the page look bruised.
+
+“Banners, programs, tickets,” Ivo suggested.
+
+She wrote it down. Sixty-four dollars, a hundred and five minutes. Payments of $240, less materials and the operating expense: $141 for the repair.
+
+Then she circled A, B, C, E.
+
+“Posters, programs, tickets, bookmarks. Sixty-six dollars. A hundred minutes. Payments of $245. A hundred and forty-four for the repair.”
+
+“You’re dropping the banners for three dollars?”
+
+“Yes.”
+
+He stepped back. “You know what those banners mean to them.”
+
+Mara almost said she knew what the shop meant to everyone. Instead she turned the book so he could read it.
+
+“I was ready to print them when they belonged in the best plan. They don’t now. If I choose them anyway, I’m choosing who gets the favor.”
+
+“My niece isn’t a favor.”
+
+“No,” Mara said. “She isn’t.”
+
+The printer’s fan clicked off. In the quiet, somebody dragged a wheeled suitcase past the window.
+
+Ivo picked up the strawberry.
+
+“I’ll tell the theater,” he said. His voice was still hard, but he stayed to cut the bookmarks.
+
+They bought the materials and ran the four jobs one after another. Ivo caught each warm stack with both hands. When the last sheet emerged, twenty minutes remained, and the materials money was gone.
+
+The customers came, paid, and carried their orders into the late light.
+
+Mara set aside the operating expense and counted $144 toward the repair. The gap was seventy-six dollars. No donor had called or sent money.
+
+She phoned the repair company and released tomorrow’s appointment.
+
+Ivo waited beside the door.
+
+“Leave the sign here?” he asked.
+
+Mara nodded. He laid it carefully on the counter, where they could find it again.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Each order’s payment minus materials is: A $50, B $66, C $28, D $68, E $35, F $54, G $82, H $42. Checking the subsets against both limits gives these maximum order surpluses:
+
+| Materials limit | Best plan excluding G | Best plan including G |
+|---|---|---|
+| $80 | A, B, C, D: $212 | **A, C, F, G: $214** |
+| $66 | **A, B, C, E: $179** | B, C, G: $176 |
+
+The fixed $35 deduction makes maximizing order surplus equivalent to maximizing repair contribution.
+
+- **Initial:** Materials total $18 + $10 + $22 + $30 = $80; machine time totals 25 + 15 + 30 + 50 = 120 minutes. Contribution is $294 − $80 − $35 = **$179**.
+- **Revised:** Materials total $18 + $24 + $10 + $14 = $66; machine time totals 25 + 40 + 15 + 20 = 100 minutes. Contribution is $245 − $66 − $35 = **$144**.
+- **Feasible revised competitor:** B, C, G uses $64 and 105 minutes, earning $240. Its contribution is $240 − $64 − $35 = **$141**, three dollars less than the revised optimum.
+
+Neither the recovered materials float nor the unconfirmed donation counts toward the repair goal.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s print orders generated **$144 toward our $220 repair goal**, after materials and the fixed operating expense. **We remain $76 short**, so tomorrow’s repair appointment has been released. Someone mentioned a possible $100 donation tonight, but we have received neither a gift nor a commitment. Thank you to our customers and volunteers for helping this afternoon.

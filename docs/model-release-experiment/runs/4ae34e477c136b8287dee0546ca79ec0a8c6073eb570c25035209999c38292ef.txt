@@ -1,0 +1,103 @@
+# 1. THE STORY
+
+**The Last Afternoon on Vine Street**
+
+The press smelled like warm toner and the lemon spray Mara used on the counter when she needed to think. Rain tapped the skylight above the sorting table. Four o'clock. The repair invoice sat beside the register in a plastic sleeve so the ink wouldn't run.
+
+Ivo pushed through the back door with a crate of chipboard on his hip. He set it down too hard and the chipboard shuddered.
+
+"G first," he said. "Just promise me G is in."
+
+"I promised Darla I'd look at the numbers," Mara said. She was already looking. "G is fifty minutes. It eats a third of the day."
+
+"They're banners for the kids' showcase, Mar. The theater. Half this neighborhood sits in those bleachers."
+
+"I know whose bleachers they are."
+
+She had laid out the orders in a neat grid on the back of a receipt roll, little rectangles with their material cost on top and the machine minutes on the bottom. Across the top she had written $80 and 120 min and underlined them twice. She'd penciled her plan under the grid: G, F, A, C. Eighty dollars of paper and ink, exactly. One hundred and twenty minutes, exactly. Surplus of two-fourteen before the fixed thirty-five went out for the water bill and the recycling. One-seventy-nine toward the press repair. Forty-one short of two-twenty, but close enough that Darla's maybe-donor could cover it tonight.
+
+Then her phone buzzed. She read the message twice.
+
+"What," said Ivo.
+
+"The float." Mara put the phone face-down. "The bank hold didn't clear. I've got sixty-six for materials, not eighty. Machine time is fine. Everything else is fine."
+
+Ivo did the arithmetic in his head faster than he wanted to. "G is thirty."
+
+"I know."
+
+"So keep G and drop F. You've got thirty-six left."
+
+"I've run the combinations." She tapped the receipt roll. "If I keep G, the best I can do is G, B, C — one hundred seventy-six surplus. If I drop G and take B, A, C, and E, I get one hundred seventy-nine. Three dollars isn't nothing when I'm already forty-one short."
+
+"Three dollars."
+
+"Seventy-six short, now. Seventy-six."
+
+He stared at the grid. He said nothing for a long moment, and she watched him work it, watched his jaw tighten and release.
+
+"The showcase is Saturday," he said.
+
+"I know."
+
+"Lara's kid is in it."
+
+"I know, Ivo."
+
+"Then say it. Say you're dropping the banners."
+
+"I'm dropping the banners today. Darla can run them Tuesday on the small press after the repair, which will be faster than me telling her tomorrow that we also missed the water bill."
+
+He pulled a chair out from the sorting table and sat down with his elbows on his knees, looking at the floor. The rain had slowed to a mutter.
+
+"What about the donor," he said finally. "Darla's guy."
+
+"A hundred, maybe. If he gives. He hasn't given."
+
+"If he gives, we're twenty-four over."
+
+"If he gives." She stood the invoice up on the register so he could see the number. "Tell me when I can bank on 'maybe.'"
+
+Ivo exhaled. He got up and started pulling the Benson programs — order B — from the queue, because that was what was next and because moving things was easier than agreeing. Mara flipped the posters card over to the small-run side. The press began its slow warm hum.
+
+At six, when the last tray of bookmarks slid into the drying rack, Mara added the day up on paper. Two-forty-five in payments. Sixty-six for materials. Thirty-five for the operating draw. One-forty-four toward the repair. The invoice still needed seventy-six.
+
+She called Ivo over. He read the number. He didn't say anything about the banners. He said, "Any word from Darla?"
+
+Mara shook her head. "Nothing confirmed."
+
+Ivo nodded once, took the broom off the hook, and started sweeping the paper dust toward the door. Outside, the streetlights came up in the rain.
+
+# 2. THE RECEIPT
+
+```json
+{
+  "donation_confirmed": false,
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  }
+}
+```
+
+**Initial (≤$80, ≤120 min).** A+C+F+G: materials 18+10+22+30 = 80; minutes 25+15+30+50 = 120; revenue 68+38+76+112 = 294; surplus 294−80 = 214; contribution 214−35 = 179; shortfall 220−179 = 41. Feasible competitor: B+F+A+H (24+22+18+16 = $80, 40+30+25+25 = 120 min, surplus 66+54+50+42 = 212) — two dollars worse.
+
+**Revised (≤$66, ≤120 min).** G no longer combines with enough high-surplus orders to stay competitive. B+A+C+E: 24+18+10+14 = 66; 40+25+15+20 = 100 min; revenue 90+68+38+49 = 245; surplus 179; contribution 144; shortfall 76. Feasible competitor keeping the banners: G+B+C (30+24+10 = $64, 50+40+15 = 105 min, surplus 82+66+28 = 176) — three dollars worse.
+
+# 3. THE PUBLIC UPDATE
+
+Today's run contributed $144 toward the $220 press repair, leaving a $76 gap. A reduced materials float forced us to change the planned order mix, so the theater banners were not produced this afternoon. A donor was discussed for tonight, but no gift has been received as of closing. Thanks to everyone who brought work through the shop today, and to those still rooting for the press. — Mara

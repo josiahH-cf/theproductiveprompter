@@ -1,0 +1,138 @@
+**1. THE STORY**
+
+*The Weight of Three Dollars*
+
+At half past two, Mara put a saucer under the press’s slow oil leak. Someone had painted SAVE OUR SHOP on the window, but from inside the words were backward. The service company would hold their repair appointment until five. They needed another $220 to keep it. After that, the replacement bearing would go elsewhere, and Mara would close the shop until she could arrange another repair.
+
+Ivo arrived carrying the theater’s banner artwork rolled around a broom handle. He had designed a moon so large that its bottom edge vanished behind the actors’ names.
+
+“It ought to look like something you can walk into,” he said.
+
+Mara touched the blue. “It does.”
+
+He stayed at her shoulder while she compared the eight orders. She had $80 for materials and two hours of machine time. Nobody would pay until production ended; whatever came off the press would have to be made with the money already available.
+
+“The banners first,” Ivo said. “Those people kept us open through the winter.”
+
+“They bought printing.”
+
+“They bought printing they didn’t need.”
+
+Mara worked through the combinations on scrap backing paper. Then she circled four: banners, posters, tickets, menus. Eighty dollars of materials, exactly 120 minutes. The customers would pay $294.
+
+Ivo tapped the circle. “There.”
+
+“Two hundred fourteen after materials. Less thirty-five for operating costs. One hundred seventy-nine toward the repair.”
+
+“So we’re close.”
+
+“Forty-one short.”
+
+He lifted the broom handle like a flag.
+
+Before Mara bought any stock or started the machine, the treasurer called. Mara listened, crossed out eighty, and wrote sixty-six.
+
+When she hung up, Ivo was still holding the banner.
+
+“The available balance was wrong,” she said. “Sixty-six is what we have.”
+
+“Then lose the menus.”
+
+She did not answer immediately. The room smelled of ink and orange hand cleaner.
+
+She made another set of marks. Outside, a bus hissed at the curb.
+
+“Posters, programs, tickets, bookmarks,” she said at last. “Sixty-six in materials. A hundred minutes.”
+
+Ivo unrolled his moon across the counter.
+
+“You’ve left us twenty minutes. Use them.”
+
+“There’s no materials money left.”
+
+“Banners, then. Find the best way with banners.”
+
+She slid him a second line: banners, programs, tickets. Sixty-four dollars, 105 minutes.
+
+“That puts a hundred forty-one toward the repair,” she said. “The other plan puts a hundred forty-four.”
+
+“For three dollars?”
+
+“Yes.”
+
+“You’re telling the theater no for three dollars.”
+
+Mara looked at the moon, its imperfect circle corrected by hand. She wanted to say the figures had decided. But figures could not pick up a telephone.
+
+“I asked everyone to believe we’d use their money carefully,” she said. “I can’t change that because you’re standing here.”
+
+Ivo rolled the artwork too tightly. A pale crease crossed the blue.
+
+“Lena knows a donor,” he said. “Might give a hundred tonight.”
+
+“Then tomorrow may be different.”
+
+“You could count on people once in a while.”
+
+Mara turned over the backing paper. There was the shop’s old address, from before the flood. Ivo had helped carry this press upstairs.
+
+“I am counting on you,” she said. “But I haven’t got that hundred.”
+
+He stood beside the telephone for a long time. Then he called the theater and told them the banners were declined. He didn’t blame Mara, which hurt her more than if he had.
+
+They bought materials for the four chosen orders. Mara ran them one after another. Ivo stacked the posters, counted tickets, and caught a program before its wet face slid onto the floor. By the bookmarks, he was talking again, quietly, about where to put the drying racks.
+
+Only after all four orders were finished did their customers pay: $245. Mara put $66 back into the materials float and paid the fixed $35 operating expense. The repair envelope received $144 in new money. Seventy-six dollars was still missing.
+
+At five there was no donation, no promise. Mara let the repair appointment go and turned the shop sign to CLOSED.
+
+Ivo set the creased moon above the counter, where it covered nothing.
+
+“I’ll help when you can open again,” he said.
+
+Mara left it hanging.
+
+**2. THE RECEIPT**
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Initially, $294 − $80 − $35 = **$179** toward repairs. After revision, $245 − $66 − $35 = **$144**. The original materials float is excluded.
+
+For an optimality check, these are the maximum feasible order surpluses, enforcing both materials and machine limits:
+
+| Number of orders | Initial $80 limit | Revised $66 limit |
+|---|---:|---:|
+| 1–3 | $204 | $176 |
+| 4 | **$214** | **$179** |
+| 5 | $209 | Infeasible |
+| 6–8 | Infeasible | Infeasible |
+
+The fixed $35 deduction preserves these rankings.
+
+One feasible revised competitor is **B, C, G**: $64 materials, 105 minutes, $240 revenue. Its contribution is $240 − $64 − $35 = **$141**, which is $3 less than the chosen plan.
+
+**3. THE PUBLIC UPDATE**
+
+Today’s printing contributed **$144 toward repairs**, after materials and the $35 operating expense. We still need **$76** to meet our $220 goal. Someone mentioned a possible $100 donation tonight, but we have received neither a gift nor a commitment. We missed the repair payment deadline, and the shop is closed pending a new repair arrangement. Thank you for standing with us.

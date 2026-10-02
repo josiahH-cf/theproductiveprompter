@@ -1,0 +1,86 @@
+# 1. THE STORY
+
+## Sixty-Six Dollars
+
+The repair tech was due at nine the next morning, and the invoice pinned to the corkboard wanted $220 in new money — money the shop had to earn that afternoon or not earn at all.
+
+Ivo kept sliding the theater's order slip back to the top of the stack.
+
+"Banners, Mara. A hundred and twelve dollars. Biggest check on the table."
+
+Mara didn't look up from the ledger. The shop smelled of toner and hot rollers; the old press ticked as it idled, like a clock that knew its own deadline. Late sun came through the front window in dusty gold stripes, laying itself across eight order slips fanned out like a hand of cards.
+
+"Biggest check isn't biggest help," she said. "Banners eat thirty dollars of vinyl and fifty minutes of machine. I've got eighty dollars in the drawer and a hundred twenty minutes on the clock, and nobody pays until the work's done. I can't spend money I haven't been handed yet."
+
+"The theater's been with us ten years."
+
+"So have these machines." Her pencil walked down the column. "Posters, programs, tickets, postcards. Eighteen, twenty-four, ten, twenty-eight — that's the eighty to the last dollar, and a hundred fifteen minutes. Payments come to two ninety-two." She subtracted in the margin. "Two hundred twelve over materials. Take out the thirty-five we owe on the lights no matter what, and it's a hundred seventy-seven toward the two twenty. I tried your banners every way they'd fit. They crowd out more than they bring in."
+
+Ivo picked up the banner slip and set it down again, carefully, like it was fragile. "You're telling the theater no over a Tuesday math problem."
+
+"I'm telling the theater no because yes means the press dies."
+
+Then Dot came out of the back room holding the cash box as if it had bitten her. "Friday's deposit never cleared. We've got sixty-six for materials. Not eighty."
+
+The shop went quiet except for the ticking press.
+
+Mara pulled the ledger back and started over, eraser crumbs gathering like gray snow. Postcards fell first — twenty-eight dollars of card stock she could no longer front. She tried the banners again, honestly, twice; at sixty-six dollars they starved everything around them. What survived was smaller. Posters, programs, tickets, and — she almost laughed — bookmarks. Fourteen dollars of ribbon and laminate.
+
+"Sixty-six exactly," she said. "A hundred minutes. Payments come to two forty-five. One seventy-nine over materials. One forty-four after the thirty-five."
+
+"Against two twenty," Ivo said. "Seventy-six short."
+
+"Seventy-six short."
+
+Dot hovered by the paper cutter. "Len says Mrs. Hargrove might give a hundred tonight. She told him she was thinking about it."
+
+"Thinking about it isn't a line in this book." Mara tapped the ledger. "If it comes, it comes. We print what the sixty-six buys."
+
+Ivo stood at the window a long moment, jaw working. Then he did the thing she would remember longest: he picked up the phone and called the theater himself, so she wouldn't have to. She heard him say *not today* and *I'm sorry* and *if the press survives, you're first in line next week*. When he hung up, he loaded poster stock into the feed tray without being asked.
+
+They ran the afternoon down to the quick. The press woke up roaring, and the counter filled — posters still warm and smelling of solvent, programs folding crisp as napkins, tickets chattering out of the perforator, bookmarks sliding from the laminator in glossy ribbons. Ivo's forearms went silver with ink. Dot counted sheets out loud like a rosary.
+
+At six the machine went quiet, and four envelopes arrived at the counter: sixty-eight, ninety, thirty-eight, forty-nine. Mara restored the materials float, set aside the thirty-five, and wrote **144** under the invoice's **220** in heavy pencil.
+
+"Seventy-six," Ivo said.
+
+"Seventy-six. And a donor who's thinking about it." She taped the ledger page to the corkboard where the repair tech would see it in the morning — what they'd earned, what they still owed, nothing claimed that hadn't actually arrived. Ivo flipped the sign to CLOSED, and the last of the light slid over the banner roll, still in its wrapper, waiting for a week the shop might yet get to have.
+
+# 2. THE RECEIPT
+
+```json
+{
+  "donation_confirmed": false,
+  "initial": {
+    "orders": ["A", "B", "C", "D"],
+    "materials": 80,
+    "minutes": 115,
+    "revenue": 292,
+    "order_surplus": 212,
+    "repair_contribution": 177,
+    "shortfall": 43
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  }
+}
+```
+
+**Explanation.** Per-order surplus (payment − materials): A=50, B=66, C=28, D=68, E=35, F=54, G=82, H=42.
+
+- **Initial ($80, 120 min):** {A,B,C,D} uses exactly $80 of materials and 115 minutes, for surplus 50+66+28+68 = 212, contribution 212−35 = 177, shortfall 43. Materials are the binding constraint; A, B, C, D have the best surplus-per-dollar mix that fills the budget exactly.
+- **Revised ($66, 120 min):** D ($28) no longer fits alongside the rest. {A,B,C,E} uses exactly $66 and 100 minutes, surplus 50+66+28+35 = 179, contribution 179−35 = 144, shortfall 76.
+
+**Feasible competing plan (Ivo's banner plan):** {G,D,A} under the initial limits — materials $76 ≤ $80, minutes 110 ≤ 120, revenue $276, surplus 200, contribution 165. Feasible but $12 worse than 177; under the revised $66 budget the best banner-inclusive plan, {G,B,C} ($64, 105 min), yields surplus 176 and contribution 141, $3 worse than 144. The banners never make the optimal cut.
+
+# 3. THE PUBLIC UPDATE
+
+**Community Print Shop — Repair Fund Update**
+
+Today's final production run is complete. After covering materials and a $35 operating expense, the shop earned a confirmed **$144** toward the **$220** repair bill due tomorrow morning — leaving a **$76 gap**. A supporter has mentioned a possible $100 gift, but **no donation has been received or pledged**. If you can help close the gap tonight, every dollar goes directly to the press repair. Thank you for keeping community printing alive.
