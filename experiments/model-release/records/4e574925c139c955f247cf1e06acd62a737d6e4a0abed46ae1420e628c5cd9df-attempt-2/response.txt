@@ -1,0 +1,85 @@
+# THE STORY
+
+## The Weight of Minutes
+
+The Risograph hummed and spat out its last poster before falling silent for its afternoon oil change, the one Mara couldn't afford to skip. She stood over the ledger with a pencil stub, the eraser worn to a nub from all the arithmetic she'd done since lunch.
+
+"You're not even considering it," Ivo said. He'd propped the theater's banner mockup against the paper cutter — floor-to-ceiling, deep green, GRAND REOPENING in letters he'd drawn himself. "They need these by Friday, Mara. They're the reason half our regulars even know we exist."
+
+"I'm considering everything." She tapped the ledger. "That's the problem. Banners cost thirty in materials and fifty minutes on the machine. If I run them, I lose room for three smaller jobs that clear more money for less rope."
+
+"Money isn't the only—"
+
+"Money is currently the only thing keeping the lights on." She didn't say it unkindly, but it landed hard anyway, and Ivo looked away toward the drying rack, jaw tight.
+
+She ran the numbers the way she always did before committing paper to blade: posters, tickets, menus, banners — eighteen plus ten plus twenty-two plus thirty in materials, twenty-five plus fifteen plus thirty plus fifty in machine minutes. Eighty dollars exactly. A hundred and twenty minutes, not a tick over. The four jobs together would clear two hundred and fourteen dollars above cost — more than any other combination she'd tried, and she'd tried most of them twice, suspicious of her own hope.
+
+"We can do the banners," she said finally. "Just not alone. Posters, tickets, and menus ride along with them. Full schedule, every minute used."
+
+Ivo exhaled like he'd been holding his breath since he walked in. "Thank you."
+
+"Don't thank me yet. After the gas bill for the dryer — thirty-five flat, doesn't touch materials or time, just comes off what's left — we're sitting at one-seventy-nine toward the two-twenty the repair guy wants. We'll be forty-one short."
+
+He frowned at the chalkboard where she'd started writing the number, then erased it, then wrote it again smaller. "Dana said something about a donor. A hundred dollars, maybe, tonight."
+
+"Maybe. Tonight." Mara set the pencil down. "I don't put maybes in a ledger."
+
+Then Priya from the framing shop next door leaned in through the propped door, flour-dusted apron still on from whatever she'd been doing on her lunch break, and said the materials order Mara had been counting on had shrunk — sixty-six dollars available instead of eighty, a mix-up with the register float nobody had caught until now.
+
+Mara didn't swear, though her hand tightened on the pencil hard enough that Ivo noticed.
+
+"That kills the banners," she said, flipping back through her combinations. Fourteen less dollars put thirty out of reach entirely — not close, not tight, just gone. She crossed out G and started over, chasing the same ratio of money in to money out with eighty-six fewer cents of room to work with.
+
+"So what replaces it?"
+
+"Posters, programs, tickets, bookmarks. Sixty-six dollars exactly, hundred minutes of machine time, clears one-seventy-nine before the gas bill." She didn't look up. "One forty-four after."
+
+Ivo stared at the banner mockup leaning uselessly against the cutter. "The theater needed those banners for Friday. This Friday."
+
+"I know." She finally met his eyes. "I'm not happy about it either. But I can't print thirty dollars I don't have, and I can't pretend a maybe-donor is sixty-six dollars."
+
+Ivo picked the mockup up, rolled it carefully, and set it on the shelf instead of in the recycling. "Next order, then. First thing."
+
+"First thing," Mara agreed, and reached for the posters instead.
+
+---
+
+# THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+**Initial plan check (budget $80, 120 min):** A+C+F+G = materials 18+10+22+30=80 (fits exactly), minutes 25+15+30+50=120 (fits exactly), revenue 68+38+76+112=294, surplus 294−80=214. After the $35 expense: 214−35=179. Shortfall vs. $220: 220−179=41.
+
+*Competing plan:* A+B+C+D (materials 18+24+10+28=80, minutes 25+40+15+35=115, revenue 68+90+38+96=292, surplus 212) is feasible but yields $212 surplus — $2 less than the chosen plan, confirming A+C+F+G is better.
+
+**Revised plan check (budget $66, 120 min):** A+B+C+E = materials 18+24+10+14=66 (fits exactly), minutes 25+40+15+20=100 (fits), revenue 68+90+38+49=245, surplus 245−66=179. After the $35 expense: 179−35=144. Shortfall vs. $220: 220−144=76.
+
+*Competing plan:* A+C+F+H (materials 18+10+22+16=66, minutes 25+15+30+25=95, revenue 68+38+76+58=240, surplus 174) is feasible but yields only $174 surplus — $5 less, confirming A+B+C+E is better.
+
+---
+
+# THE PUBLIC UPDATE
+
+Shop update: Today's print run confirmed $144 toward our $220 repair goal — materials came in $14 short of plan, so we ran posters, programs, tickets, and bookmarks instead of the theater banners. We're still $76 short. A possible $100 donor has been mentioned but nothing is confirmed or received. We'll share the next order plan soon.

@@ -1,0 +1,127 @@
+## 1. THE STORY
+
+### The Last Run
+
+By three o’clock, the community print shop smelled of hot toner, machine oil, and the rain steaming off people’s coats. Somewhere inside the largest press, a bearing made a dry clicking sound, as regular as a fingernail against a window.
+
+The repair technician’s deadline was five. Mara needed to tell him whether the shop could put another $220 toward the bill.
+
+Ivo stood beside the cutting table, holding the theater’s artwork against his chest. Gold letters announced *THE TEMPEST—ONE WEEKEND ONLY.*
+
+“We should start with the banners,” he said. “Opening night is tomorrow.”
+
+“We should start with the plan,” Mara replied.
+
+On the back of a spoiled map, she listed the orders, materials, minutes, and payments. Eight jobs waited in their envelopes. Each had to be finished in full or refused. They had $80 for paper, vinyl, ink, and binding stock, and exactly 120 usable machine minutes before the technician arrived. Customers would pay only after their work was complete.
+
+Ivo tapped the theater envelope. “They’ve rehearsed for two months.”
+
+“And the shop has been limping for six,” Mara said.
+
+She calculated while the old wall clock shuddered forward. The best combination was the posters, tickets, menus, and theater banners: A, C, F, and G. Together they used all $80 and all 120 minutes. The customers would pay $294. After replacing the $80 spent on materials, the order surplus would be $214. Then came the unavoidable $35 operating expense.
+
+“One hundred seventy-nine dollars for the repair,” Mara said. “We’d still be forty-one short, but it’s the best this afternoon can do.”
+
+Ivo’s shoulders loosened. “And the banners are in.”
+
+“The banners are in because the numbers put them there.”
+
+He grinned. “I’ll take it.”
+
+Mara had just arranged the four envelopes along the press when Lena, the shop treasurer, hurried through the door. Rain jeweled her gray hair. She carried the cash box in both hands.
+
+“Don’t buy anything yet,” Lena said.
+
+Mara stopped with her coat half on.
+
+Lena set the box down. “The school’s reimbursement check hasn’t cleared. We don’t have eighty for materials. We have sixty-six.”
+
+Ivo looked at the banner envelope. “Can we buy the vinyl first and use the customer payments for the rest?”
+
+“No,” Mara said. “Nobody pays until production ends.”
+
+“What about running one order, collecting, then buying more?”
+
+“The customers are collecting at five. One production window, one materials purchase. No borrowing.”
+
+Ivo’s palm came down on the cutting table. Metal rulers jumped. “So the theater loses because a check is late?”
+
+“The theater loses if another combination does more for the repair.”
+
+“People will see those banners. They’ll know the shop helped.”
+
+“The repairman won’t accept applause.”
+
+For a moment, only the press clicked. Beyond the front windows, rain silvered the empty basketball court.
+
+Mara turned over the ruined map and began again. Ivo paced between shelves of colored stock, muttering that numbers could not measure who had shown up for the shop’s fundraisers, who had painted the lobby, who had brought soup when Mara’s mother was ill.
+
+“No,” Mara said quietly. “They measure what we can promise today.”
+
+With $66, the banners could still fit—but not into the best plan. Banners, bookmarks, and menus would use all $66 and 100 minutes, producing a surplus of $171 before expenses.
+
+The stronger plan was posters, programs, tickets, and bookmarks: A, B, C, and E. Exactly $66 in materials, 100 minutes, and $245 in payments. The order surplus would be $179. After the $35 expense, the repair contribution would be $144.
+
+“Eight dollars more for the bearing,” Mara said.
+
+“And no banners.”
+
+“No banners.”
+
+Ivo stared at the gold lettering, then slid the theater envelope away from the press. His movement was careful now.
+
+“I’ll call them,” he said.
+
+Mara began loading cream program paper. “Tell them I made the decision.”
+
+“I’ll tell them we did.”
+
+They worked through the final afternoon shoulder to shoulder. Programs whispered into the receiving tray. The cutter cracked through bookmark sheets. Warm posters curled over Mara’s wrists, and the ticket stock left red dust on Ivo’s fingertips.
+
+At four forty-eight, the last job was stacked and tied. Confirmed payments left $144 for the repair, with $76 still missing.
+
+Lena checked her phone. “Someone says a donor might give a hundred tonight.”
+
+“Did they?” Ivo asked.
+
+“No.”
+
+Mara wrote **REPAIR GAP: $76** on the chalkboard by the door.
+
+The press clicked behind her. Ivo stood listening to it, then added beneath her figure, in smaller letters: **Still open tomorrow if we close the gap.**
+
+They turned on the window lights and waited for what was real.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Initially, A+C+F+G uses exactly $80 and 120 minutes. Its $294 revenue minus $80 materials gives a $214 order surplus; subtracting the fixed $35 expense leaves $179.
+
+Under the revised limit, A+B+C+E uses exactly $66 and 100 minutes. Its $245 revenue minus $66 materials gives $179; after the expense, $144 remains. A feasible competitor is G+E+F: $66 of materials, 100 minutes, $237 revenue, and only $136 for the repair after expenses.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s completed orders produced a confirmed $144 contribution toward the print-shop repair. We still need $76 to reach the $220 goal. A possible $100 donation was mentioned, but no gift or commitment had been received by the end of the afternoon, so it is not included in these totals.

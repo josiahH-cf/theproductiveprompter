@@ -1,0 +1,145 @@
+## 1. THE STORY
+
+### The Last Run
+
+At three-thirty, the print shop smelled of hot dust, wet paper, and the sharp chemical sweetness of solvent. The old cutter clicked in its sleep against the back wall. Mara stood beneath the handwritten sign that said **REPAIRS KEEP US OPEN**, adding columns in pencil on the back of an invoice.
+
+“Banners first,” Ivo said.
+
+He had been saying it for twenty minutes, though he had changed the shape of the sentence each time. Now he put both hands on the counter beside the theater’s rolled-up artwork. Gold letters curled across deep blue fields: *THE CLOCKMAKER’S DAUGHTER — ONE WEEKEND ONLY.*
+
+“The theater is bringing people in,” he said. “They’ll talk about us. They’ll bring donations. They’re fifty minutes, Mara.”
+
+“They’re thirty dollars in stock I have to buy before they bring anything.”
+
+“They pay one-twelve.”
+
+“After we finish.”
+
+Ivo looked past her at the copier-printer, its side panel removed like a rib cage. The technician’s estimate lay beneath Mara’s elbow: repair bill, due Monday morning. They needed two hundred twenty dollars in new money, not wishes and not the old materials float they had already been nursing through the month.
+
+Mara’s pencil moved. She had eighty dollars for materials and one hundred twenty minutes before the service company shut down the machine remotely for the weekend. Every order had to be whole or not at all. No partial posters, no half programs. Nothing paid until it was done.
+
+“Posters, tickets, menus, banners,” she said, tapping the page. “Eighteen, ten, twenty-two, thirty. Exactly eighty.”
+
+Ivo leaned in despite himself.
+
+“Twenty-five minutes, fifteen, thirty, fifty. Exactly one hundred twenty.” Her pencil made four crisp strokes below the list. “Payments are sixty-eight, thirty-eight, seventy-six, one hundred twelve. That’s two ninety-four. Materials are eighty. Surplus, two fourteen.”
+
+“So banners first,” Ivo said, brightening.
+
+“Banners included,” Mara corrected.
+
+The difference mattered to her. Ivo treated the theater as a promise, a small door opening into a brighter room. Mara treated it as one square in a tight grid.
+
+The phone rang before either could say more. Mara listened, face still, then thanked the caller and set the receiver down gently.
+
+“What?” Ivo asked.
+
+“Supplier put the paper order on hold.” She turned the invoice over. “We have sixty-six dollars available. Not eighty.”
+
+The shop seemed to contract around the number. Outside, rain rattled against the front window, blurring the CLOSED MONDAY FOR REPAIRS sign that Mara had taped up at noon.
+
+Ivo picked up the banner proof. “Can’t you use the theater payment to cover—”
+
+“It arrives after production ends.”
+
+“Or ask them for part up front?”
+
+“Not confirmed. And we don’t get to invent money because we like the play.”
+
+His jaw tightened. “You always make it sound like caring is bad math.”
+
+“No,” Mara said. “I make it sound like the machine doesn’t care.”
+
+For a moment, only the rain and the low fan inside the printer answered them.
+
+Mara rewrote the possibilities. Her pencil grew blunt. Posters, programs, tickets, bookmarks: materials sixty-six. Minutes one hundred. Payments two hundred forty-five. Surplus one hundred seventy-nine.
+
+No banners.
+
+Ivo watched the theater roll while she calculated. “What about programs, tickets, banners?”
+
+“Sixty-four in materials. One hundred five minutes.” She wrote the result. “One seventy-six surplus.”
+
+“Three dollars.”
+
+“Three dollars is three dollars when we are short.”
+
+He turned away, toward the window. On the sidewalk across the street, a little girl pressed both palms against the glass of the bakery, studying cakes she could not yet have.
+
+Mara made more columns. Posters, programs, tickets, bookmarks stayed at one hundred seventy-nine. Posters, programs, menus reached one hundred seventy. No other combination climbed higher under sixty-six dollars of materials. The decision sat there, unromantic and complete.
+
+Then Ivo said, “Devon said he might give a hundred tonight.”
+
+“Might,” Mara said.
+
+“He sounded serious.”
+
+“Did he send it?”
+
+“No.”
+
+“Did he promise it?”
+
+“No.”
+
+She put the pencil down. “Then it’s not on the page.”
+
+Ivo’s eyes shone with anger, or tiredness, or both. “The theater has been here through everything.”
+
+“So have we.” Mara softened her voice. “That is why I can’t spend the last afternoon on a plan that leaves us with less.”
+
+He looked at the blue-and-gold banners again. Finally, he nodded once, violently, as if agreement were something he had to force through his own throat.
+
+They called the theater together. Mara explained that the banners could not run today. Ivo did not speak until the theater manager sighed, then he told her they would keep the files ready for the first morning after repair.
+
+At four, they fed poster stock into the machine. At four-forty, programs began to emerge in warm, collated stacks. Tickets followed, then bookmarks, their little painted birds flashing under the shop lights. Ivo trimmed the edges while Mara packed orders into kraft boxes.
+
+When the final sheet slid out, the machine gave a long, exhausted whir.
+
+Their confirmed contribution, after the fixed thirty-five-dollar operating expense, was one hundred forty-four dollars. The gap was seventy-six.
+
+At five-oh-three, Mara locked the front door. Ivo carried the unprinted banners to the theater’s van himself.
+
+No donor arrived. No message came.
+
+But before he left, Ivo returned to place a paper cup of coffee beside Mara’s calculator.
+
+“Tomorrow,” he said, looking at the dark machine, “we ask Devon.”
+
+Mara nodded. “Tomorrow, we can ask.”
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+The initial plan uses orders A, C, F, and G: materials are $18 + $10 + $22 + $30 = $80; time is 25 + 15 + 30 + 50 = 120 minutes; revenue is $294. Its order surplus is $294 − $80 = $214, and the repair contribution is $214 − $35 = $179.
+
+With only $66 in materials, A, B, C, and E produce the highest feasible order surplus: materials $18 + $24 + $10 + $14 = $66; time 25 + 40 + 15 + 20 = 100 minutes; revenue $245; surplus $245 − $66 = $179; contribution $179 − $35 = $144. A feasible competing revised plan is B, C, and G: $64 materials, 105 minutes, $240 revenue, and $176 order surplus—$3 below the selected plan.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s confirmed production will contribute **$144** toward the print shop repair. After the fixed operating expense, **$76** remains to reach the $220 repair goal. A possible $100 donor gift was discussed, but no donation or commitment has been received. We are grateful for every confirmed order and contribution as we prepare for repairs.

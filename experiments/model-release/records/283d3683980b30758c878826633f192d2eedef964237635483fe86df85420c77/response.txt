@@ -1,0 +1,145 @@
+# The Last Run
+
+By three o’clock, the print shop smelled of hot rollers, cardboard, and the sharp, sweet solvent Mara used to clean the cutting blades. Sunlight came through the front windows in pale rectangles, catching scraps of blue paper on the floor.
+
+The repair deadline was tomorrow morning. Without it, the shop’s oldest press would be locked out of service, and the neighborhood’s flyers, menus, school programs, and election notices would have nowhere to go.
+
+Ivo stood beside the worktable with a theater banner draped over his arms. Its painted letters—OPENING NIGHT—hung upside down.
+
+“Banners first,” he said. “The theater paid us last month. They’re counting on us.”
+
+“They’re one order,” Mara said, checking the figures on her clipboard. “The repair bill needs two hundred twenty dollars in new money.”
+
+“Then we make the banners and worry about the rest.”
+
+Mara looked toward the press. Its motor gave a tired metallic tick as it cooled between jobs. “Worrying isn’t a production plan.”
+
+Ivo’s jaw tightened. “You always say that when the answer is no.”
+
+She did not answer immediately. The shop had eighty dollars in material money and one hundred twenty minutes of machine time. Customer payments would arrive only after the work was finished. The eight orders on the board were written in black marker, each with its price, material cost, and press time.
+
+Mara began circling combinations.
+
+Posters and postcards. Banners, posters, and postcards. Programs, tickets, and bookmarks. She erased, recalculated, and finally wrote three letters in a firm line:
+
+G, A, D.
+
+The banners, posters, and postcards would use seventy-six dollars of materials and one hundred ten minutes. They would bring in two hundred forty dollars, leaving a two-hundred-dollar surplus before the shop’s fixed thirty-five-dollar operating expense.
+
+“One hundred sixty-five toward the repair,” Mara said. “A gap of fifty-five.”
+
+Ivo stared at the letters. “That’s the best?”
+
+“It’s the best under the limits we have.”
+
+“And the theater gets its banners.”
+
+“Yes.”
+
+His shoulders lowered, but not quite into relief. “Then start the press.”
+
+Mara reached for the supply ledger. Before she could open it, a delivery driver pushed through the door carrying a narrow box.
+
+“Your paper order,” he said. “Though accounting called. They’re short on the balance. You’ve got sixty-six dollars available today, not eighty.”
+
+The room seemed to contract around the number.
+
+Ivo laughed once, without humor. “That’s a joke.”
+
+“It isn’t,” Mara said.
+
+“Use the eighty.”
+
+“The missing fourteen dollars don’t exist.”
+
+“Borrow it from the register.”
+
+“The register is empty.”
+
+“Then call the theater. They can advance something.”
+
+“Their payment comes after production. We don’t have a confirmed advance.”
+
+Ivo slapped the banner against the table. “So now their order disappears because somebody miscounted?”
+
+Mara turned the clipboard toward him. “Not disappears. Changes.”
+
+She crossed out G. Ivo watched the marker scrape through the letter.
+
+The banners required thirty dollars in materials and fifty minutes of machine time. Under the new limit, keeping them would force the shop into a weaker combination. Mara tested the choices aloud, more to herself than to him. Programs, tickets, and banners would cost sixty-four dollars and leave a surplus of one hundred seventy-six. But postcards, posters, tickets, and bookmarks would cost sixty-two dollars, take ninety-five minutes, and leave one hundred eighty-one.
+
+“It earns five more dollars,” Ivo said.
+
+“It earns five more before the fixed expense. After the expense, it contributes one hundred forty-six.”
+
+“And the banners contribute one hundred forty-one.”
+
+“Yes.”
+
+He looked at the painted cloth, then at the order board. “You’re telling me five dollars decides whether the theater gets printed.”
+
+“No,” Mara said. “The sixty-six dollars decided that. The five dollars tells us which replacement plan loses least.”
+
+For a moment, only the fluorescent lights buzzed. Ivo’s fingers traced the wet edge of the banner’s black paint.
+
+“My sister’s in the show,” he said quietly. “She’s been rehearsing for three months.”
+
+“I know.”
+
+“If we decline it, I have to tell her.”
+
+Mara softened. “I’ll tell her with you.”
+
+He breathed through his nose, angry enough to shake but too tired to shout. Then he picked up the tickets order from the board and moved it beside the postcards.
+
+“Posters too?” he asked.
+
+“Posters too. And bookmarks.”
+
+The press started at 3:24. Its rhythm filled the shop: clamp, hiss, release; clamp, hiss, release. Ivo fed paper while Mara watched the ink spread cleanly across the first poster. Outside, a theater volunteer stopped at the window, saw the banner still waiting, and looked away.
+
+Near closing, someone called from the sidewalk, “A donor might give a hundred tonight!”
+
+Mara did not lift her eyes from the final stack.
+
+“Might,” she said.
+
+The shop finished with one hundred forty-six dollars in confirmed repair contribution. The banners remained unprinted. The gap was seventy-four dollars.
+
+Ivo folded the theater banner carefully and placed it on the shelf.
+
+“Tomorrow,” he said.
+
+“Tomorrow,” Mara agreed, though neither of them knew whether the press would still be theirs.
+
+## THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["G", "A", "D"],
+    "materials": 76,
+    "minutes": 110,
+    "revenue": 276,
+    "order_surplus": 200,
+    "repair_contribution": 165,
+    "shortfall": 55
+  },
+  "revised": {
+    "orders": ["D", "A", "C", "E"],
+    "materials": 62,
+    "minutes": 95,
+    "revenue": 251,
+    "order_surplus": 181,
+    "repair_contribution": 146,
+    "shortfall": 74
+  },
+  "donation_confirmed": false
+}
+```
+
+The initial plan maximizes order surplus: $276 revenue − $76 materials = $200, then $35 fixed expense leaves $165. Under the revised $66 materials limit, A+C+D+E uses $62 and 95 minutes, producing $251 − $62 = $181; after expenses, contribution is $146. A feasible competing revised plan is G+B+C: $64 materials, 105 minutes, $240 revenue, $176 surplus, and $141 contribution.
+
+## THE PUBLIC UPDATE
+
+Today’s confirmed repair contribution is $146, leaving a $74 gap toward the $220 goal. The theater banners were not produced because materials became limited to $66, and the selected replacement orders provided the strongest feasible contribution. A possible $100 donor was mentioned, but no gift or commitment has been received.

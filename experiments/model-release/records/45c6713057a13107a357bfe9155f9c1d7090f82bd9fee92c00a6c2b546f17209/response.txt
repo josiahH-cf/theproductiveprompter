@@ -1,0 +1,93 @@
+## 1. The Story
+
+**Sixty-Six**
+
+The riso smelled like warm soy ink and dust, the way it always did by three o'clock. Mara had the order slips fanned across the cutting table, and Ivo stood on the other side with his arms crossed over the theater's logo on his sweatshirt.
+
+"The banners are the whole afternoon," he said. "You told me so yourself. A hundred and twelve dollars."
+
+"I told you they were in the plan." She tapped the slip marked G and the three beside it. "Banners, menus, posters, tickets. Every dollar of materials, every minute on the drum. Two hundred and fourteen over cost, thirty-five for the power and the cutter lease, one seventy-nine toward the repair. Forty-one short, but it was the best the numbers allowed."
+
+"Was."
+
+"Was." She took the envelope out of her apron pocket and turned it so he could see the pencil figure Denise had written on the flap after the council meeting. Sixty-six. "The float came back short. The grant office held fourteen dollars for a fee nobody mentioned."
+
+Ivo laughed, the short kind that isn't one. "Fourteen dollars."
+
+"Fourteen dollars is a bookmark order. It's the difference between fitting the banners and not."
+
+She had already reworked it twice on the back of a proof sheet while he was carrying the theater's artwork in from his car. The arithmetic didn't care who the customer was. With sixty-six to spend, banners and menus and tickets came to sixty-two and left four dollars idle. Banners, posters and maps came to sixty-four and cleared one seventy-four. Programs, posters, tickets and bookmarks came to exactly sixty-six, a hundred minutes, and one seventy-nine over materials. Nothing with the banners in it got past one seventy-six.
+
+"Three dollars," Ivo said when she showed him. "You're cutting us for three dollars."
+
+"I'm cutting you for three dollars. If I run the banners, the best I can send to the repair fund is one forty-one. If I don't, it's one forty-four." She set the pencil down. "The deadline is tomorrow. The tech doesn't take a story about who needed it more."
+
+Outside, somebody was dragging a bin up the alley, and the light came through the front window gold and slanted across the paper racks. Ivo picked up the banner slip and held it like it weighed something.
+
+"The show opens Friday," he said. "We'll have nothing on the street."
+
+"Then you'll have the box office and whatever you can tape in the window. I'm sorry." She meant it, and she could see it wasn't what he wanted. "Ivo, if I lose the machine, there are no banners next month either. Or programs, or anything."
+
+"Carla said the Petersens might give a hundred tonight."
+
+"Might." Mara let the word sit between them. "I've got a pencil number from Denise and a stack of blanks. I don't have the Petersens."
+
+He didn't answer. After a moment he put the slip back on the table, face down, and went to the stock shelf and started loading program paper into the feed tray without being asked. Mara watched his shoulders and let him have the quiet.
+
+She ran the programs first, because they were the longest, forty minutes of the drum turning and the stack rising warm and slightly curled. Then the posters, bright blue for the farmers' market, then the ticket strips, then the bookmarks with the library's wren on them. Ivo jogged the sheets square and boxed them without looking up. By the time the last tray came off, the window had gone from gold to grey and the shop smelled like the inside of a paperback.
+
+Mara wrote it on the whiteboard where the morning's version still showed through in ghost letters.
+
+Payments 245. Materials 66. Operating 35. To repair: 144. Gap: 76.
+
+"Not enough," Ivo said, reading it.
+
+"Not enough. Seventy-six short, and that's before anybody's paid." She capped the marker. "I'll call the tech in the morning and tell him what's real."
+
+"And the Petersens."
+
+"If they walk in with a hundred dollars, I'll write it on the board under the line. Until then it isn't on the board." She found the theater's folder where he'd left it against the wall and set it carefully back in his hands. "Bring that in next week, if the drum's still turning. I'll run them first."
+
+He stood with it a moment, then nodded, and went to find his keys. Mara switched off the machine, and in the new silence the only number in the room was the one she could prove.
+
+## 2. The Receipt
+
+```json
+{
+  "initial": {
+    "orders": ["G", "F", "A", "C"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["B", "A", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Surplus per order (payment minus materials):
+
+| Order | A | B | C | D | E | F | G | H |
+|---|---|---|---|---|---|---|---|---|
+| Surplus | 50 | 66 | 28 | 68 | 35 | 54 | 82 | 42 |
+
+- **Initial plan G+F+A+C.** Materials 30+22+18+10 = 80. Minutes 50+30+25+15 = 120. Revenue 112+76+68+38 = 294. Surplus 294 − 80 = 214. Contribution 214 − 35 = 179. Shortfall 220 − 179 = 41. Both limits are used exactly.
+- **Initial competitor D+B+A+C.** Materials 80, minutes 115, revenue 292, surplus 212, contribution 177. Feasible but 2 lower.
+- **Revised plan B+A+C+E.** Materials 24+18+10+14 = 66. Minutes 40+25+15+20 = 100. Revenue 90+68+38+49 = 245. Surplus 179. Contribution 144. Shortfall 76. Materials limit is used exactly; 20 minutes remain but no affordable order fits.
+- **Revised competitor G+B+C.** Materials 64, minutes 105, revenue 240, surplus 176, contribution 141. This is the best plan that includes the banners, and it is 3 lower.
+- **Donation.** A $100 gift was mentioned only. Nothing was received or committed, so it is excluded from every figure.
+
+## 3. The Public Update
+
+Print shop repair update: Today's production run is finished. Confirmed contribution to the $220 repair bill: $144 ($245 in customer payments, less $66 materials and $35 operating costs). Remaining gap: $76. A supporter mentioned a possible $100 donation tonight, but no gift or commitment has been received, so it is not counted. We will share any confirmed update before the repair deadline. Thank you for standing with the shop.

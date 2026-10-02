@@ -1,0 +1,113 @@
+## 1. THE STORY
+
+### The Last Run
+
+At 2:17 on the final afternoon before the repair deadline, the rollers at Harbor Street Community Print Shop were hot enough to warm the metal counter. The room smelled of wet ink, cardboard, and lemon cleaner. A fan clicked in the window. By five, a technician would decide whether the failing cutter was worth repairing, and Mara needed $220 in new money toward the bill.
+
+Ivo burst in with a thumb drive and a coil of blue paper. “The theater banners,” he said. “They need them before rehearsal. Run those first.”
+
+Mara pointed to the whiteboard: MATERIALS $80; MACHINE 120 MINUTES. “G is thirty dollars of material, fifty minutes, and a $112 payment.”
+
+“It’s the theater. Everyone will see them.”
+
+“Everyone won’t see the repair invoice. Customers pay after production, so one order can’t finance the next.”
+
+She wrote A+B+C+D. Posters, programs, tickets, and postcards used $80 and 115 minutes; payments totaled $292. “That’s $212 after materials. The fixed operating expense takes $35, so the repair gets $177. The original float is cash we already have, not fundraising.”
+
+Ivo stared at the four circled letters. “You’re choosing postcards over a theater.”
+
+“I’m choosing the plan that makes the most repair money.”
+
+“Your plan leaves the banners dark.”
+
+“Your plan leaves forty-three dollars missing.”
+
+He muttered about people remembering a banner and not a spreadsheet. Mara clipped the four job tickets to the rail but left the machine idle. Ivo stood beside the blue paper, arms folded, while sunlight made the ink bottles glow like stained glass.
+
+Before she pulled a sheet or started the first full run, her phone buzzed. The treasurer had corrected the cash count: fourteen dollars in the envelope was earmarked for a community class. Mara looked at the whiteboard, then at the six tens and six ones in the drawer.
+
+“Only sixty-six is available,” she said.
+
+Ivo unfolded his arms. “Then do the banners. They’re thirty.”
+
+“Not with the plan around them.”
+
+She erased D. The chalk squeaked. “A, B, C, and E,” she said, pulling the bookmark file onto the monitor. “E costs fourteen. Sixty-six total. One hundred minutes. Payments are $245, so order surplus is $179. After the $35 expense, $144 goes to the repair. The gap is seventy-six.”
+
+Ivo leaned over the counter. “And G, B, C? Banners, programs, tickets. Sixty-four in materials, 105 minutes, $240 in payments. That’s $176 surplus—$141 after the expense.”
+
+“Lower.”
+
+“By three dollars.”
+
+“Three dollars is not nothing when the cutter is dying.”
+
+He slapped the thumb drive against his palm. “The theater gave us its last rush job because you promised this place served the neighborhood.”
+
+Mara felt the sharp answer rise and swallowed it. “I promised to keep the shop open. That means I can’t spend material money that isn’t there, and I can’t call a rumor income.”
+
+“Maybe the donor comes tonight,” Ivo said. “Someone said a hundred dollars might.”
+
+“Someone saying might is not a gift.”
+
+She called the postcard customer first. Mrs. Alvarez was quiet for a long time, then said she understood, though her voice made the word heavy. Mara marked D declined. Ivo called the theater. He did not mention the spreadsheet. He said only that the banners would not be ready before rehearsal.
+
+When he hung up, the shop seemed larger and emptier. “You could have let me run them,” he said.
+
+“With what? Borrowed paper? A promise?”
+
+“With the chance that it would matter.”
+
+“It does matter,” Mara said. “That’s why I’m counting it.”
+
+They worked. Posters flashed black and yellow. Programs emerged in neat folded stacks. Tickets came out warm, their perforations crisp. Last came the bookmarks, green on one side and orange on the other. Ivo fed them into the tray without being asked. At 4:46, the machine coughed; he put his hand on the loose side panel exactly where Mara told him. The rollers caught, and the final sheet slid free.
+
+After production ended, the four customers’ payments were recorded: $245. Mara set aside the $35 operating expense. On the board she wrote, in fresh red marker: REPAIR CONTRIBUTION CONFIRMED: $144. GAP: $76. Beneath it she wrote DONOR: NOT CONFIRMED.
+
+Ivo read the figures. Outside, theater light spilled across the sidewalk, waiting for banners that would not come. He picked up the last stack of programs.
+
+“I’ll deliver these,” he said.
+
+Mara looked at him. “And the banners?”
+
+“Tomorrow, if the cutter survives.”
+
+“No promises,” she said.
+
+He gave her a tired half-smile. “Then count on me to ask again.”
+
+At five, they switched off the machine. The shop cooled around the ink, the unprinted banner file glowing on the monitor, and the $76 gap waiting without pretending to be solved.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "B", "C", "D"],
+    "materials": 80,
+    "minutes": 115,
+    "revenue": 292,
+    "order_surplus": 212,
+    "repair_contribution": 177,
+    "shortfall": 43
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Initial: \(292-80=212\), then \(212-35=177\). The selected plan is optimal; A+B+F+H is an equally optimal initial plan.
+
+Revised: \(245-66=179\), then \(179-35=144\). One feasible competing plan is G+B+C: 64 materials, 105 minutes, $240 revenue, $176 surplus, and $141 contribution.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s completed work provides a confirmed $144 contribution toward the $220 repair goal, leaving a $76 gap. A possible $100 donor has not given or committed anything, so it is not included in the total. Thank you to the customers and volunteers who helped finish the afternoon’s orders.

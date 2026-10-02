@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import contextlib
 import datetime as dt
 import difflib
@@ -40,7 +41,7 @@ except ModuleNotFoundError:  # Supports importlib-based conformance tests.
     from codex_exec_adapter import CodexExecError, codex_cli_version, execute_task_packet
 
 
-CONTROLLER_VERSION = "3.1.0"
+CONTROLLER_VERSION = "3.1.1"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -65,6 +66,7 @@ def bootstrap_payload() -> dict[str, Any]:
         "action": "request_seed",
         "question": SEED_QUESTION,
         "start_command": ["article-flow", "capture", "<verbatim operator seed>", "--auto", "--json"],
+        "model_release_command": ["article-flow", "model-release", "update", "--json"],
         "protocol": [
             "Preserve the operator's seed verbatim when replacing the placeholder in start_command.",
             "Run only exact command arrays returned by the controller in next_command, command, submission_command, approval_command, selection_commands, or rejection_command fields.",
@@ -264,9 +266,24 @@ def safe_relative(value: str) -> Path:
 
 def git(args: Sequence[str], *, cwd: Path | None = None, check: bool = True, binary: bool = False) -> bytes | str:
     cwd = cwd or REPO_ROOT
+    command = ["git", "-C", str(cwd), *args]
+    git_file = cwd / ".git"
+    if os.environ.get("WSL_DISTRO_NAME") and git_file.is_file() and re.match(
+            r"gitdir: [A-Za-z]:[\\/]", git_file.read_text(encoding="utf-8").strip()):
+        native_git = shutil.which("git.exe")
+        if not native_git:
+            raise FlowError("This Windows-created worktree requires Windows Git from WSL", EXIT_USAGE)
+        converted = []
+        for argument in args:
+            if argument.startswith("/mnt/"):
+                argument = windows_path(Path(argument))
+            elif argument.startswith("--pathspec-from-file=/mnt/"):
+                argument = "--pathspec-from-file=" + windows_path(Path(argument.split("=", 1)[1]))
+            converted.append(argument)
+        command = [native_git, "-C", windows_path(cwd), *converted]
     try:
         result = subprocess.run(
-            ["git", "-C", str(cwd), *args],
+            command,
             check=check,
             capture_output=True,
             text=not binary,
@@ -335,11 +352,11 @@ def spec_repo_path(path: str) -> str:
 
 
 def source_bytes(path: str, source: str, scope: str = "spec") -> bytes:
-    if scope not in {"spec", "repository"}:
+    if scope not in {"spec", "repository", "source"}:
         raise FlowError(f"Unknown protected path scope: {scope}", EXIT_INTEGRITY)
     rel = spec_repo_path(path) if scope == "spec" else safe_relative(path).as_posix()
     if source == "worktree":
-        target_root = SPEC_ROOT if scope == "spec" else (publication_repo_root() or REPO_ROOT)
+        target_root = SPEC_ROOT if scope == "spec" else REPO_ROOT if scope == "source" else (publication_repo_root() or REPO_ROOT)
         target = target_root / safe_relative(path)
         if not target.is_file():
             raise FlowError(f"Protected file is missing: {path}", EXIT_INTEGRITY)
@@ -378,7 +395,7 @@ def protected_entries(source: str = "worktree") -> list[dict[str, str]]:
             raise FlowError("Invalid protected path entry", EXIT_INTEGRITY)
         path = safe_relative(raw["path"]).as_posix()
         scope = str(raw.get("scope", "spec"))
-        if scope not in {"spec", "repository"}:
+        if scope not in {"spec", "repository", "source"}:
             raise FlowError(f"Invalid protected path scope: {scope}", EXIT_INTEGRITY)
         key = f"{scope}:{path}"
         if key in seen:
@@ -2507,6 +2524,13 @@ def automated_route_health() -> dict[str, Any]:
 
 def packet_inputs(directory: Path, run: dict[str, Any], state: str) -> list[dict[str, str]]:
     required = set(str(item) for item in state_definition(state, run).get("required_inputs", []))
+    overrides = run.get("run_overrides", {})
+    if overrides.get("model_release") == "model-release-v1" and state in {
+            "CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION"}:
+        required.add("seed")
+    if (overrides.get("model_release") == "model-release-v1" and
+            overrides.get("reuse_approved_voice") and state in {"RESEARCH_PLAN", "RESEARCH"}):
+        required.add("voice-profile")
     latest = {str(item["type"]): item for item in run.get("artifact_index", [])}
     missing = sorted(required - set(latest))
     if missing:
@@ -2518,6 +2542,9 @@ def packet_inputs(directory: Path, run: dict[str, Any], state: str) -> list[dict
         if not path.is_file():
             raise FlowError(f"Cannot dispatch {state}; artifact file is missing: {artifact_type}", EXIT_INTEGRITY)
         actual = sha256_path(path)
+        if (artifact_type == "voice-profile" and overrides.get("reuse_approved_voice") and
+                actual != overrides["reuse_approved_voice"]["profile_sha256"]):
+            raise FlowError("The approved voice source no longer matches its pinned profile", EXIT_INTEGRITY)
         if actual != item["sha256"]:
             raise FlowError(
                 f"Cannot dispatch {state}; artifact hash changed: {artifact_type}",
@@ -5885,6 +5912,10 @@ def next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
     state = run["state"]
     if state in {"COMPLETE", "TERMINAL"}:
         return {"action": state.lower(), "run_id": run["run_id"], "state": state}
+    if state == "VOICE_PROBE" and run.get("run_overrides", {}).get("reuse_approved_voice"):
+        return {"action": "run_command", "run_id": run["run_id"], "state": state,
+                "command": ["article-flow", "advance", run["run_id"]],
+                "reason": "Operator authorized reuse of the pinned approved author voice"}
     if run.get("status") == "BLOCKED":
         definition = state_definition(state, run)
         return {"action": "repair_required", "run_id": run["run_id"], "state": state, "gate": definition.get("gate"), "command": ["article-flow", "repair", run["run_id"], definition.get("gate")]}
@@ -6042,6 +6073,8 @@ def next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
 
 
 def command_start(args: argparse.Namespace) -> int:
+    if getattr(args, "approved_voice", False) and not getattr(args, "model_release", False):
+        raise FlowError("Approved voice reuse requires an authorized model-release article", EXIT_USAGE)
     integrity = check_manifest("worktree", allow_unavailable_repository=True)
     if not integrity["ok"]:
         raise FlowError(
@@ -6128,6 +6161,19 @@ def command_start(args: argparse.Namespace) -> int:
     atomic_write(seed_path, seed.encode("utf-8"))
     record_artifact(directory, run, seed_path, "seed", {"actor": "operator", "preserved_verbatim": True})
     record_static_controls(directory, run)
+    if getattr(args, "model_release", False):
+        profile = artifact(run, "voice-profile")
+        run["run_overrides"]["model_release"] = "model-release-v1"
+        run["run_overrides"]["model_release_campaign_id"] = getattr(args, "model_release_campaign_id", None)
+        if getattr(args, "approved_voice", False):
+            run["run_overrides"]["reuse_approved_voice"] = {
+                "profile_sha256": profile["sha256"],
+                "authorization": "Use my approved voice automatically",
+            }
+        append_event(directory, run, "MODEL_RELEASE_ARTICLE_CONFIGURED", "operator",
+                     {"reuse_approved_voice": run["run_overrides"].get("reuse_approved_voice"),
+                      "experiment": "model-release-v1"})
+        save_run(directory, run)
     transition(directory, run, "INTAKE", "controller", "Run identity and event chain created")
     write_gate_receipt(directory, run, "G-SEED-PRESERVED", "PASS", [], {"type": "code", "version": CONTROLLER_VERSION})
     transition(directory, run, "RESEARCH_PLAN", "controller", "Seed bytes recorded verbatim")
@@ -6166,6 +6212,9 @@ def command_revise(args: argparse.Namespace) -> int:
         draft_model=getattr(args, "draft_model", None),
         auto=False,
         hold_before_publish=bool(getattr(args, "hold_before_publish", False)),
+        model_release=source_run.get("run_overrides", {}).get("model_release") == "model-release-v1",
+        approved_voice=bool(source_run.get("run_overrides", {}).get("reuse_approved_voice")),
+        model_release_campaign_id=source_run.get("run_overrides", {}).get("model_release_campaign_id"),
         json=True,
     )
     code, created = _silent_command(command_start, start_args)
@@ -9414,6 +9463,27 @@ def command_advance(args: argparse.Namespace) -> int:
             payload = {**next_state_payload(directory, run), "ok": False, "progress": progress}
             emit(payload, args.json)
             return EXIT_WAITING
+        reuse = run.get("run_overrides", {}).get("reuse_approved_voice")
+        if state == "VOICE_PROBE" and reuse:
+            if run["run_overrides"].get("model_release") != "model-release-v1":
+                raise FlowError("Approved voice reuse is scoped to model-release articles", EXIT_INTEGRITY)
+            with run_lock(directory, run):
+                profile = artifact(run, "voice-profile")
+                profile_path = artifact_path(directory, run, "voice-profile")
+                if not profile or not profile_path or sha256_path(profile_path) != reuse["profile_sha256"]:
+                    raise FlowError("The approved voice snapshot changed", EXIT_INTEGRITY)
+                receipt = directory / "receipts" / "approved-voice-reuse.json"
+                write_json_immutable(receipt, {"profile_sha256": reuse["profile_sha256"],
+                                              "authorization": reuse["authorization"],
+                                              "new_preference_evidence": False})
+                record_artifact(directory, run, receipt, "voice-learning",
+                                {"actor": "operator", "source": "approved-profile-reuse"})
+                write_gate_receipt(directory, run, "G-VOICE-PROBE", "PASS", [],
+                                   {"type": "operator_authorization", "version": CONTROLLER_VERSION})
+                append_event(directory, run, "APPROVED_VOICE_REUSED", "operator", reuse)
+                transition(directory, run, "EDIT", "operator", "Reuse the approved voice without creating new preference evidence")
+            progress.append({"state": state, "command": "approved-voice-reuse"})
+            continue
         if state == "VOICE_PROBE" and is_v3_run(run) and committed_voice_selection(directory, run):
             # Finish the crashed commit under the lock instead of presenting
             # the decision again or dispatching another probe task.
@@ -10510,13 +10580,13 @@ def command_manifest_check(args: argparse.Namespace) -> int:
 
 
 def command_manifest_explain(args: argparse.Namespace) -> int:
-    scope = "repository" if args.path.startswith("repo:") else "spec"
-    raw_path = args.path[5:] if scope == "repository" else args.path
+    scope = "repository" if args.path.startswith("repo:") else "source" if args.path.startswith("source:") else "spec"
+    raw_path = args.path.split(":", 1)[1] if scope in {"repository", "source"} else args.path
     rel = safe_relative(raw_path).as_posix()
     entry = next((item for item in protected_entries("worktree") if item["path"] == rel and item["scope"] == scope), None)
     manifest = load_json(MANIFEST_PATH) if MANIFEST_PATH.is_file() else {"files": []}
     recorded = next((item for item in manifest.get("files", []) if item.get("path") == rel and item.get("scope", "spec") == scope), None)
-    target = (SPEC_ROOT if scope == "spec" else (publication_repo_root() or REPO_ROOT)) / rel
+    target = (SPEC_ROOT if scope == "spec" else REPO_ROOT if scope == "source" else (publication_repo_root() or REPO_ROOT)) / rel
     payload = {"scope": scope, "path": rel, "protected": entry is not None, "registration": entry, "manifest_entry": recorded, "worktree_sha256": sha256_path(target) if target.is_file() else None}
     emit(payload, args.json)
     return EXIT_OK if entry else EXIT_FAILED
@@ -10813,6 +10883,8 @@ def build_parser() -> argparse.ArgumentParser:
     start.add_argument("--auto", action="store_true", help="Continue synchronously until the voice choice, a blocker, or completion.")
     start.add_argument("--draft-model", choices=DEFAULT_DRAFT_MODEL_POOL, help="Override the next round-robin writing-model assignment without consuming a rotation slot.")
     start.add_argument("--hold-before-publish", action="store_true", help="Stop after publication planning instead of issuing policy approval.")
+    start.add_argument("--model-release", action="store_true", help="Attach the fixed model-release experiment context.")
+    start.add_argument("--approved-voice", action="store_true", help="Reuse the approved voice for an explicitly authorized model-release article.")
     add_json(start)
 
     capture = sub.add_parser("capture", help="Capture one raw article idea verbatim and begin its run.")
@@ -10823,7 +10895,21 @@ def build_parser() -> argparse.ArgumentParser:
     capture.add_argument("--auto", action="store_true", help="Continue synchronously until the voice choice, a blocker, or completion.")
     capture.add_argument("--draft-model", choices=DEFAULT_DRAFT_MODEL_POOL, help="Override the next round-robin writing-model assignment without consuming a rotation slot.")
     capture.add_argument("--hold-before-publish", action="store_true", help="Stop after publication planning instead of issuing policy approval.")
+    capture.add_argument("--model-release", action="store_true")
+    capture.add_argument("--approved-voice", action="store_true")
     add_json(capture)
+
+    releases = sub.add_parser("model-release", help="Publish model-release articles, run missing settings trials, then republish linked results.")
+    releases.add_argument("release_action", choices=["update", "check", "preview", "status"], nargs="?", default="update")
+    releases.add_argument("--model")
+    releases.add_argument("--variant", action="append", help="Restrict to an exact settings profile (repeatable).")
+    releases.add_argument("--retry-failed", action="store_true", help="Explicitly retry a failed generation with --model and --variant; preserve its original attempt.")
+    releases.add_argument("--timeout", type=int, default=600, help="Maximum seconds per candidate generation.")
+    releases.add_argument("--matrix", choices=["baseline", "components", "factorial"], default="components")
+    releases.add_argument("--limit", type=int)
+    releases.add_argument("--workers", type=int, choices=[1, 2, 3], default=2)
+    releases.add_argument("--seed-file")
+    add_json(releases)
 
     revise = sub.add_parser("revise", help="Create a new verified run that replaces one completed article at the same URL.")
     revise.add_argument("source_run_id")
@@ -10993,6 +11079,27 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def wsl_model_release_command(argv: Sequence[str]) -> list[str] | None:
+    # The campaign uses the authenticated Windows CLIs and one durable history.
+    if not os.environ.get("WSL_DISTRO_NAME") or not argv or argv[0] != "model-release":
+        return None
+    user_root = windows_user_root()
+    launcher = user_root / "AppData/Local/Microsoft/WindowsApps/article-flow.cmd" if user_root else None
+    if not launcher or not launcher.is_file() or "article-flow managed launcher" not in launcher.read_text(encoding="utf-8"):
+        raise FlowError("The shared model-release campaign requires its managed Windows launcher", EXIT_USAGE)
+    arguments = list(argv)
+    for index, argument in enumerate(arguments[:-1]):
+        if argument == "--seed-file":
+            arguments[index + 1] = subprocess.run(
+                ["wslpath", "-w", str(Path(arguments[index + 1]).expanduser().resolve())],
+                check=True, capture_output=True, text=True).stdout.strip()
+    literal = lambda value: "'" + value.replace("'", "''") + "'"
+    script = "$ErrorActionPreference='Stop'; & " + literal(windows_path(launcher)) + " @(" + ",".join(
+        literal(value) for value in arguments) + "); exit $LASTEXITCODE"
+    encoded = base64.b64encode(script.encode("utf-16-le")).decode("ascii")
+    return ["powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded]
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -11014,6 +11121,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             return command_start(args)
         if args.command == "capture":
             return command_start(args)
+        if args.command == "model-release":
+            native = wsl_model_release_command(list(argv) if argv is not None else sys.argv[1:])
+            if native:
+                return subprocess.run(native).returncode
+            sys.path.insert(0, str(REPO_ROOT / "scripts"))
+            from model_release_article import coordinate
+            try:
+                return coordinate(sys.modules[__name__], args)
+            except Exception as exc:
+                from model_experiment import ExperimentError
+                if isinstance(exc, ExperimentError):
+                    raise FlowError(str(exc), EXIT_WAITING) from exc
+                raise
         if args.command == "revise":
             return command_revise(args)
         if args.command == "advance":

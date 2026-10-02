@@ -1,0 +1,92 @@
+## 1. THE STORY
+
+**Sixty-Six Dollars of Paper**
+
+At ten past one the shop smelled of warm toner and the vinegar rags I use on the rollers. The whiteboard by the cutter said what it had said all week: REPAIR BILL: $220 NEW MONEY. Beneath it, in my cramped capitals, sat the plan.
+
+"Banners first," Ivo said, hauling the vinyl roll off its cradle. It landed on the table like a sleeping dog. "The theater has been good to us for eleven years."
+
+"Banners are in. Look." I tapped the board. Banners, menus, posters, tickets: thirty, twenty-two, eighteen, ten dollars of materials. Eighty exactly, and every one of the hundred and twenty machine minutes spoken for. "That's two hundred fourteen over paper. Take off thirty-five for fixed costs and it's a hundred seventy-nine toward the bill."
+
+"Forty-one short."
+
+"Forty-one short," I agreed. "I've turned it over all morning. Nothing else fits better."
+
+Ivo's jaw worked. "Then the donor—"
+
+"Is a rumor until somebody's name is on a check," I said.
+
+I had loaded the first posters when my phone buzzed against the cutter's steel bed. The bank. I read the message twice while the press hummed behind me.
+
+"The bake-sale check bounced," I said. "Fourteen dollars. It was in the tin count. I can spend sixty-six on materials, not eighty."
+
+"So we drop the menus," Ivo said.
+
+"Then I'm at fifty-eight dollars and ninety minutes, with eight dollars of paper left over and a hundred twenty-five toward the bill." I dragged the order slips across the counter and started again, pencil behind my teeth, paper rustling like dry leaves. "Banners, programs, tickets: sixty-four dollars, a hundred five minutes, a hundred forty-one toward the bill."
+
+"Or?"
+
+"Or posters, programs, tickets, bookmarks. Sixty-six dollars on the nose. A hundred minutes. A hundred forty-four."
+
+Ivo set the vinyl down. "Three dollars. You're throwing out the theater for three dollars."
+
+"I'm cutting the one job whose paper costs thirty and eats fifty minutes. It was right when I had eighty. It isn't right at sixty-six."
+
+"You'd decided before I walked in."
+
+"The bounced check decided. I can't print on money that isn't there."
+
+Eleven years ago Ivo hand-lettered the theater's first banner on a bedsheet, on this very floor, and I held the ladder. I hadn't forgotten.
+
+Ivo was quiet. The cutter's motor ticked as it wound down. "And if the donor's hundred comes tonight? Then we do banners."
+
+"Then I'll cheer. But customers pay after the last print, and nobody has pledged a cent. I can't feed a press with a maybe."
+
+Ivo looked at the roll a long time, then carried it back to the cradle, slowly, the way you'd settle a sleeping dog on its bed. "I'll call the theater. They should hear it from me."
+
+I wanted to say banners were the part of the job I loved too. What I said was, "Come load programs with me."
+
+We ran programs first, then tickets, posters, bookmarks. The room grew so warm the front window fogged, and the whole shop smelled like a fresh ream. Sheets came off the drum warm enough to curl. Ivo called the theater from the back room; I heard the low murmur through the wall and the click of the handset. Then Ivo came out and fed the cutter without being asked, and neither of us said a word about banners.
+
+By ten to five the last bookmarks dropped off the blade, smelling of hot paper. I counted the stacks into boxes labeled with each customer's name, taped them, and set them by the door for pickup. The press had run a hundred minutes; twenty sat unused, and I let them go. I wrote 144 on the board beneath 220. Ivo took the marker and wrote 76 beside it, larger.
+
+My phone lay dark on the cutter. No donor had called. No pledge, no check, nothing to count.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+**Checks**
+- Initial: revenue 68+38+76+112 = 294; materials 18+10+22+30 = 80; minutes 25+15+30+50 = 120. Surplus 294−80 = 214; minus $35 = 179; shortfall 220−179 = 41.
+- Revised: revenue 68+90+38+49 = 245; materials 18+24+10+14 = 66; minutes 25+40+15+20 = 100. Surplus 245−66 = 179; minus $35 = 144; shortfall 76.
+- Order surpluses (payment − materials): A 50, B 66, C 28, D 68, E 35, F 54, G 82, H 42. I enumerated every feasible subset by size, and no other plan matched either optimum.
+
+**Competing feasible plans**
+- Initial: B, A, C, D uses 80 materials and 115 minutes, with surplus 212 and contribution 177 (2 lower).
+- Revised: B, C, G uses 64 materials and 105 minutes, with revenue 240, surplus 176, contribution 141 and shortfall 79 (3 lower). This is the banner plan Ivo wanted.
+
+## 3. THE PUBLIC UPDATE
+
+Print shop update: this afternoon's four confirmed orders (posters, programs, tickets, bookmarks) will contribute $144 toward the $220 repair bill, after materials and a $35 operating cost. We remain $76 short. A donor might give $100 tonight, but no gift or commitment has been received, so we are not counting it. Theater banners did not fit our reduced materials budget. Thank you for supporting us.

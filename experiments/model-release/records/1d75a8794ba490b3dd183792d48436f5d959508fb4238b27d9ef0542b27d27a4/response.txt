@@ -1,0 +1,125 @@
+## 1. THE STORY
+
+### The Last Run
+
+At one o’clock on the final afternoon before the repair deadline, Bell & Ink smelled of hot dust, damp paper, and vinegar wash water. A ceiling fan clicked above the press. Mara stood behind the counter with a pencil tucked through her gray braid. She had $80 for materials, 120 minutes of machine time, and a repair bill still needing $220 in new money.
+
+Ivo pushed through the door carrying a cardboard tube. “The theater called again. Their banners have to be ready tonight.”
+
+Mara looked at the tube. “They’re in the queue.”
+
+“They should be first.”
+
+“First doesn’t change the totals.”
+
+“It changes whether the theater remembers us.”
+
+Mara turned the order sheet around. “The banners cost $30 and take 50 minutes. They pay $112 when the job is finished. If I include them with the posters, tickets, and menus, materials come to exactly $80. Machine time comes to exactly 120 minutes. The customer payments total $294. Minus materials, that’s $214. After the fixed $35 operating expense, we contribute $179 to the repair. We’re still $41 short.”
+
+Ivo tapped the paper. “You make it sound as if the theater is just another row.”
+
+“It is a row,” Mara said. “That’s why it fits.”
+
+“And if we use their payment to start something else?”
+
+“Their payment arrives after the production ends. We can’t spend money we don’t have to buy another order this afternoon.”
+
+He looked toward the press, where a strip of yesterday’s green ink still shone beneath the rollers. “So the banners go last?”
+
+“They go when the machine is ready for them.”
+
+“That’s not prioritizing.”
+
+Mara’s pencil stopped. She wanted to tell him that keeping the shop alive was also a kind of loyalty. Instead, she started cutting the order slips apart.
+
+Before she could buy anything, the phone rang. It was the paper supplier.
+
+“I’m sorry,” the voice said. “Your account is frozen until Monday. I can release stock against only $66.”
+
+Mara glanced at the cash tin. The money inside had seemed solid ten minutes earlier. Now it was a wall with a missing brick.
+
+Ivo heard the silence. “What does that do to the banners?”
+
+Mara spread the slips across the counter. The original plan no longer fit. She tested combinations, crossing out postcards, then menus, then the banners. Finally she made a new line: posters, programs, tickets, bookmarks.
+
+“Materials: $66,” she said. “Machine time: 100 minutes. Payments: $245. After materials, $179. After the operating expense, $144.”
+
+Ivo stared at the four slips. “And the gap?”
+
+“$76.”
+
+“The theater’s gone.”
+
+“The banners are gone,” Mara said. “The theater isn’t.”
+
+“That’s easy to say when you’re not the one calling them.”
+
+“Then help me call.”
+
+He flinched as if she had thrown something. For a moment, only the fan clicked. Then he picked up the bookmark file and carried it to the press.
+
+They worked without speaking. Posters came off warm, their black letters sharp against cream stock. Programs slid into a neat pile. The ticket perforator chattered like teeth. Ivo fed bookmarks through the cutter, gathering paper curls in his fist. When the theater runner arrived, Mara met him at the door and explained that the banners could not be made under the revised materials limit.
+
+The runner left angry. Ivo watched him go.
+
+At four thirty, a text appeared on Ivo’s phone: A donor might give $100 tonight.
+
+“Might,” Mara said when he showed her.
+
+“He could.”
+
+“He hasn’t.”
+
+“You always need the money to be already here.”
+
+“For the repair bill, yes.”
+
+They finished just before closing. Mara counted the customer payments they could expect after production, then wrote the confirmed contribution on the whiteboard: $144. Beneath it she wrote: Remaining gap: $76.
+
+Ivo read it twice. “Should we mention the donor?”
+
+“Mention that there is no confirmed gift.”
+
+He took the marker from her. After a pause, he added: Possible $100 gift tonight; no commitment received.
+
+Mara looked at the line, then at him. “Thank you.”
+
+“For what?”
+
+“For making the number honest.”
+
+The press cooled with small metallic ticks. Outside, the theater marquee glowed red across the street, waiting for banners that would not arrive. Ivo locked the front door while Mara switched off the fan. Neither of them had saved the shop that afternoon. But when they walked into the dark together, they were carrying the same figure.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+The initial plan uses all $80 and all 120 minutes: $294 revenue − $80 materials = $214 surplus; $214 − $35 expense = $179 contribution.
+
+Under the revised $66 materials limit, A+B+C+E gives $245 revenue, $179 surplus, and $144 contribution. A feasible competing plan, G+B+C, uses $64 and 105 minutes but yields only $141 after the operating expense.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s revised print run produced a confirmed $144 contribution toward the $220 repair goal. The remaining gap is $76. A possible $100 donor has been mentioned, but no gift or commitment has been received.

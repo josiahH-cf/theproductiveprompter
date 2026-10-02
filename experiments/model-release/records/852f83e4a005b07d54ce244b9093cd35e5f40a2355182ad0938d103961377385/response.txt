@@ -1,0 +1,91 @@
+# THE STORY
+
+## Running the Numbers
+
+The smell of toner and wet paper hung over Quill Street Print the way low clouds hang over a valley — settled, permanent, impossible to ignore. Mara had the legal pad flat on the counter, a pencil behind her ear, and eight order slips fanned out like a losing hand of cards.
+
+"Banners first," Ivo said, for the third time, tapping the ticket for Order G. "The theater's opening Friday. If we don't start now—"
+
+"I know when the theater opens." Mara didn't look up. "I also know we've got eighty dollars for materials and two hours of machine time, and whatever anyone pays us doesn't land in the register until after the ink's dry. Nothing comes in during production. So whatever we pick, we buy for now and get paid for later."
+
+She ran the pencil down the column: eighteen dollars and twenty-five minutes for the posters, twenty-four and forty for the programs, thirty and fifty for Ivo's banners. The banners paid the most — $112 — but they ate more than a third of the material budget by themselves.
+
+"If I take your banners," she said, "plus the postcards and the programs, I'm out of money before I'm out of time. I need combinations, not favorites."
+
+Ivo crossed his arms. "The theater matters more than a stack of posters nobody's waiting on."
+
+"Matters and fits aren't the same word." She circled four tickets: banners, posters, tickets, menus. Thirty plus eighteen plus ten plus twenty-two — eighty dollars exactly. Fifty plus twenty-five plus fifteen plus thirty minutes — a hundred and twenty, to the minute. Revenue of two hundred ninety-four dollars against eighty in materials left two hundred fourteen dollars of surplus, more than any other combination she'd tried on scratch paper for the last twenty minutes.
+
+"There," she said, sliding the pad toward him. "Banners are in. Posters, tickets, menus ride with them."
+
+Ivo's shoulders dropped half an inch — not quite satisfied, but no longer arguing. "And the repair bill?"
+
+"Operating expense eats thirty-five of that regardless what we run. Two fourteen minus thirty-five is one seventy-nine toward the two-twenty we owe the furnace guy." She capped the pencil. "Forty-one short. Workable."
+
+She was reaching for the paper cutter when her phone buzzed. Dolores, who kept the books, had found a transfer error — the shop didn't have eighty dollars for materials this afternoon. It had sixty-six.
+
+Ivo's jaw tightened before Mara even said it aloud. "So we're not buying banner stock."
+
+"We haven't bought anything yet. Nothing's cut, nothing's wasted." She flipped to a clean sheet, already resetting the column of numbers. Sixty-six dollars. A hundred and twenty minutes, unchanged. The banners alone were thirty dollars — more than a third of what she had left, and every combination that kept them in choked out two of the smaller, steadier jobs.
+
+She tried programs, posters, tickets, bookmarks — $24, $18, $10, $14. Sixty-six dollars exactly, a hundred minutes of the hundred and twenty. Surplus: sixty-six, fifty, twenty-eight, thirty-five — a hundred seventy-nine dollars.
+
+"That's less than before," Ivo said, reading upside down.
+
+"It's less because we have less. But it's the most sixty-six dollars can buy me today." She didn't enjoy saying it. "Banners don't fit anymore. Not with real money, not this afternoon."
+
+"The theater's going to open with no signage."
+
+"The theater's going to open regardless of what we print. I'd rather send them an invoice I can fill than a promise I can't."
+
+Nobody spoke for a moment. The press ticked as it cooled from the last test run.
+
+"Franny said a donor might come through tonight," Ivo tried. "A hundred dollars, maybe, from the historical society."
+
+"Might. Maybe. Tonight." Mara shook her head, not unkindly. "I can't print banners on might. If it lands, it lands after we've already made our materials spend — and it still wouldn't buy time we don't have this afternoon." She started pulling stock for the programs.
+
+One hundred seventy-nine dollars, minus the thirty-five for utilities, left one hundred forty-four toward the furnace fund. Seventy-six dollars short of the number the repairman needed by Monday.
+
+Ivo didn't like it. He said so twice more before the first sheet ran through the press. By five o'clock the posters, tickets, programs, and bookmarks were stacked and drying, and the banner stock stayed exactly where it had been that morning — untouched, unpaid for, and unpromised.
+
+---
+
+# THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+**Initial plan check:** A(18,25,68) + C(10,15,38) + F(22,30,76) + G(30,50,112) → materials 18+10+22+30=80 (≤80), minutes 25+15+30+50=120 (≤120), revenue 68+38+76+112=294, surplus 294−80=214, contribution 214−35=179, shortfall max(0,220−179)=41.
+
+*Competing plan (feasible, lower-scoring):* D+B+A+C — materials 28+24+18+10=80, minutes 35+40+25+15=115, revenue 96+90+68+38=292, surplus=212. Surplus 212 < 214, so it's dominated by the chosen plan.
+
+**Revised plan check:** A(18,25,68) + B(24,40,90) + C(10,15,38) + E(14,20,49) → materials 18+24+10+14=66 (≤66), minutes 25+40+15+20=100 (≤120), revenue 68+90+38+49=245, surplus 245−66=179, contribution 179−35=144, shortfall max(0,220−144)=76.
+
+*Competing plan (feasible, lower-scoring):* G+A+H — materials 30+18+16=64, minutes 50+25+25=100, revenue 112+68+58=238, surplus=174. Surplus 174 < 179, so it's dominated by the chosen plan (banners no longer fit efficiently once the material cap drops to $66).
+
+---
+
+# THE PUBLIC UPDATE
+
+Print shop update: Today's print run contributes $144 toward our $220 repair goal, leaving a $76 gap. A possible donation was mentioned tonight but has **not** been received or confirmed — our plan does not assume it. We're grateful for every completed order and welcome help closing the remaining balance. Thank you for supporting your community print shop.

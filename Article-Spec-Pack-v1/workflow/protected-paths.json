@@ -19,7 +19,7 @@
   "entries": [
     {
       "path": ".gitattributes",
-      "scope": "repository",
+      "scope": "source",
       "role": "runtime",
       "rule_set": "integrity"
     },
@@ -508,6 +508,54 @@
       "scope": "spec",
       "role": "normative",
       "rule_set": "workflow"
+    },
+    {
+      "path": "scripts/model_experiment.py",
+      "scope": "source",
+      "role": "runtime",
+      "rule_set": "controller"
+    },
+    {
+      "path": "scripts/model_experiment_views.py",
+      "scope": "source",
+      "role": "runtime",
+      "rule_set": "controller"
+    },
+    {
+      "path": "scripts/model_release_article.py",
+      "scope": "source",
+      "role": "runtime",
+      "rule_set": "controller"
+    },
+    {
+      "path": "experiments/model-release/experiment.json",
+      "scope": "source",
+      "role": "runtime",
+      "rule_set": "experiment"
+    },
+    {
+      "path": "experiments/model-release/prompt.txt",
+      "scope": "source",
+      "role": "runtime",
+      "rule_set": "experiment"
+    },
+    {
+      "path": "experiments/model-release/preview-template.html",
+      "scope": "source",
+      "role": "runtime",
+      "rule_set": "experiment"
+    },
+    {
+      "path": "tests/test_model_experiment.py",
+      "scope": "source",
+      "role": "runtime",
+      "rule_set": "conformance"
+    },
+    {
+      "path": "tests/test_model_release_article.py",
+      "scope": "source",
+      "role": "runtime",
+      "rule_set": "conformance"
     }
   ]
 }

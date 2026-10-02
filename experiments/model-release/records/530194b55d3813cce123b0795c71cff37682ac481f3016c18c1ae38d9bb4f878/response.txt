@@ -1,0 +1,81 @@
+# 1. THE STORY
+
+**Short Run**
+
+The afternoon came through the front window in one long slab of light, and all the dust over the big duplicator turned to slow weather inside it. Mara had the day's dockets fanned across the counter in the order she'd settled on the night before — back when the cash box still said eighty dollars.
+
+It said sixty-six now. The deposit she'd counted on had bounced back from the co-op with a yellow sticky note and an apology, and fourteen dollars, which is nothing, had become everything.
+
+Ivo pushed in through the glass door with the banner proof rolled under one arm like a baguette. He smelled of the cold outside and the cigarette he pretended he'd quit. "Tonight," he said, unrolling it across the programs she'd stacked. THE CHERRY ORCHARD, forest green on cream, the lettering he'd fought her over for a week. "They go up tonight. The lobby's bare."
+
+"I know what the lobby looks like." She didn't move the proof. She moved her eyes past it, to the dockets.
+
+Eighty dollars had been a good day. Eighty bought the banner, the posters, the ticket stock, the café menus — she'd run the numbers twice over tea and the press had come out humming exactly to its limit, the banner riding right on top of the pile. She had gone to bed proud of it.
+
+Sixty-six did not buy the banner.
+
+"I can't run it," she said.
+
+Ivo laughed, because he thought she was tired. "It's thirty dollars of vinyl. You have sixty-six."
+
+"And the banner eats fifty minutes of the press and thirty of the sixty-six, and when it does, the rest of the day collapses around it." She pulled the stub of a pencil from behind her ear and did it on the back of a reject sheet, so he could watch the arithmetic happen. "Put the banner in and the best I can also carry is the programs and the tickets. That's it. Everything comes to a hundred and seventy-six after materials."
+
+"A hundred and seventy-six. That's good."
+
+"It's three dollars short of good." She wrote the second line under the first. "Posters. Programs. Tickets. Bookmarks. No banner. Sixty-six in materials to the dollar, a hundred minutes on the press, and it clears a hundred and seventy-nine." She tapped the pencil twice on the larger number. "The banner costs me three dollars I don't have, Ivo. Not thirty. Three. And three dollars is a thing I have to say no to right now."
+
+He was quiet in the way that meant he was doing his own version of the sum and hating where it landed. Outside, a bus sighed at the stop. The duplicator ticked as it warmed, that small insect sound it made.
+
+"The roof," he said finally, not a question.
+
+"The roof." She wrote it plainly: a hundred and seventy-nine, less the thirty-five the shop owed itself just for keeping the lights on — and what was left, a hundred and forty-four, was all that was real. All that could go toward the two hundred and twenty the repairman wanted before he'd climb up there again. "A hundred and forty-four toward two-twenty. We're seventy-six short tonight no matter which way I turn the press."
+
+"And the banner would have —"
+
+"Made us seventy-nine short. And left the café with no menus and the box office with no tickets to sell your orchard." She set the pencil down. "I'm sorry. It's a good green."
+
+He rolled the proof back up slowly, and the paper's hiss was louder than it should have been in the quiet. "Delphine said a donor. A hundred, tonight, after the show."
+
+"Said *might*." Mara had heard might before. Might had never once loaded a tray of stock. "If it comes, it comes, and I'll be the first to cheer. But I'm not printing against a maybe. I printed against a maybe in March and we ate it."
+
+She fed the poster stock in. The press took it with a sound like a held breath let go, and the first sheet dropped warm into the tray — box-office red, perfectly square, real in a way the evening's hundred dollars was not. Ivo watched a few drop, then tucked the banner under his arm again.
+
+"I'll tell them it's coming," he said. "The banner. Next run."
+
+"Next run," she agreed, and meant it, and didn't pretend to know when. The light moved off the duplicator and onto the floor. She had a hundred minutes of honest work in front of her and seventy-six dollars of gap behind it, and somewhere across town a stranger either would or would not open a checkbook. She ran the posters. That part, at least, she could hold in her hands.
+
+# 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+**Objective (both stages):** maximize `order_surplus = revenue − materials` subject to `materials ≤ budget` and `minutes ≤ 120`; then `repair_contribution = order_surplus − 35`, `shortfall = max(0, 220 − contribution)`.
+
+**Revised ($66, 120 min) → A,B,C,E.** Five orders are impossible: the five cheapest materials (C10+E14+H16+A18+F22 = 80) already exceed 66, so ≤4 orders. Best 4-set is A,B,C,E: materials 18+24+10+14 = **66**, minutes 25+40+15+20 = **100**, surplus (68+90+38+49) − 66 = **179** → contribution **144**, shortfall **76**. The banner (G) cannot enter the optimum: the best banner-including feasible plan is **G,B,C** — materials 30+24+10 = 64, minutes 105, surplus 82+66+28 = **176** → contribution 141, exactly **$3 under** A,B,C,E. (Another feasible competitor: A,B,F — materials 64, surplus 170.)
+
+**Initial ($80, 120 min) → A,C,F,G.** Materials 30+18+10+22 = **80**, minutes 50+25+15+30 = **120**, surplus 294 − 80 = **214** → contribution **179**, shortfall **41**. Competing plan A,B,C,D (materials 80, minutes 115, surplus 212) is **$2 lower**. Note the banner *was* in the optimal plan at $80; the $14 budget cut is precisely what knocks it out.
+
+# 3. THE PUBLIC UPDATE
+
+Print-shop update: Today's final run before the roof repair earned a confirmed **$144** toward our **$220** goal, after materials and the shop's $35 operating cost. That leaves us **$76 short** tonight. We've heard a supporter may give $100 after the show, but no gift has been received or promised yet. The theater banners couldn't fit this run — we'll print them next. Thank you for keeping the lights on, and we'll share any news as soon as it's real.

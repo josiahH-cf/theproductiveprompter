@@ -1,0 +1,69 @@
+## 1. THE STORY
+
+### Three Dollars
+
+On the shop’s final afternoon before the repair deadline, the press smelled of hot paper and the citrus cleaner Mara used on its rollers. Eight order slips lay across her desk. Ivo had put the theater’s banner slip on top, where she would have to move it to see anything else.
+
+“They’re opening tomorrow,” he said. “People will be looking for those banners.”
+
+Mara turned the slip over. Thirty dollars for materials. Fifty minutes on the press. A payment of $112, due only when the work was finished. She wrote the numbers beside the other seven orders while Ivo stood by the paper cutter, worrying its handle without lowering the blade.
+
+The shop needed $220 in new money for the repair. Mara had $80 for materials and two hours of press time. The money from one finished job could not buy paper for the next: customers would pay after production ended. On her pad she circled posters, programs, tickets, and postcards. Together they used all $80 and 115 minutes. Their payments would total $292. After materials and the fixed $35 operating expense, the repair would get $177. They would still be $43 short.
+
+Ivo brought the banner slip back to the center of the desk. Mara showed him another combination: banners with posters, bookmarks, and maps. It fit both limits exactly where time was concerned, but it would put $174 toward the repair. Three dollars less.
+
+“The theater kept the lights on here during the flood,” Ivo said.
+
+“I remember.” Mara could still picture their extension cord running over the wet threshold. She left her pencil on the banner slip for a moment, then moved it away. Ivo went to clear the delivery table. He set each stack of scrap paper down harder than he needed to.
+
+Mara had not ordered a sheet or started the press when the bookkeeper came in with the cash envelope. She had reconciled it that morning; there was only $66 available for materials. Mara counted it herself, twice. Ivo watched from the delivery table as she erased the circle around the postcards. The machine still had 120 minutes, but that could not put fourteen missing dollars in the envelope.
+
+She worked through the slips again. Posters, programs, tickets, and bookmarks cost exactly $66 and took 100 minutes. They would bring in $245, leaving $179 after materials and $144 after the operating expense. The repair gap had grown to $76.
+
+Ivo leaned over her shoulder. “Banners, programs, tickets. Sixty-four dollars. A hundred and five minutes.”
+
+Mara checked his addition. The payments came to $240. After materials and the operating expense, the repair would get $141. He had found a plan that worked; hers brought in three dollars more.
+
+“You’d turn them down for three dollars?” he asked.
+
+Mara looked past him at the press. Its feed tray had a nick where Ivo had once caught a ring against it. “I’ll tell them myself,” she said.
+
+“No.” He picked up the phone. “I put their slip on top. I’ll tell them.”
+
+He spoke quietly, facing the wall of drying racks. When he hung up, he came back and helped Mara load the poster stock. Neither apologized. They fed the programs next, then the tickets. A fine black dust gathered along the cutter while Ivo trimmed the bookmarks. When the last one came off the press, twenty minutes of machine time remained. The material envelope was empty, and every other order required a full run.
+
+Only then did the customers pay. Mara counted $245 on the cleared delivery table. She returned the $66 material float to its drawer, set aside $35 for the operating expense, and put $144 in the repair envelope. Ivo wrote **$76 still needed** beneath its label.
+
+Someone had said a donor might give $100 tonight. Ivo glanced at the phone before he switched off the lights. It had brought no gift and no commitment. Mara took the repair envelope with her; Ivo held the door while she locked the shop.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "B", "C", "D"],
+    "materials": 80,
+    "minutes": 115,
+    "revenue": 292,
+    "order_surplus": 212,
+    "repair_contribution": 177,
+    "shortfall": 43
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Checking the feasible order combinations gives a maximum order surplus of $212 initially and $179 with the $66 limit. The $35 expense is deducted from each surplus. For comparison, revised plan **B, C, G** is feasible at $64 and 105 minutes, but its $240 payment leaves a $176 order surplus and a $141 repair contribution—$3 less.
+
+## 3. THE PUBLIC UPDATE
+
+The shop completed its afternoon orders and has **$144 in new money** toward the repair, leaving **$76 still needed** by the deadline. We heard that a donor might give $100 tonight, but we have received neither a gift nor a commitment.

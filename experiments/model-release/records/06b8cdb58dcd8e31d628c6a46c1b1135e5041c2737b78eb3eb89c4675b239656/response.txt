@@ -1,0 +1,99 @@
+## 1. THE STORY
+
+### The Last Afternoon
+
+The print shop smelled of warm paper and the bitter orange cleaner Mara used on the rollers. Beyond the front window, the theater’s doorway stood across the square, its bare hooks waiting for banners.
+
+Ivo set the banner order on top of the stack. “They open tomorrow. People will see those hooks.”
+
+“They will,” Mara said. She drew her ruler down a page of figures. The repair bill was due tonight, and the shop needed $220 in new money toward it. She had $80 for materials and two hours on the machine. Every customer would pay when the work was finished.
+
+Ivo watched her write four letters: G, A, C, F.
+
+“Banners, posters, tickets, menus,” he read. “That’s a strange afternoon.”
+
+“It’s the best one I can fit.” Mara turned the page toward him. “Eighty dollars in materials. Every one of the 120 minutes. Two hundred ninety-four in payments when the work is done.”
+
+He subtracted on the back of a spoiled flyer. “Two hundred fourteen.”
+
+“Then thirty-five for the operating expense. One hundred seventy-nine for the repair.”
+
+“Still forty-one short.”
+
+“I know.” She had gone through the orders twice, checking both the cash and the clock. No rearrangement she found brought in more after materials. Ivo touched the G with one ink-marked finger. At least the theater was in the plan. He had painted scenery there since he was fourteen; he had promised the cast he would help carry the banners over himself.
+
+Mara reached for the materials envelope before starting, then stopped. The cash inside lay in a thinner stack than she expected. She counted it once, shut her eyes, and counted it again.
+
+“Sixty-six,” she said.
+
+Ivo looked toward the machine, silent and ready under its task light. “Where’s the rest?”
+
+“I don’t know yet.” Mara checked the envelope’s handwritten balance against the notes clipped beneath it. The difference was real; finding its cause would take longer than they had. Nothing had been bought. No job had begun.
+
+“We could run the posters first,” Ivo said. “Use their payment for the banners.”
+
+“The payment comes after production. All of it does.”
+
+“Then ask the supplier to wait.”
+
+“We don’t have that agreement.”
+
+Across the square, someone opened the theater door. A wedge of music crossed the pavement and vanished when it closed. Ivo stood with his hands against the counter while Mara pulled a clean sheet from the pad.
+
+She checked the combinations again with the smaller materials figure, marking dollars in one column and machine minutes in another. Ivo tried to make room for G. Banners, programs, and tickets would fit the cash and leave time to spare. Mara showed him what they would bring in after materials.
+
+“One hundred seventy-six,” he said.
+
+“Posters, programs, tickets, bookmarks bring in one hundred seventy-nine. They use all sixty-six dollars and a hundred minutes.”
+
+“Three dollars,” Ivo said. “You’re turning down the banners for three dollars?”
+
+“Three dollars before the thirty-five. We’ll have a seventy-six-dollar gap even with it.” She kept her pencil on the paper, afraid that if she looked at him she might change the answer for the wrong reason.
+
+Ivo lifted the banner order. The theater had drawn people into this shop for years: actors needing headshots, children buying one-off programs with their own names in them. He knew Mara remembered. Her thumb was pressed into the dent that the ruler had left on the counter.
+
+“I told them I’d bring these,” he said.
+
+“I’m sorry.”
+
+He laid the order down gently. “I’ll tell them.”
+
+The machine took the posters first. Its rollers clicked as each sheet cleared, and Ivo caught the pages so their wet edges would not touch. They worked through the programs and tickets, then the bookmarks. When the last narrow strips came out, he trimmed them while Mara totaled the payments. There were twenty unused machine minutes and no materials money left for another order.
+
+A caller had told Ivo a donor *might* give $100 tonight. He repeated the possibility as Mara closed the till. She checked her phone. There was no message, no commitment, and no gift.
+
+Mara wrote **$144** on the repair envelope. It was the afternoon’s $179 surplus after the $35 expense, not the materials cash they had started with. Beside it she wrote **$76 still needed**. She could not make the repair deadline whole with a possible donation.
+
+Ivo took his coat from the hook. Before going to the theater, he picked up the unprinted banner order so he could explain it himself. Mara let him take it.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Order surplus is revenue minus materials; repair contribution subtracts the fixed $35 expense. Checking the feasible subsets against both limits gives a maximum surplus of $214 under the initial limits and $179 under the revised limits. For comparison, the revised plan **B, C, G** is feasible at $64 in materials and 105 minutes, but its $240 revenue yields a $176 surplus and a $141 repair contribution—$3 less than the chosen plan.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s completed orders generated **$144 toward the repair** after materials and the operating expense. **$76 remains** of the $220 needed by the repair deadline. A donor may give $100 tonight, but we have received neither a gift nor a commitment, so that possibility is not included in these figures.

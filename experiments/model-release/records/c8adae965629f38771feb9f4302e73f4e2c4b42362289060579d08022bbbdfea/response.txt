@@ -1,0 +1,173 @@
+## 1. THE STORY
+
+### The Shape of What Was Missing
+
+At two o’clock, Mara laid the orders beneath the paperweight shaped like a pear. Its green glass had chipped where generations of volunteers had mistaken it for something unbreakable. The print shop smelled of hot dust and the orange soap nobody could rinse completely from their hands.
+
+The repair technician was due at four. Mara had two hours of machine time left, eighty dollars for materials, and a repair bill still needing two hundred and twenty dollars in new money.
+
+Ivo put the theater’s banner request on top.
+
+“They open tomorrow,” he said.
+
+“So does the diner.”
+
+“The diner has a sign.”
+
+He wore his theater sweatshirt, the cuffs stiff with scene paint. Mara remembered printing its first production’s programs twelve years ago, when Ivo had played a tree and demanded a credit.
+
+She moved the banner request beside the others.
+
+“I’ll count it properly.”
+
+“You say that like I’m asking you to cheat.”
+
+“You’re asking me to start with the answer.”
+
+The machine clicked as it cooled. Somewhere inside it, the damaged bearing made a small, irregular ticking, like a spoon tapping a cup.
+
+Mara wrote figures on the back of an obsolete workshop flyer. Materials. Minutes. What each job would leave after its materials were paid for. The eighty dollars would be spent before any customer paid; she could not make it walk twice around the room.
+
+Finally she circled four letters.
+
+“Posters, tickets, menus, banners. A, C, F, G. Eighty dollars. One hundred and twenty minutes.”
+
+Ivo leaned over her shoulder.
+
+“So the banners fit.”
+
+“They do. Two hundred and ninety-four coming in, eighty going into materials. Two hundred and fourteen left.”
+
+“Nearly there.”
+
+“Then thirty-five for the operating expense. One hundred and seventy-nine toward the repair. Forty-one still missing.”
+
+His smile stayed, but became something he had to hold in place.
+
+From the doorway, Len, who swept on Fridays, said, “That woman from the foundation might give a hundred tonight.”
+
+Mara turned the flyer over.
+
+“Might isn’t money.”
+
+“She sounded interested.”
+
+“Then I hope she calls.”
+
+Before Mara bought anything, she opened the cash envelope to check the bills against her penciled total. She counted once, then again, flattening each note with her thumb.
+
+Sixty-six dollars.
+
+The fourteen she had counted that morning was a faded supplies voucher folded behind the cash. It had the comforting proportions of money and none of its usefulness.
+
+Ivo watched her hold it up.
+
+“Can’t we use that?”
+
+“Not for these materials.”
+
+She set it aside. Nothing had been purchased. No job had begun. For a moment that felt like good luck; then she looked at the clock.
+
+She drew fresh columns.
+
+“We can still do the banners,” Ivo said.
+
+“Yes. But I have to count again.”
+
+He took his request from beneath the pear and held it against his chest.
+
+The new answer was posters, programs, tickets, bookmarks. Sixty-six dollars of materials, a hundred machine minutes, two hundred and forty-five dollars in payments. After materials, one hundred and seventy-nine; after the operating expense, one hundred and forty-four.
+
+Seventy-six short.
+
+Ivo stared at the four circled letters.
+
+“The programs aren’t even ours.”
+
+“They’re for the neighborhood concert.”
+
+“We’ve rehearsed for six weeks.”
+
+“I know.”
+
+“The banners, programs, tickets—that’s sixty-four dollars. You can do those.”
+
+“One hundred and forty-one toward the repair,” Mara said. “Three dollars less.”
+
+He laughed once, without amusement. “You’re turning us down for three dollars.”
+
+Mara put down her pencil.
+
+“I’m turning down the banners because three dollars matters when we’re missing seventy-six.”
+
+He looked toward the cutting table, where he had spent Saturdays trimming other people’s announcements square.
+
+“You could have just said you didn’t want to.”
+
+“I wanted to. They were in the first plan.”
+
+That stopped him.
+
+Mara reached for the telephone. “Will you tell the theater, or shall I?”
+
+“I’ll tell them.”
+
+He went outside. Through the window she saw him press his free hand against his forehead while he spoke.
+
+When he returned, Mara was feeding poster stock into the machine.
+
+“Give me the bookmarks,” he said.
+
+She handed him the finishing tray. He squared the stack against its metal edge, carefully, twice.
+
+By four, every customer had paid. Mara separated the thirty-five dollars, restored what belonged to the materials float, and wrote **144** on the repair envelope.
+
+No donor had called.
+
+Ivo unplugged the machine after the final sheet cooled. Mara locked the shop. He waited while she checked the door.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Each order’s payment minus materials is: A $50, B $66, C $28, D $68, E $35, F $54, G $82, and H $42. The fixed $35 deduction is identical for every plan, so maximizing order surplus also maximizes repair contribution.
+
+Comparing all subsets under each materials limit and the 120-minute limit gives these maxima:
+
+| Materials limit | Best surplus with G | Best surplus without G | Optimal choice |
+|---|---:|---:|---|
+| $80 | $214: A, C, F, G | $212: A, B, C, D; also A, B, F, H | A, C, F, G |
+| $66 | $176: B, C, G | $179: A, B, C, E | A, B, C, E |
+
+The chosen plans calculate as follows:
+
+- **Initial:** Materials = 18 + 10 + 22 + 30 = **$80**; minutes = 25 + 15 + 30 + 50 = **120**; revenue = 68 + 38 + 76 + 112 = **$294**. Contribution = 294 − 80 − 35 = **$179**; shortfall = 220 − 179 = **$41**.
+- **Revised:** Materials = 18 + 24 + 10 + 14 = **$66**; minutes = 25 + 40 + 15 + 20 = **100**; revenue = 68 + 90 + 38 + 49 = **$245**. Contribution = 245 − 66 − 35 = **$144**; shortfall = 220 − 144 = **$76**.
+
+One feasible competing plan under the revised limits is **B, C, G**: materials **$64**, machine time **105 minutes**, revenue **$240**, and order surplus **$176**. Its repair contribution is **$141**, leaving a **$79** gap—$3 worse than the revised optimum. The original materials float contributes no new fundraising income.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s completed print orders raised **$144 toward the repair**, after materials and the fixed $35 operating expense. We still need **$76** to reach the $220 repair goal. A possible $100 donation has been mentioned, but no gift or commitment has been received. The shop has closed for the afternoon with the repair funding incomplete.

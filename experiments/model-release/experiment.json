@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "experiment": "model-release-v1",
+  "title": "The Model Release Experiment",
+  "prompt_version": "1.0",
+  "protocol_version": "2.0",
+  "prompt_file": "prompt.txt",
+  "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+  "sample_policy": "One original response per resolved model version and immutable settings profile",
+  "ordering": "release date ascending; labeled first-seen fallback when unavailable",
+  "scope": "Authenticated Codex catalog plus Claude CLI metadata for current and officially documented legacy model IDs; access confirmed separately",
+  "default_matrix": "components",
+  "matrix_policy": "All advertised thinking levels with default verbosity; all native verbosity levels at baseline thinking; optional full factorial",
+  "discovery_sources": {
+    "codex": "codex debug models, without --bundled",
+    "claude": "CLI stream-json initialize response models; no user turn"
+  }
+}

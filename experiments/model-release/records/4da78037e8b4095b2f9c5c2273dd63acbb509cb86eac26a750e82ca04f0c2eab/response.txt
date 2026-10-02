@@ -1,0 +1,109 @@
+# 1. THE STORY
+
+## The Last Afternoon
+
+The Risograph smelled of warm ink and something older—machine oil, or maybe just years. Mara wiped her hands on her apron and stared at the whiteboard where she'd written the number in red marker: **$220**. Below it, in smaller letters: *by Friday or we lose the lease on the press*.
+
+Ivo was already at the intake counter, spreading out the theater's proof sheets before she'd said a word.
+
+"They need forty banners by Saturday," he said. He smoothed the edge of a color mockup with the flat of his hand. "They're opening *Midwinter* and they specifically asked for us. Mara, this is the kind of client that becomes a regular."
+
+"I know." She didn't look up from the order sheet. Eighty dollars in the materials drawer. One hundred twenty minutes before she had to lock the machine down for the repair tech's inspection. She'd already mapped the afternoon: posters, programs, tickets, postcards—four orders, eighty dollars flat, two hundred twelve in payments. Subtract thirty-five for the day's overhead and you landed at one hundred seventy-seven. Not the full two-twenty, but close enough that a Tuesday bake sale could cover the gap.
+
+Then Dani had called from the bank at noon.
+
+"We're showing sixty-six, not eighty," Dani had said. "The check from last week's farmers market hasn't cleared yet."
+
+Mara had thanked her and hung up and stood very still for a moment next to the paper cutter.
+
+Now Ivo was watching her with the patient expression he wore when he thought he was about to win an argument.
+
+"The banners pay a hundred and twelve," he said. "That's our biggest single order on the board."
+
+"Thirty in materials. Fifty minutes." She tapped the whiteboard. "Walk me through it."
+
+He picked up the marker and wrote *G* in the corner, then started adding. His handwriting was hurried, optimistic. She watched him get to materials and stop.
+
+"Sixty-six," she said quietly.
+
+He turned. "What happened to eighty?"
+
+"Check didn't clear."
+
+He set the marker down. The shop was quiet except for the hum of the ventilation fan and the faint tick of the Risograph cooling from the morning run. Afternoon light came through the frosted window above the paper stock—flat, autumnal, the kind that made everything look a little more final.
+
+"So we can't do the banners," he said.
+
+"Not and hit the number we need. If I run the banners, I lose the postcards. The postcards are twenty-eight in materials; I don't have room. Without them I'm looking at a hundred forty-three, maybe a hundred forty-four net. With them—" she stopped.
+
+"With them what?"
+
+"Without the banners, I run posters, programs, tickets, and bookmarks. Sixty-six dollars even. A hundred minutes." She picked up the calculator and showed him the screen. *245 - 66 - 35 = 144*. "A hundred and forty-four toward the repair."
+
+Ivo looked at the screen. He looked at the banners mockup. "That's still seventy-six short."
+
+"Yes."
+
+"Marcus said a donor might give a hundred tonight. Did you hear that?"
+
+She had heard it. She'd heard it the way you hear someone say *maybe it won't rain* while you're already watching the clouds. "Nobody's confirmed anything. If a hundred shows up tonight, we're fine. But I'm not running a plan that depends on *might*."
+
+Ivo pushed back from the counter. He wasn't angry—she knew him well enough to read the difference—he was just recalculating, the way she'd been recalculating since noon.
+
+"The theater's going to be disappointed," he said.
+
+"I know. Call them. Tell them we'll give them a slot Monday at cost." She was already pulling the A-order stock from the shelf, the matte poster paper that smelled faintly of clay. "Right now I need to run four jobs before four o'clock."
+
+He stood in the doorway for a moment. The light made a halo of dust in the air between them.
+
+"You really think the donor won't come through?"
+
+"I think we can't spend money we don't have." She loaded the first sheet and listened to the machine wake up—its preliminary shudder, then the low, steadying hum. "If the hundred lands tonight, we celebrate. If it doesn't, we still made a hundred and forty-four instead of nothing."
+
+Ivo nodded slowly. Then he put on his apron and went to help her cut the stock.
+
+The Risograph ran four jobs in ninety-eight minutes. The prints came out clean. Mara stacked them in their envelopes while Ivo swept ink dust off the floor, and neither of them talked about the gap, or the donor, or Saturday's opening night. The number on the whiteboard stayed red. The machine stayed warm.
+
+---
+
+# 2. THE RECEIPT
+
+```json
+{
+  "donation_confirmed": false,
+  "initial": {
+    "orders": ["A", "B", "C", "D"],
+    "materials": 80,
+    "minutes": 115,
+    "revenue": 292,
+    "order_surplus": 212,
+    "repair_contribution": 177,
+    "shortfall": 43
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  }
+}
+```
+
+**Initial plan (A, B, C, D):** Materials 18+24+10+28 = $80 (at limit). Minutes 25+40+15+35 = 115 (within 120). Revenue $292, minus $80 materials = $212 order surplus, minus $35 operating expense = **$177 contribution**. Shortfall: $43.
+
+**Revised plan (A, B, C, E):** Dropping D (requires $28 materials) and substituting E (bookmarks, $14). Materials 18+24+10+14 = **$66** (at limit). Minutes 25+40+15+20 = 100. Revenue $245, minus $66 = $179 order surplus, minus $35 = **$144 contribution**. Shortfall: $76.
+
+**Feasibility check for G inclusion (revised):** Adding G instead of E would require $80 in materials ($66 base + the $14 freed by dropping D replaced by G's $30 = $30+$18+$24+$10 = $82). Over budget. G alone with B and C uses $64 in materials and 105 minutes, yielding an order surplus of $176 and contribution of $141—less than the chosen plan. G cannot displace A+B+C+E under the $66 constraint.
+
+**Competing revised plan:** B, C, D — materials $62, minutes $90, revenue $224, order surplus $162, contribution $127, shortfall $93. Inferior by $17.
+
+---
+
+# 3. THE PUBLIC UPDATE
+
+**Community Print Shop — Repair Fund Update**
+
+This afternoon's production run confirmed a **$144 contribution** toward our $220 repair goal, leaving a **$76 gap**. A donor has been mentioned informally, but no gift or commitment has been received. We cannot count that $100 until it arrives. We are actively seeking the remaining $76 through Tuesday events. Thank you for your continued support — every confirmed dollar counts.

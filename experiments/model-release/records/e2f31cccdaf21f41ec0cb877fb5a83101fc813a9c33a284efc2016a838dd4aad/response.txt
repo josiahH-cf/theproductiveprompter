@@ -1,0 +1,80 @@
+# 1. THE STORY
+
+**Short Run**
+
+The press hummed only because Mara kept oiling it, and Ivo thought that was a kind of answer in itself.
+
+"If this is the day it dies, it should die on the banners," he said, sliding the theater's order sheet across the counter until it covered the rest of the stack. Outside, the awning read COMMUNITY PRINT & COPY in letters faded from red to the color of a scab. Inside smelled of toner and the orange solvent Mara used on the rollers, and behind the folding table the radiator knocked like it wanted to be let out — the same radiator, same furnace, that had brought them to two hundred twenty dollars by Friday or a cold building by November.
+
+"The banners are already in," Mara said, not looking up from her legal pad. "I did the numbers this morning."
+
+He blinked. "You haven't even—"
+
+"Eighty dollars for materials, two hours of machine time, that's what I've got before the bank closes the books on today. Customer money doesn't land till the job's in their hands, so whatever I buy paper with has to come from what's sitting in the drawer right now." She tapped eight tickets laid out in two columns. "Posters, tickets, menus, banners. Eighteen plus ten plus twenty-two plus thirty is eighty, dead on budget. Minutes add to one-twenty, dead on the clock. Two ninety-four comes in, eighty goes out. Your banners alone clear eighty-two of that by themselves."
+
+Ivo looked almost disappointed to be agreed with. "So we're fine."
+
+"We were fine twenty minutes ago." Mara set the pencil down as Delphine came through the back door, still in her coat, trailing cold air like a cape. "Lonnie caught a double-booking against the quilt guild's refund. The float for materials isn't eighty anymore. It's sixty-six."
+
+"Sixty-six," Ivo repeated, like the number had wronged him personally.
+
+"And that sixty-six was never ours to begin with," Mara said. "It's not money toward the furnace. It's just what we're allowed to turn into paper today." Machine time hadn't moved — still two hours, no more. She crossed out the card arrangement hard enough to feel it through the table. Whatever she chose now had to live inside sixty-six dollars, full stop.
+
+"Then drop something cheap. Keep the banners — they're the biggest job on the table."
+
+"Biggest doesn't mean best anymore." She worked in silence, crossing out combinations, and the quiet had the particular tension of arithmetic that mattered. Banners alone cost thirty and left her thirty-six — not enough room, with anything else, to also cover the posters and still catch the smaller jobs that paid back more per dollar spent. She tried it three ways before one came out even: posters, programs, tickets, bookmarks — eighteen, twenty-four, ten, fourteen, sixty-six on the nose. Revenue of two forty-five against materials of sixty-six left a surplus of one seventy-nine.
+
+"The banners don't fit," she said finally.
+
+"They fit this morning."
+
+"This morning I had fourteen more dollars." She turned the pad so he could see it, the way you'd show someone a scale instead of arguing about weight. "Best I can do with banners in it tops out at one seventy-six. This way's three dollars better, and three dollars isn't nothing once the thirty-five-dollar fee comes out before any of it counts toward the furnace."
+
+Ivo didn't answer right away. Through the window, the theater's marquee sat bare, waiting on a sign that, this week, wouldn't come from here.
+
+"Theo thinks the gala donor might still give something tonight," he said instead. "A hundred dollars, maybe, if he means it."
+
+"Might. If." Mara was already pulling stock for the posters. "I'll believe it when it clears, same as everything else."
+
+By the time the press finished its last run, the shop held four jobs and no banners, ink drying into paper that would be somebody else's good news before it was theirs. The number on Mara's pad read one hundred forty-four, after the fee. Seventy-six short of the furnace, and the phone, for now, stayed quiet.
+
+---
+
+# 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+**Explanation**
+
+- Initial (limits: $80 / 120 min): A+C+F+G uses materials 18+10+22+30=80 and minutes 25+15+30+50=120, both exactly at the caps. Revenue 68+38+76+112=294. Surplus 294−80=214. Contribution 214−35=179. Shortfall max(0,220−179)=41.
+- Revised (limits: $66 / 120 min): A+B+C+E uses materials 18+24+10+14=66 (binding) and minutes 25+40+15+20=100 (slack). Revenue 68+90+38+49=245. Surplus 245−66=179. Contribution 179−35=144. Shortfall max(0,220−144)=76.
+- Competing plan (revised limits, banners kept): B+C+G — materials 24+10+30=64, minutes 40+15+50=105, revenue 90+38+112=240, surplus 240−64=176, contribution 141, shortfall 79. Feasible, but $3 less surplus than the chosen plan, so not selected.
+- donation_confirmed is false: the gala donor is only mentioned as a possibility; nothing is received or committed by story's end.
+
+---
+
+# 3. THE PUBLIC UPDATE
+
+Today's print run contributed $144 toward our $220 repair goal — $76 still needed. A possible $100 donation was mentioned tonight but has not been confirmed or received; please don't count on it yet. We'll share an update the moment anything is secured. Thank you for every order this week — it genuinely helped.

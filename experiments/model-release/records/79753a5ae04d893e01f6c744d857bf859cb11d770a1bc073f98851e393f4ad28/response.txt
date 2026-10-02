@@ -1,0 +1,113 @@
+## 1. THE STORY
+
+**Sixty-Six Dollars**
+
+The leak had chosen the worst spot in the building, directly over the paper racks, so we'd spent the morning hauling cardstock onto the folding table and listening to rain find the bottom of a mop bucket. Plink. Pause. Plink. The roofer's invoice was taped to the guillotine where nobody could pretend not to see it. Nine tomorrow morning, and the shop had to bring two hundred and twenty toward it in new money.
+
+I had the Juniper Street Players' banner proof rolled under my arm like a relay baton. Opening night was Friday. I'd promised them.
+
+Mara sat beside the Riso, legal pad on one knee, pencil moving. "Eighty for materials, two hours on the machines," they said without looking up. "Posters, tickets, menus, banners."
+
+"Banners," I said.
+
+"Banners. Eighty dollars exactly, a hundred and twenty minutes exactly. Payments come to two ninety-four. Take out the materials, take out thirty-five for power and the ink lease." They underlined something twice. "One seventy-nine for the roof. Forty-one short."
+
+"Forty-one we can find." I unrolled the proof across the cutting mat: a red curtain, gold letters, THE WINTER'S TALE. The vinyl swatch clipped to the corner still smelled faintly of vinegar.
+
+Then the phone rang. It was Dot, our treasurer. Mara listened for a long time, said, "We haven't bought anything yet," then, "Okay," and hung up.
+
+"Supplier took fourteen for a late fee. We have sixty-six."
+
+They tore off the page and started over. I watched the pencil go down the columns. It stopped at the banners, thirty dollars and fifty minutes, and drew a line straight through them.
+
+"No," I said.
+
+"Posters, programs, tickets, bookmarks. Sixty-six on the nose. A hundred minutes. One forty-four after the thirty-five. Seventy-six short."
+
+I'd already done it on my phone, thumb-typing in the drip. "Banners, programs, tickets. Sixty-four dollars. That's one forty-one. It's three dollars, Mara."
+
+"It's three dollars."
+
+"The Players have been coming here every season for eleven years. They painted our window." I pointed at the peeling gold letters.
+
+"And three dollars is three more I have to ask someone for at eight-thirty tomorrow with the roofer's truck idling outside." Mara didn't raise their voice. Mara never does; it's worse. "I tried it four ways, Ivo. The banners eat too much of the sixty-six. If they came out ahead, I'd run them first."
+
+"Tess says a neighbor might give a hundred tonight. Then we clear it either way."
+
+"Then we clear it either way," Mara agreed. "And if the neighbor doesn't, I'd rather be seventy-six short than seventy-nine. I can't buy paper with might."
+
+"Plus there's the sixty-six we've already got—"
+
+"That's the float. It comes back in the payments and goes straight into paper on Monday. It isn't the roof's."
+
+I rolled the proof up tighter than it needed. Neither of us spoke, and the bucket filled the silence. Plink.
+
+"Who's calling them?" I asked finally.
+
+"I will."
+
+"No." I surprised myself. "I promised. I'll call."
+
+I took the phone out to the loading dock and told Rosalind, the Players' director, that the banners weren't happening. There was a long breath on the line. Then: "We have a bedsheet and a gallon of house paint. We've done worse." I came back in damp. Mara had already loaded the program stock, and I understood that was the closest thing to an apology either of us would offer.
+
+We ran it. The Riso thumped steadily and pushed out warm sheets that smelled of soy ink. I cut bookmarks on the guillotine, invoice and all, stacking them in neat bricks. Around four I noticed we'd have twenty minutes of machine time left over and nothing we could afford to put in them. I said so. Mara nodded. They'd known since the phone call.
+
+At six the customers came by with envelopes and card swipes. Mara counted at the front desk: two hundred forty-five. Sixty-six went back into the float envelope. Thirty-five went into the bills folder. One forty-four went into the coffee can marked ROOF.
+
+Mara uncapped a marker and wrote on the whiteboard: ROOF: $144 IN. $76 TO GO.
+
+"Anything from Tess?" they asked.
+
+I checked. "Nothing yet."
+
+"Then we don't write it."
+
+"I wasn't going to."
+
+I emptied the mop bucket into the sink and set it back under the leak, and the rain started counting again right away. Then I put the banner proof on the highest shelf in the shop, where the water couldn't reach it, just in case.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+**Per-order surplus (payment − materials):** A 50, B 66, C 28, D 68, E 35, F 54, G 82, H 42.
+
+**Initial ($80, 120 min).** A+C+F+G = 50+28+54+82 = 214, using both limits exactly. Case check:
+- With G, $50 and 70 min remain. The best fill is A+C+F (132), for 214 total.
+- With D but not G, $52 and 85 min remain. The best fill is A+B+C (144), for 212 total.
+- With neither, the other six orders total $104, 155 min, and 214 surplus... wait, 275 surplus. At least $24 and 35 min must be dropped. The cheapest drop is C+E (63), leaving 212.
+
+**Revised ($66, 120 min).** Materials become the binding limit. A+B+C+E = 50+66+28+35 = 179 at $66 and 100 min. Case check:
+- With G, only $36 remains. The best fill is B+C (94), for 176 total.
+- With D but not G, $38 remains. The best fill is B+E (101), for 169 total.
+- With neither, the six orders total $104 and 275 surplus, so at least $38 must be dropped. The cheapest drop is F+H (96), leaving 179.
+
+**Competing feasible plan:** G+B+C uses $64 and 105 min. Revenue is $240 and surplus is $176. Contribution is $141, leaving a $79 shortfall, which is $3 worse than the chosen plan.
+
+The materials float is excluded from the contribution because payments return it to the float. The possible $100 gift is excluded because it was never received or committed.
+
+## 3. THE PUBLIC UPDATE
+
+**Roof Repair Update:** Today's print orders raised $144 in new money toward our $220 roof-repair goal, leaving $76 still to raise. A possible $100 gift has been mentioned, but it has not been received or committed, so we have not counted it. If you can help close the gap, please stop by the shop or contact Mara. Thank you for keeping us dry and printing!

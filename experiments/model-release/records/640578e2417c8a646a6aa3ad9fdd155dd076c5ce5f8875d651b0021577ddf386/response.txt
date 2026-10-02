@@ -1,0 +1,131 @@
+## 1. THE STORY
+
+### The Afternoon Account
+
+The Risograph was making that sound again—a high cycling wheeze like a laboring accordion—and Mara had given herself until four o'clock to decide whether the machine was worth saving.
+
+Ivo arrived at noon with a cardboard tube under one arm and the particular enthusiasm of a person who had already decided what should happen.
+
+"The theater banners," he said, unrolling a proof across the cutting table. "Full bleed on both sides, seventy by forty-eight." The ink was still tacky. Someone had hand-lettered the title in a style that suggested they had watched a lot of videos about hand-lettering without yet doing a lot of it.
+
+Mara picked up her clipboard. She had written the afternoon's orders across four columns: item, materials, machine minutes, customer payment. The Risograph needed two hundred and twenty dollars added to the repair account by close of business, or the technician would put them on a waiting list until spring.
+
+She ran down the list. Eight orders. Two hard limits: eighty dollars in materials, a hundred and twenty minutes before pickup windows started. Customer payments came only after work finished, so whatever she spent on materials had to be cash she already held.
+
+"The banners are in," she said—and that was true. She had already worked it out: banners, menus, posters, tickets. Eighty dollars of materials on the nose, a hundred and twenty minutes exactly. Customer payments would come to two ninety-four. After subtracting materials and the fixed operating costs, that left a hundred and seventy-nine dollars toward the repair fund. Still forty-one short, but better than anything else she could build from the list.
+
+Ivo rolled the proof back into its tube with visible satisfaction.
+
+Then her phone rang.
+
+It was Renata from the supplies co-op. There had been a processing delay on the joint account. Available today: sixty-six dollars.
+
+Mara set the phone down and looked at her clipboard.
+
+"Problem?" Ivo said.
+
+"Fourteen dollars," she said.
+
+She crossed out the eighty in the corner of her notepad and wrote sixty-six. Then she worked through the combinations again, column by column. She was not fast at this, but she was thorough. Ivo stood at the end of the cutting table, watching her the way people watch someone parallel park.
+
+The banners cost thirty dollars in materials. That was nearly half the new budget. She ran the numbers: banners with programs and tickets held materials to sixty-four dollars, but the surplus after subtracting materials came to a hundred and seventy-six, and after the operating expense that left a contribution of a hundred and forty-one.
+
+Without the banners—programs, posters, tickets, bookmarks—materials landed exactly at sixty-six, the surplus rose to a hundred and seventy-nine, and the contribution came to a hundred and forty-four.
+
+Three dollars.
+
+"I have to pull the banners," she said.
+
+Ivo leaned forward over the table. "By how much?"
+
+"Three dollars in contribution. If I run your banners, I have to pair them with programs and tickets to stay in budget. That combination leaves the fund three dollars lower than running programs, posters, tickets, and bookmarks without the banners."
+
+"That's nothing."
+
+"It's three dollars we don't have." She kept her finger on the column of numbers. "Either way I'm looking at a seventy-six dollar gap. I'm not choosing a larger one."
+
+Ivo was quiet. He turned the cardboard tube in his hands once. Then: "Petra said there's a donor. Someone who might give a hundred tonight."
+
+Mara looked out the front window. The October light was going flat and yellow on the parking lot asphalt. The Risograph cycled in the back room and settled.
+
+"Might," she said. "Tonight." She picked the pen back up. "I'm working with what's confirmed."
+
+She wrote the four orders in a column—programs, posters, tickets, bookmarks—and drew a box around them. Sixty-six dollars. A hundred minutes.
+
+Ivo looked at the cardboard tube once more, then set it carefully against the wall.
+
+"What do you need me to do?"
+
+"Load the programs first. Forty sheets, duplex, the blue stock."
+
+He went to the back room. She heard the paper drawer open, heard the clean thud of the tray seating. The Risograph dropped into its working rhythm—lower, more even—and Mara uncapped a fresh marker and started writing pickup slips.
+
+---
+
+## 2. THE RECEIPT
+
+```json
+{
+  "donation_confirmed": false,
+  "initial": {
+    "orders": ["G", "F", "A", "C"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["B", "A", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  }
+}
+```
+
+**Initial plan — G + F + A + C**
+
+| Order | Materials | Minutes | Payment |
+|-------|-----------|---------|---------|
+| G (Theater banners) | $30 | 50 | $112 |
+| F (Menus) | $22 | 30 | $76 |
+| A (Posters) | $18 | 25 | $68 |
+| C (Tickets) | $10 | 15 | $38 |
+| **Total** | **$80** | **120** | **$294** |
+
+Order surplus: $294 − $80 = $214. Minus $35 operating expense = **$179 contribution**. Shortfall: $41.
+
+This combination uses both constraints exactly, leaving no unused capacity for any addition. The 0/1 knapsack was solved by enumeration over 256 subsets; G+F+A+C produces the highest surplus of any feasible combination.
+
+*Feasible competing plan:* D + B + A + C — materials $80, minutes 115, revenue $292, surplus $212, contribution **$177** (two dollars less).
+
+---
+
+**Revised plan — B + A + C + E**
+
+| Order | Materials | Minutes | Payment |
+|-------|-----------|---------|---------|
+| B (Programs) | $24 | 40 | $90 |
+| A (Posters) | $18 | 25 | $68 |
+| C (Tickets) | $10 | 15 | $38 |
+| E (Bookmarks) | $14 | 20 | $49 |
+| **Total** | **$66** | **100** | **$245** |
+
+Order surplus: $245 − $66 = $179. Minus $35 = **$144 contribution**. Shortfall: $76.
+
+With only $66 available, order G ($30 materials) crowds out more productive combinations. The best plan including G is G + B + C: materials $64, minutes 105, surplus $176, contribution $141 — three dollars less than B+A+C+E. No 5-order combination is possible (cheapest five orders require $80 in materials, exceeding the $66 budget).
+
+*Feasible competing plan:* G + B + C — materials $64, minutes 105, revenue $240, surplus $176, contribution **$141** (three dollars less).
+
+---
+
+## 3. THE PUBLIC UPDATE
+
+**Shop Repair Fund — End of Day Update**
+
+This afternoon's print run confirmed a **$144 contribution** toward the $220 repair bill, leaving a **$76 gap**. A donor was mentioned this evening, but no gift or commitment has been received. If you'd like to help close the gap with a confirmed contribution, please contact us directly. Every dollar helps keep the Risograph running.

@@ -1,0 +1,2709 @@
+{
+  "schema_version": 1,
+  "experiment": "model-release-v1",
+  "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+  "models": [
+    {
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "aliases": [
+        "gpt-6-astra"
+      ],
+      "display_name": "GPT-6-Astra",
+      "source": "codex debug models (remote refresh)",
+      "release_date": "2026-09-03",
+      "release_date_source": "https://openai.com/index/safety-overview-gpt-6-astra/",
+      "revision_status": "revision not exposed",
+      "effort_levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+        "ultra"
+      ],
+      "first_seen": "2026-10-02T12:25:02+00:00",
+      "release_date_precision": "day",
+      "supports_verbosity": true,
+      "default_verbosity": "low",
+      "baseline_effort": "medium"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-5.6-sol",
+      "aliases": [
+        "gpt-5.6-sol"
+      ],
+      "display_name": "GPT-5.6-Sol",
+      "source": "codex debug models (remote refresh)",
+      "release_date": "2026-07-09",
+      "release_date_source": "https://openai.com/index/gpt-5-6/",
+      "revision_status": "revision not exposed",
+      "effort_levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+        "ultra"
+      ],
+      "first_seen": "2026-10-02T12:25:02+00:00",
+      "release_date_precision": "day",
+      "release_date_note": "General availability; limited preview began June 26, 2026.",
+      "supports_verbosity": true,
+      "default_verbosity": "low",
+      "baseline_effort": "medium"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-5.6-terra",
+      "aliases": [
+        "gpt-5.6-terra"
+      ],
+      "display_name": "GPT-5.6-Terra",
+      "source": "codex debug models (remote refresh)",
+      "release_date": "2026-07-09",
+      "release_date_source": "https://openai.com/index/gpt-5-6/",
+      "revision_status": "revision not exposed",
+      "effort_levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+        "ultra"
+      ],
+      "first_seen": "2026-10-02T12:25:02+00:00",
+      "release_date_precision": "day",
+      "release_date_note": "General availability; limited preview began June 26, 2026.",
+      "supports_verbosity": true,
+      "default_verbosity": "low",
+      "baseline_effort": "medium"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-5.6-luna",
+      "aliases": [
+        "gpt-5.6-luna"
+      ],
+      "display_name": "GPT-5.6-Luna",
+      "source": "codex debug models (remote refresh)",
+      "release_date": "2026-07-09",
+      "release_date_source": "https://openai.com/index/gpt-5-6/",
+      "revision_status": "revision not exposed",
+      "effort_levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "first_seen": "2026-10-02T12:25:02+00:00",
+      "release_date_precision": "day",
+      "release_date_note": "General availability; limited preview began June 26, 2026.",
+      "supports_verbosity": true,
+      "default_verbosity": "low",
+      "baseline_effort": "medium"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-5.5",
+      "aliases": [
+        "gpt-5.5"
+      ],
+      "display_name": "GPT-5.5",
+      "source": "codex debug models (remote refresh)",
+      "release_date": "2026-04-23",
+      "release_date_source": "https://openai.com/index/introducing-gpt-5-5/",
+      "revision_status": "revision not exposed",
+      "effort_levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh"
+      ],
+      "first_seen": "2026-10-02T12:25:02+00:00",
+      "release_date_precision": "day",
+      "supports_verbosity": true,
+      "default_verbosity": "low",
+      "baseline_effort": "medium"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5",
+      "display_name": "claude-opus-5",
+      "aliases": [
+        "default",
+        "opus[1m]",
+        "opus",
+        "claude-opus-5"
+      ],
+      "source": "Claude CLI initialization model catalog",
+      "release_date": "2026-07-24",
+      "release_date_source": "https://www.anthropic.com/news/claude-opus-5",
+      "effort_levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "revision_status": "revision not exposed",
+      "first_seen": "2026-10-02T12:25:02+00:00",
+      "release_date_precision": "day",
+      "supports_verbosity": false,
+      "baseline_effort": "medium"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-fable-5-1",
+      "display_name": "claude-fable-5-1",
+      "aliases": [
+        "claude-fable-5-1[1m]",
+        "default"
+      ],
+      "source": "Claude CLI initialization model catalog",
+      "release_date": "2026-09",
+      "release_date_source": "https://www.anthropic.com/claude-fable-and-mythos-5-1",
+      "effort_levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "revision_status": "revision not exposed",
+      "first_seen": "2026-10-02T12:25:02+00:00",
+      "release_date_precision": "month",
+      "supports_verbosity": false,
+      "baseline_effort": "medium"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-sonnet-5",
+      "display_name": "claude-sonnet-5",
+      "aliases": [
+        "sonnet",
+        "claude-sonnet-5"
+      ],
+      "source": "Claude CLI initialization model catalog",
+      "release_date": "2026-06-30",
+      "release_date_source": "https://www.anthropic.com/research/claude-sonnet-5",
+      "effort_levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "revision_status": "revision not exposed",
+      "first_seen": "2026-10-02T12:25:02+00:00",
+      "release_date_precision": "day",
+      "supports_verbosity": false,
+      "baseline_effort": "medium"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-haiku-4-5-20251001",
+      "display_name": "claude-haiku-4-5-20251001",
+      "aliases": [
+        "haiku"
+      ],
+      "source": "Claude CLI initialization model catalog",
+      "release_date": "2025-10-15",
+      "release_date_source": "https://www.anthropic.com/news/claude-haiku-4-5",
+      "effort_levels": [],
+      "revision_status": "snapshot ID",
+      "first_seen": "2026-10-02T12:25:02+00:00",
+      "release_date_precision": "day",
+      "supports_verbosity": false,
+      "baseline_effort": "default"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-4-8",
+      "display_name": "claude-opus-4-8",
+      "aliases": [
+        "claude-opus-4-8"
+      ],
+      "source": "Official Claude supported-model list plus CLI initialization",
+      "release_date": "2026-05-28",
+      "release_date_source": "https://www.anthropic.com/news/claude-opus-4-8",
+      "effort_levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "supports_verbosity": false,
+      "revision_status": "revision not exposed",
+      "catalog_source_url": "https://support.claude.com/en/articles/11940350-claude-code-model-configuration",
+      "availability": "candidate; access verified by captured response",
+      "first_seen": "2026-10-02T13:56:46+00:00",
+      "baseline_effort": "medium",
+      "release_date_precision": "day"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-4-7",
+      "display_name": "claude-opus-4-7",
+      "aliases": [
+        "claude-opus-4-7"
+      ],
+      "source": "Official Claude supported-model list plus CLI initialization",
+      "release_date": "2026-04-16",
+      "release_date_source": "https://www.anthropic.com/news/claude-opus-4-7",
+      "effort_levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "supports_verbosity": false,
+      "revision_status": "revision not exposed",
+      "catalog_source_url": "https://support.claude.com/en/articles/11940350-claude-code-model-configuration",
+      "availability": "candidate; access verified by captured response",
+      "first_seen": "2026-10-02T13:56:46+00:00",
+      "baseline_effort": "medium",
+      "release_date_precision": "day"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-sonnet-4-6",
+      "display_name": "claude-sonnet-4-6",
+      "aliases": [
+        "claude-sonnet-4-6"
+      ],
+      "source": "Official Claude supported-model list plus CLI initialization",
+      "release_date": "2026-02-17",
+      "release_date_source": "https://www.anthropic.com/news/claude-sonnet-4-6",
+      "effort_levels": [
+        "low",
+        "medium",
+        "high",
+        "max"
+      ],
+      "supports_verbosity": false,
+      "revision_status": "revision not exposed",
+      "catalog_source_url": "https://support.claude.com/en/articles/11940350-claude-code-model-configuration",
+      "availability": "candidate; access verified by captured response",
+      "first_seen": "2026-10-02T13:56:46+00:00",
+      "baseline_effort": "medium",
+      "release_date_precision": "day"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-4-6",
+      "display_name": "claude-opus-4-6",
+      "aliases": [
+        "claude-opus-4-6"
+      ],
+      "source": "Official Claude supported-model list plus CLI initialization",
+      "release_date": "2026-02-05",
+      "release_date_source": "https://www.anthropic.com/news/claude-opus-4-6",
+      "effort_levels": [
+        "low",
+        "medium",
+        "high",
+        "max"
+      ],
+      "supports_verbosity": false,
+      "revision_status": "revision not exposed",
+      "catalog_source_url": "https://support.claude.com/en/articles/11940350-claude-code-model-configuration",
+      "availability": "candidate; access verified by captured response",
+      "first_seen": "2026-10-02T13:56:46+00:00",
+      "baseline_effort": "medium",
+      "release_date_precision": "day"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-4-5-20251101",
+      "display_name": "claude-opus-4-5-20251101",
+      "aliases": [
+        "claude-opus-4-5-20251101"
+      ],
+      "source": "Official Claude supported-model list plus CLI initialization",
+      "release_date": "2025-11-24",
+      "release_date_source": "https://www.anthropic.com/news/claude-opus-4-5",
+      "effort_levels": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "supports_verbosity": false,
+      "revision_status": "snapshot ID",
+      "catalog_source_url": "https://support.claude.com/en/articles/11940350-claude-code-model-configuration",
+      "availability": "candidate; access verified by captured response",
+      "first_seen": "2026-10-02T13:56:46+00:00",
+      "baseline_effort": "medium",
+      "release_date_precision": "day",
+      "release_date_note": "The snapshot date is not the launch date."
+    },
+    {
+      "provider": "claude",
+      "model": "claude-sonnet-4-5-20250929",
+      "display_name": "claude-sonnet-4-5-20250929",
+      "aliases": [
+        "claude-sonnet-4-5-20250929"
+      ],
+      "source": "Official Claude supported-model list plus CLI initialization",
+      "release_date": "2025-09-29",
+      "release_date_source": "https://www.anthropic.com/claude/sonnet",
+      "effort_levels": [],
+      "supports_verbosity": false,
+      "revision_status": "snapshot ID",
+      "catalog_source_url": "https://support.claude.com/en/articles/11940350-claude-code-model-configuration",
+      "availability": "candidate; access verified by captured response",
+      "first_seen": "2026-10-02T13:56:46+00:00",
+      "baseline_effort": "default",
+      "release_date_precision": "day"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "display_name": "claude-opus-5-5",
+      "aliases": [
+        "default",
+        "opus"
+      ],
+      "source": "Official Claude supported-model list plus CLI initialization",
+      "release_date": "2026-09-22",
+      "release_date_source": "https://www.anthropic.com/claude/opus",
+      "effort_levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "supports_verbosity": false,
+      "revision_status": "revision not exposed",
+      "catalog_source_url": "https://support.claude.com/en/articles/11940350-claude-code-model-configuration",
+      "availability": "candidate; access verified by captured response",
+      "first_seen": "2026-10-02T15:15:34+00:00",
+      "baseline_effort": "medium",
+      "release_date_precision": "day"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-sonnet-5-5",
+      "display_name": "claude-sonnet-5-5",
+      "aliases": [
+        "sonnet"
+      ],
+      "source": "Official Claude supported-model list plus CLI initialization",
+      "release_date": "2026-09-28",
+      "release_date_source": "https://www.anthropic.com/claude-sonnet-5-5",
+      "effort_levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "supports_verbosity": false,
+      "revision_status": "revision not exposed",
+      "catalog_source_url": "https://support.claude.com/en/articles/11940350-claude-code-model-configuration",
+      "availability": "candidate; access verified by captured response",
+      "first_seen": "2026-10-02T15:15:34+00:00",
+      "baseline_effort": "medium",
+      "release_date_precision": "day"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-fable-5",
+      "display_name": "claude-fable-5",
+      "aliases": [
+        "claude-fable-5"
+      ],
+      "source": "Official Claude supported-model list plus CLI initialization",
+      "release_date": null,
+      "release_date_source": null,
+      "effort_levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "supports_verbosity": false,
+      "revision_status": "revision not exposed",
+      "catalog_source_url": "https://support.claude.com/en/articles/11940350-claude-code-model-configuration",
+      "availability": "candidate; access verified by captured response",
+      "first_seen": "2026-10-02T15:15:34+00:00",
+      "baseline_effort": "medium"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol",
+      "aliases": [
+        "gpt-6.1-sol"
+      ],
+      "display_name": "GPT-6.1-Sol",
+      "source": "codex debug models (remote refresh)",
+      "release_date": "2026-09-29",
+      "release_date_source": "https://developers.openai.com/api/docs/changelog",
+      "revision_status": "revision not exposed",
+      "supports_verbosity": true,
+      "default_verbosity": "low",
+      "effort_levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+        "ultra"
+      ],
+      "first_seen": "2026-10-02T15:35:08+00:00",
+      "baseline_effort": "medium",
+      "release_date_precision": "day"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6-sol",
+      "aliases": [
+        "gpt-6-sol"
+      ],
+      "display_name": "GPT-6-Sol",
+      "source": "codex debug models (remote refresh)",
+      "release_date": "2026-09-22",
+      "release_date_source": "https://developers.openai.com/api/docs/changelog",
+      "revision_status": "revision not exposed",
+      "supports_verbosity": true,
+      "default_verbosity": "low",
+      "effort_levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+        "ultra"
+      ],
+      "first_seen": "2026-10-02T15:35:08+00:00",
+      "baseline_effort": "medium",
+      "release_date_precision": "day"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6-luna",
+      "aliases": [
+        "gpt-6-luna"
+      ],
+      "display_name": "GPT-6-Luna",
+      "source": "codex debug models (remote refresh)",
+      "release_date": "2026-09-22",
+      "release_date_source": "https://developers.openai.com/api/docs/changelog",
+      "revision_status": "revision not exposed",
+      "supports_verbosity": true,
+      "default_verbosity": "low",
+      "effort_levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "first_seen": "2026-10-02T15:35:08+00:00",
+      "baseline_effort": "medium",
+      "release_date_precision": "day"
+    }
+  ],
+  "records": [
+    {
+      "key": "6ed2466972d11f8d26dcdb06886549c8c5a65d5e1eee06dc43f2c4f98ff7b9fa",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T12:25:02+00:00",
+      "artifacts": {
+        "records/6ed2466972d11f8d26dcdb06886549c8c5a65d5e1eee06dc43f2c4f98ff7b9fa/response.txt": "4ac70bf2c31006671fa86947185a99e746ffc44e4ba046a0e6694c0ad3ea1b29",
+        "records/6ed2466972d11f8d26dcdb06886549c8c5a65d5e1eee06dc43f2c4f98ff7b9fa/evidence.json": "8f746239e55b732459c639c3538b0af6e9c9873ef3c0aa7e58bb4f3100527228"
+      }
+    },
+    {
+      "key": "4fb23020441c3a1b0a10d2a3d33702dec6b24d787bad5173e7a5754f64a6b4ad",
+      "provider": "codex",
+      "model": "gpt-5.6-sol",
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T12:26:48+00:00",
+      "artifacts": {
+        "records/4fb23020441c3a1b0a10d2a3d33702dec6b24d787bad5173e7a5754f64a6b4ad/response.txt": "766dcd2bd967442db22254ac42a95a69342cb7d4bcf4629d42fdde4d22330bba",
+        "records/4fb23020441c3a1b0a10d2a3d33702dec6b24d787bad5173e7a5754f64a6b4ad/evidence.json": "92ee17de7701eb4d7c6140f13c450d0bcd11f224898f9037a88cf088b75c9efb"
+      }
+    },
+    {
+      "key": "26663899f5a65834f4b4e8c78e22f9b29f7cd8440b2d69a7ec3bcd1d24c24bf2",
+      "provider": "codex",
+      "model": "gpt-5.6-terra",
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T12:28:07+00:00",
+      "artifacts": {
+        "records/26663899f5a65834f4b4e8c78e22f9b29f7cd8440b2d69a7ec3bcd1d24c24bf2/response.txt": "d8a9cb8b71d746f4157bd0f4312eee8293e65300bca07ca764781dfedf723057",
+        "records/26663899f5a65834f4b4e8c78e22f9b29f7cd8440b2d69a7ec3bcd1d24c24bf2/evidence.json": "f2028aaa882d28d1dea33075d68172d2ddab53566b2486f4c78c773bfcc5326f"
+      }
+    },
+    {
+      "key": "d9932656f91f65b1526e0c11f8949e7dcf620cc684c14dc0f37bf540e1cfeff2",
+      "provider": "codex",
+      "model": "gpt-5.6-luna",
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T12:29:00+00:00",
+      "artifacts": {
+        "records/d9932656f91f65b1526e0c11f8949e7dcf620cc684c14dc0f37bf540e1cfeff2/response.txt": "c0594ed37c9daf855b5ddfd8f86b9414ba90804d382161678e78ac0c80264ffc",
+        "records/d9932656f91f65b1526e0c11f8949e7dcf620cc684c14dc0f37bf540e1cfeff2/evidence.json": "9d3f6cb71dce7c7389f21bd27da74acaddfae063605ef09a9fd193df72959479"
+      }
+    },
+    {
+      "key": "dde1fdf6a378e52492d8930fa87160ea2d28fc3a5b6f4f7dbb49d6b20a0d72f6",
+      "provider": "codex",
+      "model": "gpt-5.5",
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T12:29:55+00:00",
+      "artifacts": {
+        "records/dde1fdf6a378e52492d8930fa87160ea2d28fc3a5b6f4f7dbb49d6b20a0d72f6/response.txt": "4e412700b688312c49f18e15e359213bfb78714a1e9386b35886f918226891df",
+        "records/dde1fdf6a378e52492d8930fa87160ea2d28fc3a5b6f4f7dbb49d6b20a0d72f6/evidence.json": "d0f87ebbc95253067cdd20a19b5d91fae997ccc3ac64f33c9575b166c07dbc2d"
+      }
+    },
+    {
+      "key": "2bf1a5e4bacc116fec75e01eb80d1f38c774e16a671ec9e1ef4a23ba81f3b09a",
+      "provider": "claude",
+      "model": "claude-opus-5",
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "generation failed",
+      "tested_at": "2026-10-02T12:31:48+00:00",
+      "artifacts": {
+        "records/2bf1a5e4bacc116fec75e01eb80d1f38c774e16a671ec9e1ef4a23ba81f3b09a/response.txt": "2d2ff3671030ded95b7109c06ca665afd08226952594b17d4d5216b089586a67",
+        "records/2bf1a5e4bacc116fec75e01eb80d1f38c774e16a671ec9e1ef4a23ba81f3b09a/evidence.json": "4f8f50e55404e188d93e08bec3217e4bc4a70b4035f237d4f4fbcaa642124151"
+      }
+    },
+    {
+      "key": "97840a47fe6f826d9dcc67363933897844baa2986ac23674e60714c3130a2231",
+      "provider": "claude",
+      "model": "claude-fable-5-1",
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "generation failed",
+      "tested_at": "2026-10-02T12:31:49+00:00",
+      "artifacts": {
+        "records/97840a47fe6f826d9dcc67363933897844baa2986ac23674e60714c3130a2231/response.txt": "2d2ff3671030ded95b7109c06ca665afd08226952594b17d4d5216b089586a67",
+        "records/97840a47fe6f826d9dcc67363933897844baa2986ac23674e60714c3130a2231/evidence.json": "c5d213e03ebc3b5710b94c48706050fe34c85d1c0cf562d5c16c06e864271bf9"
+      }
+    },
+    {
+      "key": "4e574925c139c955f247cf1e06acd62a737d6e4a0abed46ae1420e628c5cd9df",
+      "provider": "claude",
+      "model": "claude-sonnet-5",
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "generation failed",
+      "tested_at": "2026-10-02T12:31:51+00:00",
+      "artifacts": {
+        "records/4e574925c139c955f247cf1e06acd62a737d6e4a0abed46ae1420e628c5cd9df/response.txt": "2d2ff3671030ded95b7109c06ca665afd08226952594b17d4d5216b089586a67",
+        "records/4e574925c139c955f247cf1e06acd62a737d6e4a0abed46ae1420e628c5cd9df/evidence.json": "022ba4e9f196773df1c502f0a51350288b0f994fc4446bff06395c28bcce9cbe"
+      }
+    },
+    {
+      "key": "62d95531b86e7295f64558c6b6f4c982bebe85f3dde198cae79045d7b8bbd1e2",
+      "provider": "claude",
+      "model": "claude-haiku-4-5-20251001",
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "generation failed",
+      "tested_at": "2026-10-02T12:31:52+00:00",
+      "artifacts": {
+        "records/62d95531b86e7295f64558c6b6f4c982bebe85f3dde198cae79045d7b8bbd1e2/response.txt": "2d2ff3671030ded95b7109c06ca665afd08226952594b17d4d5216b089586a67",
+        "records/62d95531b86e7295f64558c6b6f4c982bebe85f3dde198cae79045d7b8bbd1e2/evidence.json": "f7208903e2635e272346fbe5de1af3dbd8e83f35959681d7e6db4c78018a05b6"
+      }
+    },
+    {
+      "key": "2bf1a5e4bacc116fec75e01eb80d1f38c774e16a671ec9e1ef4a23ba81f3b09a-attempt-2",
+      "provider": "claude",
+      "model": "claude-opus-5",
+      "attempt": 2,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T13:09:34+00:00",
+      "artifacts": {
+        "records/2bf1a5e4bacc116fec75e01eb80d1f38c774e16a671ec9e1ef4a23ba81f3b09a-attempt-2/response.txt": "29eb526898280c10bb78ebcce10d1563fb91810b87a9be79734af604431c46d2",
+        "records/2bf1a5e4bacc116fec75e01eb80d1f38c774e16a671ec9e1ef4a23ba81f3b09a-attempt-2/evidence.json": "41ad4fb5b823d30b18d13f4ed99ab853f519010ed70e8775e13540b234a26ba0"
+      }
+    },
+    {
+      "key": "97840a47fe6f826d9dcc67363933897844baa2986ac23674e60714c3130a2231-attempt-2",
+      "provider": "claude",
+      "model": "claude-fable-5-1",
+      "attempt": 2,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T13:11:22+00:00",
+      "artifacts": {
+        "records/97840a47fe6f826d9dcc67363933897844baa2986ac23674e60714c3130a2231-attempt-2/response.txt": "98ddbbd85ef404e8eaf67b959739353c0ff39b2a0bf660e4ec90dcd8702917f4",
+        "records/97840a47fe6f826d9dcc67363933897844baa2986ac23674e60714c3130a2231-attempt-2/evidence.json": "a54204683e39613ea48efc73df36888542cce712a89e0ad6372fede927e52168"
+      }
+    },
+    {
+      "key": "4e574925c139c955f247cf1e06acd62a737d6e4a0abed46ae1420e628c5cd9df-attempt-2",
+      "provider": "claude",
+      "model": "claude-sonnet-5",
+      "attempt": 2,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T13:12:29+00:00",
+      "artifacts": {
+        "records/4e574925c139c955f247cf1e06acd62a737d6e4a0abed46ae1420e628c5cd9df-attempt-2/response.txt": "5cba22476e20c5309b21b9ba9f6375944d5008d23c986992e5cd7c39ac940609",
+        "records/4e574925c139c955f247cf1e06acd62a737d6e4a0abed46ae1420e628c5cd9df-attempt-2/evidence.json": "8f78df66c2f753ebfe387963a456e19624f43e2c84d1f4e35a0b9d58b6ebd1af"
+      }
+    },
+    {
+      "key": "62d95531b86e7295f64558c6b6f4c982bebe85f3dde198cae79045d7b8bbd1e2-attempt-2",
+      "provider": "claude",
+      "model": "claude-haiku-4-5-20251001",
+      "attempt": 2,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T13:13:53+00:00",
+      "artifacts": {
+        "records/62d95531b86e7295f64558c6b6f4c982bebe85f3dde198cae79045d7b8bbd1e2-attempt-2/response.txt": "830298a0a18b240e2848e8138d768de78f6bb4a95842ec6dab462b04731e99f6",
+        "records/62d95531b86e7295f64558c6b6f4c982bebe85f3dde198cae79045d7b8bbd1e2-attempt-2/evidence.json": "f23a0c354407ae352de6e28db76e5b0e0e2b111613913432e8d9d71720fcacf8"
+      }
+    },
+    {
+      "key": "c7521b1bd36e58820930c52bc15f363a6bc1a6bab024abfd2d40e62bacd4709e",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T13:56:48+00:00",
+      "artifacts": {
+        "records/c7521b1bd36e58820930c52bc15f363a6bc1a6bab024abfd2d40e62bacd4709e/response.txt": "382c60697c72327e4eab40b1337cacbe0ed03dfe366581c6045c0d7b45f82f72",
+        "records/c7521b1bd36e58820930c52bc15f363a6bc1a6bab024abfd2d40e62bacd4709e/evidence.json": "de1464ed20cc8cdbd55e5aedcfa61784fd0bb304a3140cda4e67db842aa67b4f"
+      },
+      "variant": {
+        "id": "effort-low",
+        "effort": "low",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "71f5ffb519f39667ddfc2477534349a1c4daab359555f7f00b6b52b96f6b34c0",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T13:56:48+00:00",
+      "artifacts": {
+        "records/71f5ffb519f39667ddfc2477534349a1c4daab359555f7f00b6b52b96f6b34c0/response.txt": "4e364af6d09700091bed5947c6701efcda167d5dd8d2671c377ee46e906ae913",
+        "records/71f5ffb519f39667ddfc2477534349a1c4daab359555f7f00b6b52b96f6b34c0/evidence.json": "51edf47bcded051681d472658eebf002e861a1f83ba4d96edc20552c18f04a45"
+      },
+      "variant": {
+        "id": "effort-high",
+        "effort": "high",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "3b8747f6aff6917dce3124260f6c22dee811048f767a64c75a7d69f62900f7c8",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T13:56:48+00:00",
+      "artifacts": {
+        "records/3b8747f6aff6917dce3124260f6c22dee811048f767a64c75a7d69f62900f7c8/response.txt": "968ca2955f8c8f416f77c41cec2212bb374051f84a1db1345a322beb0d86f37b",
+        "records/3b8747f6aff6917dce3124260f6c22dee811048f767a64c75a7d69f62900f7c8/evidence.json": "1d29b96e68a1d9f584c81c4413807e1d7caafe22923b12283db45d574d4d8a3b"
+      },
+      "variant": {
+        "id": "effort-xhigh",
+        "effort": "xhigh",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "1ccfa22204d7392936ce640d3f34bdcf51db54382144653ef3cfeb79b0ecdf13",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:01:56+00:00",
+      "artifacts": {
+        "records/1ccfa22204d7392936ce640d3f34bdcf51db54382144653ef3cfeb79b0ecdf13/response.txt": "f4368b80a6611170a8cb9bf15221352400baf9938a082df1fa23549d3bf241f5",
+        "records/1ccfa22204d7392936ce640d3f34bdcf51db54382144653ef3cfeb79b0ecdf13/evidence.json": "86e32d353002620b6dde15e81cd810436e6eb02aa2ab742396786d460370792e"
+      },
+      "variant": {
+        "id": "verbosity-low",
+        "effort": "medium",
+        "verbosity": "low"
+      }
+    },
+    {
+      "key": "634d2b202eb6084c2ef4a48cf883c778296bdc51d3dff554cb65ada948e7b31d",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T13:58:24+00:00",
+      "artifacts": {
+        "records/634d2b202eb6084c2ef4a48cf883c778296bdc51d3dff554cb65ada948e7b31d/response.txt": "8c3a6ec60b1d272c5a01a4bef4b59a6509cae98e8f946e96c9c0a3e87c628abb",
+        "records/634d2b202eb6084c2ef4a48cf883c778296bdc51d3dff554cb65ada948e7b31d/evidence.json": "3c40bd22e787b53e69e11f432ce9d21c585cc76e3e9ca81b585ede49469ce195"
+      },
+      "variant": {
+        "id": "effort-max",
+        "effort": "max",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "0c112f6e7d5f4ff85ccfd222f57b91bffa1715f2dbef0d3659c99954de886c3f",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:03:40+00:00",
+      "artifacts": {
+        "records/0c112f6e7d5f4ff85ccfd222f57b91bffa1715f2dbef0d3659c99954de886c3f/response.txt": "a89360aad75d472b61a3e2c0fec08eaf01255f89ee10dbe16f16c7dc3d4c528f",
+        "records/0c112f6e7d5f4ff85ccfd222f57b91bffa1715f2dbef0d3659c99954de886c3f/evidence.json": "ba65ce03fa38867fff05d0bfdcbd90bb5eba294a060c312c16f36c18d8795afb"
+      },
+      "variant": {
+        "id": "verbosity-medium",
+        "effort": "medium",
+        "verbosity": "medium"
+      }
+    },
+    {
+      "key": "9a8b6c2f859e7363b6be3f34133f2ff3d04178228219073beae91ac7f4a298eb",
+      "provider": "codex",
+      "model": "gpt-5.6-sol",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:05:33+00:00",
+      "artifacts": {
+        "records/9a8b6c2f859e7363b6be3f34133f2ff3d04178228219073beae91ac7f4a298eb/response.txt": "e60fc3cf51c5de57f644c4fab28b011a6bfe91e9f40b84d00d3f353cd90f93b9",
+        "records/9a8b6c2f859e7363b6be3f34133f2ff3d04178228219073beae91ac7f4a298eb/evidence.json": "6e8de0e60dce8e64b7ecde3890b58db2a86e301b0555c35b0aebb8e411411c26"
+      },
+      "variant": {
+        "id": "effort-low",
+        "effort": "low",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "a74c0cce5b7f2059d2affe0ca0592b8e8b58cabc9b7eeb7c57f0d2613e550575",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T13:59:55+00:00",
+      "artifacts": {
+        "records/a74c0cce5b7f2059d2affe0ca0592b8e8b58cabc9b7eeb7c57f0d2613e550575/response.txt": "52f56c02efa9acbf8acb52b25001dbca04867bfbe7eefd915b9d2d5776166678",
+        "records/a74c0cce5b7f2059d2affe0ca0592b8e8b58cabc9b7eeb7c57f0d2613e550575/evidence.json": "c3c100e899b05ff0410146463f3f1613bd1da61fff86d23d16b96c7dedabeaa9"
+      },
+      "variant": {
+        "id": "effort-ultra",
+        "effort": "ultra",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "5383c0f91628ade978f4e561b213781ca6d478ee18b173c4ac00a9d17aaddf24",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:04:55+00:00",
+      "artifacts": {
+        "records/5383c0f91628ade978f4e561b213781ca6d478ee18b173c4ac00a9d17aaddf24/response.txt": "2691bbea6460544e7d3e9216cc06a196a93578c15aafb9fb2ce2f192508b554f",
+        "records/5383c0f91628ade978f4e561b213781ca6d478ee18b173c4ac00a9d17aaddf24/evidence.json": "01175e509a22a21b8fd4647c63500a690818cd3dfa14c2719777c3363a090a77"
+      },
+      "variant": {
+        "id": "verbosity-high",
+        "effort": "medium",
+        "verbosity": "high"
+      }
+    },
+    {
+      "key": "c50866e9fccb458c7a1952014487275bd3ba5dc860211ccda847f3308e0ce128",
+      "provider": "codex",
+      "model": "gpt-5.6-sol",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:06:49+00:00",
+      "artifacts": {
+        "records/c50866e9fccb458c7a1952014487275bd3ba5dc860211ccda847f3308e0ce128/response.txt": "6c1c112c9104a55f399b784f214f639e705c3dd5d37ce6ad2193b5f2009e77c6",
+        "records/c50866e9fccb458c7a1952014487275bd3ba5dc860211ccda847f3308e0ce128/evidence.json": "80351b50d5afae665767ba1c63009551e07c19074c53c50f8a285a9eb24b9560"
+      },
+      "variant": {
+        "id": "effort-xhigh",
+        "effort": "xhigh",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "69ba4cd08ae602115f2e21143b8435fa66aa4a70e46ce993380d805a25f795d7",
+      "provider": "codex",
+      "model": "gpt-5.6-sol",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:06:43+00:00",
+      "artifacts": {
+        "records/69ba4cd08ae602115f2e21143b8435fa66aa4a70e46ce993380d805a25f795d7/response.txt": "bad80c15b4b0a0ece644025ef97ea52487a043e8e67b4eab24f9d5c4e2b1763b",
+        "records/69ba4cd08ae602115f2e21143b8435fa66aa4a70e46ce993380d805a25f795d7/evidence.json": "61568f435da5d9810aafc868adef32e786166947339fe7206e7af98bb8fc2d6b"
+      },
+      "variant": {
+        "id": "effort-high",
+        "effort": "high",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "bbad56a4d1bec1a9a0fac0e45e84d3cedccc9ae7915509eb4a62e203c06f3cb8",
+      "provider": "codex",
+      "model": "gpt-5.6-sol",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:06:55+00:00",
+      "artifacts": {
+        "records/bbad56a4d1bec1a9a0fac0e45e84d3cedccc9ae7915509eb4a62e203c06f3cb8/response.txt": "5d78916bbac5961d3fc085411f1ef7d7a0802a97ef95047bdad14b58e9c6cd32",
+        "records/bbad56a4d1bec1a9a0fac0e45e84d3cedccc9ae7915509eb4a62e203c06f3cb8/evidence.json": "81787a9bba1485e1a075b37db967f854b67e2373a1ddc73097196958e15c3a4d"
+      },
+      "variant": {
+        "id": "effort-max",
+        "effort": "max",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "dbb90b1b9bc7b910075ff1cf763c3d9efc91e6dcc231ef8d495cbab397ad60c5",
+      "provider": "codex",
+      "model": "gpt-5.6-sol",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:08:46+00:00",
+      "artifacts": {
+        "records/dbb90b1b9bc7b910075ff1cf763c3d9efc91e6dcc231ef8d495cbab397ad60c5/response.txt": "5895564291d5682cc8f88b59b6c62938e252fc8f132a3e2f47dc8f0bee1e375f",
+        "records/dbb90b1b9bc7b910075ff1cf763c3d9efc91e6dcc231ef8d495cbab397ad60c5/evidence.json": "8607cde009f434598ec791ddf11f9057f485983e56ed260b1c9f2b183244869a"
+      },
+      "variant": {
+        "id": "verbosity-low",
+        "effort": "medium",
+        "verbosity": "low"
+      }
+    },
+    {
+      "key": "f9e314949eac04cd505c10a95763757c311ce31c218db970a1d559adb3f32956",
+      "provider": "codex",
+      "model": "gpt-5.6-sol",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:10:04+00:00",
+      "artifacts": {
+        "records/f9e314949eac04cd505c10a95763757c311ce31c218db970a1d559adb3f32956/response.txt": "526aabeed0ae7b0227fb696b57b73a6411726807afe704bfaeb201c0187b8136",
+        "records/f9e314949eac04cd505c10a95763757c311ce31c218db970a1d559adb3f32956/evidence.json": "416e96abbfe3d02a8161e98794450e7eff663c84f3bce2416558ab0a24c4aec7"
+      },
+      "variant": {
+        "id": "verbosity-medium",
+        "effort": "medium",
+        "verbosity": "medium"
+      }
+    },
+    {
+      "key": "83932daf2506b2621c38de0aa33108149dfb3bac6829d1baa4ba2c217c281291",
+      "provider": "codex",
+      "model": "gpt-5.6-sol",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:10:05+00:00",
+      "artifacts": {
+        "records/83932daf2506b2621c38de0aa33108149dfb3bac6829d1baa4ba2c217c281291/response.txt": "c32a0dac8257f43bf73cc99b02fee0bdd48ce44e13915dcc4082871d5dae47be",
+        "records/83932daf2506b2621c38de0aa33108149dfb3bac6829d1baa4ba2c217c281291/evidence.json": "18cb6538adb4169958c3d7dcd2bef27f5e1b0f7bbf487673a68aa84c3006f486"
+      },
+      "variant": {
+        "id": "verbosity-high",
+        "effort": "medium",
+        "verbosity": "high"
+      }
+    },
+    {
+      "key": "731af5f18a4b1d9d8390404738b63ed6d252e8854cfdaf41a64877ab0276bbbf",
+      "provider": "codex",
+      "model": "gpt-5.6-terra",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:11:19+00:00",
+      "artifacts": {
+        "records/731af5f18a4b1d9d8390404738b63ed6d252e8854cfdaf41a64877ab0276bbbf/response.txt": "31bbe9a2d8af941ab07c00c7852de169cc6e788fb2908cd4c793ed5671b8e698",
+        "records/731af5f18a4b1d9d8390404738b63ed6d252e8854cfdaf41a64877ab0276bbbf/evidence.json": "f32da1379fea4028beac3918bfef508f036a1a771322ad8d75b0870d7b9d640a"
+      },
+      "variant": {
+        "id": "effort-low",
+        "effort": "low",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "149f2bac10d04a098316c7d983f96ba6d7945f731406b833ae7bbbbf19fc5786",
+      "provider": "codex",
+      "model": "gpt-5.6-terra",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:11:28+00:00",
+      "artifacts": {
+        "records/149f2bac10d04a098316c7d983f96ba6d7945f731406b833ae7bbbbf19fc5786/response.txt": "63b115b66dc72e1eca3c0fcf910a776b97a4a939d28102c7d7d294ae2fb574d6",
+        "records/149f2bac10d04a098316c7d983f96ba6d7945f731406b833ae7bbbbf19fc5786/evidence.json": "68c2baa2dafe661675795b00d7fecbdb547f5fc29305a488302edece97eec2d8"
+      },
+      "variant": {
+        "id": "effort-high",
+        "effort": "high",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "a6a2c3c83d2d7e714bfcf0f06d66304309cbfc68048dd1bc4914d9370e65d71b",
+      "provider": "codex",
+      "model": "gpt-5.6-sol",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:08:41+00:00",
+      "artifacts": {
+        "records/a6a2c3c83d2d7e714bfcf0f06d66304309cbfc68048dd1bc4914d9370e65d71b/response.txt": "c362faef60d13e10c5e0462520daea0953b7f2c5bdbc0b3dd1d2a84505c596fa",
+        "records/a6a2c3c83d2d7e714bfcf0f06d66304309cbfc68048dd1bc4914d9370e65d71b/evidence.json": "68d36be7ab6a422ee942a2fc18f0c2ea3789ec33154bd9b1968eb1c12cd22df8"
+      },
+      "variant": {
+        "id": "effort-ultra",
+        "effort": "ultra",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "b8dae514908b2b4ef7eff383748f82554a32f5e5e9a96dbf4dd8095386e23b6d",
+      "provider": "codex",
+      "model": "gpt-5.6-terra",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:12:14+00:00",
+      "artifacts": {
+        "records/b8dae514908b2b4ef7eff383748f82554a32f5e5e9a96dbf4dd8095386e23b6d/response.txt": "415429051fde8bdba72c4965734336f131fb1ad3443d7417f9c621cca5eafb47",
+        "records/b8dae514908b2b4ef7eff383748f82554a32f5e5e9a96dbf4dd8095386e23b6d/evidence.json": "d3e41adfd3951de85007e704b7e04d1ddddc1ca5454893fd34bf1835f825248c"
+      },
+      "variant": {
+        "id": "effort-xhigh",
+        "effort": "xhigh",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "e786e2e5f01fad5aa550d48709b556a19c9bd1cf32c8a942a330ecdc81b55b98",
+      "provider": "codex",
+      "model": "gpt-5.6-terra",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:14:38+00:00",
+      "artifacts": {
+        "records/e786e2e5f01fad5aa550d48709b556a19c9bd1cf32c8a942a330ecdc81b55b98/response.txt": "e42d28044581a59b4acdb19dcc91b06eec6b190fee00013e61586bd5b781bc88",
+        "records/e786e2e5f01fad5aa550d48709b556a19c9bd1cf32c8a942a330ecdc81b55b98/evidence.json": "031712f3d2679d0579f195db48cb48e1eddfd97abeaaf99b3e352a43c515da2e"
+      },
+      "variant": {
+        "id": "verbosity-low",
+        "effort": "medium",
+        "verbosity": "low"
+      }
+    },
+    {
+      "key": "8183a5bf961c75a180bfa0a02c5202dbddafe5d9c8e55f1a37b2cd9e8d09bf7d",
+      "provider": "codex",
+      "model": "gpt-5.6-terra",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:15:26+00:00",
+      "artifacts": {
+        "records/8183a5bf961c75a180bfa0a02c5202dbddafe5d9c8e55f1a37b2cd9e8d09bf7d/response.txt": "b8a8af32578ac11f708a39b476fe1aac7af7b19a46c5df22d0561f97e26ca82b",
+        "records/8183a5bf961c75a180bfa0a02c5202dbddafe5d9c8e55f1a37b2cd9e8d09bf7d/evidence.json": "f2289ceb7af1113f032a15d758a5a0b21ed81302416b013f20bf43f419d28b12"
+      },
+      "variant": {
+        "id": "verbosity-medium",
+        "effort": "medium",
+        "verbosity": "medium"
+      }
+    },
+    {
+      "key": "e73df4575a8e9e79478ee6f663210fae1982215f04e545c3afd44131281a76fb",
+      "provider": "codex",
+      "model": "gpt-5.6-terra",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:12:35+00:00",
+      "artifacts": {
+        "records/e73df4575a8e9e79478ee6f663210fae1982215f04e545c3afd44131281a76fb/response.txt": "f394fb374065b1d7b72e312c829f21cb138639067dd4607edaa22b2f6d4a4d84",
+        "records/e73df4575a8e9e79478ee6f663210fae1982215f04e545c3afd44131281a76fb/evidence.json": "ce9613b4b11a147e45a1789eaf9fcf04a2831f0eca3c5f6e9f06b50074617e25"
+      },
+      "variant": {
+        "id": "effort-max",
+        "effort": "max",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "ccf197d869501c4ba8e82653f8c8090d3aa030de7853a7c5152d9dce1d2e9c2b",
+      "provider": "codex",
+      "model": "gpt-5.6-terra",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:16:15+00:00",
+      "artifacts": {
+        "records/ccf197d869501c4ba8e82653f8c8090d3aa030de7853a7c5152d9dce1d2e9c2b/response.txt": "352eb659defa6087c61dd2cd8fba4c4cf7fbb1c062f8f3100b25db86a58fffcd",
+        "records/ccf197d869501c4ba8e82653f8c8090d3aa030de7853a7c5152d9dce1d2e9c2b/evidence.json": "dcbff57cea050f2b0c1ddc77a875bdc4c3f146596d67f14e073bc5e9b49052c1"
+      },
+      "variant": {
+        "id": "verbosity-high",
+        "effort": "medium",
+        "verbosity": "high"
+      }
+    },
+    {
+      "key": "df0648e51794fdae17aec1479ad0fd2c36413a505c9b87f1fc158479db3f8d20",
+      "provider": "codex",
+      "model": "gpt-5.6-terra",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:13:36+00:00",
+      "artifacts": {
+        "records/df0648e51794fdae17aec1479ad0fd2c36413a505c9b87f1fc158479db3f8d20/response.txt": "1f6b74e490d9cd3c2002541bda917df3348ec248d5d85af478cdda979cf02dae",
+        "records/df0648e51794fdae17aec1479ad0fd2c36413a505c9b87f1fc158479db3f8d20/evidence.json": "c2918fee169c585a87cc483238f1aae66446b4991b59d8793b226dd056b39293"
+      },
+      "variant": {
+        "id": "effort-ultra",
+        "effort": "ultra",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "283d3683980b30758c878826633f192d2eedef964237635483fe86df85420c77",
+      "provider": "codex",
+      "model": "gpt-5.6-luna",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:16:52+00:00",
+      "artifacts": {
+        "records/283d3683980b30758c878826633f192d2eedef964237635483fe86df85420c77/response.txt": "cab2c773594def95f5db65620a03a72c154e4c5af153c1201915c5e5a3766e1a",
+        "records/283d3683980b30758c878826633f192d2eedef964237635483fe86df85420c77/evidence.json": "5098a957f607c7bff75eba0f476b5ce5649c35d17ec15f469acd73bf9adfcc27"
+      },
+      "variant": {
+        "id": "effort-low",
+        "effort": "low",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "b48c38f95b1d275e5d2386cfcf1fbb9c069771e88e409c4a800352c9fa7f5bb7",
+      "provider": "codex",
+      "model": "gpt-5.6-luna",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:17:16+00:00",
+      "artifacts": {
+        "records/b48c38f95b1d275e5d2386cfcf1fbb9c069771e88e409c4a800352c9fa7f5bb7/response.txt": "3ecafb07516df8393b101140fb8bea41ae8c9e35c8522bfa78e938a2b113db02",
+        "records/b48c38f95b1d275e5d2386cfcf1fbb9c069771e88e409c4a800352c9fa7f5bb7/evidence.json": "b229dbdc9585539ab36eed05e8fa495529fad104a33ae6f50aa68ac3fc42bb78"
+      },
+      "variant": {
+        "id": "effort-high",
+        "effort": "high",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "c0a3324a0c5e1209594d8d555d3ec86f1ee6c72e503980da63404240096a7fe3",
+      "provider": "codex",
+      "model": "gpt-5.6-luna",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:18:52+00:00",
+      "artifacts": {
+        "records/c0a3324a0c5e1209594d8d555d3ec86f1ee6c72e503980da63404240096a7fe3/response.txt": "8dbb98469450589daf53a286b94b908fb0463be25ac1534c240352033a6dc22e",
+        "records/c0a3324a0c5e1209594d8d555d3ec86f1ee6c72e503980da63404240096a7fe3/evidence.json": "8e1de291ba78aaad23376f91f462dcf90bdfd1cf01e13ea54c6b1c82b7607152"
+      },
+      "variant": {
+        "id": "verbosity-low",
+        "effort": "medium",
+        "verbosity": "low"
+      }
+    },
+    {
+      "key": "1d75a8794ba490b3dd183792d48436f5d959508fb4238b27d9ef0542b27d27a4",
+      "provider": "codex",
+      "model": "gpt-5.6-luna",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:17:16+00:00",
+      "artifacts": {
+        "records/1d75a8794ba490b3dd183792d48436f5d959508fb4238b27d9ef0542b27d27a4/response.txt": "357e1b5dba814d0e7acfeefb6185d30361a48b9c957a2fd0d9e3eb029e8f4632",
+        "records/1d75a8794ba490b3dd183792d48436f5d959508fb4238b27d9ef0542b27d27a4/evidence.json": "f8a4242de6095ab7ad2444f70a8613035a9b8128a625b2e1c5ae9768e304a86f"
+      },
+      "variant": {
+        "id": "effort-xhigh",
+        "effort": "xhigh",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "72dfd2239c73324a762e9150b4fbf10f66b87ad89da41c6a28f9f305577d0da6",
+      "provider": "codex",
+      "model": "gpt-5.6-luna",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:19:59+00:00",
+      "artifacts": {
+        "records/72dfd2239c73324a762e9150b4fbf10f66b87ad89da41c6a28f9f305577d0da6/response.txt": "a4b4e88cb244f905886f673b8d6e4489123f854decbef012a8eda32b5e0d7328",
+        "records/72dfd2239c73324a762e9150b4fbf10f66b87ad89da41c6a28f9f305577d0da6/evidence.json": "098b8399287c8c65d063a7f2439a5cb51ce006d7f172376926f04480cd4658ab"
+      },
+      "variant": {
+        "id": "verbosity-high",
+        "effort": "medium",
+        "verbosity": "high"
+      }
+    },
+    {
+      "key": "047faf61fd4aea221995171de0da440b3496ed03a2df20331c2a3a079be5d7a0",
+      "provider": "codex",
+      "model": "gpt-5.6-luna",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:19:52+00:00",
+      "artifacts": {
+        "records/047faf61fd4aea221995171de0da440b3496ed03a2df20331c2a3a079be5d7a0/response.txt": "3de91c8ab5f2ec335bb51fa2459edaeb7ada7ed66a1c4706bb55652ad3a0e76f",
+        "records/047faf61fd4aea221995171de0da440b3496ed03a2df20331c2a3a079be5d7a0/evidence.json": "66b771bd5657883360da766b572e8ff812d432ee3900f7d6e03611912ca53c76"
+      },
+      "variant": {
+        "id": "verbosity-medium",
+        "effort": "medium",
+        "verbosity": "medium"
+      }
+    },
+    {
+      "key": "23e24d26b5f66fb2d96f6607279281613e64b0f649909524112146d364dd87a1",
+      "provider": "codex",
+      "model": "gpt-5.5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:20:49+00:00",
+      "artifacts": {
+        "records/23e24d26b5f66fb2d96f6607279281613e64b0f649909524112146d364dd87a1/response.txt": "28ccc96453d9a392baec9c2c5807dcc955067e533d88c2b6cdd9dd6e200ffb8c",
+        "records/23e24d26b5f66fb2d96f6607279281613e64b0f649909524112146d364dd87a1/evidence.json": "9ecb76d5f4b45d0b807ee7eff62f47447cceb86b23712815c88abbe73cde5c2b"
+      },
+      "variant": {
+        "id": "effort-low",
+        "effort": "low",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "2bf116b6918072fd2d69179502538d75331de46551cc640e3c75b7aa77ed5ba1",
+      "provider": "codex",
+      "model": "gpt-5.5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:20:50+00:00",
+      "artifacts": {
+        "records/2bf116b6918072fd2d69179502538d75331de46551cc640e3c75b7aa77ed5ba1/response.txt": "743fe5db69ee60a82aefde12a287d0b4ac691f0ca0bd875fb0b90f888a6447cc",
+        "records/2bf116b6918072fd2d69179502538d75331de46551cc640e3c75b7aa77ed5ba1/evidence.json": "2f52856a89d8fb948bb38d2c8223dd0910116c7dae2a69fe302f0c612e47b060"
+      },
+      "variant": {
+        "id": "effort-high",
+        "effort": "high",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "f9e1d846e25fa8c8b61e3776536778df154bbee85aa28d41fafebe8bdbc48261",
+      "provider": "codex",
+      "model": "gpt-5.6-luna",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:17:32+00:00",
+      "artifacts": {
+        "records/f9e1d846e25fa8c8b61e3776536778df154bbee85aa28d41fafebe8bdbc48261/response.txt": "79e8e3bcdf52331ba07f48c33785ea95f23b80c4cd11890028d55e828be3eef2",
+        "records/f9e1d846e25fa8c8b61e3776536778df154bbee85aa28d41fafebe8bdbc48261/evidence.json": "1d670c00ee1acbe6154736eb69a22c13af16aee69e5a15bb6b4e5503134e6ac0"
+      },
+      "variant": {
+        "id": "effort-max",
+        "effort": "max",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "a512a38261e4eed642f5493d831c1b7e41ba57cc34643f91f5dee33821eda3b1",
+      "provider": "codex",
+      "model": "gpt-5.5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:22:09+00:00",
+      "artifacts": {
+        "records/a512a38261e4eed642f5493d831c1b7e41ba57cc34643f91f5dee33821eda3b1/response.txt": "c03d79371f0920c69a9a0af598311df862b71f19ee3a9a0350fef2b3ed7fe0fb",
+        "records/a512a38261e4eed642f5493d831c1b7e41ba57cc34643f91f5dee33821eda3b1/evidence.json": "116963c3227e71e295932c13839b62cd2674f5567d6d5c3cb4d56f9ce62b99d0"
+      },
+      "variant": {
+        "id": "verbosity-low",
+        "effort": "medium",
+        "verbosity": "low"
+      }
+    },
+    {
+      "key": "72bdae2af265816e99ac1688d54ecc9a4d7432f4f802a762d7316918b71720e5",
+      "provider": "codex",
+      "model": "gpt-5.5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:21:40+00:00",
+      "artifacts": {
+        "records/72bdae2af265816e99ac1688d54ecc9a4d7432f4f802a762d7316918b71720e5/response.txt": "3a46ca1556d80c475493b6b8787f5598ecd31733d556452d2830121ed99bcc11",
+        "records/72bdae2af265816e99ac1688d54ecc9a4d7432f4f802a762d7316918b71720e5/evidence.json": "6b91919302900e3698c40e8e147c9a8ede2bb89f8594c15d2ea6189abf976282"
+      },
+      "variant": {
+        "id": "effort-xhigh",
+        "effort": "xhigh",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "878ec4bdd23690bd113dc45b6b40c72638b9997f5597747c931bb3a8cfc10390",
+      "provider": "codex",
+      "model": "gpt-5.5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:22:17+00:00",
+      "artifacts": {
+        "records/878ec4bdd23690bd113dc45b6b40c72638b9997f5597747c931bb3a8cfc10390/response.txt": "da96c0c5c888ec1bf65547b3d58382ffd04b04675ff1e7fdb49fc7bd5a6a6848",
+        "records/878ec4bdd23690bd113dc45b6b40c72638b9997f5597747c931bb3a8cfc10390/evidence.json": "26a52617d84cf9c5868d39039536472c57ce13b3d1c516b651a603df25e1f059"
+      },
+      "variant": {
+        "id": "verbosity-medium",
+        "effort": "medium",
+        "verbosity": "medium"
+      }
+    },
+    {
+      "key": "5c0a49731e4ba9263e5789965c9bfa5c0ec8e8e5f2467738cc9fa0f463fe56a4",
+      "provider": "codex",
+      "model": "gpt-5.5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:23:12+00:00",
+      "artifacts": {
+        "records/5c0a49731e4ba9263e5789965c9bfa5c0ec8e8e5f2467738cc9fa0f463fe56a4/response.txt": "dd0e2ef28ccb4ab0c276d3db082d1fdf0a16a8f18d4088d5a3d3c2b98b163345",
+        "records/5c0a49731e4ba9263e5789965c9bfa5c0ec8e8e5f2467738cc9fa0f463fe56a4/evidence.json": "6a50666f7d0e427c0cb20c6ec796d12d80e5c9130a20e10c0ab5d2c1f110d061"
+      },
+      "variant": {
+        "id": "verbosity-high",
+        "effort": "medium",
+        "verbosity": "high"
+      }
+    },
+    {
+      "key": "66097eb0987db7d2914c3983b774be7ccef01e65964f8f13711d86247ce522bc",
+      "provider": "claude",
+      "model": "claude-opus-5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:23:23+00:00",
+      "artifacts": {
+        "records/66097eb0987db7d2914c3983b774be7ccef01e65964f8f13711d86247ce522bc/response.txt": "39228128dbdfe50f51b754f43c5cd819aad8fcf84def9f03d9c5f534ce6400ed",
+        "records/66097eb0987db7d2914c3983b774be7ccef01e65964f8f13711d86247ce522bc/evidence.json": "5c27b4bd693d33392d2014b34c3154e0b47a57b0ff8eb3d7fbb4fd9202f2deeb"
+      },
+      "variant": {
+        "id": "effort-low",
+        "effort": "low",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "fb9d9c1bc342ffe98e5fa4128c7c0f11d2d174b7edba9241ad3c0785e54583fa",
+      "provider": "claude",
+      "model": "claude-opus-5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:23:27+00:00",
+      "artifacts": {
+        "records/fb9d9c1bc342ffe98e5fa4128c7c0f11d2d174b7edba9241ad3c0785e54583fa/response.txt": "727b6ac7b47f172038a80b4c329fd9aeaf56c8ba49ea16b42ba4229b0d2eca2f",
+        "records/fb9d9c1bc342ffe98e5fa4128c7c0f11d2d174b7edba9241ad3c0785e54583fa/evidence.json": "9726c888ce199dbb890ada42cadb930a6ac6a67136d54e9f475d3ab948ac3e8a"
+      },
+      "variant": {
+        "id": "effort-high",
+        "effort": "high",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "89eb8bccfc97289a5333ec5ba5e353ee69052f930f70724782970dc1b1f2e740",
+      "provider": "claude",
+      "model": "claude-fable-5-1",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:26:29+00:00",
+      "artifacts": {
+        "records/89eb8bccfc97289a5333ec5ba5e353ee69052f930f70724782970dc1b1f2e740/response.txt": "5c488fc81564384c351451056463c31710b20620c7d35a4c8a7af0e268d833d7",
+        "records/89eb8bccfc97289a5333ec5ba5e353ee69052f930f70724782970dc1b1f2e740/evidence.json": "c57084114e72bb9dffc090c26e06a6f03d8837d2a938f8ad9988a256f1310668"
+      },
+      "variant": {
+        "id": "effort-low",
+        "effort": "low",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "18775ac5492132180debac2d7de8fd61c3f57247e55ff4dd2fd84a0d25567c6b",
+      "provider": "claude",
+      "model": "claude-opus-5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:24:23+00:00",
+      "artifacts": {
+        "records/18775ac5492132180debac2d7de8fd61c3f57247e55ff4dd2fd84a0d25567c6b/response.txt": "29d9fa758528ca754435ef939a781ae7c2080669f4b42ff0f5db0d4566b6eb3d",
+        "records/18775ac5492132180debac2d7de8fd61c3f57247e55ff4dd2fd84a0d25567c6b/evidence.json": "e8a577f72bdf76f3c1a167df72c773c66bbe69c04a979c9b5fa8777559b27fac"
+      },
+      "variant": {
+        "id": "effort-xhigh",
+        "effort": "xhigh",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "7eddbe5bb2f6e4fa18dc2e89d44dde9fc6a3e2a5c89eb37716dd12f52099969b",
+      "provider": "claude",
+      "model": "claude-opus-5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:24:53+00:00",
+      "artifacts": {
+        "records/7eddbe5bb2f6e4fa18dc2e89d44dde9fc6a3e2a5c89eb37716dd12f52099969b/response.txt": "0c0eb1027454e5d2e59e3df10a015c2ee6ffeb4814764189829d7c4b9db6468c",
+        "records/7eddbe5bb2f6e4fa18dc2e89d44dde9fc6a3e2a5c89eb37716dd12f52099969b/evidence.json": "f4425dd5ea052473974fdcb33d7bbb429b704e999aeaa0e97f41e09622fc1ea9"
+      },
+      "variant": {
+        "id": "effort-max",
+        "effort": "max",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "67f3f1df03e4d4ae35ad2ba9bcb92906b9a732c1401964902c603d19a1844440",
+      "provider": "claude",
+      "model": "claude-fable-5-1",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:27:38+00:00",
+      "artifacts": {
+        "records/67f3f1df03e4d4ae35ad2ba9bcb92906b9a732c1401964902c603d19a1844440/response.txt": "c40c591b2ec9b5c5fbf233cf1a28098c033422260b57e896fd802e1c2751e997",
+        "records/67f3f1df03e4d4ae35ad2ba9bcb92906b9a732c1401964902c603d19a1844440/evidence.json": "f3479cbe6f63b5c78202f5130c486d7be65b9fd4912abf2ba389167f89c1db18"
+      },
+      "variant": {
+        "id": "effort-high",
+        "effort": "high",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "5d21a0d228b68debc7bea687078fb4c8cfb2fda9e2e1d3b760b83b2bfc673067",
+      "provider": "claude",
+      "model": "claude-sonnet-5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:29:30+00:00",
+      "artifacts": {
+        "records/5d21a0d228b68debc7bea687078fb4c8cfb2fda9e2e1d3b760b83b2bfc673067/response.txt": "c0985c6daada1be1a716d2032820412c9d9f2f76a955d75c4742f1929434bcf7",
+        "records/5d21a0d228b68debc7bea687078fb4c8cfb2fda9e2e1d3b760b83b2bfc673067/evidence.json": "086af1fa8f2b9205d412d34ba36b5ed9951bde03e12f25dc39b97883ab59e09f"
+      },
+      "variant": {
+        "id": "effort-low",
+        "effort": "low",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "45c6713057a13107a357bfe9155f9c1d7090f82bd9fee92c00a6c2b546f17209",
+      "provider": "claude",
+      "model": "claude-fable-5-1",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:27:59+00:00",
+      "artifacts": {
+        "records/45c6713057a13107a357bfe9155f9c1d7090f82bd9fee92c00a6c2b546f17209/response.txt": "76cc2ffec838b81191cf349233d513e79001ad38e1d89f7d0b850da6ce7c608c",
+        "records/45c6713057a13107a357bfe9155f9c1d7090f82bd9fee92c00a6c2b546f17209/evidence.json": "7d4b92d806eed3bd56804a18ccf018024be9ba4034366afc3cfcd0cfd5ade767"
+      },
+      "variant": {
+        "id": "effort-xhigh",
+        "effort": "xhigh",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "224c907e8c08bc3dd42d762ce7ad6d48cab70e1ebc61b1321b9631f7d2846524",
+      "provider": "claude",
+      "model": "claude-sonnet-5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:30:20+00:00",
+      "artifacts": {
+        "records/224c907e8c08bc3dd42d762ce7ad6d48cab70e1ebc61b1321b9631f7d2846524/response.txt": "3bc3e566cbb6a5808f45aaf92749c953d6bea108014c4a86f13629ce14046086",
+        "records/224c907e8c08bc3dd42d762ce7ad6d48cab70e1ebc61b1321b9631f7d2846524/evidence.json": "3914f291f2cde777ee6d57b8cd7a73f773aff9206635aebe8a6de03395d90303"
+      },
+      "variant": {
+        "id": "effort-high",
+        "effort": "high",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "852f83e4a005b07d54ce244b9093cd35e5f40a2355182ad0938d103961377385",
+      "provider": "claude",
+      "model": "claude-sonnet-5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:30:50+00:00",
+      "artifacts": {
+        "records/852f83e4a005b07d54ce244b9093cd35e5f40a2355182ad0938d103961377385/response.txt": "f225f57fd7c6bf5177f3f9a6a61f15d754b235755f232c3d9d0b82cda16f9899",
+        "records/852f83e4a005b07d54ce244b9093cd35e5f40a2355182ad0938d103961377385/evidence.json": "440076bc62b0bd1c3a4e081ace11d500a19ec18a8bdc9642aeb8f23dba8e77be"
+      },
+      "variant": {
+        "id": "effort-xhigh",
+        "effort": "xhigh",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "cadb127b3ca33dbed527ce83218f965efb89524614e26f150341ba0186e09758",
+      "provider": "claude",
+      "model": "claude-opus-4-8",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:34:20+00:00",
+      "artifacts": {
+        "records/cadb127b3ca33dbed527ce83218f965efb89524614e26f150341ba0186e09758/response.txt": "46eb01e5e44772d76a86b761f0da8be92592bdc69eb22bab3982700bbdd6df76",
+        "records/cadb127b3ca33dbed527ce83218f965efb89524614e26f150341ba0186e09758/evidence.json": "38dd08a9b2f39e4b1df5abe9703a3943824f8cc01a37b6e5f9df5bdbad7e53d1"
+      },
+      "variant": {
+        "id": "baseline",
+        "effort": "medium",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "0d20f092e4f3b639637faf06c7ba345f9fa4146d1c4d58143b78659e78fb654d",
+      "provider": "claude",
+      "model": "claude-fable-5-1",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:29:17+00:00",
+      "artifacts": {
+        "records/0d20f092e4f3b639637faf06c7ba345f9fa4146d1c4d58143b78659e78fb654d/response.txt": "5f9c900e71463047ea2412e48c83f67ad18d864f7990150668faa52cc9ea3f31",
+        "records/0d20f092e4f3b639637faf06c7ba345f9fa4146d1c4d58143b78659e78fb654d/evidence.json": "89078689a124300430dad3fd392afe8fe34fcc0aa3953ff186c0bd0918198f6d"
+      },
+      "variant": {
+        "id": "effort-max",
+        "effort": "max",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "5596847d873c36411d69293e20a98f0c5753cc7227b92ac998e8b590da595876",
+      "provider": "claude",
+      "model": "claude-opus-4-8",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:36:27+00:00",
+      "artifacts": {
+        "records/5596847d873c36411d69293e20a98f0c5753cc7227b92ac998e8b590da595876/response.txt": "233fa85c8247f305179dd93d3bb272a6f8eedc0e5dfe3f88cc78bda705ddf56b",
+        "records/5596847d873c36411d69293e20a98f0c5753cc7227b92ac998e8b590da595876/evidence.json": "69697642e192bc15f42ecf14e021ccfd3f7d7813b51d339bba6b545500c932c3"
+      },
+      "variant": {
+        "id": "effort-low",
+        "effort": "low",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "e2f31cccdaf21f41ec0cb877fb5a83101fc813a9c33a284efc2016a838dd4aad",
+      "provider": "claude",
+      "model": "claude-sonnet-5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:32:09+00:00",
+      "artifacts": {
+        "records/e2f31cccdaf21f41ec0cb877fb5a83101fc813a9c33a284efc2016a838dd4aad/response.txt": "701ee773dc3f384479343630e0b95371a1dac91d1048d2fa18b131b58ec0eacf",
+        "records/e2f31cccdaf21f41ec0cb877fb5a83101fc813a9c33a284efc2016a838dd4aad/evidence.json": "5aed9110edd1d0322a20c6dd0fb0193375d8325ade6b103049c17fff60869197"
+      },
+      "variant": {
+        "id": "effort-max",
+        "effort": "max",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "84585612b402c5c6c364e2a29501b0bf85bc47561c529fab9e2e4208a08d9fbe",
+      "provider": "claude",
+      "model": "claude-opus-4-8",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:36:31+00:00",
+      "artifacts": {
+        "records/84585612b402c5c6c364e2a29501b0bf85bc47561c529fab9e2e4208a08d9fbe/response.txt": "a77eff3f8185c757a7247e3be9b2ca517fc596ec42edc4f436da9796e12205ae",
+        "records/84585612b402c5c6c364e2a29501b0bf85bc47561c529fab9e2e4208a08d9fbe/evidence.json": "e1520670faf9d57d3cfe7f31ae4488bf660245cbf1be723efd72460bca108b9c"
+      },
+      "variant": {
+        "id": "effort-high",
+        "effort": "high",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "03f297748ad9d38214da17f127cf0a93299b8eefd29903cb48cfb4440b696575",
+      "provider": "claude",
+      "model": "claude-opus-4-7",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:40:20+00:00",
+      "artifacts": {
+        "records/03f297748ad9d38214da17f127cf0a93299b8eefd29903cb48cfb4440b696575/response.txt": "fc6f41d0cba7a9f3dc11f0226ca1a5c552a30654706a7b29aed1c02481f4c85e",
+        "records/03f297748ad9d38214da17f127cf0a93299b8eefd29903cb48cfb4440b696575/evidence.json": "e481a5da7c502e1d632e61359ca7e3278d7ab72eeefa0fde4b0e762bb7372c73"
+      },
+      "variant": {
+        "id": "baseline",
+        "effort": "medium",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "abb007da62a6a3ef74945f6be4a13f08b636df1540de858410a1fbde57cfeab2",
+      "provider": "claude",
+      "model": "claude-opus-4-8",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:38:24+00:00",
+      "artifacts": {
+        "records/abb007da62a6a3ef74945f6be4a13f08b636df1540de858410a1fbde57cfeab2/response.txt": "058d1824a459323957c197df6f906a35235fb715c6147dde4f83a75347af5791",
+        "records/abb007da62a6a3ef74945f6be4a13f08b636df1540de858410a1fbde57cfeab2/evidence.json": "1f612c95787ee0fafd392004b160be9090ee00b3ad9cae7f7a37a0f05d6ef75d"
+      },
+      "variant": {
+        "id": "effort-xhigh",
+        "effort": "xhigh",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "e8c38ea85b2fb1ce133815761b52e1b49b38114fed31f423fd9cab6c6806bc5e",
+      "provider": "claude",
+      "model": "claude-opus-4-7",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:42:01+00:00",
+      "artifacts": {
+        "records/e8c38ea85b2fb1ce133815761b52e1b49b38114fed31f423fd9cab6c6806bc5e/response.txt": "0d98b21df4bbe58fdef11f234bb9b8577c1a4f3ac2b2b3cae338bddaba593e3c",
+        "records/e8c38ea85b2fb1ce133815761b52e1b49b38114fed31f423fd9cab6c6806bc5e/evidence.json": "6f89a774888feb41be425fc646a658e7382c6f11e8ebcb054491be456e82f38c"
+      },
+      "variant": {
+        "id": "effort-low",
+        "effort": "low",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "80fa23feb60243499e1c62725b8b93fb57b58b652a28b3248531a2057e9b55ad",
+      "provider": "claude",
+      "model": "claude-opus-4-7",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:42:26+00:00",
+      "artifacts": {
+        "records/80fa23feb60243499e1c62725b8b93fb57b58b652a28b3248531a2057e9b55ad/response.txt": "5932c81451cbbd07735c08f5e055c300f797eb503ba32f205eb00133e47367d4",
+        "records/80fa23feb60243499e1c62725b8b93fb57b58b652a28b3248531a2057e9b55ad/evidence.json": "1b3c822d8b8cf95c9aa30def9b6c06aa87cb712e44f1bf6aa99118baaafa4bf4"
+      },
+      "variant": {
+        "id": "effort-high",
+        "effort": "high",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "530194b55d3813cce123b0795c71cff37682ac481f3016c18c1ae38d9bb4f878",
+      "provider": "claude",
+      "model": "claude-opus-4-8",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:39:44+00:00",
+      "artifacts": {
+        "records/530194b55d3813cce123b0795c71cff37682ac481f3016c18c1ae38d9bb4f878/response.txt": "708ab5efd228b7966fd95b0c3c89220b4544e6433eb42155ffddb2378d16a917",
+        "records/530194b55d3813cce123b0795c71cff37682ac481f3016c18c1ae38d9bb4f878/evidence.json": "8f7490968a05d3f0f8f6b18a13ecbb82c58708c7d5d4c6c391265ad21d3f2770"
+      },
+      "variant": {
+        "id": "effort-max",
+        "effort": "max",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "220883795f9ac862c225e2d5ab66733586b9fe1e750487f007e9ce308eb4ae0e",
+      "provider": "claude",
+      "model": "claude-opus-4-7",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:43:20+00:00",
+      "artifacts": {
+        "records/220883795f9ac862c225e2d5ab66733586b9fe1e750487f007e9ce308eb4ae0e/response.txt": "04e97ce16b8642831190221e78e2b516399434fca66e1e6bd1e901d6bc923577",
+        "records/220883795f9ac862c225e2d5ab66733586b9fe1e750487f007e9ce308eb4ae0e/evidence.json": "a9413b2b047df67ae6943d40de95aeac28e900a54f1bc022708ecff74eafc92c"
+      },
+      "variant": {
+        "id": "effort-xhigh",
+        "effort": "xhigh",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "4da78037e8b4095b2f9c5c2273dd63acbb509cb86eac26a750e82ca04f0c2eab",
+      "provider": "claude",
+      "model": "claude-sonnet-4-6",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:45:36+00:00",
+      "artifacts": {
+        "records/4da78037e8b4095b2f9c5c2273dd63acbb509cb86eac26a750e82ca04f0c2eab/response.txt": "1d046963c1ccb24745810098c767d8302f1d88fa2a65581ef84234af05386579",
+        "records/4da78037e8b4095b2f9c5c2273dd63acbb509cb86eac26a750e82ca04f0c2eab/evidence.json": "f853cb472a56c146f36b4f12929a22a87dd85b26ab423a0d488fb8239828e2b0"
+      },
+      "variant": {
+        "id": "effort-low",
+        "effort": "low",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "640578e2417c8a646a6aa3ad9fdd155dd076c5ce5f8875d651b0021577ddf386",
+      "provider": "claude",
+      "model": "claude-sonnet-4-6",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:44:27+00:00",
+      "artifacts": {
+        "records/640578e2417c8a646a6aa3ad9fdd155dd076c5ce5f8875d651b0021577ddf386/response.txt": "65637a8ae37be9eb0043ca0bf6a193d290ae4359517cf98a14356d9a7ff8594e",
+        "records/640578e2417c8a646a6aa3ad9fdd155dd076c5ce5f8875d651b0021577ddf386/evidence.json": "606c904165b6f413a40da838250b8d73f85da5cbbbad9f689fa5ae133fed40ea"
+      },
+      "variant": {
+        "id": "baseline",
+        "effort": "medium",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "4ae34e477c136b8287dee0546ca79ec0a8c6073eb570c25035209999c38292ef",
+      "provider": "claude",
+      "model": "claude-opus-4-7",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:44:13+00:00",
+      "artifacts": {
+        "records/4ae34e477c136b8287dee0546ca79ec0a8c6073eb570c25035209999c38292ef/response.txt": "99ffdea2e29e164856dea1cfdb28134ee2bc95d19891f92fd471c75a260c4852",
+        "records/4ae34e477c136b8287dee0546ca79ec0a8c6073eb570c25035209999c38292ef/evidence.json": "925ffd4f4ed4c5f37f2d4c5cef96524a2d27c1abecc2cab007c33eaa5b38cd26"
+      },
+      "variant": {
+        "id": "effort-max",
+        "effort": "max",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "405a115a8fb823421a2ae7d6d5fd23f2c3757745a36b26520a4b24d720cf42c9",
+      "provider": "claude",
+      "model": "claude-opus-4-6",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:47:40+00:00",
+      "artifacts": {
+        "records/405a115a8fb823421a2ae7d6d5fd23f2c3757745a36b26520a4b24d720cf42c9/response.txt": "c0756063f73ad0d189aa031090546e365ebf3cbbc65542512471f261d4a243e4",
+        "records/405a115a8fb823421a2ae7d6d5fd23f2c3757745a36b26520a4b24d720cf42c9/evidence.json": "1b6c8b03be09ab60724b05fbe2cbaa949b3b625143bd2bbf78c299cd845f9894"
+      },
+      "variant": {
+        "id": "baseline",
+        "effort": "medium",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "2f64de01d807f787e301af8a3c4896106faa19ecc33588dc355d5d35894eb47d",
+      "provider": "claude",
+      "model": "claude-sonnet-4-6",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:46:50+00:00",
+      "artifacts": {
+        "records/2f64de01d807f787e301af8a3c4896106faa19ecc33588dc355d5d35894eb47d/response.txt": "26fa9ec2ee488ca181324abf975c4eed3030e8ec91db9d21fa797e39b31ea7ee",
+        "records/2f64de01d807f787e301af8a3c4896106faa19ecc33588dc355d5d35894eb47d/evidence.json": "43e4b059fd21e0aebe45b0785d56155381e3a00de7c350e9402aadb9a581e18b"
+      },
+      "variant": {
+        "id": "effort-high",
+        "effort": "high",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "3d65a2e048c45f734d3ec0adb517a44c238e11c04e07585c7ed882fa7339b4e8",
+      "provider": "claude",
+      "model": "claude-opus-4-6",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:49:56+00:00",
+      "artifacts": {
+        "records/3d65a2e048c45f734d3ec0adb517a44c238e11c04e07585c7ed882fa7339b4e8/response.txt": "55de4adcb3ec900285ec246fc87df2b61a46ed8499c2787ddfbcb6255af520c2",
+        "records/3d65a2e048c45f734d3ec0adb517a44c238e11c04e07585c7ed882fa7339b4e8/evidence.json": "0290e247368c5109095c5c990e416725dac390388d75648efddda31c073aa2f2"
+      },
+      "variant": {
+        "id": "effort-low",
+        "effort": "low",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "f97a6291ee7d5939743da206579a145abf096bcad9c3408ba26140d678dc1f1b",
+      "provider": "claude",
+      "model": "claude-sonnet-4-6",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:47:31+00:00",
+      "artifacts": {
+        "records/f97a6291ee7d5939743da206579a145abf096bcad9c3408ba26140d678dc1f1b/response.txt": "40b10e6dce96a544d8e3690dce5df29a54687232110b84e8c65f206a7bceeb47",
+        "records/f97a6291ee7d5939743da206579a145abf096bcad9c3408ba26140d678dc1f1b/evidence.json": "9a89f19a087a899d188405c9f466ce7578b5ec1d14a85f2ff7c0e2384eb60200"
+      },
+      "variant": {
+        "id": "effort-max",
+        "effort": "max",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "6d6bf3d11f1762352b4b4888992082b1bbf028bb7cd2a782719adc6fe6844df6",
+      "provider": "claude",
+      "model": "claude-opus-4-5-20251101",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:51:54+00:00",
+      "artifacts": {
+        "records/6d6bf3d11f1762352b4b4888992082b1bbf028bb7cd2a782719adc6fe6844df6/response.txt": "a538e2838e3c7d9e9cc7d7db0baf8fe2c88b7960cd5cf1f4448382861269d178",
+        "records/6d6bf3d11f1762352b4b4888992082b1bbf028bb7cd2a782719adc6fe6844df6/evidence.json": "c67045c9d35293ef05598ba3f4c62d4efbac6370da82ff6355d7448b59e76c6c"
+      },
+      "variant": {
+        "id": "baseline",
+        "effort": "medium",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "d8eb30ecbefbc0cfc05a1246f04e4aa6006383186eb7d382e9d74a4fde894b7c",
+      "provider": "claude",
+      "model": "claude-opus-4-6",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:51:43+00:00",
+      "artifacts": {
+        "records/d8eb30ecbefbc0cfc05a1246f04e4aa6006383186eb7d382e9d74a4fde894b7c/response.txt": "e01f2cceb5276f5cc127621b83656e09639e580a3e6a7e5d125807fcd9b94036",
+        "records/d8eb30ecbefbc0cfc05a1246f04e4aa6006383186eb7d382e9d74a4fde894b7c/evidence.json": "6e747cb61ef153ce9d5b6e446a9b7581f9af101aede6129948a139b9d80e15b5"
+      },
+      "variant": {
+        "id": "effort-max",
+        "effort": "max",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "43ab8ac17635380fa7f4fd350d4a83b54daba98144ba4ad56b78052c695ea5aa",
+      "provider": "claude",
+      "model": "claude-opus-4-5-20251101",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:54:22+00:00",
+      "artifacts": {
+        "records/43ab8ac17635380fa7f4fd350d4a83b54daba98144ba4ad56b78052c695ea5aa/response.txt": "6c5245300ecd92ba6ec201c5a90951c8d936c0b06337384fe73b4950de751ddf",
+        "records/43ab8ac17635380fa7f4fd350d4a83b54daba98144ba4ad56b78052c695ea5aa/evidence.json": "578a18f7a09b8469d026fa7ad01d68dd8271874ea1e1897951383009597e40b0"
+      },
+      "variant": {
+        "id": "effort-low",
+        "effort": "low",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "bd0c2518e9045d5b24bc0d79a841a6f90cf7019628a72da296307c3fbca40022",
+      "provider": "claude",
+      "model": "claude-sonnet-4-5-20250929",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:56:09+00:00",
+      "artifacts": {
+        "records/bd0c2518e9045d5b24bc0d79a841a6f90cf7019628a72da296307c3fbca40022/response.txt": "a49246c770ff30ae74d6c122245126431cddb90babe91ac88d35a3f92c4b7498",
+        "records/bd0c2518e9045d5b24bc0d79a841a6f90cf7019628a72da296307c3fbca40022/evidence.json": "4ed77bce7e6161c505ae12c15e7d4bd2e4fc428c46febc01979850db5a5dd423"
+      },
+      "variant": {
+        "id": "baseline",
+        "effort": "default",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "6a5d721fb9d363592a596e91d03e79fbd53f782a9f13b3033357d6aab9732bef",
+      "provider": "claude",
+      "model": "claude-opus-4-5-20251101",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:55:48+00:00",
+      "artifacts": {
+        "records/6a5d721fb9d363592a596e91d03e79fbd53f782a9f13b3033357d6aab9732bef/response.txt": "6215f82b400aff788bf02e022441b9ef0db4494c8b23b40792248dddab4ab2ef",
+        "records/6a5d721fb9d363592a596e91d03e79fbd53f782a9f13b3033357d6aab9732bef/evidence.json": "36aec871ecdd2931ebe879a6a5121701caee8657f4735f4276397feee3e0289f"
+      },
+      "variant": {
+        "id": "effort-high",
+        "effort": "high",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "526c36d40c76da5677e7904ed0ac7151767290755f8137b32d8eeb828ff07171",
+      "provider": "claude",
+      "model": "claude-opus-4-6",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T14:50:59+00:00",
+      "artifacts": {
+        "records/526c36d40c76da5677e7904ed0ac7151767290755f8137b32d8eeb828ff07171/response.txt": "0f16be7fa3c69a24b3deea7b515a999dbb9af59a0b93a8b293bfdbc74f83d0a7",
+        "records/526c36d40c76da5677e7904ed0ac7151767290755f8137b32d8eeb828ff07171/evidence.json": "cd29a60f4f9dd444607e658abf52d5d0d4c5de57b0208c75c5f0467749165b1d"
+      },
+      "variant": {
+        "id": "effort-high",
+        "effort": "high",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "b1e45bd228bc9f7135a81643182c1b21c4ae048b12f871f2ceb83237018d548d",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T15:58:41+00:00",
+      "artifacts": {
+        "records/b1e45bd228bc9f7135a81643182c1b21c4ae048b12f871f2ceb83237018d548d/response.txt": "ce9b92a9d42af9138ac2c238a79ffb1b4ee5cc995acff3a64ffe1a97c2aa4b0f",
+        "records/b1e45bd228bc9f7135a81643182c1b21c4ae048b12f871f2ceb83237018d548d/evidence.json": "cf6769a67ea218f47f9cf10222452370466ddda0fb91414522f3931de54667f1"
+      },
+      "variant": {
+        "id": "effort-low",
+        "effort": "low",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "3ff83f2b240e17f4af21e2757ae159741b994e8e052f74da0fff74c442de274a",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T15:58:41+00:00",
+      "artifacts": {
+        "records/3ff83f2b240e17f4af21e2757ae159741b994e8e052f74da0fff74c442de274a/response.txt": "66f9cd582204f52d8bfcb931fcf865c850393914919b6e0c0cce7e95bd7d3338",
+        "records/3ff83f2b240e17f4af21e2757ae159741b994e8e052f74da0fff74c442de274a/evidence.json": "73944971a79813f8f5dc199e29eb68a95ddaf3daa207bf4c9f42e5c561f2dadb"
+      },
+      "variant": {
+        "id": "baseline",
+        "effort": "medium",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "e9d52629cc695ab5dd6db08a651f5aaf39fc3b3c0a682c82fe792ff947929f61",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T15:59:31+00:00",
+      "artifacts": {
+        "records/e9d52629cc695ab5dd6db08a651f5aaf39fc3b3c0a682c82fe792ff947929f61/response.txt": "bb9bc65cf5665f963c8c42c7e3540399d07e95350699d2a2a99265aefb6b0617",
+        "records/e9d52629cc695ab5dd6db08a651f5aaf39fc3b3c0a682c82fe792ff947929f61/evidence.json": "7cc496a6941496c92d84f12c8035094dfc54392d778d03245ba847912d764333"
+      },
+      "variant": {
+        "id": "effort-high",
+        "effort": "high",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "79753a5ae04d893e01f6c744d857bf859cb11d770a1bc073f98851e393f4ad28",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T16:00:26+00:00",
+      "artifacts": {
+        "records/79753a5ae04d893e01f6c744d857bf859cb11d770a1bc073f98851e393f4ad28/response.txt": "0d81ea30cb108904ac87b35aa09ef1d13f5409933cebd789e8e22047f039a5ec",
+        "records/79753a5ae04d893e01f6c744d857bf859cb11d770a1bc073f98851e393f4ad28/evidence.json": "ff1649f32f1f435e0c39c35780d51ca2ed146bb7a050a293fb7563c52464dc1b"
+      },
+      "variant": {
+        "id": "effort-xhigh",
+        "effort": "xhigh",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "730c72584805a666fca5c50c9ccf5b433d2e907f032aa363f0543ccb4d00180d",
+      "provider": "claude",
+      "model": "claude-sonnet-5-5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T16:03:59+00:00",
+      "artifacts": {
+        "records/730c72584805a666fca5c50c9ccf5b433d2e907f032aa363f0543ccb4d00180d/response.txt": "c543888fe5598f4cf8c3afd2c46403191b4f638bee6cc3ed49f4df20f5d1a4c1",
+        "records/730c72584805a666fca5c50c9ccf5b433d2e907f032aa363f0543ccb4d00180d/evidence.json": "c8ac21d0978ac6ecc325a3a558dcee4ec8458bf53671ce60f04f4cecfb050d5f"
+      },
+      "variant": {
+        "id": "baseline",
+        "effort": "medium",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "06a3fd57f4c4322680618ef27c521bd71ae23d6949beb19cf3d8ccc80bda2266",
+      "provider": "claude",
+      "model": "claude-sonnet-5-5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T16:05:22+00:00",
+      "artifacts": {
+        "records/06a3fd57f4c4322680618ef27c521bd71ae23d6949beb19cf3d8ccc80bda2266/response.txt": "99bdb401b2d1ab9f0f4b963dde79b1347b32f343977d5ba4552da1f156ccf163",
+        "records/06a3fd57f4c4322680618ef27c521bd71ae23d6949beb19cf3d8ccc80bda2266/evidence.json": "2ca8f421243a161bd781566c6a0d78fed6c7236c2973f5398d14e24942a09c00"
+      },
+      "variant": {
+        "id": "effort-low",
+        "effort": "low",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "8e5439113dd96bcdae0a38f6d51d3c0a44a5ebe198b2f238af6bd76aed6a563f",
+      "provider": "claude",
+      "model": "claude-sonnet-5-5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T16:06:41+00:00",
+      "artifacts": {
+        "records/8e5439113dd96bcdae0a38f6d51d3c0a44a5ebe198b2f238af6bd76aed6a563f/response.txt": "9cc2f04a364e2ac08c635af47ce6f753ba9aa3bec466fa47dd7658b7275d0b08",
+        "records/8e5439113dd96bcdae0a38f6d51d3c0a44a5ebe198b2f238af6bd76aed6a563f/evidence.json": "cc23891d751772c42a096234a074eb6cf10159ac58ba034773360d0f51ad567e"
+      },
+      "variant": {
+        "id": "effort-high",
+        "effort": "high",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "d6df053d89bef0f233496eae3049709cc00318a32ea3d4a183fb570f3eafef8c",
+      "provider": "claude",
+      "model": "claude-sonnet-5-5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T16:09:01+00:00",
+      "artifacts": {
+        "records/d6df053d89bef0f233496eae3049709cc00318a32ea3d4a183fb570f3eafef8c/response.txt": "73ca16619d9922d200ddf71b991bb59bec32bab77dbff985fcaa8c9eb83af748",
+        "records/d6df053d89bef0f233496eae3049709cc00318a32ea3d4a183fb570f3eafef8c/evidence.json": "c517c379620a45bde380a14d500e9488b31b3e79a9d08186001cfe8d4f6c4c55"
+      },
+      "variant": {
+        "id": "effort-xhigh",
+        "effort": "xhigh",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "dad177da1c8b596b0680beac9c9f515cebe9bb17c9c2518708fafa23c1d995d2",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "timeout",
+      "tested_at": "2026-10-02T16:01:41+00:00",
+      "artifacts": {
+        "records/dad177da1c8b596b0680beac9c9f515cebe9bb17c9c2518708fafa23c1d995d2/response.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "records/dad177da1c8b596b0680beac9c9f515cebe9bb17c9c2518708fafa23c1d995d2/evidence.json": "86f6aa508f39fa7fd4263a29182348efd5c9acdb765f4f95518ea9fa04f44f85"
+      },
+      "variant": {
+        "id": "effort-max",
+        "effort": "max",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "ce5fb91ad1ea6c881e9bc2455f9e9681ec0eff29fb2a2f0529d8f2400f84dfdb",
+      "provider": "claude",
+      "model": "claude-fable-5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T16:11:41+00:00",
+      "artifacts": {
+        "records/ce5fb91ad1ea6c881e9bc2455f9e9681ec0eff29fb2a2f0529d8f2400f84dfdb/response.txt": "fd3b9d121b3b0153865aa43dcab30b5c518c8c6bc5fa84656eeda9c600295ee9",
+        "records/ce5fb91ad1ea6c881e9bc2455f9e9681ec0eff29fb2a2f0529d8f2400f84dfdb/evidence.json": "77cb75da76c628bc0e18e832921736f53aaca98f9e2404349df9230c2d95935b"
+      },
+      "variant": {
+        "id": "baseline",
+        "effort": "medium",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "646da1cc346e83ea17d9f11f0fc4605b21bd13b5c8fa9d5fb5a6d1c5a7043f66",
+      "provider": "claude",
+      "model": "claude-fable-5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T16:12:47+00:00",
+      "artifacts": {
+        "records/646da1cc346e83ea17d9f11f0fc4605b21bd13b5c8fa9d5fb5a6d1c5a7043f66/response.txt": "db50bfad352263cd74226dd37942061f09ada652626a47be03b9cdd9f084d28e",
+        "records/646da1cc346e83ea17d9f11f0fc4605b21bd13b5c8fa9d5fb5a6d1c5a7043f66/evidence.json": "e88e692a96deb770170e93b440db840e411b83a356a68d669b74ccef54f104fe"
+      },
+      "variant": {
+        "id": "effort-low",
+        "effort": "low",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "98a9e33ca8b2f51fb521e5f3197d54b617d809b2e33187dba6b77fb0a115e960",
+      "provider": "claude",
+      "model": "claude-fable-5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T16:13:41+00:00",
+      "artifacts": {
+        "records/98a9e33ca8b2f51fb521e5f3197d54b617d809b2e33187dba6b77fb0a115e960/response.txt": "891976e2a854422385916392ba9bc3eb0735c469e59a90dfd0c66245f2b680dd",
+        "records/98a9e33ca8b2f51fb521e5f3197d54b617d809b2e33187dba6b77fb0a115e960/evidence.json": "a0c486f82236f82073cad3cfd4a24750b43549fae6ed474f8421b104112188e9"
+      },
+      "variant": {
+        "id": "effort-high",
+        "effort": "high",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "9caa18d4b173cc3d86a90ce6a13ecd40d4c1f3c1c3e15ad0b9691c8715b310b5",
+      "provider": "claude",
+      "model": "claude-fable-5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T16:14:47+00:00",
+      "artifacts": {
+        "records/9caa18d4b173cc3d86a90ce6a13ecd40d4c1f3c1c3e15ad0b9691c8715b310b5/response.txt": "de846c751d651bb56f369f56da661069375238a571a40eacd8867db30fe97f7a",
+        "records/9caa18d4b173cc3d86a90ce6a13ecd40d4c1f3c1c3e15ad0b9691c8715b310b5/evidence.json": "8567e0470b3aa2247669f140e8b14b234cad0516fda5e2954043f66d247a53d2"
+      },
+      "variant": {
+        "id": "effort-xhigh",
+        "effort": "xhigh",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "48db041814bfb7083b0dcb02a546a3c9c3a7675964b7f5fa6631cb5a2db8afa3",
+      "provider": "claude",
+      "model": "claude-fable-5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T16:16:39+00:00",
+      "artifacts": {
+        "records/48db041814bfb7083b0dcb02a546a3c9c3a7675964b7f5fa6631cb5a2db8afa3/response.txt": "02ca7090bf703af9ab9a8e9cc06266f4dfcd39237f3d9c43b1843c1a623e6741",
+        "records/48db041814bfb7083b0dcb02a546a3c9c3a7675964b7f5fa6631cb5a2db8afa3/evidence.json": "c8bcde9c204fb8df26bc8ff783d95a54ca54cde7b6f819e561aa8d2f723c89ee"
+      },
+      "variant": {
+        "id": "effort-max",
+        "effort": "max",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "5034430a99d705aaf522a4b2c396e3f41f566c7b17a07a7ac2001755bae24f49",
+      "provider": "claude",
+      "model": "claude-sonnet-5-5",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T16:11:28+00:00",
+      "artifacts": {
+        "records/5034430a99d705aaf522a4b2c396e3f41f566c7b17a07a7ac2001755bae24f49/response.txt": "d4b4c03e677228b8e9a634f0d323702362a049c0827cf0ba61730d1f48c540a6",
+        "records/5034430a99d705aaf522a4b2c396e3f41f566c7b17a07a7ac2001755bae24f49/evidence.json": "2653050994d9a02dacd299c354e7fa6709dd5d2da94de64f199a65e52e1b7659"
+      },
+      "variant": {
+        "id": "effort-max",
+        "effort": "max",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "d52ae4f7309061aee8d786bab135694d422e66f30434679b1399c30d50d0fa3d",
+      "provider": "codex",
+      "model": "gpt-6.1-sol",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T17:08:57+00:00",
+      "artifacts": {
+        "records/d52ae4f7309061aee8d786bab135694d422e66f30434679b1399c30d50d0fa3d/response.txt": "ce121df20ef6388cd0552e70c26ad353c4eb5a868466a4313140f7c83c1078d3",
+        "records/d52ae4f7309061aee8d786bab135694d422e66f30434679b1399c30d50d0fa3d/evidence.json": "6e07957b5ca93b6d0f8a2805114722ec19513fb9c54a0bf37616c7a32edc5ff3"
+      },
+      "variant": {
+        "id": "effort-low",
+        "effort": "low",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "bc78f39dcd95fbb11ee1e55f4bda45f3785f8a0ce0cfc5bbfe615a7d00ddbf74",
+      "provider": "codex",
+      "model": "gpt-6.1-sol",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T17:08:57+00:00",
+      "artifacts": {
+        "records/bc78f39dcd95fbb11ee1e55f4bda45f3785f8a0ce0cfc5bbfe615a7d00ddbf74/response.txt": "2e2a791af27f087bf4fec538e791199c59857eaa9ff4a36289fb8d8e9bce1ae6",
+        "records/bc78f39dcd95fbb11ee1e55f4bda45f3785f8a0ce0cfc5bbfe615a7d00ddbf74/evidence.json": "3797c35649293a0983cc59151f51640bd0fb7200d82d57ef06041fbc4ff72ebe"
+      },
+      "variant": {
+        "id": "baseline",
+        "effort": "medium",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "57090ba526fe4843a21960f48e462401c9807d80bf89913c1180079af6f83e2d",
+      "provider": "codex",
+      "model": "gpt-6.1-sol",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T17:08:57+00:00",
+      "artifacts": {
+        "records/57090ba526fe4843a21960f48e462401c9807d80bf89913c1180079af6f83e2d/response.txt": "4a9f38985b8f4e23cdd36a427d72daac4cdd581174112b852057f9dc4d46d5d2",
+        "records/57090ba526fe4843a21960f48e462401c9807d80bf89913c1180079af6f83e2d/evidence.json": "baec44ac48b6a0ae22897f22a24450aac80b2e934893ebdb9c93ac91a26f2abd"
+      },
+      "variant": {
+        "id": "effort-high",
+        "effort": "high",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "100090d28ab1a4d8a09f7d8190f1e133e4033841e7026d5afa22bf332dec22f2",
+      "provider": "codex",
+      "model": "gpt-6.1-sol",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T17:10:58+00:00",
+      "artifacts": {
+        "records/100090d28ab1a4d8a09f7d8190f1e133e4033841e7026d5afa22bf332dec22f2/response.txt": "fe90363be56a62a18c67a764b229094f399d0ff77ac70288cf46d9419b38134d",
+        "records/100090d28ab1a4d8a09f7d8190f1e133e4033841e7026d5afa22bf332dec22f2/evidence.json": "48c3c43e6cb7ee4d4a6b7fdb264f645f82c63b0333d88bb93e74c5516f27c39c"
+      },
+      "variant": {
+        "id": "effort-ultra",
+        "effort": "ultra",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "931a2acdb1a38f6ea78a5f55ebd73451e140931f5343e3cc5147b4a800c2f1a8",
+      "provider": "codex",
+      "model": "gpt-6.1-sol",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T17:10:39+00:00",
+      "artifacts": {
+        "records/931a2acdb1a38f6ea78a5f55ebd73451e140931f5343e3cc5147b4a800c2f1a8/response.txt": "0968f5805ee75a18ecaec6f2f8967de2d39952634130321bfc3e57a24e582c6e",
+        "records/931a2acdb1a38f6ea78a5f55ebd73451e140931f5343e3cc5147b4a800c2f1a8/evidence.json": "9166b0ab1a593242099199f6729c9dbf2680b5f261381ccd6a8388427a314c93"
+      },
+      "variant": {
+        "id": "effort-xhigh",
+        "effort": "xhigh",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "2c8cdaa0eef0fac8151d5f426dbebfbe794e53e473258b092fca91eeaea21728",
+      "provider": "codex",
+      "model": "gpt-6.1-sol",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T17:16:10+00:00",
+      "artifacts": {
+        "records/2c8cdaa0eef0fac8151d5f426dbebfbe794e53e473258b092fca91eeaea21728/response.txt": "6d7a6b2de1bdd9811833c1b264ce4e98d0524b80428c78e898df5a6af26831bf",
+        "records/2c8cdaa0eef0fac8151d5f426dbebfbe794e53e473258b092fca91eeaea21728/evidence.json": "661e64e033e68da4bb8615d7d99ed188d640741ca3dd0e5b4eefb8adffedceb1"
+      },
+      "variant": {
+        "id": "verbosity-low",
+        "effort": "medium",
+        "verbosity": "low"
+      }
+    },
+    {
+      "key": "8f677b66a01fad6ea1fda0a06dc4e2ca2a7b9c7e4062ddbbc2fc58bede0e766f",
+      "provider": "codex",
+      "model": "gpt-6.1-sol",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T17:16:51+00:00",
+      "artifacts": {
+        "records/8f677b66a01fad6ea1fda0a06dc4e2ca2a7b9c7e4062ddbbc2fc58bede0e766f/response.txt": "e6d13b7c323a62aa3847a20921d25d963d28bed7e6e70be46e4a8b1371b0df1e",
+        "records/8f677b66a01fad6ea1fda0a06dc4e2ca2a7b9c7e4062ddbbc2fc58bede0e766f/evidence.json": "df299e2335e68975b5c241bf99569ef7653ade5857a06de9ee5effb80fd2d8dd"
+      },
+      "variant": {
+        "id": "verbosity-medium",
+        "effort": "medium",
+        "verbosity": "medium"
+      }
+    },
+    {
+      "key": "ef394663d314c96436434cf0a22a949afcb8baed24e1787260ea9fec58fc56f6",
+      "provider": "codex",
+      "model": "gpt-6.1-sol",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T17:10:53+00:00",
+      "artifacts": {
+        "records/ef394663d314c96436434cf0a22a949afcb8baed24e1787260ea9fec58fc56f6/response.txt": "e53b5bde6b6c0e5f6fa4994c43e5b2e4e9678a0a158082eef796e7b6f6bfe5db",
+        "records/ef394663d314c96436434cf0a22a949afcb8baed24e1787260ea9fec58fc56f6/evidence.json": "1bdacf7aa771aa11b5a8d95442d40a37e2a330a8c9707e4e3713555080592446"
+      },
+      "variant": {
+        "id": "effort-max",
+        "effort": "max",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "c8adae965629f38771feb9f4302e73f4e2c4b42362289060579d08022bbbdfea",
+      "provider": "codex",
+      "model": "gpt-6.1-sol",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T17:18:17+00:00",
+      "artifacts": {
+        "records/c8adae965629f38771feb9f4302e73f4e2c4b42362289060579d08022bbbdfea/response.txt": "90e14d4a3241a1ab9b2284fbeb4c8f9740188a443bd60e86dcfc0a5b31a19e2a",
+        "records/c8adae965629f38771feb9f4302e73f4e2c4b42362289060579d08022bbbdfea/evidence.json": "ee74e60b542d7f7ea39b4b06c34baf495414d902d0e800710af2cf287f6a70f8"
+      },
+      "variant": {
+        "id": "verbosity-high",
+        "effort": "medium",
+        "verbosity": "high"
+      }
+    },
+    {
+      "key": "e20a748e0487b8644fcfea063845b9cdb364b886c48e0b13913d4c46d686f6f5",
+      "provider": "codex",
+      "model": "gpt-6-sol",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T17:18:56+00:00",
+      "artifacts": {
+        "records/e20a748e0487b8644fcfea063845b9cdb364b886c48e0b13913d4c46d686f6f5/response.txt": "06d010deeb260707c7248c6567609e83dd66c1b72bd6cb14ab296dd15dd29510",
+        "records/e20a748e0487b8644fcfea063845b9cdb364b886c48e0b13913d4c46d686f6f5/evidence.json": "3437e13151ce32f96e2fcdbe632cbf0ca111297d33eb613e4a6556906fb5ffc5"
+      },
+      "variant": {
+        "id": "baseline",
+        "effort": "medium",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "664e01b8691f6f77861f9e5630c2039bc411c2ce9ab9829d5cf45a86ecefe31c",
+      "provider": "codex",
+      "model": "gpt-6-sol",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T17:19:23+00:00",
+      "artifacts": {
+        "records/664e01b8691f6f77861f9e5630c2039bc411c2ce9ab9829d5cf45a86ecefe31c/response.txt": "feee63fb838febef49e3d2c38673bda528f852ad9839b34c8d9144e6285bfba7",
+        "records/664e01b8691f6f77861f9e5630c2039bc411c2ce9ab9829d5cf45a86ecefe31c/evidence.json": "661fb1ecef78ba04da6d3c545d0f871cb36d68d929e7763421987de93e0a633f"
+      },
+      "variant": {
+        "id": "effort-low",
+        "effort": "low",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "2ee95b8bb8378be8b332c908a57654645d46cb21a8735239f8870c754ddc08f9",
+      "provider": "codex",
+      "model": "gpt-6-sol",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T17:20:20+00:00",
+      "artifacts": {
+        "records/2ee95b8bb8378be8b332c908a57654645d46cb21a8735239f8870c754ddc08f9/response.txt": "e6da9376edb5696a2c31eaa429f984769c6db757e2c84cebfa5031e5d71aa472",
+        "records/2ee95b8bb8378be8b332c908a57654645d46cb21a8735239f8870c754ddc08f9/evidence.json": "6e2beedfe7e0f397e38fba99991a93d8a9978fe30b28301cede2a471256b5091"
+      },
+      "variant": {
+        "id": "effort-high",
+        "effort": "high",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "585c21fce1ff5d2afd4e2bac855df6f7c768810a1829f48b9be6976b7d29e99d",
+      "provider": "codex",
+      "model": "gpt-6-sol",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T17:20:36+00:00",
+      "artifacts": {
+        "records/585c21fce1ff5d2afd4e2bac855df6f7c768810a1829f48b9be6976b7d29e99d/response.txt": "19ff913c7420922aac45049432674de00b56e3c85f19163baa64d20931e7d980",
+        "records/585c21fce1ff5d2afd4e2bac855df6f7c768810a1829f48b9be6976b7d29e99d/evidence.json": "5ef65e4eb522accc5563a5bb87cf714ba6da138bcbf1ac42dad7b96c0297a6ab"
+      },
+      "variant": {
+        "id": "effort-xhigh",
+        "effort": "xhigh",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "1414ffcc72c815c7e9b2c63f5c3c21ffcc0f35f585ad3096106b8c9807bd2fd7",
+      "provider": "codex",
+      "model": "gpt-6-sol",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T17:20:42+00:00",
+      "artifacts": {
+        "records/1414ffcc72c815c7e9b2c63f5c3c21ffcc0f35f585ad3096106b8c9807bd2fd7/response.txt": "41446c2e0a2a247a7b29c5c97bea6cff8138216bb621709c2d64704c3ffbc18f",
+        "records/1414ffcc72c815c7e9b2c63f5c3c21ffcc0f35f585ad3096106b8c9807bd2fd7/evidence.json": "4c17e543fea81d6235deb50ff109fb7f7efa881080873c538a56ec3c87a40c42"
+      },
+      "variant": {
+        "id": "effort-max",
+        "effort": "max",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "d291228981ed267058b2ff2b6daf93da9bc9a95f985fc5103cfe7f0b6e0076af",
+      "provider": "codex",
+      "model": "gpt-6-sol",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T17:22:56+00:00",
+      "artifacts": {
+        "records/d291228981ed267058b2ff2b6daf93da9bc9a95f985fc5103cfe7f0b6e0076af/response.txt": "3fea71a4e5e36fb486ccd430706f548c04cd128fd3d73ec020c3c755f832afbf",
+        "records/d291228981ed267058b2ff2b6daf93da9bc9a95f985fc5103cfe7f0b6e0076af/evidence.json": "274a1407ad27e4156a5638af921813652c2f4b58f022feb194222dd92d13f19f"
+      },
+      "variant": {
+        "id": "verbosity-low",
+        "effort": "medium",
+        "verbosity": "low"
+      }
+    },
+    {
+      "key": "f2c28860584ed60576e1770124e2b29ac1821f2c0a03b60840c8299a23676a6c",
+      "provider": "codex",
+      "model": "gpt-6-sol",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T17:24:08+00:00",
+      "artifacts": {
+        "records/f2c28860584ed60576e1770124e2b29ac1821f2c0a03b60840c8299a23676a6c/response.txt": "dbb3aec88e715d1c626516fad8b4e0ae3e24f7f4adee3f8a1ed3ffa03d9a80b8",
+        "records/f2c28860584ed60576e1770124e2b29ac1821f2c0a03b60840c8299a23676a6c/evidence.json": "da0707afa676bdb092f54d207c726abd7246b5228b0bd1d6e11464bb73429b01"
+      },
+      "variant": {
+        "id": "verbosity-medium",
+        "effort": "medium",
+        "verbosity": "medium"
+      }
+    },
+    {
+      "key": "912c42c6f72e0ea3d3347f2c7cac9129056cd9c548d4742538ad62d538ffde8b",
+      "provider": "codex",
+      "model": "gpt-6-sol",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T17:22:35+00:00",
+      "artifacts": {
+        "records/912c42c6f72e0ea3d3347f2c7cac9129056cd9c548d4742538ad62d538ffde8b/response.txt": "8da4a82b0473479f3534912b4c114e1027f67458408b42f249a934369bcfc4f7",
+        "records/912c42c6f72e0ea3d3347f2c7cac9129056cd9c548d4742538ad62d538ffde8b/evidence.json": "0cfda691d565751b407f2e2eb5d2ac661dfb640bc844f77ad5c2987517cca958"
+      },
+      "variant": {
+        "id": "effort-ultra",
+        "effort": "ultra",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "06b8cdb58dcd8e31d628c6a46c1b1135e5041c2737b78eb3eb89c4675b239656",
+      "provider": "codex",
+      "model": "gpt-6-sol",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T17:24:25+00:00",
+      "artifacts": {
+        "records/06b8cdb58dcd8e31d628c6a46c1b1135e5041c2737b78eb3eb89c4675b239656/response.txt": "342e13913d6d7840af0f11f8a8ec36c37b4d3879bb1573abeb58b368f40d9eee",
+        "records/06b8cdb58dcd8e31d628c6a46c1b1135e5041c2737b78eb3eb89c4675b239656/evidence.json": "783bb0fbe5d9a1f3f751326fa5b83bdd3c8ff4c0b957be01f148dbe60be9b813"
+      },
+      "variant": {
+        "id": "verbosity-high",
+        "effort": "medium",
+        "verbosity": "high"
+      }
+    },
+    {
+      "key": "3d8dcf90fb0b239209d819989b9492064dfe18b694fe45fb70f544485ca286bf",
+      "provider": "codex",
+      "model": "gpt-6-luna",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T17:25:51+00:00",
+      "artifacts": {
+        "records/3d8dcf90fb0b239209d819989b9492064dfe18b694fe45fb70f544485ca286bf/response.txt": "32373ea237504b45ed3ed337af588875f777889bed0be253fdb42f8961137304",
+        "records/3d8dcf90fb0b239209d819989b9492064dfe18b694fe45fb70f544485ca286bf/evidence.json": "1f69f47663c682f9ccf082fc624541c40ca8bf9bcc309e187f54c29f0f673759"
+      },
+      "variant": {
+        "id": "effort-low",
+        "effort": "low",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "32456522837c9ac9c52731a53a3290d7d9fd901c86974eab722048695d31817b",
+      "provider": "codex",
+      "model": "gpt-6-luna",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T17:25:37+00:00",
+      "artifacts": {
+        "records/32456522837c9ac9c52731a53a3290d7d9fd901c86974eab722048695d31817b/response.txt": "6c56d7f1f598d12143328c3c4473a952e0760f557a9c74c1b2733b91b556ff0c",
+        "records/32456522837c9ac9c52731a53a3290d7d9fd901c86974eab722048695d31817b/evidence.json": "62634455cb786c0a0d9d25b59b39ae85787b086f607c37713573a791a3d55178"
+      },
+      "variant": {
+        "id": "baseline",
+        "effort": "medium",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "59bd396bf54140845d47e1d1a973026422e9e4aa09d62125347ab97523b91129",
+      "provider": "codex",
+      "model": "gpt-6-luna",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T17:25:52+00:00",
+      "artifacts": {
+        "records/59bd396bf54140845d47e1d1a973026422e9e4aa09d62125347ab97523b91129/response.txt": "6e0b6030b1a534dd508696b032bf69a761e79538056cda433622c5b41f92c62d",
+        "records/59bd396bf54140845d47e1d1a973026422e9e4aa09d62125347ab97523b91129/evidence.json": "e9bb30fba8055663d674823cd541687b59622e294c8dc0bf8376603525e62e81"
+      },
+      "variant": {
+        "id": "effort-high",
+        "effort": "high",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "b9e21b661485c1d3a083ca9c2b22ab54ed62118d7417a27bbe6277c8b7134c7f",
+      "provider": "codex",
+      "model": "gpt-6-luna",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T17:27:00+00:00",
+      "artifacts": {
+        "records/b9e21b661485c1d3a083ca9c2b22ab54ed62118d7417a27bbe6277c8b7134c7f/response.txt": "29d695e1355a73b164d42d4cb3780598dda12d4f41d9a6aa0d7bbb8c047c4384",
+        "records/b9e21b661485c1d3a083ca9c2b22ab54ed62118d7417a27bbe6277c8b7134c7f/evidence.json": "596286fb64a1928c14098093bee112a9d446618ef21b31aae3bad69449f0b1c9"
+      },
+      "variant": {
+        "id": "verbosity-low",
+        "effort": "medium",
+        "verbosity": "low"
+      }
+    },
+    {
+      "key": "c5307cacd16ce97c0f572d9119a17943bedf15e629a9dee32e9ec2e0fededc18",
+      "provider": "codex",
+      "model": "gpt-6-luna",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T17:26:25+00:00",
+      "artifacts": {
+        "records/c5307cacd16ce97c0f572d9119a17943bedf15e629a9dee32e9ec2e0fededc18/response.txt": "2e8c4aa35799204bdbd7c6c02a8789bf8976d441b4878e4cec3fe582ea33ba60",
+        "records/c5307cacd16ce97c0f572d9119a17943bedf15e629a9dee32e9ec2e0fededc18/evidence.json": "4021ea4003eab525451cbe5e97bd7c9da01716e074170d5d9d89965d2fabf01e"
+      },
+      "variant": {
+        "id": "effort-max",
+        "effort": "max",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "1947f52665d17d682d3bd4ccdb2c38395404d569a24d8d43eed0d557ab498162",
+      "provider": "codex",
+      "model": "gpt-6-luna",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T17:29:16+00:00",
+      "artifacts": {
+        "records/1947f52665d17d682d3bd4ccdb2c38395404d569a24d8d43eed0d557ab498162/response.txt": "b91efa1582f66ec7940d0f31a3b825dbbc2d6e5ac0ee3df2c6a79f91b0a7f869",
+        "records/1947f52665d17d682d3bd4ccdb2c38395404d569a24d8d43eed0d557ab498162/evidence.json": "82bebac59060e392d380e012364166548ce4bc57bf83c3c876431304a2ad821f"
+      },
+      "variant": {
+        "id": "verbosity-medium",
+        "effort": "medium",
+        "verbosity": "medium"
+      }
+    },
+    {
+      "key": "ed9c9cc8c810ffbbd11f9f6ba0017f6d895d1bae2062d52510f816adee059e5f",
+      "provider": "codex",
+      "model": "gpt-6-luna",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T17:26:24+00:00",
+      "artifacts": {
+        "records/ed9c9cc8c810ffbbd11f9f6ba0017f6d895d1bae2062d52510f816adee059e5f/response.txt": "efed7015e6e8c0f7197e76c397b3ae33ff2bf94f416ad801b565d4621bf761e9",
+        "records/ed9c9cc8c810ffbbd11f9f6ba0017f6d895d1bae2062d52510f816adee059e5f/evidence.json": "354a517cf91e86f311bc9e2a16a86fecc946fe03d059673e7e70b9d5b35dfd4f"
+      },
+      "variant": {
+        "id": "effort-xhigh",
+        "effort": "xhigh",
+        "verbosity": "default"
+      }
+    },
+    {
+      "key": "dfbfcbbf1a90ac2e9ca61332de94f5e64be7001a511d363fb4b1e113c4cf8b20",
+      "provider": "codex",
+      "model": "gpt-6-luna",
+      "attempt": 1,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T17:29:29+00:00",
+      "artifacts": {
+        "records/dfbfcbbf1a90ac2e9ca61332de94f5e64be7001a511d363fb4b1e113c4cf8b20/response.txt": "1442c309dbf870b7345a5925bbdf4b67035879b50504050e4b0e1cfdb5418276",
+        "records/dfbfcbbf1a90ac2e9ca61332de94f5e64be7001a511d363fb4b1e113c4cf8b20/evidence.json": "4c5417aa0ccf79c319b11eb43d276082c9b7ec5753d4e8f11acc245ebf7f286c"
+      },
+      "variant": {
+        "id": "verbosity-high",
+        "effort": "medium",
+        "verbosity": "high"
+      }
+    },
+    {
+      "key": "dad177da1c8b596b0680beac9c9f515cebe9bb17c9c2518708fafa23c1d995d2-attempt-2",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "attempt": 2,
+      "prompt_sha256": "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d",
+      "status": "response captured",
+      "tested_at": "2026-10-02T18:15:23+00:00",
+      "artifacts": {
+        "records/dad177da1c8b596b0680beac9c9f515cebe9bb17c9c2518708fafa23c1d995d2-attempt-2/response.txt": "cde7071a6c48608bd70f258279f0a3094139987e72f4a97259b04a6f877a0596",
+        "records/dad177da1c8b596b0680beac9c9f515cebe9bb17c9c2518708fafa23c1d995d2-attempt-2/evidence.json": "2abb20d0a351609ced72c84844698c2b4ac97ebf23064404f4180c098f1bb3d4"
+      },
+      "variant": {
+        "id": "effort-max",
+        "effort": "max",
+        "verbosity": "default"
+      }
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+# 1. THE STORY
+
+**The Arithmetic of Paper**
+
+The toner smelled like hot pennies by three o'clock, and Mara had the window cracked just enough to let the river air thin it out. Forty-eight hours until the repairmen came for the big press, and whatever ran through it before then was the last of the easy money.
+
+Ivo arrived the way he always did, sideways through the door with his arms full of someone else's cause. Today it was the theater's banners — fifty running feet of them, a season's worth, promised to the festival committee.
+
+"Thirty in materials, fifty on the machine," he said, already reading her ledger upside down across the counter. "They'll pay a hundred and twelve. That's eighty-two clear. Mara, that's the single biggest surplus on the whole sheet."
+
+"It is," she agreed. She'd worked the numbers at lunch, back when she'd had eighty dollars to her name for ink and stock. The banners had fit then, wedged between posters and tickets, the clean margins stacked like a tide coming in.
+
+Then Dolores had called from the bank. The transfer hadn't cleared. Sixty-six dollars for materials, not eighty. Machine time untouched — still two hours of it — but the paper budget had shrunk by a fifth, and paper was the thing you had to buy before anyone paid you a cent.
+
+"So float it," Ivo said. "The theater's good for it."
+
+"They pay when it's printed. Everyone pays when it's printed. I can't buy Tuesday's stock with Tuesday's money." She tapped the ledger. "Sixty-six. That's the whole wall I'm building against."
+
+He pulled a stool over and the metal shrieked on the concrete. "Then what, exactly, does sixty-six buy."
+
+She showed him. It was ugly and it was clear. The banners cost thirty in paper. Thirty was nearly half her materials, and every dollar she spent on vinyl was a dollar she couldn't spend on four small jobs that each paid their own weight. She lined them up: programs, posters, tickets, bookmarks. Twenty-four, eighteen, ten, fourteen. Sixty-six on the dot. The machine would run a hundred minutes of the hundred-twenty she had. And the money that came back, minus what the paper cost her, came to a hundred seventy-nine.
+
+"Put the banners in instead," she said, "and I have to drop two of these to afford the vinyl, and I come out worse. Every time. I ran it three ways."
+
+Ivo was quiet, which was rare. Outside a gull argued with the parking lot.
+
+"A hundred seventy-nine," he said finally. "Toward the repair."
+
+"Minus the thirty-five for the lights and the water and the fact that I stood here all day." She wrote it. "A hundred forty-four. The press needs two-twenty."
+
+"So we're seventy-six short no matter what."
+
+"No matter what I can confirm standing here right now." She didn't look up. "The banners being in or out doesn't close that gap, Ivo. They just move it the wrong way."
+
+He stood and walked to the window and she let him. She knew what the banners meant to him — not the eighty-two dollars, the people. The kid who swept the stage. The woman who sold the tickets. Numbers had faces for Ivo, which was why he was good in the lobby and bad at the ledger.
+
+"Beth said a donor might come through tonight," he said. "A hundred, maybe."
+
+"Might."
+
+"You don't believe it."
+
+"I believe it when it's in the drawer." She fed the first sheet into the tray and the press woke with its low hydraulic cough, and the smell of pennies bloomed again. "If it comes, it comes on top of a hundred forty-four, and we're thirty-six from the press and I will kiss whoever signs the check. If it doesn't, I'd rather owe the theater an apology than owe the repairman money I invented."
+
+Ivo picked up a bookmark, warm off the drum, the ink still tender. He turned it over. He'd wanted the grand gesture, the banners unfurling down the theater front for the whole street to see what the shop could do.
+
+"Tell them next week," he said. "When the press is fixed and I can give them fifty feet that don't bleed."
+
+"That," Mara said, "is a thing I can promise."
+
+They worked the four jobs through until the light went orange on the paper stacks. The drawer filled after, the way it always did — too late to change anything, right on time to prove her right. A hundred forty-four toward the wall. Seventy-six to go, and a maybe walking around somewhere in the dark with a checkbook it hadn't opened yet.
+
+# 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+**Why these plans.** Objective is to maximize surplus (payment − materials) under both caps, then subtract the fixed $35.
+
+- *Initial ($80 / 120 min):* A+C+F+G uses exactly 80 and 120. Surplus = 50+28+54+82 = 214 → contribution 179. No feasible set beats 214; e.g. A+B+F+H ties materials/minutes at 80/120 but surplus is only 212.
+- *Revised ($66 / 120 min):* A+B+C+E uses exactly 66 and 100 min. Surplus = 50+66+28+35 = 179 → contribution 144. The $14 cut in the materials cap forces out banner-heavy mixes; G alone eats $30 of $66.
+
+**Feasible competing plan (revised):** G+B+C — materials 64, minutes 105, surplus 176 → contribution 141. Keeps the banners but lands $3 lower, so it loses.
+
+# 3. THE PUBLIC UPDATE
+
+This afternoon's print run contributed **$144** toward the $220 press repair, after the $35 operating cost. That leaves a **$76 gap**. The theater banners didn't make this run — on our reduced materials budget, four smaller jobs raised more. We've heard a supporter *may* donate $100 tonight, but **no gift has been received or committed**. We'll update you the moment anything is confirmed. Thank you for standing with the shop.

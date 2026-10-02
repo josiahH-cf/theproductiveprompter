@@ -16,6 +16,17 @@ import codex_exec_adapter as adapter  # noqa: E402
 
 
 class CodexExecAdapterTests(unittest.TestCase):
+    def test_live_research_enables_only_tool_transport_and_preserves_host_tool_disables(self):
+        command = adapter.build_codex_command(executable="codex",model="gpt-5.6-sol",working_directory=Path("empty"),
+            output_path=Path("response"),output_schema_path=None,web_search_mode="live")
+        disabled = {command[i+1] for i,item in enumerate(command[:-1]) if item == "--disable"}
+        enabled = {command[i+1] for i,item in enumerate(command[:-1]) if item == "--enable"}
+        self.assertEqual(enabled,{"code_mode_host","deferred_executor"})
+        self.assertTrue({"shell_tool","unified_exec","computer_use","apps","plugins","multi_agent","browser_use"} <= disabled)
+        self.assertNotIn("code_mode_host",disabled)
+        self.assertIn("tools.web_search=true",command)
+        self.assertEqual(command[command.index("--sandbox")+1],"read-only")
+
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
@@ -117,7 +128,7 @@ class CodexExecAdapterTests(unittest.TestCase):
         self.assertEqual(result.receipt["transport"]["web_search_mode"], "live")
         self.assertEqual(
             set(result.receipt["transport"]["disabled_host_tool_features"]),
-            set(adapter.DISABLED_HOST_TOOL_FEATURES),
+            set(adapter.DISABLED_HOST_TOOL_FEATURES) - {"code_mode","code_mode_host","deferred_executor"},
         )
         self.assertEqual(len(calls), 2)
         self.assertNotIn("Verified source text.", " ".join(calls[1]))
@@ -224,7 +235,10 @@ class CodexExecAdapterTests(unittest.TestCase):
                     for index, item in enumerate(invocation[:-1])
                     if item == "--disable"
                 }
-                self.assertEqual(disabled, set(adapter.DISABLED_HOST_TOOL_FEATURES))
+                expected_disabled = set(adapter.DISABLED_HOST_TOOL_FEATURES)
+                if expected_mode == "live":
+                    expected_disabled -= {"code_mode","code_mode_host","deferred_executor"}
+                self.assertEqual(disabled, expected_disabled)
                 self.assertEqual(result.receipt["transport"]["web_search_mode"], expected_mode)
 
     def test_direct_execute_defaults_to_disabled_web_search(self):

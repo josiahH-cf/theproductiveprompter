@@ -1,0 +1,31 @@
+THE MODEL RELEASE EXPERIMENT — RUNNER PROMPT, REVISION 7
+
+Use the installed Article Flow controller to maintain an ongoing anecdotal model experiment on theproductiveprompter.com:
+
+article-flow model-release update --json
+
+This is the complete authorized workflow: discover new exact models; write a researched article in the author's existing approved voice; publish and verify the article; run missing settings profiles with the frozen challenge; append immutable evidence; publish the readable cards and linked run pages; attach or refresh the controller-owned results section in published campaign articles; verify the actual public bytes.
+
+Ordinary Article Flow articles retain their three-option voice decision. The author explicitly chose automatic approved-voice reuse for model-release articles. Reuse the pinned profile without generating or fabricating new preference evidence.
+
+Write each article as a simple TLDR and a few clear paragraphs, 300–650 prose words in the approved voice. This explicit shape overrides recipe defaults and recent-post variety. Keep code and engineering evidence in the linked runs. Omit internal draft notes and statements that the entire page lacks results, because the results updater will attach actual findings. Research receives the hash-bound approved voice profile; verification receives the frozen challenge. The author's supplied motivation is an anecdotal feel for the models; do not invent or require a more specific personal story.
+
+Keep the user prompt in experiments/model-release/prompt.txt byte-identical. Its SHA-256 is d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d. Retain earlier baseline responses and authentication errors. One settings combination has one original response; do not polish, replace, silently substitute, or repeat it.
+
+Default components mode tests every supported thinking level with default verbosity, and all supported native verbosity settings at baseline thinking. Optional --matrix factorial tests the cross-product. Native metadata determines supported levels; new levels and versions become missing profiles automatically. Claude's diagnostic --verbose flag is not a model verbosity setting.
+
+Discovery combines the authenticated Codex remote catalog, Claude's initialization catalog, and the official Claude supported-model list resolved through temporary CLI settings. Documented IDs omitted by client metadata stay explicit coverage gaps. Retired Spark is unavailable and must not be replaced under its name. A documentation listing does not prove this account can access a model.
+
+If another model appears during article publication, it waits for its researched and verified article before generation. The normal command continues with that article automatically. Windows and WSL use the authenticated Windows campaign and its single durable history. When a controller-hosted writer is unavailable, follow the returned active-host task protocol without inventing an approval or bypassing evidence checks.
+
+Model cards stack vertically within separate Claude and Codex sections. Preserve their distinct warm clay and navy palettes, readable type, chronological release ordering, and stable run links. The individual run page presents prose as prose, with JSON receipt and technical checks in expandable sections and exact source downloads. Add no subtitle, preview button, or oldest-to-newest arrow.
+
+Candidate tools, skills, MCP, and repository instructions are isolated. Store requested settings, actual responder where exposed, elapsed time, client usage semantics, and observed errors. Do not claim internal effort was independently proved when telemetry exposes only client configuration and accepted responses. Preserve auxiliary Claude model usage.
+
+The receipt validator checks exhaustive order-selection arithmetic and the donation flag. Literary quality, story consistency, and word limits remain unassessed until a separate versioned assessment is carried out. One observation per profile does not establish a universal ranking, statistical reliability, or isolated model-weight performance.
+
+Use a clean dedicated publication checkout and hash-bound ownership checks. Build the complete scoped publication before writing; refuse unowned changes and any replacement of an original run. A failed push or pending deployment resumes the same publication and never regenerates candidate responses. Show a live URL only after exact verification.
+
+For experiment-only diagnostics, python scripts/model_experiment.py update omits article publication. check and preview do not generate. status is read-only. The daily monitor uses article-flow model-release update, stays quiet on unchanged state, and reports meaningful new results, failures, or required human action.
+
+For a routine source, citation, or formatting repair that the supplied evidence resolves, follow repair_required's returned command, obtain the new task packet, repair its current artifact, submit, and resume. Preserve unaffected edits and all experiment records. Honor actual holds and missing material decisions; never invent a gate PASS.

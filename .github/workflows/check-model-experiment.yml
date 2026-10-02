@@ -1,0 +1,35 @@
+name: Check model experiment invariants
+
+"on":
+  pull_request:
+    paths:
+      - ".gitattributes"
+      - "scripts/model*.py"
+      - "experiments/model-release/**"
+      - ".agents/skills/model-experiment/**"
+      - ".claude/skills/model-experiment/**"
+      - "tests/test_model*.py"
+      - ".github/workflows/check-model-experiment.yml"
+      - "Article-Spec-Pack-v1/scripts/article_flow.py"
+      - "Article-Spec-Pack-v1/manifest.json"
+      - ".agents/skills/article-flow/**"
+      - ".claude/skills/article-flow/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Check append-only evidence and deterministic controller behavior
+        run: python -m unittest discover -s tests -p "test_model*.py" -v
+      - name: Verify checked-in challenge and evidence
+        run: python scripts/model_experiment.py status
+      - name: Verify the protected Article Flow release
+        run: python Article-Spec-Pack-v1/scripts/article_flow.py manifest check --against-worktree --json

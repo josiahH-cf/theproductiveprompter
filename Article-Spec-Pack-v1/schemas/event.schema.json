@@ -70,7 +70,9 @@
         "VISUALS_REFRESHED",
         "REVISION_CREATED",
         "VOICE_SET_REJECTED",
-        "ARTICLE_VOICE_FEEDBACK"
+        "ARTICLE_VOICE_FEEDBACK",
+        "MODEL_RELEASE_ARTICLE_CONFIGURED",
+        "APPROVED_VOICE_REUSED"
       ]
     },
     "state": {

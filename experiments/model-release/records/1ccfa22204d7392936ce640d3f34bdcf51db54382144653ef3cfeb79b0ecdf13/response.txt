@@ -1,0 +1,156 @@
+## 1. THE STORY
+
+### The White Strip
+
+At two o’clock, Mara taped a strip of white paper over the crack in the print shop’s front window. It wasn’t weatherproofing. She needed somewhere to write a number large enough to see from the press.
+
+**REPAIR: $220 STILL NEEDED.**
+
+Behind her, Ivo unrolled the theater’s banner design across the cutting table. A yellow moon hung above a painted staircase.
+
+“Those first,” he said.
+
+The shop smelled of warm rubber and the onion soup somebody had abandoned beside the stapler. Outside, children dragged sticks along the railings of the community garden. Mara could hear each separate clang.
+
+“We have eighty dollars for materials,” she said. “Two hours on the machine. ‘First’ is doing a lot of work there.”
+
+“It’s opening night tomorrow.”
+
+“It’s also tomorrow for everybody else.”
+
+Ivo flattened a curled corner with his palm. He had painted that moon himself. Mara knew because he’d come in last Tuesday with yellow under both thumbnails, carrying the design as carefully as a birthday cake.
+
+She put eight order slips on the counter. Posters, programs, tickets, postcards, bookmarks, menus, banners, maps. On the back of a spoiled flyer she made columns, crossing out combinations that cost too much or ran too long.
+
+Ivo watched without offering to help.
+
+“Posters, tickets, menus, banners,” she said finally. “Eighty in materials. Exactly a hundred and twenty minutes. Two hundred and ninety-four paid when we finish.”
+
+His shoulders dropped.
+
+“So we’re all right.”
+
+“No. Materials come back out. Then thirty-five for operating expenses. That leaves a hundred and seventy-nine for the repair.”
+
+She wrote **41** beneath the big number on the window strip.
+
+“But that’s the best?” he asked.
+
+“That’s the best.”
+
+He lifted the banner design from the table, smiling now, and carried it toward the machine.
+
+Then Mara opened the cash envelope.
+
+She counted twice. The second time, she laid the notes side by side, as though distance might reveal another one.
+
+“Sixty-six,” she said.
+
+Ivo stopped.
+
+“I wrote eighty on the envelope. There’s sixty-six.”
+
+“Check the drawer.”
+
+She did. He checked beneath the envelope, which made her want to shout at him. Instead she pulled the order slips back into a row. Nothing had been bought. Nothing had been printed. They could still change everything, which suddenly felt less like freedom than punishment.
+
+“Take out the posters,” Ivo said.
+
+Mara shook her head and began again.
+
+The refrigerator hummed beneath the counter. Somewhere inside it, a bottle knocked against another bottle. Ivo kept hold of the banner design.
+
+After a while she circled four letters.
+
+“Posters. Programs. Tickets. Bookmarks.”
+
+“No banners?”
+
+“Sixty-six in materials. A hundred minutes. Two forty-five coming in. A hundred and forty-four left for repairs after everything.”
+
+“But the banners pay a hundred and twelve.”
+
+“They cost thirty.”
+
+He looked toward the window. “Banners, programs, tickets. That’s sixty-four. We can afford that.”
+
+“Yes.” She wrote beneath her figures. “And after expenses, that gives us a hundred and forty-one.”
+
+“Three dollars.”
+
+“Three dollars closer.”
+
+He rolled the design too tightly. The paper made a small, injured crackle.
+
+“You’d disappoint the whole theater for three dollars?”
+
+Mara turned the envelope over so he could see her mistaken eighty.
+
+“I’d rather disappoint them than tell everyone I chose the most money we could raise when I didn’t.”
+
+Neither spoke. Then Ivo said someone at the theater knew a donor who might give a hundred dollars tonight.
+
+“Have they promised?”
+
+“No.”
+
+Mara left the window number alone.
+
+At last he set down the roll. “I’ll call the theater.”
+
+She nodded. While he explained, she bought the materials for the four circled orders. When he came back, he squared the bookmark stock against the table edge. His jaw was still tight.
+
+The machine ran for a hundred minutes. They spoke mostly in quantities: another stack, twenty left, check this edge. Near the end, Ivo brought her the abandoned soup and a spoon.
+
+Payments came after production. Mara restored the sixty-six-dollar materials float, set aside thirty-five, and counted the repair contribution.
+
+On the white strip she wrote **$144 RAISED. $76 STILL NEEDED.**
+
+No donor had called.
+
+Ivo held the paper steady while she pressed the tape flat. Then they shut the shop for the deadline, leaving the notice facing the street.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Checking all subsets against both limits gives these best order surpluses:
+
+| Materials limit | Best with banners | Best without banners |
+|---|---:|---:|
+| $80 | $214: A, C, F, G | $212: A, B, C, D |
+| $66 | $176: B, C, G | $179: A, B, C, E |
+
+The fixed $35 deduction preserves that ranking.
+
+- **Initial:** Materials = 18 + 10 + 22 + 30 = $80; minutes = 25 + 15 + 30 + 50 = 120. Contribution = 294 − 80 − 35 = **$179**.
+- **Revised:** Materials = 18 + 24 + 10 + 14 = $66; minutes = 25 + 40 + 15 + 20 = 100. Contribution = 245 − 66 − 35 = **$144**.
+- **Feasible revised competitor:** B, C, G costs $64, takes 105 minutes, and earns $240. Its contribution is 240 − 64 − 35 = **$141**, three dollars below the revised optimum.
+
+The materials float is recovered capital, not new repair income.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s completed print orders contributed **$144 toward the repair**, after materials and operating expenses. **$76 remains** of our $220 repair goal. Someone suggested a donor might give $100 tonight, but we have received neither a gift nor a commitment. That possible donation is not included in our total. The shop has closed for the repair deadline with the gap still outstanding.

@@ -1,0 +1,137 @@
+## 1. THE STORY
+
+**The Last Run of Bluebird Print**
+
+By three o’clock, the print shop smelled like scorched dust and wet paper, the way it always did when the old Risograph had been asked to be heroic. Mara stood with one hand on the feed tray and one on the envelope where she kept the repair money. Bluebird Print’s front windows faced Maple Street, and through them she could see the theater volunteers stapling a crooked poster to a telephone pole.
+
+Ivo came in carrying a roll of green vinyl under one arm.
+
+“They need the banners,” he said. “Tonight. If we don’t run them now, their fundraiser looks like a bake sale in a wind tunnel.”
+
+Mara rubbed a thumb over the pencil marks on her clipboard. “The repair tech comes Monday. If I can’t show two-twenty in new money, he pushes us to November.”
+
+“You have eighty for materials,” Ivo said. “The banners cost thirty. They pay one-twelve. That’s eighty-two ahead.”
+
+“They pay after pickup,” Mara said. “Everybody pays after pickup. We can’t use theater money to buy ink for the next job before the job exists.”
+
+Ivo sighed hard enough to stir the receipts taped to the counter. He loved the place badly, which made him careless with it. Mara knew the feeling. Her mother had founded Bluebird in a former laundromat, printing tenants’ notices, protest flyers, quinceañera invitations, funeral programs. Mara had inherited the keys and the debt and the habit of saying yes.
+
+She laid out the orders. Posters, programs, tickets, postcards, bookmarks, menus, theater banners, maps. Materials in one column, machine minutes in another, payment in a third. The Riso had two hours left before the belt would heat past its warning line. Materials: eighty dollars, no more.
+
+Ivo leaned across the counter. “Just put G in.”
+
+“Don’t call them G like they’re not people.”
+
+“You wrote G.”
+
+“I wrote G so I wouldn’t cry over everyone equally.”
+
+They worked the numbers in pencil. Posters, programs, tickets, and postcards fit exactly: eighty dollars in materials, one hundred fifteen minutes, three hundred dollars paid afterward. Subtract the materials and the afternoon’s surplus was two hundred twelve. After the fixed thirty-five dollars for rent, cleaner, and the cursed breaker surcharge, one hundred seventy-seven would go toward the repair.
+
+“It’s the best plan,” Mara said quietly.
+
+“It leaves the banners out.”
+
+“It leaves us forty-three short. It gives us a shop tomorrow.”
+
+Ivo looked toward the windows again. Outside, a boy in a cardboard crown was helping tape the theater poster. “The banners are for the fundraiser that keeps them open.”
+
+“And the posters are for the clinic, the programs for Mrs. Alvarez’s recital, the tickets for the youth boxing show, and the postcards for the food pantry’s mailing.” Mara tapped the pencil on the counter. “We are not short on deserving.”
+
+He looked wounded, which annoyed her because she was wounded too.
+
+Then Mrs. Len from the quilting guild came in, cheeks red from the October wind. “Mara, honey. I’m sorry.” She placed two tens and four ones on the counter. “The guild can’t float the full amount we promised. Treasurer’s at her daughter’s. I’ve got twenty-four.”
+
+Mara stared at the money, then at the envelope. “That makes sixty-six.”
+
+“Only for materials?” Ivo asked.
+
+“Only for materials,” Mara said.
+
+The shop changed temperature. The Riso clicked in the silence like a clock clearing its throat.
+
+Ivo picked up the pencil. “Then we definitely do the banners. Thirty materials, fifty minutes, eighty-two surplus.”
+
+Mara did not answer. She was already adding again. With sixty-six dollars, the old plan was dead. Posters, programs, tickets, postcards cost eighty. Impossible.
+
+Ivo watched her mark combinations, faster now, the arithmetic losing its softness. Theater banners plus programs plus tickets fit: sixty-four materials, one hundred five minutes, one hundred seventy-six surplus. Good. Not best. Posters, programs, tickets, bookmarks fit exactly at sixty-six materials and one hundred minutes. Revenue two hundred forty-five. Surplus one hundred seventy-nine. After thirty-five, the repair contribution would be one hundred forty-four.
+
+“No,” Ivo said when he saw it.
+
+“Yes.”
+
+“It’s three dollars.”
+
+“It’s three confirmed dollars.”
+
+“The theater might get us a donor tonight. Damon said someone might give a hundred.”
+
+“Might is not received.” Mara’s voice came out sharper than she wanted. She softened it. “Ivo, if the hundred arrives, I will dance on the folding table. But I can’t buy toner with a rumor.”
+
+He stood very still. The green vinyl under his arm looked suddenly ceremonial, like a flag after a surrender.
+
+“What do I tell them?” he asked.
+
+“Tell them the truth. We can do their tickets next week if the repair happens. Today we run what keeps the repair closest.”
+
+He laughed once, bitterly. “You make it sound clean.”
+
+“It isn’t clean. It’s just counted.”
+
+They ran the posters first. The machine thumped and sighed, blue ink blooming across cream paper in imperfect constellations. Ivo stacked sheets without speaking. By programs, his hands had found the rhythm. By tickets, he was trimming edges with a care that made Mara’s throat tighten. When the bookmarks came through, a little girl from the library pressed her nose to the glass and waved at the strips of foxes and moons.
+
+At five-ten, the counter held four finished orders, warm and square. The theater vinyl still lay untouched by the door.
+
+Ivo picked it up. “I’ll carry it back.”
+
+“I’ll come with you,” Mara said.
+
+He glanced at her. “They’ll be mad.”
+
+“I know.”
+
+“They’ll say we chose bookmarks over banners.”
+
+“We chose one hundred forty-four real dollars over one hundred forty-one real dollars and a possible miracle.”
+
+Outside, the afternoon had gone coppery. The theater’s paper poster flapped on the pole, badly taped but visible. Mara locked the shop with the repair envelope in her coat pocket, lighter than hope, heavier than nothing.
+
+No donor had called by closing. No miracle arrived with a checkbook. But Ivo walked beside her, carrying the unused vinyl, and after half a block he said, “Next time, I’ll do the adding before I start arguing.”
+
+Mara smiled without looking at him. “Next time, I’ll let you argue while I add.”
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "B", "C", "D"],
+    "materials": 80,
+    "minutes": 115,
+    "revenue": 300,
+    "order_surplus": 220,
+    "repair_contribution": 185,
+    "shortfall": 35
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Correction to story arithmetic: the initial best plan is A+B+C+D with revenue 300 and materials 80, so order surplus is 220 and repair contribution is 185 after the fixed $35 expense.
+
+Under the revised $66 materials limit, A+B+C+E uses $66 and 100 minutes, producing $245 revenue and $179 surplus. After the fixed $35 expense, $144 counts toward repair.
+
+A feasible competing revised plan is B+C+G: materials $64, minutes 105, revenue $240, surplus $176, repair contribution $141. It includes the theater banners but contributes $3 less than A+B+C+E.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s confirmed production raised $144 toward the repair after materials and operating expense. That leaves a $76 gap against the $220 repair goal. A donor was mentioned as a possibility for tonight, but no gift or commitment has been received, so it is not included in the total.

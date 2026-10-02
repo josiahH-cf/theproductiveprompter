@@ -1,0 +1,145 @@
+1. THE STORY
+
+**Last Run at Ink & Thread**
+
+By two-thirty, the print shop smelled like wet paper, warm toner, and the last orange someone had peeled badly in the break room. Sun came through the front windows in long dusty bars, catching on the old risograph’s open belly. Mara had the service envelope taped above the register: REPAIR BALANCE DUE MONDAY, underlined twice in the technician’s square handwriting.
+
+Ivo stood beside the drying rack with a roll of canvas under one arm, as if he had personally rescued it from a flood. “The banners first,” he said. “Please. Opening night is tomorrow. If the theater looks dark, people will think we gave up.”
+
+Mara did not look up from the clipboard. “If the press locks up again, everyone gets darkness.”
+
+“That is dramatic even for me.”
+
+“You volunteer at a theater.”
+
+He winced. “Fair.”
+
+Ink & Thread was not officially a community center, but people treated it like one. They came to print funeral programs, yard sale signs, protest flyers, quinceanera invitations. Mara kept a jar of miscut bookmarks on the counter because children liked taking them. This week, the front door hinge groaned, the cutter blade stuck halfway down, and the Heidelberg in the back had begun making a sound like coins in a blender.
+
+The repair bill needed two hundred twenty dollars in new money. Mara had eighty dollars in the materials drawer and exactly two hours of machine time before the technician’s helper arrived to lock out the press.
+
+She had already made a plan. She tapped the pencil against four lines on the sheet. “Posters, tickets, menus, banners. A, C, F, G. Materials eighty exactly. Time one hundred twenty minutes exactly.”
+
+Ivo leaned over her shoulder. “So the banners are in.”
+
+“In the first plan, yes.”
+
+“Then why do you sound like a judge?”
+
+“Because payments come after production. I can’t use theater money to buy paper for the menus or ticket stock for the tickets. The eighty in the drawer is all I can spend before we print.”
+
+He squinted. “But the banners pay one hundred twelve.”
+
+“They cost thirty to make. The difference helps after they’re picked up and paid for.” She wrote with the blunt pencil, the point squeaking. “Posters net fifty, tickets twenty-eight, menus fifty-four, banners eighty-two. Two hundred fourteen. Then thirty-five in operating expense comes out. One hundred seventy-nine toward the repair.”
+
+Ivo’s face changed. Hope had weight; she watched it settle in his shoulders. “Forty-one short.”
+
+“Confirmed short,” Mara said.
+
+The bell over the door rang. It was Carmen from the youth choir with a paper bag and an apologetic mouth. “Mara, I’m sorry. We counted the petty cash wrong. Mr. Delaney took back the change pouch for tomorrow’s food pantry. You’ve got sixty-six for materials, not eighty.”
+
+The shop went still except for the dryer’s ticking fan.
+
+Ivo said, “No. We already had it.”
+
+Mara took the bag. Inside were folded bills and coins warm from someone’s hand. “Before we bought anything?”
+
+Carmen nodded. “Before anything. I ran.”
+
+Mara closed her eyes for one breath. When she opened them, Ivo was looking at the canvas roll.
+
+“We can still do banners,” he said. “Please, Mara. There has to be a way. The town sees those banners. They see us.”
+
+Mara spread the order cards across the counter: posters, programs, tickets, postcards, bookmarks, menus, theater banners, maps. Her fingers moved quickly, but not carelessly. The counter had a nick where her father had dropped the corner rounder in 1998.
+
+“Sixty-six,” she murmured. “One hundred twenty minutes.”
+
+Ivo paced once to the window and back. “You’re doing that thing where numbers become a wall.”
+
+“No,” she said, sharper than she meant. Then softer: “A railing. So we don’t fall.”
+
+He stopped.
+
+She tested combinations, crossing out with little strokes. The banners used thirty dollars and fifty minutes. With programs and tickets, they fit: sixty-four dollars, one hundred five minutes. Good, but not best. With menus and bookmarks, they fit: sixty-six dollars, one hundred minutes. Still not best.
+
+Then she circled four orders. “Posters, programs, tickets, bookmarks. A, B, C, E. Materials sixty-six. Time one hundred minutes. Payment two hundred forty-five. Surplus one hundred seventy-nine. After the thirty-five expense, one hundred forty-four for the repair.”
+
+Ivo stared. “No banners.”
+
+“No banners.”
+
+“But the first plan had them.”
+
+“The first plan had eighty dollars. We don’t.”
+
+“The theater might have a donor tonight. Laleh said someone might give a hundred.”
+
+“Might,” Mara said. “Not has. Not will. Not enough to buy canvas at three o’clock.”
+
+His jaw worked. Outside, a bus sighed at the curb and lowered itself with a hydraulic gasp. In the back, the press light blinked amber, patient and accusing.
+
+Ivo put the canvas roll down gently, as if it were sleeping. “I hate this.”
+
+“I know.”
+
+“You’re choosing bookmarks over us.”
+
+“I’m choosing the confirmed plan that gives the shop the most toward staying open. The choir gets programs. The clinic gets posters. The council gets tickets. The kids get bookmarks. The theater gets an apology and first slot after repair, if we make it.”
+
+He laughed once, without humor. “If.”
+
+Mara slid him the stack of program stock. “Help me make the if bigger.”
+
+For a moment she thought he would leave. Then he took off his coat, rolled up his sleeves, and began loading the paper with the precision of a man arranging candles before a stage.
+
+They worked without music. The press pulled sheets with soft thumps. Ink bloomed black, then blue. Mara trimmed posters while Ivo collated programs, his fingers smudged at the tips. When the tickets came through, Carmen numbered them by hand at the side table, whispering every ten like a prayer.
+
+At four-forty, the last bookmarks slid into the tray, tiny bright strips printed with a library quote Mara had forgotten approving. The banners remained unmade, the canvas roll leaning in the corner.
+
+No donor called. No message came. Ivo checked his phone twice, then turned it facedown.
+
+Mara counted the finished invoices after the final pickup. “One hundred forty-four,” she said.
+
+Ivo nodded. His eyes were red, maybe from ink dust. Maybe not. “Seventy-six short.”
+
+“Yes.”
+
+He looked at the locked press, then at the window where the unprinted theater canvas made a pale reflection behind them. “Tomorrow,” he said, “I’ll stand outside the theater with a coffee can.”
+
+Mara put the cash in the repair envelope. “I’ll print you a sign when the machine comes back.”
+
+2. THE RECEIPT
+
+```json
+{
+  "donation_confirmed": false,
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  }
+}
+```
+
+Initial choice: A+C+F+G uses exactly `$80` and `120` minutes, with revenue `$294` and order surplus `$294 - $80 = $214`. After the fixed `$35` operating expense, the repair contribution is `$179`.
+
+Revised choice: with only `$66` available, A+B+C+E uses `$66` and `100` minutes, with revenue `$245` and order surplus `$179`. After the `$35` expense, the confirmed repair contribution is `$144`.
+
+Feasible competing revised plan: B+C+G uses `$64` and `105` minutes, with revenue `$240`, order surplus `$176`, and repair contribution `$141`, so it is worse than A+B+C+E by `$3`.
+
+3. THE PUBLIC UPDATE
+
+Today’s confirmed production raised `$144` toward the repair bill, leaving a remaining gap of `$76`. We had to revise the afternoon run after the available materials money dropped from `$80` to `$66`. A possible `$100` donor gift was mentioned, but no gift or commitment had been received by the end of the day.

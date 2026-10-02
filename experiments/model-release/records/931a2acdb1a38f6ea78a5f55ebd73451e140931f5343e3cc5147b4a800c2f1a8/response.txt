@@ -1,0 +1,118 @@
+## 1. THE STORY
+
+### A Place to Return
+
+Mara’s pencil had worn a shallow groove in the community print shop’s counter. This afternoon she laid the repair bill across it. Payment was due at closing. They needed $220 in new money, or tomorrow the doors would stay shut.
+
+Ivo stood beside the banner sample, stroking its blue edge. He had volunteered here since retiring from the bus depot. At the theater, his daughter was playing a woman who finally left town.
+
+“People have to know she’s there,” he said. “Do the banners first.”
+
+“We also have to open tomorrow.”
+
+Mara had $80 for materials and 120 minutes of machine time. Customers paid only after production ended, so their payments couldn’t fund another order that afternoon.
+
+“The eighty isn’t repair money,” she reminded him. “It has to come back.”
+
+She worked through the order slips. Posters, tickets, menus, theater banners: $80 in materials, all 120 minutes, $294 coming back. The best combination. After replacing the materials float and paying the fixed $35 operating expense, the repair fund would get $179.
+
+“Forty-one short,” she said. “But the banners are in.”
+
+Ivo grinned, suddenly younger. He moved the sample to the top of the stack. Mara reached for the supplier’s order form. Before she could buy anything, the treasurer called.
+
+The balance had been copied wrong. Only $66 was available. Mara crossed out eighty. The groove caught her pencil and snapped its point.
+
+“Then do the banners and whatever fits,” Ivo said.
+
+She picked up the broken point. “That’s what I’m checking.”
+
+The new list was posters, programs, tickets, bookmarks. Materials: $66. Machine: 100 minutes. Payments: $245. After materials and the same operating expense, $144 for repairs. She checked every possible combination that fit, hoping another set would spare her the conversation. None did.
+
+The best list with banners was programs, tickets, banners. It would leave $141 for repairs.
+
+“You’re dropping us for three dollars?” Ivo said.
+
+Mara rubbed the pencil splinter between her fingers. “Yes.”
+
+He waited for her to soften it. She couldn’t.
+
+“The banners would be outside,” he said. “Everyone passing could see them. These bookmarks will disappear into books.”
+
+“And someone will find one there.”
+
+“Don’t make that sound noble.”
+
+She looked toward the windows. The painted SHOP lettering had flaked until the O resembled a closing parenthesis.
+
+“Neither plan pays the bill,” she said. “But I can’t tell the people buying bookmarks that their money matters less because nobody will see it from the street.”
+
+Ivo rolled the sample too tightly. Its edge clicked against the counter.
+
+“Someone at rehearsal said a donor might give a hundred tonight.”
+
+“Might,” Mara said.
+
+The telephone sat between them. No donor had called. Nobody had promised anything. She put the banner slip in the declined pile.
+
+Ivo went outside. Through the glass she watched him call the theater, shoulders raised, one hand cupped over his ear. When he returned, he hung up his coat.
+
+“She says she’ll tell people herself.”
+
+Mara couldn’t tell whether he meant his daughter was angry. She didn’t ask.
+
+Only then did she purchase the materials. Ivo fed the poster stock while Mara squared its corners. Programs followed, then tickets, then bookmarks. The rollers warmed the room with the smell of hot dust and ink. They worked beside each other, speaking mostly in quantities.
+
+At the last bookmark, Ivo lifted it carefully. The library had requested a blank line under the printed words RETURN TO.
+
+“For a name,” he said.
+
+“For wherever it belongs,” Mara said.
+
+He laid it flat.
+
+The four complete jobs used 100 machine minutes. Twenty remained. Mara switched off the machine. When production ended, customers paid $245. She separated $66 to restore the float, $35 for operating costs, and $144 for the repair bill. The gap was $76.
+
+Closing time came without a donation or commitment. Mara wrote CLOSED PENDING REPAIRS on the door’s chalkboard. Ivo took the chalk and added the shop’s phone number underneath. Then he held the door while she locked it, and waited until she had put the key away.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Contribution equals revenue minus materials minus $35. Checking feasible subsets gives these maximum order surpluses:
+
+| Number of orders | Initial limits | Revised limits |
+|---|---:|---:|
+| Three or fewer | $204 | $176 |
+| Four | $214 | $179 |
+| Five | $209 | Infeasible |
+| Six or more | Infeasible | Infeasible |
+
+The five cheapest orders already cost $80. The only feasible five-order initial plan is A, C, E, F, H. Thus the selected four-order plans maximize contribution.
+
+A feasible revised competitor is **B, C, G**: materials $64, time 105 minutes, revenue $240. Its contribution is $240 − $64 − $35 = **$141**, leaving $79 short—$3 worse than the revised choice.
+
+## 3. THE PUBLIC UPDATE
+
+This afternoon’s completed orders contributed **$144** toward our $220 repair goal after materials and operating costs, leaving **$76 still needed**. A possible $100 donation has been mentioned, but **no gift or commitment has been received**. The shop is closed pending repairs.

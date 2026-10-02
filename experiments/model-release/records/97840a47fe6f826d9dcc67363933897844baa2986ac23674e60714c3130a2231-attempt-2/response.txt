@@ -1,0 +1,97 @@
+# THE STORY
+
+**The Banner Math**
+
+The Risograph had a wobble in its drum that Mara could feel through the floor, a soft lurch every ninth sheet. The repair tech was coming Monday. The deposit was due tonight, and she was two hundred and twenty dollars short of it.
+
+Ivo had the theater's banner mockup pinned over the paper rack when she came back from the bank. Gold letters on black, *Winter Fable*, with a fox outline he'd drawn himself.
+
+"They open Thursday," he said. "Fifty minutes on the machine and they pay a hundred and twelve. Biggest ticket on the board."
+
+"I know what's on the board." She set the envelope down. It was thinner than she'd hoped. "I've got eighty dollars for stock and ink, and a hundred and twenty minutes before the drum gives up. The customers pay when they pick up. I can't buy paper with money I don't have yet."
+
+She pulled the order slips off the clip and laid them out on the cutting table in a row, eight of them, the way she'd done it since she was the one answering the phone and running the press both. Posters, programs, tickets, postcards, bookmarks, menus, banners, maps. For each one she wrote two numbers in pencil: what it cost her to make, and what was left after.
+
+"You're going to kill the banners," Ivo said.
+
+"I'm going to add it up."
+
+He didn't like watching her do this. He'd told her once that she treated the shop like a spreadsheet with a door. She'd told him spreadsheets didn't have drums that wobbled.
+
+It came out clean enough. Banners, posters, menus, tickets: exactly eighty dollars of materials, exactly a hundred and twenty minutes. Two hundred and fourteen in surplus. Take out the thirty-five she owed the electric co-op, and a hundred and seventy-nine went toward the repair.
+
+"Forty-one short," she said, "but the banners are in."
+
+Ivo exhaled like he'd been holding it since she walked in. "Told you."
+
+"You told me they were big. Big isn't the same as right. They're in because the numbers put them there." She started pulling black cover stock from the shelf.
+
+The phone rang before she'd cut a single sheet. It was Dev at the supplier, apologetic, saying the ink she'd ordered on account had gone up and the account was capped. He could only release sixty-six dollars' worth this afternoon.
+
+Mara put the stock back on the shelf.
+
+"Don't," Ivo said.
+
+"I haven't cut anything. That's the only reason I can still think." She erased the four circled slips and started over. The pencil was loud in the room; the radiator ticked.
+
+Sixty-six dollars changed everything. Banners alone ate thirty of it. With posters and tickets they came to fifty-eight, and nothing else on the table fit in the eight dollars left. She tried banners with programs and tickets: a hundred and seventy-six surplus. She tried posters, tickets, menus, maps: a hundred and seventy-four. Then posters, programs, tickets, bookmarks. Sixty-six dollars exactly. A hundred minutes. A hundred and seventy-nine.
+
+She set the pencil down. "The banners are out."
+
+"By three dollars."
+
+"By three dollars. Which is a hundred and forty-four toward the deposit after the co-op. Seventy-six short. If I run the banners instead, it's seventy-nine short, and I still don't have a machine on Monday."
+
+Ivo pulled the fox drawing off the rack and held it in both hands. "They're kids. Half of them have never seen their name on anything bigger than a report card."
+
+"I know." She meant it, and it didn't change the column.
+
+He turned toward the window. "Pauline said someone from the arts council might give a hundred tonight. If that comes through, the gap closes."
+
+"Might," Mara said. "If. Tonight. I can't buy ink with any of those words. When the money's in the till, we'll talk about banners. Not before."
+
+He stood there for a long moment. Then he put the fox down on the table, face up, and went to the paper rack and pulled the cream stock for the programs. He didn't say anything. Neither did she. The first run started with its lurch on the ninth sheet, and the smell of soy ink filled the room.
+
+By five the programs were stacked and the bookmarks were drying in fans across the back bench. Mara wrote *$144* on the envelope and underlined it twice. Ivo wrote *76 to go* underneath, smaller.
+
+"Thursday," he said.
+
+"If the drum holds and the money's real, Thursday."
+
+The phone didn't ring again.
+
+# THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Per-order surplus (payment minus materials): A 50, B 66, C 28, D 68, E 35, F 54, G 82, H 42.
+
+**Initial plan (materials ≤ 80, minutes ≤ 120).** A+C+F+G uses 18+10+22+30 = 80 dollars and 25+15+30+50 = 120 minutes, surplus 50+28+54+82 = 214. Contribution 214 − 35 = 179. Competing feasible plan: A+B+C+D, materials 80, minutes 115, surplus 212, contribution 177. No feasible set exceeds 214.
+
+**Revised plan (materials ≤ 66, minutes ≤ 120).** A+B+C+E uses 18+24+10+14 = 66 dollars and 25+40+15+20 = 100 minutes, surplus 50+66+28+35 = 179. Contribution 179 − 35 = 144. Competing feasible plan: B+C+G, materials 64, minutes 105, surplus 176, contribution 141. Banners cannot join A+B+C+E (would need 96 dollars), and no set containing G beats 179.
+
+# THE PUBLIC UPDATE
+
+Shop update: We finished today's production and confirmed $144 toward the $220 press repair deposit, after materials and this month's operating costs. That leaves a gap of $76. Our materials budget was cut to $66 this afternoon, so we could not print the theater banners today. A supporter mentioned a possible $100 donation tonight, but nothing has been pledged or received. We will post again as soon as anything is confirmed.

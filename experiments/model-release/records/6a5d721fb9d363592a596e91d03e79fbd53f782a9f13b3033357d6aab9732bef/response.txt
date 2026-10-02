@@ -1,0 +1,112 @@
+# 1. THE STORY
+
+## Tight Margins
+
+The smell of warm toner hung in the air, mixing with the September light that slanted through the print shop's high windows. Mara stood at the scheduling board, marker in hand, staring at the afternoon's work orders.
+
+"We can still make it," Ivo said from the paper cutter, where he was trimming samples. "Two hundred twenty dollars. That's what the repair costs."
+
+"I know what it costs." Mara had been running the numbers since dawn. The Heidelberg's drive belt had three weeks of life left at most, and the deadline for the community fund match was tonight. Whatever they didn't cover themselves, they'd lose access to.
+
+She'd worked it out carefully. With eighty dollars in materials money and two hours of machine time, the optimal path was clear: posters for the literacy council, tickets for the elementary raffle, menus for the new café, and the theater banners Ivo kept asking about. That combination would bring in two hundred ninety-four dollars in payments, leaving a surplus of two hundred fourteen after materials. Subtract thirty-five for the afternoon's operating costs, and they'd contribute one hundred seventy-nine toward the repair. Forty-one short, but close.
+
+The bell over the door chimed. Delia, the shop's treasurer, stepped inside with an envelope.
+
+"Bad news," she said, not meeting Mara's eyes. "The float came up short. We've only got sixty-six for materials."
+
+The marker squeaked as Mara crossed out her numbers. Ivo set down the paper trimmer.
+
+"Sixty-six," he repeated. "That's—"
+
+"Fourteen dollars less." Mara was already recalculating. The theater banners alone cost thirty in materials. With the reduced budget, including them meant dropping to a smaller combination: banners, programs, tickets. That path yielded one hundred seventy-six in surplus, one hundred forty-one in repair contribution. But if she cut the banners entirely and ran posters, programs, tickets, and bookmarks, she'd hit sixty-six exactly in materials, one hundred minutes in machine time, and one hundred seventy-nine in surplus. One hundred forty-four toward the repair after operating costs.
+
+Three dollars more without the banners. Three dollars closer to two hundred twenty.
+
+"The theater needs those," Ivo said. "Their opening is Friday."
+
+"I know when their opening is."
+
+"Then you know they're counting on us." He crossed to the board, pointing at the order marked G. "One hundred twelve dollars in payment. Eighty-two dollars in profit. That's the best return on the list."
+
+"It's not about return per order. It's about what we can fit." Mara pulled out her phone calculator, turned the screen toward him. "With sixty-six in materials, the theater banners lock us into a worse combination. We'd contribute one hundred forty-one. Without them, we contribute one hundred forty-four."
+
+"Three dollars."
+
+"Three dollars we need."
+
+The afternoon light had shifted, falling now across the Heidelberg's bulk in the center of the room. Somewhere outside, a truck downshifted on the hill.
+
+"Lorna might give tonight," Delia offered. "She mentioned she'd been thinking about it. A hundred dollars, maybe."
+
+"Mentioned isn't committed." Mara capped her marker. "If Lorna gives, we're covered either way. If she doesn't, those three dollars matter."
+
+Ivo was quiet for a long moment. He picked up a scrap from the cutting table, folded it in half, folded it again. "The theater group volunteers here," he said finally. "Reiko was here Saturday. Alex ran deliveries last month."
+
+"I know."
+
+"Then you know this isn't just math."
+
+Mara looked at the board, at the neat columns of numbers, at the names behind each order. The literacy council needed their posters for a registration drive. The elementary school needed raffle tickets for their fall carnival. The café had been waiting two weeks for those menus.
+
+"It's not just math," she said. "But the math is what we've got."
+
+She wrote the final list on the board: Posters. Programs. Tickets. Bookmarks. Sixty-six dollars in materials, one hundred minutes of machine time, two hundred forty-five in revenue. One hundred forty-four toward the repair after costs.
+
+Seventy-six short. Maybe Lorna would come through. Maybe she wouldn't.
+
+Ivo pulled on his apron. "I'll stage the paper stock."
+
+"Programs first, then posters. We'll run tickets and bookmarks together at the end."
+
+Delia headed for the register to log the afternoon's plan. Mara moved to the Heidelberg, running a hand along its green flank. The belt whined slightly as she powered it on.
+
+Three weeks left, she thought. Seventy-six dollars short.
+
+But the machine was running, and there was work to do.
+
+---
+
+# 2. THE RECEIPT
+
+```json
+{
+  "donation_confirmed": false,
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  }
+}
+```
+
+**Calculation summary:**
+
+*Initial (A, C, F, G):* Materials 18+10+22+30=80, minutes 25+15+30+50=120, revenue 68+38+76+112=294. Surplus 294−80=214. Contribution 214−35=179. Shortfall 220−179=41.
+
+*Revised (A, B, C, E):* Materials 18+24+10+14=66, minutes 25+40+15+20=100, revenue 68+90+38+49=245. Surplus 245−66=179. Contribution 179−35=144. Shortfall 220−144=76.
+
+**Competing plans:**
+
+- *Initial alternative* A, B, C, D: materials 80, minutes 115, surplus 212. Yields contribution 177, shortfall 43—$2 worse than optimal.
+- *Revised alternative* G, B, C: materials 64, minutes 105, surplus 176. Yields contribution 141, shortfall 79—$3 worse than optimal. Including the theater banners under revised constraints costs $3 in contribution.
+
+---
+
+# 3. THE PUBLIC UPDATE
+
+**Repair Fund Update — October 2**
+
+This afternoon's confirmed production run contributes **$144** toward our $220 repair goal, leaving a gap of **$76**. A potential donor has been mentioned but has not yet committed or given. We will update supporters as soon as any additional contributions are confirmed. Thank you for your continued support of the print shop.

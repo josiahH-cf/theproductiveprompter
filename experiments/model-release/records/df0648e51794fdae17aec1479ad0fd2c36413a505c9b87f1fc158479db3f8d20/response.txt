@@ -1,0 +1,77 @@
+## 1. THE STORY
+
+### The Last Fifty Minutes
+
+At three forty, the copier sounded like a damp cough inside its gray metal case. The community print shop smelled of hot toner, wet cardboard, and the cinnamon tea Mara had forgotten behind the guillotine cutter. A yellow strip of tape across the back-room door read REPAIR DEADLINE—TODAY. On the counter lay eight job slips, lettered A through H, and beside them a paper cup holding the shop’s materials float. Mara had eighty dollars and one hundred twenty minutes before the machine had to be handed over for its repair.
+
+Ivo came in with rain on his jacket and a roll of red twine over one shoulder. He picked up the theater slip as if it were already printed. “Banners first,” he said. “They’ve got rehearsal tonight.”
+
+Order G was two wide panels, thirty dollars of material, fifty minutes at the press, one hundred twelve dollars after completion. Mara watched the blue service light pulse. “They pay after production ends,” she said. “So does everyone else. That money cannot buy the paper for something else today.”
+
+“Still,” Ivo said, “the banners matter.”
+
+“Everything on this counter matters,” she said, too sharply. “The repair does too.”
+
+She built her initial plan on the back of a spoiled proof, turning the slips like cards. Posters A, tickets C, menus F, and the banners G: eighty dollars in material and exactly one hundred twenty minutes. Their payments would total two hundred ninety-four dollars. After material, the order surplus was two hundred fourteen. No allowed arrangement left her with more. The shop’s fixed thirty-five-dollar operating expense would come out afterward, leaving one hundred seventy-nine dollars for the repair—not the old materials float, just new contribution. It was forty-one short of the goal, but it included Ivo’s banners.
+
+Before she bought a sheet of stock or woke the press, the phone rattled against a stack of tax forms. The co-op bookkeeper’s correction was brief: only sixty-six dollars was actually available for materials. One hundred twenty machine minutes remained. No order had started; no customer payment had arrived. Mara reread the message, then laid her pencil across the original plan.
+
+“Fourteen dollars,” Ivo said. “We can find fourteen dollars.”
+
+“Not today.” She tapped the blank space in the cup. “There isn’t a loan hidden in a maybe.”
+
+He pushed G toward her. “Then take out the programs. Run the banners with B and C, whatever gets us closest.”
+
+“That combination uses sixty-four and one hundred five minutes,” Mara said. “It earns two hundred forty, leaves one hundred seventy-six after materials.” Her finger stopped on the new row. “A, B, C, and E use all sixty-six dollars, take one hundred minutes, and pay two hundred forty-five. Their surplus is one hundred seventy-nine.”
+
+“Three dollars.”
+
+“Three dollars is three dollars closer to a repair bill.” She did not say that the remaining twenty minutes were useless once every dollar of material was spoken for. She did not say that a possible payment later that evening could not bend the afternoon’s rules. The words would only make the theater’s absence larger.
+
+Ivo stared at the banner slip. “So the practical thing is to let rehearsal have bare walls.”
+
+“The practical thing is to tell them before they wait for us,” Mara said. Her voice softened. “I hate it too.”
+
+He did not leave as she expected. He took the theater’s number from the slip, stood beneath the buzzing fluorescent light, and told their stage manager the truth: no banners today, no invented promise. When he hung up, he set the red twine beside the unprinted job.
+
+They ran posters, programs, tickets, and bookmarks. Paper clicked through the feeder; the shop filled with the warm, peppery smell of ink. Ivo caught the first curl of each stack before it hit the floor. At the end of the hundredth minute, the orders were finished and their payments totaled two hundred forty-five dollars. Mara wrote the final figures in a clean square: two hundred forty-five less sixty-six, less thirty-five, left one hundred forty-four for repair. The gap was seventy-six.
+
+As the machine cooled, Ivo’s phone lit up. “A theater board member says a donor might give a hundred tonight,” he said.
+
+Mara capped her pen. “Might is not a gift, and it is not a commitment.”
+
+He looked at the blank banner slip, then nodded. Together they taped the repair notice to the window. At closing, the repair envelope held the confirmed one hundred forty-four dollars. No donor money, and no promise of it, had arrived.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Initial: A+C+F+G exactly uses $80 and 120 minutes: $294 − $80 = $214, then $214 − $35 = $179.
+
+Revised: A+B+C+E uses $66 and 100 minutes: $245 − $66 = $179, then $179 − $35 = $144. A feasible revised banners alternative, B+C+G, uses $64 and 105 minutes, with $240 − $64 − $35 = $141, so it contributes $3 less.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s completed work produced a confirmed $144 repair contribution after materials and the fixed operating expense. The repair fund remains $76 short of its $220 goal. A possible $100 donor gift was mentioned for tonight, but no gift or commitment has been received.

@@ -1,0 +1,118 @@
+## 1. THE STORY
+
+**Sixty-Six**
+
+The shop smelled of warm toner and scorched coffee, and the whiteboard by the cutter said 220 in red marker, circled so hard the pen had squealed.
+
+Eight order slips lay fanned across the counter. I'd spent the lunch hour with a pencil and the back of a ream box, and by one o'clock I had it: posters, tickets, menus, and the theater's banners. Eighty dollars of materials, all 120 machine minutes, $294 arriving only after the last sheet came off the press. Take away the materials and the $35 the shop always swallows, and we'd clear $179. Forty-one short, but a shortage with a number on it.
+
+Ivo read it over my shoulder, breathing through their nose. "Banners should go first."
+
+"Banners are in."
+
+"In isn't first. They're the front of the building, Mara. When the old ones came down, the whole lobby went quiet." A paper-cut thumb tapped slip G. "If anything gets cut, it shouldn't be those."
+
+"Nothing's getting cut. Everything on this list fits."
+
+Ivo grunted, which from them is a ceasefire, and went to wipe the glass on the big machine. I listened to the damp cloth squeak. The press ticked as it warmed. Nothing was bought. Nothing was running.
+
+At 1:40 the treasurer called. A hold on the shop account: only $66 available for materials, not eighty. Same 120 minutes.
+
+"Okay," I said, the way you say it to a dentist, and sat down on the stool.
+
+"What?" said Ivo.
+
+"Sixty-six."
+
+Ivo did what anyone would. "So drop the menus. Twenty-two off, and banners stay."
+
+It deserved a fair try, so I gave it one. Posters, tickets, banners: $58, ninety minutes, $160 of surplus. Eight dollars left over and nothing on the counter that cost eight dollars; thirty minutes of idle machine, humming for nobody.
+
+"It fits," I said. "It isn't good."
+
+So I started over, slip by slip, the pencil going soft. Bookmarks, which I'd skipped at eighty dollars, suddenly mattered: fourteen dollars, twenty minutes, $49 coming in. Posters, programs, tickets, bookmarks came to $66 exactly, 100 minutes, $245 coming in. Subtract the $66 and the $35 and the repair gets $144. Not a dollar of the float wasted.
+
+Banners, programs, tickets was the closest rival: $64, 105 minutes, three dollars worse. I ran it twice.
+
+"Three dollars," Ivo said. "You're dropping the banners for three dollars."
+
+"I'm picking seventy-six short over seventy-nine short."
+
+"The theater will ask me why."
+
+"Tell them it was the best sixty-six dollars could do."
+
+"Programs and tickets are theirs too, fine. But the banners are the ones people see."
+
+"I know."
+
+"Then why—"
+
+"Because I won't hand you a worse number and call it respect."
+
+Ivo folded slip G once, then smoothed it flat again, like making a bed. Ivo took the back phone to tell the theater the banners wouldn't happen here today. Through the wall I heard "Not today" twice and "I know" once.
+
+We were running by two. Posters first, the toner smelling hot and faintly sweet, sheets coming off the tray warm as bread. The cutter dropped with its flat thunk. Ivo came out without being asked, loaded the program stock, and squared each stack against the jogger. We did not talk about banners. Bookmarks went last, tied in tens with twine.
+
+A customer collecting posters paused at the door. "Heard a donor might give a hundred tonight."
+
+Ivo's head came up. Ivo reached for the marker. "A hundred closes it."
+
+"It would."
+
+"So write it."
+
+"Who said it?"
+
+"Somebody who heard it from somebody."
+
+I took the marker and wrote 144 under the circled 220, and 76 beneath that. Then, smaller, in the corner: *donor? Nothing received.* "I'll move it when it's real."
+
+At six the machine's fan wound down. The phone sat on the counter and said nothing. Ivo wiped the glass again, though it was already clean.
+
+"Seventy-six," Ivo said.
+
+"Seventy-six," I said, and neither of us moved to turn off the light.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Per-order surplus (payment − materials): A 50, B 66, C 28, D 68, E 35, F 54, G 82, H 42. Contribution = surplus − 35.
+
+**Initial ($80, 120 min).**
+- The five cheapest orders (C, E, H, A, F) already use exactly $80, so that set (A, C, E, F, H) is the only 5-order option. It uses 115 min and has surplus 209.
+- Among 4-order sets, A+C+F+G is best: $80, 120 min, surplus 214.
+- Competing feasible plan: A+B+C+D is $80, 115 min, revenue 292, surplus 212, contribution 177, shortfall 43.
+
+**Revised ($66, 120 min).**
+- Five orders need at least $80, so at most four fit. Only five 4-order sets fit $66 with C+E, plus C+H+A+F. A+B+C+E is best at 179, and minutes are not binding (100).
+- Best 3-order sets reach only 176.
+- The old plan no longer fits ($80 > $66). Dropping F to keep banners gives A+C+G: $58, 90 min, surplus 160, contribution 125.
+- Competing feasible plan: B+C+G is $64, 105 min, revenue 240, surplus 176, contribution 141, shortfall 79.
+
+## 3. THE PUBLIC UPDATE
+
+Print-shop repair update: today's four orders give a confirmed repair contribution of $144 toward our $220 goal, after materials and operating costs. We remain $76 short. A donor may give $100 tonight, but no gift or commitment has been received, so it is not counted. Thank you for your support; we'll update this notice if anything is confirmed.

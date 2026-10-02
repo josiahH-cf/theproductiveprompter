@@ -1,0 +1,137 @@
+## 1. THE STORY
+
+### What the Paper Would Hold
+
+At two o’clock, the print shop smelled of warm rollers and the orange peel Ivo had left beside the cutter. Rain tapped the front window. Under the counter, the failing pump made a sound like someone trying to clear a throat without waking a child.
+
+Mara had until four to run the machine. After that, it would stay off until the repair was paid for. The repair deadline was tonight, and they needed $220 in new money.
+
+Ivo spread the theater’s banner design across the counter. Red lettering, enormous yellow moon.
+
+“People will see these from the bus,” he said. “That’s what this place needs.”
+
+“This place needs a pump.”
+
+“The theater lent us chairs for the anniversary.”
+
+“I remember. I carried them back.”
+
+He flattened a curling corner with his palm. His sister was directing the play. Mara knew that, and he knew she knew, which made both of them careful for about thirty seconds.
+
+Then he said, “You could do one thing because it matters.”
+
+Mara pulled the eight order slips toward her.
+
+She had $80 for materials and 120 machine minutes. Customers would pay only after production ended. There would be no using one customer’s payment to buy stock for another job. Each order had to be finished whole or refused.
+
+She had already worked through the combinations on the backs of spoiled business cards. Posters, programs, tickets, postcards: A, B, C, D. Materials came to $80; machine time, 115 minutes. Payments totaled $292. After materials, $212 remained.
+
+She wrote the fixed operating expense underneath: $35.
+
+“That leaves $177 for the repair,” she said.
+
+Ivo looked at the banner. “Still short.”
+
+“Forty-three dollars short. Every other choice leaves us farther away.”
+
+“Even with the banners?”
+
+“Even with the banners.”
+
+He lifted the design from the counter so sharply that its edge struck the orange peel.
+
+The shop had printed his first résumé. It had printed the missing-cat notices when Mara’s elderly cat escaped. They both remembered these things while pretending to examine paper.
+
+Mara reached for the cash envelope.
+
+There were three twenties, a five, and a one.
+
+She counted again.
+
+Then she found her own note, tucked behind the money: fourteen dollars spent that morning on materials for a job already collected. She had updated the envelope, but not the afternoon worksheet.
+
+“Sixty-six,” she said.
+
+Ivo turned back.
+
+“No stock bought yet,” she added. “Nothing started.”
+
+For a moment she wanted to keep the original slips lined up. They looked so settled.
+
+Instead, she crossed out the eighty.
+
+Ivo dragged over a stool. “Do it again.”
+
+His voice had lost its accusation, though not its hope.
+
+The pump coughed beneath them. Mara checked combinations while Ivo called out totals. Once he tried adding bookmarks to a set that cost too much. Once she gave the maps five fewer minutes than they required, and he caught it.
+
+At last she circled A, B, C, E.
+
+Posters, programs, tickets, bookmarks. Exactly $66 in materials, 100 minutes, $245 in payments. The order surplus was $179. After the operating expense, $144 could go toward the repair.
+
+The gap was $76.
+
+Ivo tapped another scrap. Banners, programs, tickets cost $64 and took 105 minutes. But their payments left only $176 after materials, and $141 after the operating expense.
+
+“Three dollars,” he said.
+
+Mara waited.
+
+“My sister is going to hate three dollars.”
+
+“She can hate me.”
+
+“That isn’t what I said.”
+
+He folded the banner design along its old crease. Then he took out his phone and called the theater. Mara heard him say they would have to manage without the banners.
+
+They bought the materials. Ivo fed the posters while Mara checked the programs. Tickets emerged in stiff little ranks. Last came the bookmarks, blue tassels printed flat because real ones cost money.
+
+Someone collecting an order said a donor might give $100 tonight.
+
+Mara thanked them. She added nothing to the ledger.
+
+When production ended, the customers paid. Mara set aside the materials float and the operating expense, then counted the repair contribution with Ivo watching: $144.
+
+They shut down the machine.
+
+Ivo stayed to sweep. At the door, he pinned up Mara’s notice asking for the remaining $76, smoothing each corner with the same palm that had held down the moon.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "B", "C", "D"],
+    "materials": 80,
+    "minutes": 115,
+    "revenue": 292,
+    "order_surplus": 212,
+    "repair_contribution": 177,
+    "shortfall": 43
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+The fixed $35 deduction means maximizing order surplus also maximizes repair contribution. Comparing feasible subsets gives the stated maximum under each materials limit.
+
+- **Initial:** materials = 18 + 24 + 10 + 28 = **80**; minutes = **115**; revenue = **292**. Contribution = 292 − 80 − 35 = **177**.
+- **Revised:** materials = 18 + 24 + 10 + 14 = **66**; minutes = **100**; revenue = **245**. Contribution = 245 − 66 − 35 = **144**.
+- **Feasible competing plan under both limits:** B, C, G costs **64**, takes **105 minutes**, and earns **240**. Its contribution is 240 − 64 − 35 = **141**, leaving a **79** shortfall.
+
+The original materials float is excluded from repair income.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s completed orders raised **$144 toward the repair**, after materials and the fixed operating expense. We still need **$76** to meet tonight’s repair deadline. A possible $100 donation has been mentioned, but no gift or commitment has been received. The machine is shut down pending repair. Thank you to everyone who ordered, volunteered, and helped us finish the afternoon’s work.
