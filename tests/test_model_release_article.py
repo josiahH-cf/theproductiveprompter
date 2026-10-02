@@ -196,6 +196,27 @@ class ApprovedVoiceTests(unittest.TestCase):
                 inputs=af.packet_inputs(directory,run,state)
                 self.assertIn("seed",[item["id"] for item in inputs])
 
+    def test_campaign_research_receives_the_pinned_approved_voice(self):
+        directory,run=self.start_at_voice()
+        with patch.object(af,"state_definition",return_value={"required_inputs":[]}):
+            for state in ("RESEARCH_PLAN","RESEARCH"):
+                voice=next(item for item in af.packet_inputs(directory,run,state) if item["id"] == "voice-profile")
+                self.assertEqual(voice["sha256"],run["run_overrides"]["reuse_approved_voice"]["profile_sha256"])
+
+    def test_campaign_research_rejects_another_voice_profile(self):
+        directory,run=self.start_at_voice()
+        run["run_overrides"]["reuse_approved_voice"]["profile_sha256"]="0"*64
+        with patch.object(af,"state_definition",return_value={"required_inputs":[]}):
+            with self.assertRaisesRegex(af.FlowError,"pinned profile"):
+                af.packet_inputs(directory,run,"RESEARCH")
+
+    def test_regular_research_does_not_receive_campaign_voice_inputs(self):
+        directory,run=self.start_at_voice()
+        run["run_overrides"].pop("model_release")
+        run["run_overrides"].pop("reuse_approved_voice")
+        with patch.object(af,"state_definition",return_value={"required_inputs":[]}):
+            self.assertEqual(af.packet_inputs(directory,run,"RESEARCH"),[])
+
 
 if __name__ == "__main__":
     unittest.main()

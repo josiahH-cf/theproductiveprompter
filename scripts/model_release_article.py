@@ -83,7 +83,9 @@ def article_seed(models, initial=False):
     return (
         subject + "\nUse my existing approved author voice automatically. Write a short TLDR and a few clear paragraphs, 300–650 words of prose. "
         "This explicit compact form takes precedence over recent-post variety and recipe word-count defaults. "
-        "Open with my anecdotal feel for Claude and Codex and my reason for starting this repeatable experiment. "
+        "The author-supplied first-person premise is: 'I have an anecdotal feel for each of the models and how they work.' "
+        "Open with that motivation for comparing Claude and Codex. No more specific personal anecdote was supplied; "
+        "do not invent one or require one to research model releases. The controller supplies the pinned approved voice profile. "
         "Explain why I am running the same creative story plus checkable arithmetic challenge on successive model releases. "
         "This is an anecdotal field experiment with one original response per model/settings combination, not a universal ranking. "
         "Describe the frozen PRINT-SHOP CHALLENGE v1.0 and its story, order-selection arithmetic, changed budget, and unconfirmed donation. "

@@ -2524,9 +2524,13 @@ def automated_route_health() -> dict[str, Any]:
 
 def packet_inputs(directory: Path, run: dict[str, Any], state: str) -> list[dict[str, str]]:
     required = set(str(item) for item in state_definition(state, run).get("required_inputs", []))
-    if run.get("run_overrides", {}).get("model_release") == "model-release-v1" and state in {
+    overrides = run.get("run_overrides", {})
+    if overrides.get("model_release") == "model-release-v1" and state in {
             "CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION"}:
         required.add("seed")
+    if (overrides.get("model_release") == "model-release-v1" and
+            overrides.get("reuse_approved_voice") and state in {"RESEARCH_PLAN", "RESEARCH"}):
+        required.add("voice-profile")
     latest = {str(item["type"]): item for item in run.get("artifact_index", [])}
     missing = sorted(required - set(latest))
     if missing:
@@ -2538,6 +2542,9 @@ def packet_inputs(directory: Path, run: dict[str, Any], state: str) -> list[dict
         if not path.is_file():
             raise FlowError(f"Cannot dispatch {state}; artifact file is missing: {artifact_type}", EXIT_INTEGRITY)
         actual = sha256_path(path)
+        if (artifact_type == "voice-profile" and overrides.get("reuse_approved_voice") and
+                actual != overrides["reuse_approved_voice"]["profile_sha256"]):
+            raise FlowError("The approved voice source no longer matches its pinned profile", EXIT_INTEGRITY)
         if actual != item["sha256"]:
             raise FlowError(
                 f"Cannot dispatch {state}; artifact hash changed: {artifact_type}",

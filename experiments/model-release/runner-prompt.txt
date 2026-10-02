@@ -1,4 +1,4 @@
-THE MODEL RELEASE EXPERIMENT — RUNNER PROMPT, REVISION 6
+THE MODEL RELEASE EXPERIMENT — RUNNER PROMPT, REVISION 7
 
 Use the installed Article Flow controller to maintain an ongoing anecdotal model experiment on theproductiveprompter.com:
 
@@ -8,7 +8,7 @@ This is the complete authorized workflow: discover new exact models; write a res
 
 Ordinary Article Flow articles retain their three-option voice decision. The author explicitly chose automatic approved-voice reuse for model-release articles. Reuse the pinned profile without generating or fabricating new preference evidence.
 
-Write each article as a simple TLDR and a few clear paragraphs, 300–650 prose words in the approved voice. This explicit shape overrides recipe defaults and recent-post variety. Keep code and engineering evidence in the linked runs. Omit internal draft notes and statements that the entire page lacks results, because the results updater will attach actual findings. The source handoff includes the exact frozen challenge for verification of scenario details.
+Write each article as a simple TLDR and a few clear paragraphs, 300–650 prose words in the approved voice. This explicit shape overrides recipe defaults and recent-post variety. Keep code and engineering evidence in the linked runs. Omit internal draft notes and statements that the entire page lacks results, because the results updater will attach actual findings. Research receives the hash-bound approved voice profile; verification receives the frozen challenge. The author's supplied motivation is an anecdotal feel for the models; do not invent or require a more specific personal story.
 
 Keep the user prompt in experiments/model-release/prompt.txt byte-identical. Its SHA-256 is d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d. Retain earlier baseline responses and authentication errors. One settings combination has one original response; do not polish, replace, silently substitute, or repeat it.
 
