@@ -291,7 +291,31 @@ def publish_results(af, value, repository, registry):
                 "revision": revision, "changed_files": len(changed)}
 
 
+def experiment_command(args):
+    variants = getattr(args, "variant", None) or []
+    retry = getattr(args, "retry_failed", False)
+    if retry and (args.release_action != "update" or not args.model or not variants):
+        raise m.ExperimentError("A failed-profile retry requires update, an exact --model, and --variant.")
+    timeout = getattr(args, "timeout", 600)
+    if timeout < 1:
+        raise m.ExperimentError("The generation timeout must be positive.")
+    command = ["update", "--matrix", getattr(args,"matrix","components"), "--workers", str(getattr(args,"workers",2))]
+    if getattr(args,"model",None):
+        command += ["--model", args.model]
+    for variant in variants:
+        command += ["--variant", variant]
+    if retry:
+        command += ["--retry-failed"]
+    if timeout != 600:
+        command += ["--timeout", str(timeout)]
+    if getattr(args,"limit",None):
+        command += ["--limit", str(args.limit)]
+    return command
+
+
 def coordinate(af, args):
+    if getattr(args, "retry_failed", False) and args.release_action != "update":
+        raise m.ExperimentError("A failed-profile retry is only valid for update.")
     if args.release_action == "status":
         af.emit({"ok": True, "campaign": campaign(), "repeat_command": ["article-flow", "model-release", "update", "--json"]}, args.json)
         return 0
@@ -299,6 +323,7 @@ def coordinate(af, args):
         return m.main([args.release_action, "--matrix", args.matrix])
     if os.environ.get("ARTICLE_FLOW_TEST_NO_PUBLISH") == "1":
         raise m.ExperimentError("Live model-release coordination is disabled during conformance tests.")
+    experiment_command(args)  # Validate an explicit retry before article publication or generation.
     STATE.mkdir(parents=True, exist_ok=True)
     with m.update_lock(STATE):
         return continue_campaign(af, args)
@@ -378,11 +403,7 @@ def continue_campaign(af, args, depth=0):
             raise m.ExperimentError("No verified article is attached to this campaign.")
         for entry in value["articles"]:
             require_verified_article(af, entry)
-        command = ["update", "--matrix", args.matrix, "--workers", str(args.workers)]
-        if args.model:
-            command += ["--model", args.model]
-        if args.limit:
-            command += ["--limit", str(args.limit)]
+        command = experiment_command(args)
         with redirect_stdout(io.StringIO()):
             introduced = {identity for entry in value["articles"] for identity in entry["models"]}
             code = m.main(command, allowed_models=introduced)

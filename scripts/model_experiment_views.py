@@ -111,9 +111,14 @@ def index_fragment(m, registry, pack, base=SITE, article_url=None):
             earlier = [record for record in records if record['key'] not in selected_keys]
             history = ''
             if earlier:
-                items = ''.join(f'<li><a href="{html.escape(base.rstrip("/")+"/"+run_path(record),quote=True)}">'
-                                f'Attempt {record.get("attempt",1)} · {html.escape(record["status"])}</a></li>' for record in earlier)
-                history = f'<details><summary>Earlier attempts ({len(earlier)})</summary><ul class="run-links">{items}</ul></details>'
+                items = []
+                for record in earlier:
+                    evidence_path = m.safe_path(pack, f"records/{record['key']}/evidence.json")
+                    evidence = m.load(evidence_path) if evidence_path.exists() else {}
+                    items.append(f'<li><a href="{html.escape(base.rstrip("/")+"/"+run_path(record),quote=True)}">'
+                                 f'{html.escape(label(record,evidence))} · Attempt {record.get("attempt",1)}'
+                                 f'<span class="run-status">{html.escape(record["status"].capitalize())}</span></a></li>')
+                history = f'<details><summary>Earlier attempts ({len(earlier)})</summary><ul class="run-links">{"".join(items)}</ul></details>'
             cards.append(f'<article class="model-card"><h3>{html.escape(display_name(model))}</h3>'
                          f'<p class="model-date">{html.escape(date)}</p><ul class="run-links">'
                          f'{"".join(links) or "<li>No response captured</li>"}</ul>{history}</article>')

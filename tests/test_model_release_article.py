@@ -20,6 +20,16 @@ import model_experiment_views as views
 
 
 class PublicationTests(unittest.TestCase):
+    def test_campaign_forwards_exact_retry_settings(self):
+        args=argparse.Namespace(release_action="update",model="claude-opus-5-5",variant=["effort-max"],
+                                retry_failed=True,timeout=1200,matrix="components",workers=1,limit=1)
+        command=bridge.experiment_command(args)
+        self.assertEqual(command,["update","--matrix","components","--workers","1",
+            "--model","claude-opus-5-5","--variant","effort-max","--retry-failed","--timeout","1200","--limit","1"])
+        args.variant=[]
+        with self.assertRaisesRegex(m.ExperimentError,"requires update"):
+            bridge.experiment_command(args)
+
     def test_host_fallback_returns_the_actual_task_protocol(self):
         failure=af.FlowError("No controller-hosted route is eligible; the active host must perform the task packet")
         with patch.object(bridge,"captured_call",side_effect=failure), \

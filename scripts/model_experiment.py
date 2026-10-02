@@ -123,6 +123,19 @@ def unsuccessful_trials(registry, catalog, mode="components"):
             if trial_key(row["provider"], row["model"], row["_variant"]) in attempted - successful]
 
 
+def explicit_retry_candidates(registry, catalog, model, variant_ids, mode="components"):
+    """Retry only named profiles without a captured response, under new attempt keys."""
+    selected = []
+    for row in unsuccessful_trials(registry, catalog, mode):
+        if row["model"] != model or row["_variant"]["id"] not in variant_ids:
+            continue
+        identity = trial_key(row["provider"], row["model"], row["_variant"])
+        prior = [record for record in registry["records"]
+                 if trial_key(record["provider"], record["model"], record.get("variant")) == identity]
+        selected.append((row, max(record.get("attempt", 1) for record in prior) + 1))
+    return selected
+
+
 def empty_registry():
     return {"schema_version": 1, "experiment": EXPERIMENT,
             "prompt_sha256": PROMPT_SHA256, "models": [], "records": []}
@@ -697,10 +710,16 @@ def main(argv=None, *, allowed_models=None):
     parser.add_argument("--matrix", choices=["baseline", "components", "factorial"], default="components",
                         help="Components varies one setting at a time; factorial crosses every supported setting.")
     parser.add_argument("--variant", action="append", help="Restrict to a named settings trial (repeatable).")
+    parser.add_argument("--retry-failed", action="store_true",
+                        help="Explicitly retry failed generation; requires --model and --variant. Captured responses are never repeated.")
     parser.add_argument("--limit", type=int, help="Bound the number of new calls in this invocation.")
     parser.add_argument("--workers", type=int, choices=[1, 2, 3], default=2)
     parser.add_argument("--current-only", action="store_true", help="Skip the official extended Claude model catalog.")
     args = parser.parse_args(argv)
+    if args.retry_failed and (args.action != "update" or not args.model or not args.variant):
+        raise ExperimentError("A failed-profile retry requires update, an exact --model, and --variant.")
+    if args.timeout < 1:
+        raise ExperimentError("The generation timeout must be positive.")
     freeze_prompt()
     registry_path = PACK / "registry.json"
     if args.action == "status":
@@ -748,6 +767,11 @@ def main(argv=None, *, allowed_models=None):
                     registry, planned_trials(registry, trial_catalog, args.matrix),
                     claude_auth_ready()) if (not args.model or row["model"] == args.model)
                     and (not args.variant or row["_variant"]["id"] in args.variant)]
+            if args.retry_failed:
+                scheduled = {trial_key(row["provider"], row["model"], row["_variant"]) for row, _ in selected}
+                selected += [(row, attempt) for row, attempt in explicit_retry_candidates(
+                    registry, trial_catalog, args.model, args.variant, args.matrix)
+                    if trial_key(row["provider"], row["model"], row["_variant"]) not in scheduled]
             if args.model and not any(row["model"] == args.model for row in catalog):
                 raise ExperimentError("Requested model is not in the verified current catalogs; no substitution.")
             if args.model and not any(row["model"] == args.model for row in trial_catalog):
@@ -792,6 +816,9 @@ def main(argv=None, *, allowed_models=None):
         report["models_waiting_for_article"] = [{"provider": row["provider"], "model": row["model"]}
             for row in catalog if allowed_models is not None and model_key(row["provider"], row["model"]) not in allowed_models]
         report["matrix"] = args.matrix
+        if args.retry_failed:
+            report["explicit_retry_request"] = {"model": args.model, "variants": args.variant,
+                                                "timeout_seconds": args.timeout}
         report["client_metadata_gaps"] = [row["model"] for row in catalog if row.get("client_metadata_status") == "not exposed"]
         report["unavailable_models"] = [{"provider": "codex", "model": "gpt-5.3-codex-spark",
                                         "status": "retired", "retired_on": "2026-09-14",

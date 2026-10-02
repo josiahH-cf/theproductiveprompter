@@ -14,6 +14,8 @@ Discovery includes current Codex models and current plus documented legacy Claud
 
 Every original response, evidence file, requested configuration, and validator result is append-only. Saved generation failures remain observed attempts. Known auth failures may recover under a new attempt number; ambiguous interrupted attempts require reconciliation. Model substitutions fail identity coverage.
 
+An operator-requested failed generation can be retried explicitly: `article-flow model-release update --model claude-opus-5-5 --variant effort-max --retry-failed --timeout 1200 --json`. The retry creates a new numbered attempt and keeps the original failure accessible in its card's earlier attempts. It never repeats a captured response, including one whose receipt failed. Ordinary updates do not retry generation failures, and an interrupted retry with unknown completion remains blocked from automatic resend.
+
 The public index uses stacked model cards grouped by Claude and Codex, oldest release first. Each settings link leads to its immutable run page, which renders readable prose and keeps receipts and technical details in expandable sections. Exact response and evidence downloads remain available.
 
 Usage is reported by the clients. Claude may report auxiliary Haiku usage; aggregate and per-model fields are preserved. Client dollar estimates are estimates, not verified charges. Effort is verified as an explicit accepted client setting; internal reasoning is not exposed for independent verification.

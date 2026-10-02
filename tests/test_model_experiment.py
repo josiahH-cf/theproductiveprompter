@@ -16,6 +16,73 @@ import model_experiment_views as views
 
 
 class ExperimentTests(unittest.TestCase):
+    def test_explicit_retry_is_scoped_and_preserves_prior_failure(self):
+        row = dict(self.row("m"), effort_levels=["low", "medium"])
+        low = m.variants(row)[1]
+        prior = {"provider":"codex", "model":"m", "variant":low,
+                 "status":"timeout", "attempt":1}
+        registry = {"models":[row], "records":[prior]}
+        before = json.loads(json.dumps(registry))
+        retry = m.explicit_retry_candidates(registry,[row],"m",["effort-low"])
+        self.assertEqual([(r["model"],r["_variant"],a) for r,a in retry],[("m",low,2)])
+        self.assertEqual(registry,before)
+        self.assertEqual(m.explicit_retry_candidates(registry,[row],"other",["effort-low"]),[])
+        self.assertEqual(m.explicit_retry_candidates(registry,[row],"m",["baseline"]),[])
+        registry["records"].append(dict(prior,status="response captured",attempt=2))
+        self.assertEqual(m.explicit_retry_candidates(registry,[row],"m",["effort-low"]),[])
+
+    def test_failed_retry_requires_named_model_and_profile(self):
+        with patch.object(m,"discover") as discovery:
+            for args in (["update","--retry-failed"],
+                         ["update","--model","m","--retry-failed"],
+                         ["check","--model","m","--variant","baseline","--retry-failed"]):
+                with self.assertRaisesRegex(m.ExperimentError,"requires update"):
+                    m.main(args)
+            discovery.assert_not_called()
+
+    def test_interrupted_retry_never_resends_unknown_completion(self):
+        row = dict(self.row("interrupted-retry"),_variant={"id":"effort-low","effort":"low","verbosity":"default"})
+        key = m.trial_key("codex",row["model"],row["_variant"])+"-attempt-2"
+        folder = self.state/"attempts"/key
+        folder.mkdir(parents=True)
+        m.atomic_json(folder/"started.json",{"attempt":2})
+        with patch.object(m,"process") as launch:
+            with self.assertRaisesRegex(m.ExperimentError,"no automatic resend"):
+                m.run_once(row,self.state,attempt=2)
+            launch.assert_not_called()
+
+    def test_failed_generation_retry_appends_once_and_repeat_makes_no_call(self):
+        row = dict(self.row("retry-model"),effort_levels=["low","medium"])
+        low = m.variants(row)[1]
+        registry = m.empty_registry()
+        m.reconcile(registry,[row])
+        first = {"key":m.model_key("codex",row["model"]),"provider":"codex","model":row["model"],
+                 "status":"response captured","attempt":1,"prompt_sha256":m.PROMPT_SHA256,
+                 "started_at":"2026-10-02T00:00:00Z"}
+        failed = dict(first,key=m.trial_key("codex",row["model"],low),variant=low,status="timeout")
+        m.append_result(registry,first,b"Original baseline",self.pack)
+        m.append_result(registry,failed,b"",self.pack)
+        before = json.loads(json.dumps(registry["records"]))
+        m.atomic_json(self.pack/"registry.json",registry)
+        captured = dict(failed,key=failed["key"]+"-attempt-2",attempt=2,status="response captured")
+        verify, append = m.verify_registry, m.append_result
+        with patch.object(m,"PACK",self.pack),patch.object(m,"discover",return_value=([row],{})), \
+             patch.object(m,"verify_registry",side_effect=lambda value:verify(value,self.pack)), \
+             patch.object(m,"append_result",side_effect=lambda value,meta,raw:append(value,meta,raw,self.pack)), \
+             patch.object(m,"run_once",return_value=(captured,b"First actual low response")) as launch, \
+             patch.object(m,"write_preview"),redirect_stdout(io.StringIO()):
+            args=["update","--state-dir",str(self.state),"--model",row["model"],"--variant","effort-low","--retry-failed"]
+            self.assertEqual(m.main(args),0)
+            self.assertEqual(launch.call_args.args[-1],2)
+            launch.reset_mock()
+            self.assertEqual(m.main(args),0)
+            launch.assert_not_called()
+        after = m.load(self.pack/"registry.json")
+        self.assertEqual(after["records"][:2],before)
+        self.assertEqual(len(after["records"]),3)
+        self.assertEqual((self.pack/f"records/{failed['key']}/response.txt").read_bytes(),b"")
+        self.assertEqual((self.pack/f"records/{captured['key']}/response.txt").read_bytes(),b"First actual low response")
+
     def test_model_discovered_after_article_is_not_generated_before_introduction(self):
         registry=m.empty_registry()
         old=self.row("old-model")
