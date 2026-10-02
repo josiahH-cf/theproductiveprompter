@@ -1,0 +1,112 @@
+**1. THE STORY**
+
+**The Unprinted Sky**
+
+The banner in Ivo’s sketch had a blue sky and twelve enormous names. He held it over Mara’s desk, covering the repair notice. In the shop window, afternoon light shone through old election posters; the red ink had faded to the color of cooked salmon. The press smelled of warm rubber even while it waited.
+
+“Put the banners first,” Ivo said. “The kids have been rehearsing since June.”
+
+Mara straightened the sketch. He had drawn his daughter’s name a little larger than the others. She pretended not to notice.
+
+With eighty dollars for materials and 120 machine minutes, the best full-order combination was posters, tickets, menus, and banners: A, C, F, G. She checked it again. Eighty spent; 120 minutes used; $294 paid afterward. After replacing the materials money and paying the fixed $35 operating expense, $179 would reach the repair fund. They needed $220 in new money.
+
+“Forty-one short,” she said.
+
+Ivo tapped the blue sky. “But these are in.”
+
+“Yes.”
+
+For a moment, that sounded like agreement about everything.
+
+Then the treasurer called. Mara listened with the receiver wedged against her shoulder.
+
+“Only sixty-six for materials,” she repeated.
+
+Nothing had been bought. The machine had not started. She crossed out the eighty so hard the pencil tore the paper.
+
+Ivo watched her rebuild the list. Posters, programs, tickets, bookmarks: A, B, C, E. Sixty-six dollars, one hundred minutes. Payments of $245, an order surplus of $179, then $144 for repairs after the operating expense. Seventy-six short.
+
+“The banners have disappeared.”
+
+“They don’t fit the best plan.”
+
+“They fit with programs and tickets.”
+
+“Yes. That leaves three dollars less for the repair.”
+
+Ivo looked at her as if three dollars were an insult she had chosen personally.
+
+“My daughter tells people this is where things get made,” he said. “She’s going to see a blank fence.”
+
+Mara pushed the sketch back toward him. “And tomorrow she may see a locked shop.”
+
+He folded one corner under his thumb. “Someone said a donor might give a hundred tonight.”
+
+“Has anyone promised?”
+
+“No.”
+
+The phone between them had a yellowed keypad, polished smooth where people pressed the number for their own houses. Mara waited. Ivo didn’t pick it up.
+
+“Let me call the theater,” he said finally.
+
+He turned away for the conversation. Mara heard him say her name, then stop.
+
+“We can’t do the banners today,” he said. “We don’t have the materials money for that plan.”
+
+When he came back, he left the sketch face up.
+
+Mara bought only the materials for the replacement plan. They ran the posters first, then the programs, then the tickets, then the bookmarks. Each job finished before the next began. The press knocked in its familiar uneven rhythm. A curl of paper landed against Ivo’s shoe and trembled there.
+
+He usually caught mistakes by making jokes. Today he held up a program and pointed silently to a crooked stack.
+
+“Square it against the bench,” Mara said.
+
+“I know.”
+
+She let him do it. Later he asked her to check the ticket count, and she counted beside him, shoulder touching shoulder.
+
+After all four orders were complete, the customers paid $245. Mara put sixty-six back into the materials envelope, thirty-five into the operating envelope, and counted the remaining $144 into the repair fund. Ivo wrote $76 on the repair notice. His figures were larger and clearer than hers.
+
+Twenty machine minutes remained. They could not buy another order with the payments, and none of the completed orders could be repeated. The press went quiet.
+
+At the deadline, there was still no gift and no commitment. Mara told the repair company they hadn’t raised enough to keep the booking. Ivo stayed while she switched off the press and put a closure notice in the window. Then he taped the theater sketch beside it.
+
+The blue sky showed through the glass. Under it, in his big handwriting, was the amount they still needed.
+
+**2. THE RECEIPT**
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Comparing feasible subsets gives maximum order surpluses of $214 initially and $179 under the revised budget. The fixed $35 deduction preserves that ranking:
+
+- Initial contribution: $294 − $80 − $35 = **$179**.
+- Revised contribution: $245 − $66 − $35 = **$144**.
+
+One feasible revised competitor is **B, C, G**: materials $64, time 105 minutes, revenue $240. Its contribution is $240 − $64 − $35 = **$141**, three dollars below the revised optimum. The original materials float contributes no new fundraising income.
+
+**3. THE PUBLIC UPDATE**
+
+Today’s completed orders contributed **$144** toward the shop’s repair bill after materials and the $35 operating expense. We still need **$76** to meet our $220 goal. Someone mentioned a possible $100 donation tonight, but no gift or commitment has been received. We missed the repair deadline, and the shop is closed pending repairs.

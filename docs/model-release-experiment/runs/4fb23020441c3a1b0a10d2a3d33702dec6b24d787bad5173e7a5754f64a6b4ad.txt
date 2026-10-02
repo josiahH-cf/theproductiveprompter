@@ -1,0 +1,133 @@
+## 1. THE STORY
+
+### The Last Run
+
+At three in the afternoon, the print shop smelled of hot paper, machine oil, and the cinnamon gum Mara chewed whenever the numbers were bad.
+
+The repair technician’s deadline was five. Without another $220, he would take the deposit off the replacement motor and give the part to another shop.
+
+Ivo stood beside the cutting table, holding the theater’s order sheet like a flag. “The banners should go first. Opening night is tomorrow.”
+
+“Everything is due tomorrow,” Mara said.
+
+“Not everything hangs over Main Street.”
+
+Rain stippled the front windows. Behind them, handwritten signs thanked the shop for twenty-three years of funeral cards, school programs, lost-dog posters, and election flyers. Inside, eight job envelopes waited beneath the fluorescent lights.
+
+Mara had eighty dollars available for paper, ink, laminate, and banner stock. The press had two usable hours before its failing motor had to cool. Customers would pay only when their jobs were finished, so no early payment could fund the next order. Each job had to be completed whole or refused.
+
+She wrote the order letters on scrap paper and began crossing out combinations.
+
+Ivo paced. “The theater pays a hundred twelve.”
+
+“And costs thirty in materials and fifty minutes.”
+
+“It’s still good money.”
+
+“So are four other jobs together.”
+
+The press clicked as it cooled, a small metallic sound like a clock reconsidering itself.
+
+At last Mara circled A, B, C, and D: posters, programs, tickets, and postcards. Exactly $80 in materials, 115 minutes, and $292 in payments. After replacing the materials, the orders would leave $212. The fixed operating expense would take another $35, leaving $177 for the repair.
+
+“Forty-three short,” Ivo said.
+
+“Yes.”
+
+“And no banners.”
+
+“No banners.”
+
+He slapped the theater envelope onto the table. “That place sent people here when the library stopped printing flyers. They held your fundraiser.”
+
+Mara looked at him. “And Mrs. Vale needs the memorial posters. The school needs its programs and tickets. The food pantry needs those postcards in mailboxes by Monday.”
+
+“You’ve already decided whose emergency counts.”
+
+“I’ve decided what the machine can do.”
+
+Before Mara could open the paper cabinet, the front door banged inward. Lena, the shop’s treasurer, entered shaking rain from her sleeves.
+
+“Stop,” she said. “The card charge for the toner shipment cleared twice. I’m disputing it, but today’s available materials money is sixty-six, not eighty.”
+
+For a moment, nobody spoke. The rain seemed suddenly louder.
+
+Mara uncircled the plan. Nothing had been purchased; the press had not started. She worked again, whispering totals. Ivo leaned over her shoulder whenever she wrote G.
+
+“What about banners, programs, and tickets?” he asked.
+
+“B, C, and G cost sixty-four dollars and take 105 minutes. Payments total $240. Minus materials, that’s $176. Minus operating expense, $141 for the repair.”
+
+“That is only three dollars less.”
+
+“Three confirmed dollars.”
+
+She circled A, B, C, and E: posters, programs, tickets, and bookmarks. Materials, exactly $66. Machine time, 100 minutes. Payments, $245. The order surplus would be $179; after the $35 expense, the repair contribution would be $144.
+
+Seventy-six dollars short.
+
+Ivo stared at the figures. “So the theater loses its banners for three dollars.”
+
+“The theater loses its banners because we need seventy-six dollars we do not have.”
+
+“My cousin says a donor might give a hundred tonight.”
+
+“Might is not in the drawer.”
+
+The words came out sharper than Mara intended. Ivo’s face closed. He picked up the banner envelope, and she thought he might leave.
+
+Instead, he asked, “Can we at least call them ourselves?”
+
+They phoned every customer together. The theater manager was silent for several seconds, then said she would paint a temporary sign on an old backdrop. She did not sound pleased. Neither did Ivo.
+
+At 3:19, Mara started the posters. Warm paper slid into the output tray. Programs followed, then sheets of blue tickets, then bookmarks printed with a child’s drawing of an owl. Ivo trimmed while Mara stacked. Their disagreement settled into the rhythm of blades, paper taps, and the press’s uneven hum.
+
+At 4:58, the last bookmark dropped.
+
+No donor arrived. No promise became money.
+
+Mara placed $144 in the repair envelope and wrote “$76 REMAINING” across the front. Ivo taped it inside the window beside a new notice that gave the same figures.
+
+Then he set the unprinted banner envelope next to Mara’s keys.
+
+“I’m still angry,” he said.
+
+“So am I.”
+
+He nodded toward the honest number in the window. “Tomorrow, I’ll ask people for seventy-six.”
+
+Mara switched off the press. In the sudden quiet, that sounded like a plan.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "B", "C", "D"],
+    "materials": 80,
+    "minutes": 115,
+    "revenue": 292,
+    "order_surplus": 212,
+    "repair_contribution": 177,
+    "shortfall": 43
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+For the initial plan, A+B+C+D uses $80 and 115 minutes. Its $292 revenue minus $80 materials gives a $212 order surplus; after the $35 operating expense, $177 remains. This is optimal, tied with A+B+F+H, which also produces a $212 surplus.
+
+Under the revised limit, A+B+C+E uses exactly $66 and produces a $179 surplus. A feasible banner-inclusive competitor is B+C+G: $64 materials, 105 minutes, $240 revenue, and a $176 surplus—$3 less than the revised optimum.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s completed orders contributed a confirmed $144 toward the print shop’s repair bill after materials and operating expenses. We still need $76 to reach the $220 repair goal. A possible $100 donation was mentioned, but no gift or commitment has been received, so it is not included in these figures.

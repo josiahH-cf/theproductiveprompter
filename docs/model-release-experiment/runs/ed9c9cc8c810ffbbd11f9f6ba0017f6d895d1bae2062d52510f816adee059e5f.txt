@@ -1,0 +1,85 @@
+## 1. THE STORY
+
+### The Last Clean Sheet
+
+By four o’clock, the shop windows had gone the color of weak tea. Rain ticked at the glass, and the press warmed the air with the smell of ink and hot rubber. Beyond the front counter, Mara had written **REPAIR BILL: $220** on the wall calendar and circled the deadline: tomorrow morning. Ivo stood beside her with the theater’s banner proof rolled under one arm.
+
+“They need these tonight,” he said. “The cast is carrying them in by hand.”
+
+Mara turned her calculator so he could see. “I know. But the first plan has to earn the most after materials. Posters, programs, tickets, postcards: A, B, C, D. Eighty dollars of stock, 115 minutes, $292 in payments. That leaves $212 after materials, then $177 after the $35 operating bill.”
+
+“And banners?” Ivo unrolled the proof. A red moon floated above the words *THE LAST ORCHARD*. “Fifty minutes. One order. They pay $112.”
+
+“Eighty-two after materials. Even with other work, they don’t make the best plan.” Mara tapped the paper. “I’m not saying the show doesn’t matter.”
+
+Ivo’s jaw shifted. “It’s easy to call something unimportant when it isn’t your name on the proof.”
+
+The banner paper curled toward the floor. Mara caught its edge before it touched the damp mat. For a moment, neither spoke. Then the phone rang in the back office. She listened, asked the caller to repeat the number, and stared at the calculator as if it had changed shape.
+
+“The materials limit is sixty-six,” she said when she hung up. “The eighty was the wrong figure. The machine time is still 120.”
+
+Ivo glanced at the open stock cupboard. “We run the banners. They pay at the end, and that money buys the rest.”
+
+“After production ends,” Mara said. “We can’t spend it on paper for another order this afternoon.” She took the proof from his hands, carefully, so it wouldn’t tear. “And the $35 comes out afterward. It doesn’t buy materials.”
+
+He leaned on the counter. A drop of rain slid from his sleeve onto the wood. “Then cut the postcards. They’re not urgent.”
+
+“They bring in $96. With sixty-six dollars, the new best combination is posters, programs, tickets, bookmarks: A, B, C, E. Exactly sixty-six in materials. A hundred minutes. $245 in payments.” She wrote the subtraction beneath it: **245 − 66 − 35 = 144**.
+
+“Still seventy-six short,” Ivo said.
+
+“Yes.”
+
+“And the banners?”
+
+“Not today.”
+
+The press gave a low click as its rollers cooled. Ivo looked again at the red moon. Then he took the proof to the counter and smoothed it flat with both palms. “I’ll tell them. You tell them with me.”
+
+Mara nodded. They called the theater together. Ivo did most of the talking, his voice getting quieter when he reached the word *can’t*. Mara heard someone on the other end say they understood, then ask if the shop could keep the file for another date. Ivo promised only that the proof would be safe. When he hung up, he folded the banner paper along its old crease instead of crushing it.
+
+They started the revised jobs. Posters first: the blue ink came out darker than the sample, but Mara adjusted the feed and the next sheet matched. Programs followed, then tickets with their little perforated edges. Ivo counted each stack, his thumb leaving a faint gray crescent on the paper. Bookmarks were last. One slipped sideways; he caught it before the rollers chewed the corner.
+
+At the end, the clock showed twenty minutes still available. The jobs were done; nothing else could be added now. The payments came in, and Mara set aside the $35 operating expense. She counted $144 into the repair envelope. The original materials float stayed out of it.
+
+“Someone said a donor might give a hundred tonight,” Ivo said, pinning the theater proof above the counter. “Might.”
+
+“Might isn’t in the envelope,” Mara replied.
+
+He looked as if he wanted to argue, then picked up the envelope and read the number on its label. “Seventy-six left,” he said. “I’ll put that on the notice.”
+
+Mara handed him the marker. Together they wrote the confirmed amount and the remaining gap on the glass, where the rain blurred the streetlights but not the figures.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "B", "C", "D"],
+    "materials": 80,
+    "minutes": 115,
+    "revenue": 292,
+    "order_surplus": 212,
+    "repair_contribution": 177,
+    "shortfall": 43
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+The initial plan uses the full $80 materials budget and 115 of 120 minutes; its $212 order surplus is the maximum. A tie is A, B, F, H, also with $212 surplus (80 materials, 120 minutes). Under the revised $66 materials limit, A, B, C, E yields the maximum $179 surplus. After the fixed $35 expense, the repair contributions are $177 and $144. The materials float is not fundraising income.
+
+One feasible competing revised plan is A, B, F: materials $64, 95 minutes, revenue $234, surplus $170, and repair contribution $135.
+
+## 3. THE PUBLIC UPDATE
+
+The shop completed posters, programs, tickets, and bookmarks, contributing **$144** toward the repair bill. The remaining gap is **$76**. A possible $100 donation has been mentioned, but no gift or commitment has been received.

@@ -1,0 +1,97 @@
+# Sixty-Six Dollars
+
+The envelope with the materials money had been sitting on the cutting table since noon, fat enough that Mara hadn't bothered to count it. Eighty dollars, the committee had said. Eighty dollars and whatever the old Heidelberg would give them before its brakes gave out for good and the repair truck came Monday with a bill they could only half pay.
+
+"You've got the banners on there," Ivo said, reading her plan upside down. He smelled of the theater's basement, dust and old velvet. "Good. I told Petra you'd come through."
+
+"They're on there because they pay," Mara said. "Not because you asked."
+
+She had worked it out in pencil on the back of a misprinted menu. Posters, tickets, menus, banners. Eighty dollars of stock exactly, a hundred and twenty minutes of press time exactly, two hundred fourteen dollars over materials. Take out the thirty-five for the light bill and the compressor oil and they would carry a hundred seventy-nine toward the two-twenty the mechanic wanted up front. Forty-one short.
+
+Ivo had his coat off already, rolling the banner stock out along the long table so the vinyl made that sticky peeling sound. Behind them the press ticked as it warmed, a smell of ink and warm oil coming off it like something alive.
+
+Then Mara counted the envelope.
+
+She counted it twice, the second time with her lips moving, and then she sat down on the stool and set the bills in a line. Sixty-six dollars. Someone had taken fourteen for the coffee fund or made a mistake at the bank or simply lied. It didn't matter which.
+
+"So we're short on paper," Ivo said. "Cut the tickets. Nobody's going to notice tickets."
+
+"Cutting tickets gets me ten dollars back. I need fourteen." She turned the menu over and started again, and he watched her do it, and she could feel him not liking it. "And I don't get to pick what I like. I pick what pays."
+
+The pencil moved. Posters, programs, tickets, bookmarks. Sixty-six dollars of stock, a hundred minutes, a hundred seventy-nine over materials. A hundred forty-four after the bill. Seventy-six short.
+
+The banners were not on it.
+
+"Run it again," Ivo said.
+
+"I ran it."
+
+"Then run it with the banners. Programs, banners, tickets. Tell me what that comes to."
+
+She did it, because he was standing there and because she wanted to be able to say she had. Sixty-four dollars of stock. A hundred forty-one after the bill. "Three dollars less," she said. "And five minutes more on a press that's already screaming."
+
+"Three dollars." He laughed, not kindly. "Mara. Three dollars. We open Friday. The banners are the whole front of the building."
+
+"Then the theater can pay somebody with a working press to make them." She said it flatter than she meant to. Through the window the afternoon had gone the color of weak tea, and the sign across the street had already lit up. "I don't have three dollars to give away to anybody. I don't have one."
+
+"Hal said a donor might give a hundred tonight."
+
+"Hal says a lot of things." She stood, and the stool rocked. "When a hundred dollars is sitting in that envelope I will count it and I will put it in the plan. Until then it's a rumor and I'm not printing on a rumor."
+
+Ivo rolled the vinyl back up. He did it slowly, squaring the ends, the way you handle something you are not going to see again for a while. He didn't leave. That was the thing she would remember later, that he didn't leave. He pulled the program plates from the drawer and wiped them down and set the first one on the bed without being asked.
+
+They worked without talking, mostly. The posters came off blue and sharp. The programs took their forty minutes and the press labored through the fold but held. Tickets, then bookmarks, the small jobs, turning out stack after stack while the rollers thumped like a tired heart.
+
+At twenty minutes to six she shut it down. The silence afterward was enormous. Ivo was stacking bookmarks into bundles of fifty, counting under his breath.
+
+"A hundred forty-four," she said. "Seventy-six short."
+
+"I heard you the first time."
+
+"I'm sorry about the banners."
+
+He tied off a bundle. "I know. You still did it."
+
+"I did."
+
+The phone on the wall did not ring. Nobody came through the door with an envelope. Outside, the theater's blank front caught the last of the light, and Mara wrote the number on the whiteboard where the customers would see it in the morning, and underlined it twice so no one could pretend it said something else.
+
+---
+
+## The Receipt
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+**Per-order surplus** (payment minus materials): A 50, B 66, C 28, D 68, E 35, F 54, G 82, H 42.
+
+**Initial plan, A+C+F+G.** Materials 18+10+22+30 = 80. Minutes 25+15+30+50 = 120. Surplus 50+28+54+82 = 214. Less the $35 fixed expense gives 179. Shortfall 220 − 179 = 41. No five-order set fits both limits (the five cheapest-in-minutes, A+C+E+F+H, reaches 115 minutes and $80 but only 209 surplus). Competing feasible plan: A+B+C+D, materials 80, minutes 115, surplus 212, contribution 177. It loses by 2.
+
+**Revised plan, A+B+C+E.** Materials 18+24+10+14 = 66. Minutes 25+40+15+20 = 100. Surplus 50+66+28+35 = 179. Less $35 gives 144. Shortfall 76. The initial plan is now infeasible (needs $80). Competing feasible plan, the one Ivo asks for: B+C+G, materials 64, minutes 105, surplus 176, contribution 141, shortfall 79. It keeps the banners and loses by 3. Any plan adding a fourth order to B+C+G breaks the materials limit.
+
+---
+
+## The Public Update
+
+Today's print run is finished. After paying the day's $35 operating costs, the shop has $144 in confirmed new money toward the $220 the repair needs. That leaves a gap of $76. A reduced materials budget forced us to drop the theater banners from today's run. We have heard that a donor may give $100 tonight, but as of closing no gift or pledge has been received. We will post an update the moment anything changes.

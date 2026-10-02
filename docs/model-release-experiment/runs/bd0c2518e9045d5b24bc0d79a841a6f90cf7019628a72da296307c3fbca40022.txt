@@ -1,0 +1,105 @@
+# THE STORY
+
+**Last Run**
+
+The print shop smelled of ink and hot metal. Mara stood at the worktable, counting bills twice before writing the figure in her notebook: $66. Not the eighty she'd told herself to expect.
+
+"Plenty of time," Ivo said from the doorway. He held a coffee in each hand. "Two hours. We can knock out most of this list."
+
+Mara took the cup he offered. The theater banners sat fourth on her handwritten order queue, crossed out now. She'd worked the numbers that morning when she still thought she had eighty dollars—programs, postcards, posters, tickets. Clean production, full machine schedule, $177 toward the repair bill after materials and overhead. Not enough to cover the $220 the technician wanted, but close.
+
+Now she had fourteen dollars less and the whole plan collapsed.
+
+"The banners," Ivo said. "We promised them for Thursday's opening."
+
+"I know what we promised." Mara flipped to a clean page. Her pen moved down the list. Programs and posters stayed. The postcards fell away—twenty-eight dollars, too rich now. She added bookmarks and tickets instead. Smaller revenue, tighter margins. "We'll raise $144."
+
+"Not with the theater banners?"
+
+"Can't afford the materials." She showed him the revised total. "Banners are thirty dollars up front. That plus programs and posters burns most of the budget."
+
+Ivo leaned over her calculations. "What if we skip the postcards and—"
+
+"Already did." She tapped the revised list. "This is optimal. Four orders. Programs, posters, bookmarks, tickets."
+
+"The theater needs those banners."
+
+"The shop needs that repair by Monday or we're shut down. The banners would give us $112 in revenue, but we'd have to drop other orders. The math doesn't work."
+
+Ivo set his coffee down hard enough that it sloshed. "You calculated the theater's contribution per dollar?"
+
+"Everything's calculated." She could feel the headache building behind her eyes. "Look, someone mentioned a donor might show up tonight. A hundred dollars. If that comes through—"
+
+"If."
+
+"If that happens, we revisit. Until then, we run what the numbers support."
+
+He pulled a stool over and sat. "They've been good to us. The theater."
+
+"I know."
+
+"Three workshops. Free rehearsal space when our sink backed up."
+
+Mara watched the second hand sweep her wall clock. Two hours wasn't much. Every minute she spent arguing was a minute she couldn't print. "Ivo, I'm not the enemy here. We're forty-three short even with my first plan. Now we're seventy-six short. The only thing keeping us open is getting this exactly right."
+
+The machine hummed, ready. Outside, someone's car alarm chirped off.
+
+"Run the bookmarks first," she said. "Twenty minutes, fourteen dollars of stock. Then the tickets while I prep the poster plates."
+
+Ivo stood slowly. "And when the theater calls?"
+
+"Tell them we'll have their banners next week. After the repair." She met his eyes. "If we're still here next week."
+
+He moved to the machine, checked the bookmark template, fed the first sheet. The rollers caught with their familiar thump and whine. Mara pulled the poster stock from the cabinet, counted sheets, clipped them together. Her phone stayed silent. No donor. No reprieve.
+
+The bookmarks came off clean. Ivo stacked them without comment. They moved through tickets, then posters, then programs, each order a small mechanical prayer. By four-thirty the finished work filled half the pickup counter and the shop was $144 closer to survival.
+
+Mara locked the cash drawer. Ivo wiped down the rollers. Neither of them mentioned the theater again, but when he left he didn't say goodnight.
+
+She turned off the lights and stood in the doorway. Tomorrow she'd call the technician and ask what $144 could buy. Maybe a delay. Maybe a partial fix. Across the street, someone was putting up a hand-painted sign in a storefront window: Grand Opening Saturday. New businesses always looked so confident.
+
+Mara pulled the door shut and tested the lock.
+
+---
+
+# THE RECEIPT
+
+```json
+{
+  "donation_confirmed": false,
+  "initial": {
+    "orders": ["B", "D", "A", "C"],
+    "materials": 80,
+    "minutes": 115,
+    "revenue": 292,
+    "order_surplus": 212,
+    "repair_contribution": 177,
+    "shortfall": 43
+  },
+  "revised": {
+    "orders": ["B", "A", "E", "C"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  }
+}
+```
+
+**Initial plan (materials $80, time 120 min):** Programs + Postcards + Posters + Tickets. Revenue $292 minus materials $80 = $212 surplus, minus $35 operating = $177 contribution. Uses $80 materials and 115 minutes. This maximizes contribution under the initial constraints.
+
+**Competing plan:** Theater banners + Posters + Menus (G+A+F) yields $284 revenue - $80 materials = $204 surplus - $35 = $169, which is $8 less than the selected plan.
+
+**Revised plan (materials $66, time 120 min):** Programs + Posters + Bookmarks + Tickets. Revenue $245 minus materials $66 = $179 surplus, minus $35 operating = $144 contribution. Uses all $66 materials and 100 minutes. The tighter materials budget makes the initial plan infeasible (it required $80), so this plan replaces Postcards (high materials cost) with Bookmarks.
+
+**Competing plan:** Theater banners + Posters + Maps (G+A+H) yields $238 revenue - $64 materials = $174 surplus - $35 = $139, which is $5 less.
+
+---
+
+# THE PUBLIC UPDATE
+
+**Repair Fund Update – October 2**
+
+Today's production raised $144 toward our $220 repair deadline. We're $76 short. A supporter mentioned a possible $100 gift tonight, but we haven't received it yet. If you can help close this gap, contact the shop directly. Thank you for your continued support.

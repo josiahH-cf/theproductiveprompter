@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A concise introduction to an ongoing anecdotal experiment that runs one frozen story-and-math prompt across available Claude and Codex models and preserves each response as an inspectable observation.">
+    <meta name="author" content="Josiah Hunter">
+    <meta name="robots" content="index, follow">
+    <title>The Model Release Experiment | Josiah Hunter</title>
+    <link rel="canonical" href="https://theproductiveprompter.com/docs/the-model-release-experiment.html">
+    <link rel="alternate" type="application/rss+xml" title="The Productive Prompter" href="https://theproductiveprompter.com/feed.xml">
+    <link rel="stylesheet" href="../styles.css">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="The Productive Prompter">
+    <meta property="og:title" content="The Model Release Experiment">
+    <meta property="og:description" content="A concise introduction to an ongoing anecdotal experiment that runs one frozen story-and-math prompt across available Claude and Codex models and preserves each response as an inspectable observation.">
+    <meta property="og:url" content="https://theproductiveprompter.com/docs/the-model-release-experiment.html">
+    <meta property="article:published_time" content="2026-10-02T12:00:00-05:00">
+    <meta property="article:modified_time" content="2026-10-02T15:57:06Z">
+    <meta property="article:author" content="Josiah Hunter">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="The Model Release Experiment">
+    <meta name="twitter:description" content="A concise introduction to an ongoing anecdotal experiment that runs one frozen story-and-math prompt across available Claude and Codex models and preserves each response as an inspectable observation.">
+    <meta name="article-flow-revision" content="d9e100e8e219ca4f258fe6553fb3a35825ffb356f7023bf7025b23852ba8af4f">
+    <meta name="article-flow-recipe" content="{&quot;archetype&quot;:&quot;reference-guide&quot;,&quot;opening&quot;:&quot;claim&quot;,&quot;ending&quot;:&quot;quiet-synthesis&quot;,&quot;summary&quot;:&quot;always&quot;,&quot;narrative_person&quot;:&quot;first&quot;}">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        "headline": "The Model Release Experiment",
+        "description": "A concise introduction to an ongoing anecdotal experiment that runs one frozen story-and-math prompt across available Claude and Codex models and preserves each response as an inspectable observation.",
+        "url": "https://theproductiveprompter.com/docs/the-model-release-experiment.html",
+        "mainEntityOfPage": "https://theproductiveprompter.com/docs/the-model-release-experiment.html",
+        "datePublished": "2026-10-02T12:00:00-05:00",
+        "dateModified": "2026-10-02T15:57:06Z",
+        "inLanguage": "en-US",
+        "wordCount": 584,
+        "keywords": [],
+        "author": {"@type": "Person", "name": "Josiah Hunter", "url": "https://theproductiveprompter.com/"},
+        "publisher": {"@type": "Person", "name": "Josiah Hunter", "url": "https://theproductiveprompter.com/"},
+        "isPartOf": {"@type": "Blog", "name": "The Productive Prompter", "url": "https://theproductiveprompter.com/docs/blog.html"}
+    }
+    </script>
+    <script src="../script.js" defer></script>
+<meta name="article-flow-drafting-models" content="[&quot;gpt-5.6-sol&quot;]">
+<meta name="article-flow-style-policy-sha256" content="f6b03e5f629ac61eda927f09c8e83854c18fd08bb44043cd2bedf3984accb701">
+</head>
+<body>
+    <nav class="nav" id="nav">
+        <div class="nav__container">
+            <a href="/" class="nav__logo" aria-label="Josiah Hunter home">JH</a>
+            <ul class="nav__menu" id="navMenu">
+                <li class="nav__item"><a href="/docs/blog.html" class="nav__link"><span class="nav__number">01.</span> Blog</a></li>
+                <li class="nav__item"><a href="/projects.html" class="nav__link"><span class="nav__number">02.</span> Projects</a></li>
+                <li class="nav__item"><a href="/reach-out.html" class="nav__link"><span class="nav__number">03.</span> Reach Out</a></li>
+                <li class="nav__item"><a href="https://josiahh-cf.github.io/agent-telemetry/" class="nav__link" target="_blank" rel="noopener noreferrer" aria-label="Agent Telemetry (opens in a new tab)"><span class="nav__number">04.</span> Agent Telemetry <span class="nav__external" aria-hidden="true">↗</span></a></li>
+            </ul>
+            <button class="nav__toggle" id="navToggle" type="button" aria-label="Toggle navigation" aria-controls="navMenu" aria-expanded="false"><span class="nav__toggle-line"></span><span class="nav__toggle-line"></span><span class="nav__toggle-line"></span></button>
+        </div>
+    </nav>
+    <main class="article-page" id="main-content">
+        <div class="container">
+            <nav class="article-navigation" aria-label="Article breadcrumb"><a href="blog.html" class="back-link">← All writing</a></nav>
+            <article class="article-content">
+                <header class="article-header">
+                    <h1>The Model Release Experiment</h1>
+                    <div class="article-header__meta" role="group" aria-label="Article details"><span>By Josiah Hunter</span><span aria-hidden="true">•</span><time datetime="2026-10-02T12:00:00-05:00">October 2, 2026</time><span aria-hidden="true">•</span><span>3 min read</span></div>
+                </header>
+                <!-- GENERATED_ARTICLE_START -->
+<h2>TLDR</h2>
+<ul>
+<li>I am running one frozen story-and-math prompt across available Claude and Codex models, then continuing as new models appear.</li>
+<li>I preserve each model-and-settings profile’s original response, including saved failures. Model cards and linked run pages will hold the supporting records and client-reported usage where available.</li>
+<li>The receipt gives us arithmetic we can check. The story gives us something to read and judge for ourselves.</li>
+</ul>
+<p>I have an anecdotal feel for how Claude and Codex work. I want a record to put alongside that impression: the same task, the requested settings, and the response each model actually gave. The Model Release Experiment starts that record. When another model becomes available, it can receive the frozen prompt and join the collection.</p>
+<p>The prompt is PRINT-SHOP CHALLENGE v1.0. Mara runs a community print shop, and Ivo wants her to prioritize the theater’s banners. They have eight possible orders, limited materials, and limited machine time. The model chooses its own voice and point of view, but the calculation must change what the characters do and how they relate to each other. Its response includes a titled 600–800-word story, a JSON receipt with a brief checkable explanation and a feasible competing plan, and a public notice of at most 80 words.</p>
+<p>The numbers give the prose a decision it has to respect. Mara starts with $80 for materials and 120 machine minutes. Before work begins, the materials limit falls to $66 while the time limit stays the same. A fixed $35 expense comes out after production, and only the remainder counts toward a $220 repair goal. Someone might donate $100, but no commitment has arrived by the end of the story. The revised plan must leave that unconfirmed money out of the confirmed contribution.</p>
+<p>I also want to observe what happens when the model stays the same and one supported setting changes. Standard profiles vary one native control at a time; any factorial testing is separate. <a href="https://learn.chatgpt.com/docs/config-file/config-reference">Codex documents reasoning effort and output verbosity as separate controls</a>, with supported reasoning levels depending on the model and client and verbosity offering low, medium, or high where supported. <a href="https://code.claude.com/docs/en/model-config">Claude’s effort control is available on supported models and calibrated per model</a>. Claude Code’s <a href="https://code.claude.com/docs/en/cli-reference">@@AF0@@ flag instead controls diagnostic logging and turn display</a>; it is not a model output-verbosity setting. The records capture requested configurations and reported outputs, not hidden internal reasoning.</p>
+<p>Claude and Codex will have separate collections of readable model cards, with each card linking to individual run pages. This keeps the original story readable while placing receipts and technical evidence with the relevant run. The user prompt remains byte-identical across trials, although native provider instructions may differ. Original responses and saved failures remain in the record. If a model is unavailable, it keeps that status instead of receiving a silent substitute.</p>
+<p>Each model-and-settings profile is one anecdotal observation. A different receipt or story is worth examining, but it does not establish a universal ranking or prove that a setting caused the difference. Checking the arithmetic is also narrower than judging the full response. Story quality, consistency, and word limits need separate assessment. The growing collection gives each observation a place where it can be inspected without asking it to prove more than it can.</p>
+<footer class="article-model-attribution" data-style-policy-sha256="f6b03e5f629ac61eda927f09c8e83854c18fd08bb44043cd2bedf3984accb701"><p>Drafting model: GPT-5.6 Sol</p></footer>
+                <!-- MODEL_EXPERIMENT_RESULTS_START -->
+<section id="model-experiment-results" aria-label="Model experiment results"><h2>The experiment runs</h2><p><strong>Results update</strong></p><p>120 original responses from 21 models are now saved. 82 receipts matched both optimal order plans, their totals, and the unconfirmed donation. 38 receipts failed at least one of those checks. 5 earlier failed attempts remain in the record.</p><p>13 models returned both passing and failing receipts across their saved profiles. Each profile has one response, so these differences do not establish that a setting caused a result. The receipt check does not assess story quality, story consistency, or word limits.</p><p>Each run shows the requested thinking and verbosity settings, the original response, the receipt checks, and the usage reported by the client.</p><p><a href="/docs/model-release-experiment/index.html">Explore the model cards and runs →</a></p></section>
+<!-- MODEL_EXPERIMENT_RESULTS_END -->
+<!-- GENERATED_ARTICLE_END -->
+            </article>
+        </div>
+    </main>
+</body>
+</html>

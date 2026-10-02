@@ -1,0 +1,93 @@
+## 1. The Story
+
+**Three Dollars**
+
+The envelope said MATERIALS in Mara's block capitals, and she counted it twice on the cutting table. Eighty dollars. Behind her the riso ticked as it cooled, the shop smelling of soy ink and warm paper dust, and the clock over the door gave her until five. One hundred twenty minutes of drum time. Then the technician came for the machine, and for the two hundred twenty dollars they did not have.
+
+Ivo was already at the chalkboard with the theater's banner proof pinned beside it. "Banners first," he said. "It's the biggest check. A hundred twelve."
+
+"It's also the hungriest." She did not look up. "Thirty in paper, fifty minutes. Sit down. Let me do it properly."
+
+She wrote the eight orders in a column, the way her mother had done bills at the kitchen table. Payment minus paper. Posters cleared fifty. Programs sixty-six. Tickets twenty-eight. Postcards sixty-eight, menus fifty-four, bookmarks thirty-five, maps forty-two. The banners cleared eighty-two, and Ivo tapped the number with a knuckle as if it had settled something.
+
+It nearly had. She tried the pairings, chalk squeaking. Postcards with banners ate eighty-five minutes, and menus on top made two hundred four. Programs with banners, two hundred two at best. Then posters, tickets, menus, banners: eighty dollars of paper exactly, one hundred twenty minutes exactly, two hundred fourteen clear. Minus the thirty-five for the courier and the power, one seventy-nine toward the repair.
+
+"Forty-one short," Ivo said, but he was grinning. "Forty-one is nothing. Forty-one is a bake sale."
+
+"Forty-one is forty-one." Still, she circled it. The banners were in. He picked up the supplier's order pad, humming.
+
+Dee came in while he was writing, with a toner box under her arm and her apology half said. The driver was at the curb for fourteen dollars, cash on delivery. Dee had promised the supplier it would come out of the float, and had forgotten to say so. Mara counted fourteen out of the envelope and sent it out the door, and what was left was sixty-six.
+
+Mara said nothing for a while. She erased the circle with the side of her hand, and the chalk dust got into the cut on her thumb and stung.
+
+"We keep the banners," Ivo said. "Banners, programs, tickets. That's sixty-four. It fits."
+
+She did the sum where he could see it. Eighty-two and sixty-six and twenty-eight. "One seventy-six."
+
+"There. Fine."
+
+"Posters, programs, tickets, bookmarks." She wrote it under his. Fifty, sixty-six, twenty-eight, thirty-five. "One seventy-nine. Sixty-six in paper, to the dollar. A hundred minutes."
+
+He looked at the two numbers a long moment, the sun coming flat through the front window, lighting every scratch on the glass. "Three dollars."
+
+"Three dollars."
+
+"You'd cut the theater for three dollars." His voice went up the way it did on stage. "They open Friday. I stood in their lobby and told them."
+
+"You told them before anyone had done the sum." She said it quieter than she meant to. "Ivo, I'm not choosing against you. I'm choosing the bigger number. It's the only thing I'm allowed to choose today."
+
+He patted his jacket as if the fourteen might be in it, and came up with a bus transfer and a guitar pick.
+
+Dee, still in the doorway, offered what she had. "Priya's brother might give a hundred tonight. He said might."
+
+Ivo turned. "A hundred. Mara. With a hundred we're over either way."
+
+"Might." Mara held the sixty-six dollars up between two fingers. "This is confirmed. That," she pointed at the chalkboard, "is confirmed. When his hundred is on this table I'll thank him myself. I can't buy paper with might."
+
+Nobody argued with that, which was worse than arguing.
+
+Ivo went for the paper, sixty-six dollars of it, and came back with his jaw set. She loaded the poster stock. The drum caught and began its soft thump, and the first sheet slid out blue and wet-looking, a jazz quartet none of them would see. He went out onto the step to make the call, and she could hear him through the glass being gracious, which was its own kind of work.
+
+He came back in and fed bookmarks without being asked. At a hundred minutes the drum went quiet. Twenty minutes of machine time sat in the ticking shop, hers to use and useless, because there was nothing left to feed it.
+
+On the board she wrote the number she could stand behind: one forty-four toward two twenty, seventy-six to find. Under it, smaller, she wrote *donor: unconfirmed*, and underlined it once, and left the chalk in the tray.
+
+## 2. The Receipt
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Per-order surplus is payment minus materials:
+
+| Order | A | B | C | D | E | F | G | H |
+|---|---|---|---|---|---|---|---|---|
+| Surplus ($) | 50 | 66 | 28 | 68 | 35 | 54 | 82 | 42 |
+
+**Initial plan, $80 and 120 minutes.** A+C+F+G uses exactly $80 and 120 minutes and clears 50+28+54+82 = 214, then 214 − 35 = 179 toward the $220 goal. Checks: the only five-order set inside both limits is A, C, E, F, H at 209. The best three-order set is D+F+G at 204. Any four-order set holding both G and D, or G and B, breaks a limit, because the two cheapest remaining orders by minutes (C and E) push materials past $80 or minutes past 120. Competing feasible plan: A+B+C+D, $80, 115 minutes, revenue 292, surplus 212, contribution 177, shortfall 43. A+B+F+H ties it at 212.
+
+**Revised plan, $66 and 120 minutes.** The five cheapest orders cost $80, so no five-order set fits. The only four-order sets at or under $66, with their surplus, are A,C,E,H 155; C,E,F,H 159; B,C,E,H 171; A,C,E,F 167; A,C,F,H 174; A,B,C,E 179. All are under 120 minutes. The best three-order set is B+C+G at 176. A+B+C+E therefore wins: 50+66+28+35 = 179, then 179 − 35 = 144, shortfall 76. Competing feasible plan, the one Ivo argues for: B+C+G, $64, 105 minutes, revenue 240, surplus 176, contribution 141, shortfall 79.
+
+## 3. The Public Update
+
+Print shop update, end of day. Today's run of posters, programs, tickets and bookmarks contributes $144 toward the $220 repair bill, after paper and $35 in operating costs. The remaining gap is $76. A supporter mentioned a possible $100 donation tonight, but no gift or pledge has been received, so it is not counted. We will post again when the $76 is covered or the repair plan changes. Thank you for standing with the shop.

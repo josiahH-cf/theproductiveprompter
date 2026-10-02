@@ -1,0 +1,105 @@
+## 1. THE STORY
+
+### The Last Three Dollars
+
+By one o’clock, the print shop smelled of warm paper, machine oil, and the rain steaming from coats by the door. At five, the repair deadline would arrive. Mara had written **$220** on the whiteboard above the cutter and circled it twice.
+
+Ivo stood beneath it holding the theater’s order slip. “The banners have to go first. Opening night is tomorrow.”
+
+“Everything can only run once, in full,” Mara said. “First isn’t the question. What fits is.”
+
+She arranged the eight order slips across the counter and wrote each payment minus its materials cost in the margin. The old press clicked as it cooled, a small metallic sound like a clock objecting to the hour.
+
+With eighty dollars for materials and two hours of machine time, the best stack was posters, tickets, menus, and the theater banners: A, C, F, and G. The materials came to exactly $80; the machine time came to exactly 120 minutes. Customers would pay $294 after production ended. Subtracting materials left $214, and the fixed operating expense would take another $35. That meant $179 for the repair, still $41 short.
+
+“It’s the maximum,” Mara said.
+
+“And it includes the banners.” Ivo smiled, relief loosening his narrow shoulders. “See? Practical and loyal.”
+
+Mara allowed herself half a smile. They had met ten years earlier when the theater needed handbills overnight and the shop still had three employees. Now it had Mara, one temperamental press, and volunteers like Ivo who loved institutions as if affection could be entered in a ledger.
+
+She had not yet bought a sheet of stock when her phone vibrated. The account notice was short and merciless: only $66 of the materials float was available. Fourteen dollars she had believed free to use was not.
+
+Ivo read her face. “What?”
+
+“Sixty-six.”
+
+“Run the banners first,” he said. “When the theater pays, buy the rest.”
+
+“They pay after production ends. Everyone does.”
+
+“Then make half the banners.”
+
+“The order is full or declined.”
+
+Rain tapped harder against the front window. Ivo pressed the theater slip flat with his palm. “You’re going to turn away the people who bring audiences past our door.”
+
+“I’m going to recalculate before we spend money we don’t have.”
+
+Her pencil moved, stopped, erased, and moved again. The revised best plan was A, B, C, and E: posters, programs, tickets, and bookmarks. It used all $66 in materials but only 100 machine minutes. The four customers would pay $245. After $66 in materials and the $35 expense, the repair contribution would be $144.
+
+“No banners?” Ivo asked.
+
+Mara showed him another line. Programs, tickets, and banners—B, C, and G—would fit: $64 in materials, 105 minutes, and $240 in payments. But its surplus was $176, leaving only $141 after the operating expense.
+
+“You’re dropping the theater for three dollars.”
+
+“Yes.”
+
+“That’s not loyalty.”
+
+“No,” she said. “It’s arithmetic under a deadline.”
+
+For a moment, the only movement was the red second hand above the laminator. Then Ivo snatched up the programs slip.
+
+“Fine,” he said. “Tell me where their paper is.”
+
+The press began at 1:38. It thudded through posters, chattered over program pages, snapped out ticket sheets, and finally whispered rows of bookmarks onto cream stock. Ivo worked the cutter without speaking. Mara caught one program page before it skewed and he caught the next. Their anger settled into the practiced choreography of people who had repaired smaller things together.
+
+At 4:52, the last bookmark slid into the tray. Only then did the customers’ payments arrive. Mara counted $245, restored the $66 spent on materials, and set aside $35 for the operating expense. She placed the remaining $144 in the repair envelope.
+
+Ivo checked his phone. “Someone says a donor might give a hundred tonight.”
+
+“Might?”
+
+“No gift. No commitment yet.”
+
+Mara wrote **$76 STILL NEEDED** beneath the circled goal. At five, no donor had appeared and no message had changed that fact. Ivo took the theater’s unprinted order slip from the counter, but he did not crumple it.
+
+“I’ll explain to them,” he said.
+
+Mara switched off the press. Its green light faded, leaving their reflections together in the dark glass.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+The order surplus is revenue minus materials; the repair contribution is that surplus minus the fixed $35 expense. Comparing all feasible order subsets gives a maximum surplus of $214 initially and $179 after the materials limit falls to $66.
+
+A feasible revised competitor is B+C+G: $64 in materials, 105 minutes, $240 revenue, $176 order surplus, and a $141 repair contribution—$3 below the revised optimum.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s completed orders contributed a confirmed **$144** toward the **$220** repair goal, leaving a **$76 gap**. A donor may give $100 tonight, but no gift or commitment has been received, so it is not included in these totals.

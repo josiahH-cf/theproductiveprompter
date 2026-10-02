@@ -1,0 +1,131 @@
+## 1. THE STORY
+
+### The Last Run
+
+By three o’clock, the print shop smelled of hot rubber, damp paper, and the bitter coffee Mara had forgotten beside the cutter. Sunlight came through the front windows in pale bars, catching scraps of blue ink on the floor.
+
+“Put the banners first,” Ivo said. He stood beside the worktable with one hand on a roll of theater vinyl. “They’ve got opening night tomorrow. If we get those out, they’ll pay us tonight.”
+
+“They’ll pay after we finish,” Mara said. “That doesn’t buy the materials now.”
+
+“They’re the theater. They always pay.”
+
+“Always is not money in the drawer.”
+
+The drawer held eighty dollars. The repair technician had given them until tomorrow morning to raise the last two hundred and twenty dollars toward the failing drive belt and heating assembly. The machine had one hundred and twenty minutes left before the deadline made the repair pointless.
+
+Mara turned the order sheets faceup.
+
+The theater banners would use thirty dollars of material and fifty minutes of machine time. They would bring in one hundred and twelve dollars, leaving eighty-two dollars of surplus. Good work. Visible work. Work Ivo could point to.
+
+But the shop had seven other orders waiting: posters, programs, tickets, postcards, bookmarks, menus, and maps. Mara took a pencil and began writing in the margins.
+
+“If I choose the four most tempting jobs,” Ivo said, “the banners, programs, posters, and tickets, we make a little over two hundred in surplus.”
+
+“Those four use more than we have if the banners are included.”
+
+“Then choose the banners and stop pretending the rest are equal.”
+
+Mara looked at him. “They aren’t equal. That’s why I’m calculating.”
+
+The old wall clock clicked toward 3:10. Behind them, the press gave a tired metallic cough, as if it objected to being asked anything at all.
+
+Mara’s first plan was posters, programs, tickets, and postcards. The materials came to exactly eighty dollars. The run would take one hundred and fifteen minutes. Their customer payments would total two hundred and ninety-two dollars, leaving a two-hundred-and-twenty-two-dollar order surplus. After the fixed thirty-five-dollar operating expense, one hundred and eighty-seven dollars would count toward the repair.
+
+It was the strongest plan under the original limits.
+
+Ivo stared at the list. “No banners.”
+
+“No banners,” Mara said.
+
+“That’s not a calculation. That’s cowardice with a calculator.”
+
+The words landed harder than he intended. Mara folded the pencil between her fingers until the wood creaked.
+
+Then Mrs. Alvarez from the theater came through the back door carrying a paper bag of sandwiches. “Mara,” she said, breathless, “before you start anything—there’s a problem.”
+
+Mara’s stomach tightened.
+
+“The supplier called. The paper account is frozen until tomorrow. I can still pay for the banners tonight, but you’ll have to buy the vinyl yourself.”
+
+“With what?” Ivo asked.
+
+Mrs. Alvarez opened her mouth, then closed it.
+
+Mara took the eighty dollars from the drawer and counted it again. At that moment, the landlord’s assistant appeared at the front window and tapped on the glass. He held a message: the landlord had withdrawn the promised twenty-dollar float. A mistake, he claimed. The shop had only sixty-six dollars available for materials.
+
+The room seemed to lose oxygen.
+
+Ivo’s hand tightened around the vinyl roll. “We can still do the banners.”
+
+“Yes,” Mara said. “But not the plan I just made.”
+
+She erased the postcards from the sheet, then the silence grew worse when she realized that was not enough. The revised plan became posters, programs, tickets, and bookmarks: sixty-six dollars in materials, one hundred minutes of machine time, two hundred and forty-five dollars in payments, and one hundred and seventy-nine dollars of surplus. After expenses, only one hundred and forty-four dollars would reach the repair fund.
+
+Ivo shook his head. “Or banners, programs, and tickets. Sixty-four dollars. One hundred and five minutes. One hundred and seventy-six surplus. We’d give the theater what it needs.”
+
+“And raise one hundred and forty-one toward the repair,” Mara said.
+
+“Three dollars less.”
+
+“Three dollars less than the best revised plan. And we’d abandon three customers who paid deposits.”
+
+“The theater is why people know this place.”
+
+“No,” Mara said. “The theater is one reason. The people who leave their work with us are the rest.”
+
+Mrs. Alvarez set the sandwiches down. “Do what keeps the shop alive,” she said quietly.
+
+They fed the press with posters first. Ivo loaded programs, then tickets. When the final bookmark sheet slid warm from the machine, the afternoon light had gone copper.
+
+At six, someone called to say a donor might give them a hundred dollars that night.
+
+Mara wrote “possible” on the whiteboard, then crossed it out.
+
+“No gift,” she said. “Not yet.”
+
+Ivo looked at the four completed stacks, then at the empty vinyl roll waiting by the door. “I still hate the answer.”
+
+“So do I.”
+
+“But you’re sure?”
+
+Mara touched the repair invoice. “I’m sure what we actually have.”
+
+Outside, the shop sign flickered once and went dark. Inside, they counted the confirmed money together.
+
+### THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "B", "C", "D"],
+    "materials": 80,
+    "minutes": 115,
+    "revenue": 292,
+    "order_surplus": 222,
+    "repair_contribution": 187,
+    "shortfall": 33
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+The initial plan is A+B+C+D: materials total $80, machine time totals 115 minutes, and customer payments total $292. Its order surplus is $292 − $80 = $222; after the fixed $35 operating expense, the repair contribution is $187.
+
+With only $66 available for materials, the best revised plan is A+B+C+E: materials total $66, machine time totals 100 minutes, and revenue totals $245. Its surplus is $179, and its repair contribution is $179 − $35 = $144.
+
+One feasible competing revised plan is B+C+G: materials $64, machine time 105 minutes, revenue $240, order surplus $176, and repair contribution $141.
+
+### THE PUBLIC UPDATE
+
+Confirmed repair contribution: $144. The remaining repair gap is $76. A donor may give $100 tonight, but no gift or commitment has been received, so it is not included in the confirmed total.

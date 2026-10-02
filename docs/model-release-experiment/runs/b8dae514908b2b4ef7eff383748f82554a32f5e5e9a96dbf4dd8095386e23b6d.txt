@@ -1,0 +1,89 @@
+## THE STORY
+
+### The Last Clean Run
+
+At three o’clock, the community print shop smelled of wet wool, hot dust, and the lemony solvent Mara used on the guillotine blade. Rain worried the storefront glass. Behind it, the old duplex printer ticked as it cooled, an animal pretending not to be tired. At five, the repairman’s deadline would stop being a warning. Mara had a yellow pad open beside the cash drawer and eight work tickets clipped in a row.
+
+Ivo stood beneath the theater’s banner mockup, a tall man made awkward by his borrowed volunteer apron. The painted moon on the sample seemed to look over his shoulder. “The banners have to go first,” he said. “Opening night is tomorrow. Kids from the middle school are in this.”
+
+“They’re Order G,” Mara said. “They don’t go first. They go in a plan.”
+
+“That is a very Mara sentence.”
+
+“It is a very old-printer afternoon.”
+
+Before lunch she had made the strongest plan the numbers allowed: posters, tickets, menus, and banners—A, C, F, G. The materials cart would use all eighty dollars; the printer would take its full 120 minutes. When production ended, customers would pay $294. Minus $80 materials, that left $214. The shop’s fixed $35 operating cost would leave $179 for the repair: still $41 short of the $220, but enough to give Ivo his moon.
+
+“See?” Ivo said, tapping the G ticket with a blackened fingernail. “The machine agrees with me.”
+
+“The machine has no opinion. It has a heat warning.”
+
+The counter bell chirped. Mara read the treasurer’s message twice, then aloud because Ivo had stopped smiling. The $80 had been an estimate tied to a reimbursement delayed until Monday. Available today: $66, and no more. No paper or ink had been bought; no machine run had started.
+
+“I can make the theater wait fifteen minutes,” Ivo said. “Maybe the payment comes first?”
+
+“Payments arrive after we make things,” Mara said. “They can’t buy their own ink.”
+
+She reset the tickets in a new row. The winning row no longer held a banner: A, B, C, E—posters, programs, tickets, bookmarks. It used exactly $66 of materials and 100 minutes. Its $245 in completed customer payments, less $66 materials, made $179; after $35, only $144 would meet the repair bill.
+
+Ivo picked up G anyway. “Programs, tickets, banners: B, C, G. That fits.”
+
+“It does,” Mara said. “Sixty-four dollars, 105 minutes. But it brings in $240, which is $176 after material and $141 after the operating cost.” She touched the bookmark ticket. “Three dollars matters when we’re short.”
+
+“You’re choosing bookmarks over the moon.”
+
+“I’m choosing the money we can actually count.”
+
+Ivo had painted the sample on a kitchen table with three seventh-graders, and Mara understood why the neat numbers sounded like a verdict on them. Still, she called the theater director herself.
+
+“We can’t take the banners today,” she said. “I’m sorry.”
+
+When she hung up, Ivo was staring at the wet sidewalk. “They’ll find somebody,” Mara said. “Or they’ll make do.”
+
+“That’s not the same.”
+
+“No,” she said. “It isn’t.”
+
+Then they ran A, B, C, E. Posters came out smelling of warm toner; programs thudded into the tray; ticket perforations snapped clean under Mara’s thumb; the bookmarks carried a small blue bird that Ivo refused to admire. He fed paper without speaking, then caught a stack before it skated into a puddle of light.
+
+At 4:48 the printer fell quiet. Only then did the customers pay. Mara totaled $245, marked off $66 in materials and $35 in operating cost, and slid $144 into the repair envelope.
+
+While Mara taped the receipt to the glass, Ivo’s phone lit up with a message from a cast parent: a donor might give $100 tonight. He looked at her as if the moon had rolled back into the room.
+
+Mara did not cross out anything. “Might is not received,” she said, gently this time. “It’s not even promised.”
+
+No call came, no envelope arrived. At five, they locked the shop with $144 confirmed and $76 still missing. Ivo carried the banner mockup home beneath his coat, careful not to let the rain smear its moon.
+
+## THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Initial: A+C+F+G uses exactly $80 and 120 minutes: $294 − $80 = $214; less $35 = $179.
+
+Revised: A+B+C+E uses exactly $66 and 100 minutes: $245 − $66 = $179; less $35 = $144. A feasible competing revised plan is B+C+G: $64 materials, 105 minutes, $240 revenue, $176 surplus, and $141 repair contribution.
+
+## THE PUBLIC UPDATE
+
+Today’s completed work produced a confirmed $144 contribution toward the $220 repair bill after materials and the fixed operating expense. The remaining gap is $76. A possible $100 donation has been mentioned for tonight, but no gift or commitment has been received, so it is not included in the total.

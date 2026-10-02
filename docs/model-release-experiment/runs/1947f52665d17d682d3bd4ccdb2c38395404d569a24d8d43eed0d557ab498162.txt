@@ -1,0 +1,113 @@
+## 1. THE STORY
+
+### The Last Run
+
+At three o’clock, the press began to knock.
+
+Mara felt the rhythm through the soles of her shoes: a loose, metallic tap under the steady churn. On the counter, Ivo had spread the theater’s banner proof, all scarlet letters and black flourishes. **THE MOON IS A DOOR**, it proclaimed, for a play opening next week.
+
+“Fifty minutes,” he said. “Then we can hang them before tonight’s rehearsal.”
+
+Mara glanced at the clock above the paper cutter. The repairman had written **6:00 P.M. FRIDAY** on his invoice in block capitals. If the shop didn’t bring him $220 in new money by then, he’d take the press apart and sell the motor. The old repair fund had eighty dollars for materials, but that float wasn’t fundraising. The shop had one afternoon, 120 minutes of machine time, and eight orders waiting.
+
+“We need the banners,” Ivo said. “People see those. People come.”
+
+“They pay $112,” Mara said. “They cost thirty in stock and fifty minutes on the machine.”
+
+“They’re the theater.”
+
+“They’re one order.”
+
+He leaned over the proof, as if pressing it flat might change the arithmetic. “You keep saying that like it settles everything.”
+
+Mara ran a thumb along the invoice’s curled edge. “It settles what we can afford to do.”
+
+She wrote figures on the back of a misprinted poster, then checked them again. The best full afternoon was posters, programs, postcards, menus, and maps: $386 in customer payments, $108 in materials, 155 minutes. Too long. She crossed it out. The plan that fit was posters, programs, postcards, bookmarks, and maps: $361 in payments, $100 in materials, 145 minutes. Still too long.
+
+Ivo watched her pencil move. “You’re making the banners disappear.”
+
+“I haven’t made anything disappear.”
+
+The phone rang. Mara wedged it between her ear and shoulder while the press rattled. A customer asked whether the shop could print a hundred more tickets. Mara looked at the order list: tickets, $38 for fifteen minutes, ten dollars in materials. “Yes,” she said, and added it to the possible stack.
+
+When she hung up, she circled the combination that did fit: posters, programs, tickets, postcards, bookmarks, and menus. It would take 135 minutes. No. She crossed out menus. Posters, programs, tickets, postcards, bookmarks, maps: 160 minutes. No again.
+
+The clock’s minute hand clicked forward. Ivo went quiet. Mara found the best fit: posters, tickets, postcards, menus, and maps. It used $94 in materials and 120 minutes exactly, bringing in $336. After materials, that left $242; after the fixed $35 expense, $207 toward the repair. Thirteen dollars short.
+
+She showed him the paper. “That’s the strongest plan I can run.”
+
+“And the banners?”
+
+“If we take them, something else has to go. They don’t improve the total.”
+
+“Maybe the theater will bring people in.”
+
+“Maybe. It isn’t money we have.”
+
+Ivo folded his arms, then looked toward the banner proof. He’d painted the moon himself, a silver crescent tucked behind the title. “My sister’s in the cast,” he said.
+
+Mara softened. “I know.”
+
+The phone rang again. This time it was the repairman, asking if the shop was still on schedule. Mara said yes, though she hadn’t yet put a sheet in the press.
+
+Then she opened the envelope beneath the invoice. She had counted the materials money that morning: eighty dollars. She counted it again now, slower. A folded twenty was missing. She checked the till, the drawer, her coat pocket. Nothing.
+
+“Sixty-six,” she said.
+
+Ivo stared. “You can’t run that plan on sixty-six.”
+
+“No.”
+
+“Then take the banners. Thirty dollars. Fifty minutes. At least the theater gets something.”
+
+Mara looked at the order list again. “If I take them, I lose more than the banners bring.”
+
+She rebuilt the plan on the poster scrap. Posters, tickets, postcards, and maps. Materials: seventy-two. Too much. She tried without posters: programs, tickets, postcards, bookmarks, maps. Ninety-two. Too much. She wrote a smaller set, erased it, tried again. The press kept knocking as if it wanted a vote.
+
+At last she set down the pencil. “Programs, tickets, bookmarks, menus, and maps. Eighty-six minutes. Seventy-six dollars in materials. Still over.”
+
+She removed the bookmarks. Programs, tickets, menus, and maps: seventy-two. Still over. She removed the programs and wrote posters instead: posters, tickets, menus, maps. Sixty-six dollars. Ninety-five minutes. Payments totaled $240. Subtract materials and the $35 expense: $139 for the repair. An $81 gap.
+
+Ivo exhaled. “So no banners.”
+
+“Not this afternoon.”
+
+He took the proof from the counter, held it a moment, then laid it beside the stack of posters. “I’ll call the theater. Maybe they can use a painted sign for rehearsal.”
+
+Mara fed the first sheet into the press. The knock softened under the new load. Ivo lifted the banner proof and carried it to the phone.
+
+As the afternoon light thinned in the front windows, someone at the door said a donor might give a hundred dollars tonight. Mara didn’t add it to the repair sheet. She kept the sheet open to the confirmed numbers, and the press kept running.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "D", "F", "H"],
+    "materials": 94,
+    "minutes": 120,
+    "revenue": 336,
+    "order_surplus": 242,
+    "repair_contribution": 207,
+    "shortfall": 13
+  },
+  "revised": {
+    "orders": ["A", "C", "F", "H"],
+    "materials": 66,
+    "minutes": 95,
+    "revenue": 240,
+    "order_surplus": 174,
+    "repair_contribution": 139,
+    "shortfall": 81
+  },
+  "donation_confirmed": false
+}
+```
+
+The initial selection yields the highest feasible order surplus, $242, within $80 materials and 120 minutes; subtracting the $35 expense gives $207. The revised selection yields $174 order surplus within $66 and 120 minutes; subtracting $35 gives $139.
+
+A feasible competing revised plan is **B, C, E, H**: materials $64, time 100 minutes, revenue $235, order surplus $171, repair contribution $136, shortfall $84. The selected revised plan is higher by $3.
+
+## 3. THE PUBLIC UPDATE
+
+The shop has confirmed $139 toward the $220 repair bill, leaving an $81 gap. A donor might give $100 tonight, but no gift or commitment has been received. We’ll update supporters if that changes.

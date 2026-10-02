@@ -1,0 +1,145 @@
+## 1. THE STORY
+
+### The Space Left Blank
+
+At two o’clock, Mara put a strip of masking tape over the press’s red warning light. It did nothing for the bearing, but it stopped the light from flashing in her eyes.
+
+The shop smelled of warm rubber, paper dust, and the onion sandwich Ivo had abandoned beside the cutter. Outside, somebody was scraping last winter’s concert notices off the community board. Inside, the press had one final afternoon before the repair deadline.
+
+“The banners first,” Ivo said.
+
+He had brought the theater’s artwork on a thumb drive shaped like a carrot. His daughter had painted the lettering. Opening night was tomorrow.
+
+“First isn’t the question,” Mara said. “Which ones.”
+
+She had eighty dollars for materials and two hours of machine time. Eight customers had placed orders. Each could have its whole order or none; nobody had agreed to pay for half a thing. Payment would come when production ended. She couldn’t print one job, collect its money, and buy stock for the next.
+
+Ivo tapped the carrot against her desk.
+
+“The theater kept us alive through February.”
+
+“So did the café. So did people buying bookmarks.”
+
+“Bookmarks don’t bring a hundred people into a room.”
+
+Mara flattened the order sheet beneath a chipped glass paperweight. Her father had printed wedding invitations here; she had printed his funeral programs. Neither fact made the repair bill smaller.
+
+They needed two hundred and twenty dollars in new money toward it.
+
+She worked through combinations while Ivo stood behind her, breathing audibly. The press clicked as it cooled, like somebody testing a locked door.
+
+Finally she circled four letters: A, C, F, G.
+
+“Posters, tickets, menus, banners,” she said. “Eighty in materials. Exactly one hundred and twenty minutes. Two hundred and ninety-four in payments.”
+
+Ivo smiled.
+
+“Minus eighty for materials,” she continued. “That leaves two hundred and fourteen. Then thirty-five for operating expenses. One hundred and seventy-nine toward the repair.”
+
+“Forty-one short.”
+
+“Yes.”
+
+“But the banners make it.”
+
+“They make it because this combination brings in the most.”
+
+He pocketed the carrot anyway, pleased enough to forgive the distinction.
+
+Before Mara ordered the stock, she opened the cash envelope again. Beneath the twenties was a note in her own handwriting: FOURTEEN OWED TO LIN—PAPER DELIVERY.
+
+She had remembered the delivery and forgotten the reimbursement.
+
+She counted twice. Sixty-six dollars available.
+
+Ivo watched her uncircle the letters.
+
+“You can leave the menus.”
+
+“That doesn’t make the best plan.”
+
+“Does everything have to be the best plan?”
+
+Today, Mara thought, yes. Not beautifully best. Not fair to everyone best. Just the largest amount they could actually put against the bill.
+
+She drew another set of circles.
+
+A, B, C, E.
+
+Posters. Programs. Tickets. Bookmarks.
+
+Sixty-six dollars in materials. One hundred minutes. Two hundred and forty-five in payments. After materials and the fixed thirty-five, one hundred and forty-four remained.
+
+“No banners,” Ivo said.
+
+“No banners.”
+
+He looked toward the theater artwork pinned above the desk: blue letters rising out of a red sea.
+
+“Someone said a donor might give a hundred tonight.”
+
+“Who?”
+
+“I don’t know yet.”
+
+Mara slid the blank purchase form toward him.
+
+“Then I can’t spend it.”
+
+For a moment he seemed ready to leave. Instead he took the form, pressing hard enough to mark the sheet beneath it.
+
+They called the customers whose work they would decline. Ivo called the theater himself. Mara heard him say, “I know,” three times, each softer than the last.
+
+Then he unpacked paper.
+
+During the programs, the press began its dry, grinding complaint. Ivo rested his hand on the housing until Mara shook her head. He withdrew it and sorted the finished sheets by their sharp, clean edges.
+
+The last bookmarks emerged twenty minutes before their machine allowance ran out. There wasn’t enough material money for another order. Mara switched off the press.
+
+After production ended, the four customers paid. She set aside the materials float, paid the operating expense, and counted one hundred and forty-four dollars into the repair envelope.
+
+Seventy-six still missing.
+
+Ivo put the carrot on the desk.
+
+“I’ll take the artwork back,” he said. “Tomorrow.”
+
+Mara nodded. Together they cleared the feed table for a repair they still couldn’t afford.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+The fixed $35 expense makes maximizing order surplus equivalent to maximizing repair contribution.
+
+- **Initial:** A + C + F + G uses $18 + $10 + $22 + $30 = **$80** and 25 + 15 + 30 + 50 = **120 minutes**. Payments total **$294**, so the contribution is $294 − $80 − $35 = **$179**. Comparing feasible subsets, the highest surplus with G is **$214**; without G, it is **$212**.
+- **Revised:** A + B + C + E uses $18 + $24 + $10 + $14 = **$66** and 25 + 40 + 15 + 20 = **100 minutes**. Payments total **$245**, so the contribution is $245 − $66 − $35 = **$144**. The highest feasible surplus with G is **$174**; without G, it is **$179**.
+- **Feasible competing revised plan:** A + C + F + H uses **$66** and **95 minutes**, earning **$240**. Its surplus is **$174**, contribution **$139**, and shortfall **$81**—a contribution $5 below the revised optimum.
+
+The original materials float is excluded from new fundraising income. No donation is included.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s completed orders contributed **$144 toward our $220 repair goal**, after materials and operating expenses. **We still need $76 by the repair deadline.** A possible $100 donation tonight has been mentioned, but no gift or commitment has been received. The repair goal remains unmet. Thank you to our customers and volunteers for helping on the shop’s final production afternoon before the deadline.

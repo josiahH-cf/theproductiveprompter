@@ -1,0 +1,101 @@
+# The Last Good Afternoon
+
+Mara counted the float twice because she didn't trust the first count. Eighty dollars in the coffee tin, four twenties soft as cloth. The compressor on the big press ticked as it cooled, the sound it had been making for a month, the sound that was going to cost them a repair they couldn't put off past tonight.
+
+"Banners," Ivo said from the doorway. He had cycled over in the rain and his jacket dripped onto the mat. "Fifty minutes, thirty in stock, one-twelve back. Best single number on the board."
+
+"Best single number," Mara agreed. She had the order sheets fanned on the cutting table under the shop lamp, eight of them, eight people who'd trusted a volunteer-run shop with their Friday. "It's not a single-number afternoon."
+
+She wrote it out on the back of a misprinted menu, because paper was the only thing they had too much of. Two walls: eighty dollars for stock, a hundred and twenty minutes before the press had to go cold. Payments came after the ink dried, not before, so no order could pay for the next one. Each job came out of the tin first.
+
+The banners took a lot of both walls. But paired with the menus, the posters, and the little ticket run for the choir, they used exactly eighty dollars and exactly a hundred and twenty minutes. Two hundred ninety-four in, eighty out. Two hundred fourteen cleared.
+
+"Minus the thirty-five for the electric and the lease," she said. "One seventy-nine toward the two-twenty."
+
+Ivo leaned over her shoulder. He smelled like wet wool and the bike chain he never cleaned. "So the banners are in. Good. Opening night is Sunday. If the theater doesn't get them—"
+
+"The banners are in." She underlined G. "Go pull the thirty-pound stock."
+
+He was halfway to the shelves when the phone rang. It was Dessa from the co-op that fronted their paper, apologetic, talking fast. The credit they'd been counting on was short. Not eighty. Sixty-six.
+
+Mara put the handset down carefully, the way you'd set down something that might go off.
+
+"What," Ivo said.
+
+"Sixty-six."
+
+"That's fourteen dollars."
+
+"That's fourteen dollars we don't have before any ink hits anything." She pulled the menu back toward her and crossed the whole plan out with one line. Ivo watched her do it.
+
+"Keep the banners," he said. "Drop the menus. The café will understand."
+
+She tried it his way first, because he was standing right there and because she wanted him to be right. Banners, posters, tickets: fifty-eight dollars, ninety minutes. Eight dollars and thirty minutes left over, and nothing on the board that cost eight dollars. Banners, programs, tickets: sixty-four, a hundred and five. One seventy-six cleared, one forty-one after the fixed cost.
+
+Then she tried it without the banners at all. Programs, posters, tickets, bookmarks. Sixty-six exactly. A hundred minutes. One seventy-nine cleared. One forty-four after the thirty-five.
+
+Three dollars better, and the big one gone.
+
+"Three dollars," Ivo said. "You're cutting the theater for three dollars."
+
+"I'm not cutting the theater for three dollars. I'm picking the biggest number I can reach with what's actually in the tin. It happens to be the one without your banners in it." She heard how it sounded and didn't soften it. "If it were three dollars the other way, I'd print your banners and let the café wait."
+
+He didn't say anything. The rain picked up against the front window. On the shelf behind him the thirty-pound banner stock sat in its wrapper, which he had already half torn open.
+
+"Can we call the theater," he said finally. "Tell them Monday."
+
+"We can call the theater."
+
+"Someone said Reyes might come by tonight. Might give a hundred."
+
+"Might." She looked at the sheet. One forty-four. Seventy-six short. "A hundred would close most of it. I'll print him a thank-you card the minute it's in my hand and not one minute before. We buy what sixty-six buys."
+
+Ivo put the banner stock back on the shelf. He did it gently, which was how she knew he was angry, and then he went and got the program stock instead, because the programs were forty minutes and they needed to start.
+
+The press came up with its old cough. Mara fed the first sheet. Ivo stood at the far end catching them as they came through, warm, the ink still bright and tacky, and for the first forty minutes neither of them said anything that wasn't a count.
+
+At six she totaled the tickets stub by stub, wrote the figure on the chalkboard by the door for whoever came in next, and left the number seventy-six under it without an explanation. Reyes had not come. The compressor ticked.
+
+"Monday," Ivo said, pulling his wet jacket on.
+
+"Monday," she said. "Bring the banner sheet. We'll run it first."
+
+---
+
+## The Receipt
+
+```json
+{
+  "initial": {
+    "orders": ["G", "F", "A", "C"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["B", "A", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+**Per-order surplus (payment minus materials):** A 50, B 66, C 28, D 68, E 35, F 54, G 82, H 42.
+
+**Initial plan (materials ≤ 80, minutes ≤ 120).** G+F+A+C uses materials 30+22+18+10 = 80 and minutes 50+30+25+15 = 120. Surplus 82+54+50+28 = 214. Minus the $35 fixed expense gives 179. Shortfall 220 − 179 = 41. Competing feasible plan: B+D+A+C uses 80 materials, 115 minutes, surplus 212, contribution 177. Three dollars worse. G+D+F uses 80 materials, 115 minutes, surplus 204.
+
+**Revised plan (materials ≤ 66, minutes ≤ 120).** B+A+C+E uses materials 24+18+10+14 = 66 and minutes 40+25+15+20 = 100. Surplus 66+50+28+35 = 179. Minus 35 gives 144. Shortfall 220 − 144 = 76. Competing feasible plan: G+B+C uses 64 materials, 105 minutes, surplus 176, contribution 141. Ivo's preferred G+A+C uses 58 materials, 90 minutes, surplus 160, and the leftover $8 cannot fund any remaining order. No plan containing G reaches 179 under the $66 cap.
+
+---
+
+## The Public Update
+
+**Print shop repair update, Friday evening.** Today's production is finished. After paying for paper and ink and our fixed $35 operating costs, this afternoon's orders contributed **$144** toward the $220 repair bill. The remaining gap is **$76**. A supporter mentioned a possible $100 gift this evening, but as of closing no donation has been received or confirmed. The theater banners will be printed Monday. Thank you to everyone who placed an order today.

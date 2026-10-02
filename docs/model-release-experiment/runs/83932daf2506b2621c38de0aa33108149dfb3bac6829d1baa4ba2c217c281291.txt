@@ -1,0 +1,113 @@
+## 1. THE STORY
+
+### The Last Afternoon in Blue Ink
+
+At three o’clock, the community print shop smelled of hot paper, machine oil, and the lemon cleaner Mara had used on the counter that morning. Beyond the front windows, October rain polished the street black. Inside, the press clicked as it cooled, sounding to Mara like a clock with a loose tooth.
+
+The repair technician had given them until closing to raise new money toward the bill. They needed $220. Mara had eighty dollars available for materials and exactly 120 minutes of machine time. No credit, no partial orders, no second runs after closing. Customers would pay only when their work was finished, so today’s receipts could not buy supplies for the next job.
+
+Ivo stood beside the order board with a roll of red ribbon tucked under his arm. “The theater banners,” he said. “They open tomorrow. Half the cast learned their lines in the back room of this place.”
+
+“And the banners use thirty dollars and fifty minutes,” Mara said.
+
+“They pay one hundred twelve.”
+
+“They leave eighty-two before expenses.” She tapped the figures on her pad. “That isn’t the same as saying they belong in the best set.”
+
+Ivo frowned. He had volunteered at the shop since he was sixteen, when Mara had shown him how to clear a paper jam without losing a finger. Now he was twenty-four and spoke about the theater as if it were another endangered building he could hold upright personally.
+
+Mara worked through every combination. Materials in one column, minutes in another, payment minus materials in a third. Her pencil left gray crescents along the side of her hand. The best initial plan was posters, programs, tickets, and postcards: orders A, B, C, and D. They would use all eighty dollars of materials and 115 minutes. Payments would total $292; after $80 in materials, the order surplus would be $212. The fixed operating expense would take another $35, leaving $177 for the repair.
+
+“Forty-three short,” Ivo said.
+
+“But the closest confirmed result we can make.”
+
+“And no banners.”
+
+“No banners.”
+
+The front door opened, releasing a wet gust and Mrs. Vale from the neighborhood council. Water shone on the shoulders of her green coat. She placed an envelope on the counter and apologized: the council reimbursement had been reduced. Only sixty-six dollars of the expected materials money was available.
+
+For several seconds, rain and the cooling press made all the sound in the room.
+
+Ivo pushed the theater slip toward Mara. “Then do the banners first. If we’re going to miss the goal anyway, we should help the people who helped us.”
+
+“Being short doesn’t make the limits disappear.”
+
+“It changes what matters.”
+
+Mara looked at him, stung because part of her agreed. Then she drew a line through the first plan. Nothing had been purchased and no work had begun, so the mistake cost only graphite. She recalculated with sixty-six dollars, keeping the same 120-minute limit. The room grew dim enough that Ivo switched on the inspection lamp, flooding her page with hard white light.
+
+At last Mara circled four letters: A, B, C, E. Posters, programs, tickets, and bookmarks. Exactly $66 in materials, 100 machine minutes, $245 in payments. The order surplus would be $179; after the $35 operating expense, the repair contribution would be $144. The remaining gap would be $76.
+
+Ivo checked the arithmetic twice. “Programs, tickets, and banners fit,” he said. “Sixty-four dollars. A hundred five minutes.”
+
+“And they contribute $141 after the expense.”
+
+“Three dollars less.”
+
+“Yes.”
+
+He stared at the banner order. The difference was small enough to feel insulting and large enough to be real.
+
+“My cousin says a donor might give a hundred tonight,” he said.
+
+“Might isn’t in the drawer.”
+
+“You always make hope sound counterfeit.”
+
+“No,” Mara said more softly. “I make sure we don’t spend it before it arrives.”
+
+Ivo pulled the red ribbon from under his arm and tied back his hair. “Give me the programs.”
+
+They worked without speaking for the first half hour. The press warmed the room; ink rolled onto paper with a tacky whisper. Ivo stacked the programs square, then fed ticket stock while Mara trimmed posters. When the bookmarks emerged, blue with tiny silver stars, he held one beneath the lamp.
+
+“The theater kids designed these,” he said.
+
+“I know.”
+
+His anger did not vanish, but it changed shape. “Tomorrow, if we’re still open, I’ll help them paint banners by hand.”
+
+Mara nodded. “I’ll give them the blank roll.”
+
+By closing, all four customers had collected their orders and paid. Mara set aside the $35 operating expense, counted $144 into the repair envelope, and wrote **GAP: $76** across the front. No donor had called. No gift had arrived.
+
+Ivo taped the finished posters in the window. Then, without being asked, he placed the repair envelope in the safe. Mara handed him the blue bookmark with silver stars.
+
+Outside, the theater marquee remained bare. Inside, the press settled with one last metallic click, and they turned off the lights together.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "B", "C", "D"],
+    "materials": 80,
+    "minutes": 115,
+    "revenue": 292,
+    "order_surplus": 212,
+    "repair_contribution": 177,
+    "shortfall": 43
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+For the initial plan, A+B+C+D uses $18+$24+$10+$28 = $80 and 25+40+15+35 = 115 minutes. Its $292 revenue produces a $212 order surplus; after the fixed $35 expense, the repair contribution is $177.
+
+Under the revised $66 materials limit, A+B+C+E uses exactly $66 and 100 minutes. Its $245 revenue produces a $179 order surplus and a $144 repair contribution.
+
+A feasible revised competitor that includes the theater banners is B+C+G. It uses $64 and 105 minutes, earns $240, and produces a $176 order surplus. After the $35 expense, it contributes $141—$3 less than the revised optimum.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s completed orders produced a confirmed $144 contribution toward the print-shop repair. We remain $76 short of the $220 goal. A possible $100 donation was mentioned, but no gift or commitment had been received by closing, so it is not included in these figures.

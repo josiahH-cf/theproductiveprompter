@@ -1,0 +1,113 @@
+## 1. THE STORY
+
+**The Last Good Afternoon on Dolliver Street**
+
+The Risograph smelled like warm dust and banana oil, the way it always did when it had been running since noon. Mara had the window cracked three inches, enough to let in the sound of the bus brakes on Dolliver and not enough to let the October wind lift the stacks.
+
+Ivo came in without knocking, which was his right after four years, and set a paper cup of coffee on the cutting table where no liquid was ever supposed to go.
+
+"Banners," he said.
+
+"I know."
+
+"Fifty minutes of machine time, thirty in stock, and they pay a hundred and twelve. That's the biggest single number on your sheet." He was already pulling the theater's file out of the rack, the one with the ghost-light logo stamped crooked. "Delphine says they'll hang them Friday. She said it like a promise she made to me personally."
+
+Mara had the sheet in front of her, penciled and repenciled. Eighty dollars for materials, a hundred and twenty minutes on the drum before the technician came Monday to replace it, and every customer paying on pickup, which meant after — always after. No order could fund the next one. She'd spent the morning finding the shape that paid best: banners, posters, tickets, menus. Thirty and eighteen and ten and twenty-two made eighty exactly. Fifty and twenty-five and fifteen and thirty made a hundred and twenty exactly. Two hundred and fourteen dollars of surplus, and she'd been quietly proud of how tight it sat, like a jar lid.
+
+"Your banners were in," she said. "Past tense, probably."
+
+Ivo stopped with the file half-open.
+
+The float had been eighty. Then Renata from the credit union had called at one-fifteen, apologetic in that flat way people get when they've already said it to four others, and the line of credit against the autumn grant had come back at sixty-six. Not eighty. Sixty-six, and not a cent after, and the drum came out Monday whether or not anyone had hung anything.
+
+"So drop the menus," Ivo said. "Banners, posters, tickets. Fifty-eight in stock. You've got eight dollars spare and thirty minutes of drum left over."
+
+"And a hundred and sixty in surplus." Mara turned the pencil around. "I ran it four ways while you were at the hardware store. Programs, posters, tickets, bookmarks. Twenty-four, eighteen, ten, fourteen — sixty-six on the nose. A hundred minutes. Two hundred forty-five in, sixty-six out, a hundred seventy-nine clear."
+
+"That's nineteen dollars better than mine."
+
+"It's nineteen dollars, Ivo." She let that sit. "Nineteen dollars is nineteen dollars when you're short."
+
+"The banners are the single most profitable item you own."
+
+"Per item. Not per dollar I don't have." She slid the sheet toward him so he could see the columns with his own eyes, which was the only argument that had ever worked on him. "The banners eat thirty of sixty-six. They eat half my float to make eighty-two. The four small jobs eat the same sixty-six and make a hundred seventy-nine. If I had the other fourteen dollars I'd print your banners and love doing it. I don't have the other fourteen dollars."
+
+He didn't say anything for a while. The Riso ticked as it cooled. Somewhere behind the paper shelves the radiator made its knuckle-cracking sound.
+
+"Delphine's going to think I didn't fight."
+
+"Tell her you fought."
+
+"I'd rather tell her she's getting banners."
+
+Marissa Okonjo's kid came in at four for the tickets, forty-eight little perforated rectangles still faintly tacky, and paid cash, and that was thirty-eight dollars that existed. The programs came off at five-ten. Bookmarks at five-forty, blue on cream, and Mara fanned them out because they were genuinely beautiful and nobody was going to say so if she didn't.
+
+Then thirty-five dollars for the month's water and the dumpster, which came off the top like it always did, and what was left for the drum was a hundred and forty-four.
+
+"Two-twenty," Ivo said, looking at the number she'd written on the back of a misprint.
+
+"Seventy-six short."
+
+"Yannick says there's a donor. Hundred dollars, maybe tonight."
+
+"Says." Mara put the pencil in the jar. "He said something similar in March."
+
+"It could happen."
+
+"It could." She pulled the cracked window shut, and the room went quiet enough to hear the clock. "It hasn't."
+
+Ivo picked up his cold coffee and the theater's file, and took both with him, and stopped in the doorway long enough to say, "Friday, though. If the hundred comes."
+
+"If it comes," Mara said, "I'll call you before I call anyone."
+
+Nobody called. The lights went off at six-twenty, and the drum sat waiting for Monday with a hundred and forty-four dollars toward it.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["G", "A", "C", "F"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["B", "A", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+**Initial plan (≤$80, ≤120 min).** G+A+C+F: materials 30+18+10+22 = 80 (exactly at cap); minutes 50+25+15+30 = 120 (exactly at cap); revenue 112+68+38+76 = 294; surplus 294−80 = 214; less $35 → **179**; shortfall 220−179 = **41**.
+
+Why nothing beats it: five orders require at least 10+14+16+18+22 = $80 of materials, and that unique five-order set (C,E,H,A,F) yields surplus 28+35+42+50+54 = 209 < 214. Among four-order sets, including G leaves ≤$50 for three others, and A+C+F = $50 is the highest-surplus triple that fits (50+28+54 = 132, so 214). Excluding G, the best feasible four-set is B+D+A+C: materials 80, minutes 115, surplus 66+68+50+28 = 212. So 214 is the maximum.
+
+**Competing feasible initial plan:** B+D+A+C — materials $80, 115 minutes, revenue $272, surplus $212, contribution $177. Legal, one dollar's worth of slack on time, $2 worse.
+
+**Revised plan (≤$66, ≤120 min).** B+A+C+E: materials 24+18+10+14 = 66; minutes 40+25+15+20 = 100; revenue 90+68+38+49 = 245; surplus 179; less $35 → **144**; shortfall **76**.
+
+Why the banners go: five orders are now impossible (cheapest five cost $80 > $66), so the plan holds at most four. G consumes $30 of the $66 float to return $82 of surplus, leaving only $36 for others; the best such set is G+B+C (materials 64, minutes 105, surplus 176) and the best four-order version is G+A+C+F → materials $80, infeasible. Dropping G frees the float for four mid-cost jobs: B+A+C+E = 179. Machine time (100 of 120 min) is no longer the binding constraint; materials are.
+
+**Competing feasible revised plan:** A+C+F+H — materials $66, 95 minutes, revenue $240, surplus $174, contribution $139. Five dollars worse. Ivo's preferred G+A+C: materials $58, 90 minutes, surplus $160, contribution $125 — $19 behind the chosen plan, matching the figure argued in the story.
+
+The $80 (and later $66) materials float is working capital, not fundraising, so only the post-expense contribution counts toward the $220.
+
+## 3. THE PUBLIC UPDATE
+
+**Press Room Update — Final Print Afternoon**
+
+Our materials budget was reduced from $80 to $66 before printing began. We ran posters, programs, tickets, and bookmarks, and after the $35 operating expense we cleared **$144** toward the $220 repair bill.
+
+That leaves a **$76 gap**.
+
+The theater banners could not be printed this round; a smaller slate earned more on a smaller float. A supporter mentioned a possible $100 gift, but **no donation has been promised or received**. The $76 remains outstanding.

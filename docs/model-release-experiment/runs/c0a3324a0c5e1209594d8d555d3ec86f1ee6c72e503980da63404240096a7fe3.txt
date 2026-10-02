@@ -1,0 +1,125 @@
+## 1. THE STORY
+
+### The Last Run
+
+At four-thirty, the print shop smelled of hot rubber, paper dust, and the coffee Mara had forgotten beside the guillotine. Rain ticked against the front windows, turning the theater marquee across the street into a watery smear of red bulbs.
+
+“Banners first,” Ivo said. He stood with one hand on the rolled vinyl, as if he could keep it from escaping. “The theater opens tomorrow. If they don’t have those, everyone notices.”
+
+Mara looked past him at the whiteboard. Eight orders. One afternoon. A repair deadline at six.
+
+“We have eighty dollars for materials and one hundred twenty minutes on the machine,” she said. “The banners take thirty and fifty.”
+
+“They pay one hundred twelve.”
+
+“After we finish them.”
+
+Ivo’s mouth tightened. “That’s still more than most of these.”
+
+“More revenue,” Mara said. “Not necessarily more room to breathe.”
+
+She uncapped a marker and wrote numbers beside the orders. Posters. Programs. Tickets. Postcards. Bookmarks. Menus. Banners. Maps. The figures looked harmless in a row. Together, they formed a wall.
+
+The shop’s aging press had begun making a grinding sound in February. Today, a repair technician had promised to come tomorrow morning, provided they could put $220 toward the bill. Mara had saved the original eighty-dollar materials float from ordinary shop work. It was not new fundraising; it was simply the money that let the machine earn anything at all.
+
+Ivo tapped the banner roll. “You’re going to tell me this isn’t emotional.”
+
+“I’m going to tell you emotion doesn’t make the rollers turn.”
+
+He flinched, and she regretted it immediately. Ivo had spent three years bringing in theater work, folding programs after school and sleeping on the shop’s battered sofa during festival week. He knew what the theater meant to the neighborhood. He also knew Mara had once printed his first playbill for free.
+
+She ran the combinations again, crossing out totals and rewriting them. The best full afternoon plan was posters, programs, tickets, and postcards: $80 in materials, 115 machine minutes, $292 in payments. After materials, that left $212. The shop’s fixed operating expense took another $35, leaving $177 toward the repair.
+
+“Forty-three short,” Ivo said.
+
+“Before the surprise.”
+
+“What surprise?”
+
+She pointed to the front door. A customer had just left with a rain-darkened receipt in hand. “Payments arrive after production. We can’t use what they’ll pay us to buy the next order’s materials.”
+
+“So the banners don’t fit.”
+
+“Not in the best plan.”
+
+He looked at the theater roll again. “You could choose them anyway.”
+
+“I could choose a worse plan because it feels loyal.”
+
+The silence between them was louder than the press.
+
+Then Mara’s phone buzzed. She read the message and felt the floor shift beneath her. The shop’s emergency cash count had been wrong. A supplier had taken an overdue balance that morning. Only sixty-six dollars remained for materials.
+
+Ivo gave a short, unbelieving laugh. “Fine. Then drop the postcards. Keep the banners.”
+
+Mara did the arithmetic aloud, more gently this time. “Banners, programs, and tickets use sixty-four dollars and one hundred five minutes. Payments are two hundred forty. Surplus is one hundred seventy-six. After the expense, one hundred forty-one.”
+
+“Still respectable.”
+
+“Respectable isn’t the same as best.”
+
+She wrote another line. Posters, programs, tickets, bookmarks. Sixty-six dollars. One hundred minutes. Two hundred forty-five in payments. One hundred seventy-nine after materials. One hundred forty-four after the expense.
+
+Ivo stared at the four words on the board: POSTERS. PROGRAMS. TICKETS. BOOKMARKS.
+
+“No banners,” he said.
+
+“No banners.”
+
+“The theater will be furious.”
+
+“Then I’ll tell them before we print anything.”
+
+He looked toward the back room, where the banner roll waited in its cardboard tube like a promise neither of them could afford. “You always make the clean choice sound like the kind one.”
+
+“No,” Mara said. “Sometimes the kind choice is admitting exactly what we can do.”
+
+They began with the posters. Ivo fed sheets into the press while Mara trimmed the first stack. The machine coughed, clattered, and finally settled into its familiar metallic rhythm. At five-forty, the last bookmark slid beneath the cutter.
+
+A message arrived from someone named Len: “Might be able to get you a hundred tonight.”
+
+Mara read it twice, then locked the phone.
+
+“Good news?” Ivo asked.
+
+“Possibility.”
+
+Outside, the theater’s marquee blinked through the rain. Inside, four finished orders dried in neat piles. Mara counted the repair envelope: $144.
+
+Not enough. Not yet.
+
+But it was real money, earned from work they could actually complete. She picked up the phone and called the theater.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "B", "C", "D"],
+    "materials": 80,
+    "minutes": 115,
+    "revenue": 292,
+    "order_surplus": 212,
+    "repair_contribution": 177,
+    "shortfall": 43
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+The initial plan maximizes order surplus under $80 and 120 minutes: $292 − $80 = $212; after the $35 expense, contribution is $177.
+
+Under the revised $66 materials limit, A+B+C+E uses $66 and 100 minutes, yielding $245 − $66 = $179, or $144 after expenses. A feasible competing plan is B+C+G: $64 materials, 105 minutes, $240 revenue, $176 surplus, and $141 contribution.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s completed work contributes $144 toward the shop’s repair, leaving a confirmed gap of $76. A possible $100 donation was mentioned, but no gift or commitment has been received. Theater banners were not included because the revised materials limit made another combination more valuable for the repair fund.

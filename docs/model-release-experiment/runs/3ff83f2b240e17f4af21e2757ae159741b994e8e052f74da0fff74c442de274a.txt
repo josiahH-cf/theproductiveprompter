@@ -1,0 +1,101 @@
+# 1. THE STORY
+
+## Three Dollars
+
+The heat lamp over the drying rack had been ticking since noon, and the whole shop smelled of warm vinyl and the orange solvent Mara used on the rollers. At 1:40 she taped the plan to the side of the wide-format printer: posters, tickets, menus, banners. Eighty dollars of stock, a hundred and twenty minutes on the machine, not one minute to spare.
+
+"Banners are on," Ivo said, reading over her shoulder. He had a smear of cyan on his thumb and the look of a man who had already promised someone something. "I told Dee they'd be up by Saturday."
+
+"They're on because they earn," Mara said. "Two hundred fourteen over materials. Minus the thirty-five for the electric and the rent share, that's a hundred seventy-nine toward the platen."
+
+The platen. The cracked steel bed of the old offset press sat under a drop cloth at the back like something that had died there. Two hundred twenty dollars to the repairman by tomorrow morning, or he'd take the press for parts, and they'd lose the cards, the zines, half the neighborhood's wedding invitations.
+
+Her phone buzzed. She read it twice.
+
+"Treasurer," she said. "Somebody's reimbursement cleared against the supply account. We've got sixty-six for materials, not eighty."
+
+Ivo laughed, then saw her face. "So drop the tickets. Keep the banners."
+
+"Let me look." She pulled the order sheet off the clipboard and sat on an upturned paper crate with a carpenter's pencil. The fluorescent tube above her flickered the way it did when the dryer kicked on. Ivo hovered, then didn't, then did again.
+
+She worked it the way her father had worked feed orders: every row a cost and a payoff, every combination checked against both walls. Dropping the tickets didn't even fit; posters, menus and banners came to seventy. Thirty for the banners ate nearly half the new budget. With banners, the best she could build was programs and tickets beside them, a hundred seventy-six over materials. Without them, posters, programs, tickets, bookmarks: sixty-six dollars exactly, a hundred minutes on the machine, a hundred seventy-nine.
+
+"Three dollars," she said.
+
+"Three dollars," Ivo repeated. "You're cutting Dee's banners for three dollars."
+
+"I'm cutting them because the press needs every dollar, and three dollars is three dollars." She heard how that sounded and didn't take it back. "A hundred forty-four after the thirty-five. Seventy-six short. With the banners, seventy-nine short."
+
+"The theater sends us half our walk-ins. You don't think that's worth three dollars?"
+
+"I think it's worth a conversation. I don't think it's worth pretending I can't count."
+
+He went to the window and stood with his arms crossed, watching a bus kneel at the curb. Outside, someone's dog barked at it. Inside, the printer's carriage hissed home and waited.
+
+"Linda says her sister's friend might give a hundred tonight," he said, not turning around. "That covers it."
+
+"Might." Mara stood, tore the old plan off the printer, and taped up the new one. "If she does, I'll buy the vinyl Monday and print Dee's banners at cost. If she doesn't, we still did the best afternoon we could do."
+
+That turned him. "At cost?"
+
+"At cost. You can tell Dee that. Tell her it was me."
+
+He picked up the box cutter and opened the bookmark stock without another word, which was how Ivo apologized. They ran posters first, the magenta coming up thick and wet, then programs, folded warm off the tray so the creases cracked faintly under Mara's thumbnail. Tickets went through perforated, a sound like a zipper. The bookmarks were last, cream card with a pressed-flower border for the library, and Ivo trimmed them on the guillotine with more care than they needed.
+
+At 3:40 the machine went quiet. A hundred minutes. Twenty left over that nobody could use.
+
+Mara wrote it on the whiteboard by the door in green marker: *Confirmed toward repair: $144. Still needed: $76. Donor: maybe. Not yet.*
+
+Ivo read it, uncapped the marker, and underlined *not yet.*
+
+"I'll call Dee myself," he said.
+
+"I'll stand next to you."
+
+The heat lamp ticked. Under the drop cloth, the press waited, as it had all afternoon, for the rest of the money.
+
+---
+
+# 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+**Per-order surplus (payment − materials):** A 50, B 66, C 28, D 68, E 35, F 54, G 82, H 42.
+
+**Initial ($80 / 120 min):** A+C+F+G uses $80 and 120 min. Surplus is 50+28+54+82 = 214, and the contribution is 214 − 35 = 179. The best plan without G is A+B+C+D (or A+B+F+H) at 212. The only five-order set that fits, A+C+E+F+H, yields 209.
+
+**Revised ($66 / 120 min):** At $66, materials bind and minutes do not. A+B+C+E costs 18+24+10+14 = $66 and takes 100 min. Surplus is 50+66+28+35 = 179, so the contribution is 144 and the shortfall is 76.
+
+- **Banners plan:** With G in, $36 remains, and the best addition is B+C (+94), for a surplus of 176.
+- **Plans with D or F** reach at most 170.
+- **Plans with H** reach at most 174.
+
+**Competing feasible plan (keeps the banners):** B+C+G costs $64 and takes 105 min. Revenue is $240, surplus 176, contribution 141, and the shortfall $79. That is $3 worse than the chosen plan.
+
+---
+
+# 3. THE PUBLIC UPDATE
+
+**Press Repair Update:** This afternoon's print orders raised **$144** toward our $220 press repair, after materials and a $35 operating cost. We still need **$76**. A possible $100 donation has been mentioned, but no gift or pledge has been received, so we are not counting it yet. If you can help close the gap, please stop by or contact the shop. Thank you for keeping the presses running!

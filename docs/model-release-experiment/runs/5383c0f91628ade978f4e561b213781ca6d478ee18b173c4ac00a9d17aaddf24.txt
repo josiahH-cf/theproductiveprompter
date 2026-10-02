@@ -1,0 +1,156 @@
+## 1. THE STORY
+
+### The Shape of What Was Missing
+
+At four o’clock, the print shop smelled of warm rollers and the orange Ivo had peeled over the wastebasket. Outside, rain stippled the theater’s old banner until its red lettering looked wounded.
+
+“People can’t buy tickets for a play they don’t know exists,” he said.
+
+Mara held the new banner proof against the window. Ivo’s daughter had painted the moon in its corner: an uneven yellow circle, unmistakably made by someone who had looked up.
+
+They had two hours of machine time before the repair deadline. They needed $220 in new money for the bill. Mara had eighty dollars for materials.
+
+“Banners first,” Ivo said.
+
+“Let me see.”
+
+“You always say that like seeing is different from caring.”
+
+Mara lowered the proof.
+
+The machine clicked as it cooled. For seventeen years she had known its noises: the loose guard, the paper guide, the little metallic cough that now meant a repair they could no longer postpone. Ivo had spent almost as many years carrying boxes through the side door.
+
+She spread the order slips across the cutting table.
+
+He watched her pencil move. Posters, tickets, menus, banners. She checked other combinations, turning rejected slips sideways, then checked the closest ones again.
+
+“These four,” she said.
+
+Ivo reached for the banner proof.
+
+“Eighty in materials. Exactly a hundred and twenty minutes. Payments of two hundred and ninety-four, which leaves two hundred and fourteen after materials.”
+
+“Then we’ve done it.”
+
+“No. Thirty-five operating expense. A hundred and seventy-nine for the repair.”
+
+He left his hand on the proof.
+
+“Forty-one short,” she said. “But this is the most we can make.”
+
+“So the banners stay.”
+
+“They stay.”
+
+For a moment his pleasure made her feel mean for insisting on the subtraction.
+
+Then her phone rang.
+
+The treasurer’s voice came thinly through the speaker. She had checked the available materials balance. The figure she had given Mara was wrong.
+
+“Sixty-six,” Mara repeated.
+
+No stock had been cut. No ink had been bought. Nevertheless, Ivo looked toward the machine as though something had already been torn inside it.
+
+“Customers pay when their orders are finished,” Mara said after the call. “We can’t spend their payments on the next one. We have to buy everything with the sixty-six.”
+
+“Keep the banners. Work around them.”
+
+She pulled the slips back.
+
+This time he helped add, pressing each slip flat with a fingertip. Banners, programs, tickets: sixty-four dollars out, a hundred and seventy-six left before the operating expense. Banners, posters, maps: a little less.
+
+Mara tried the small orders together.
+
+Posters. Programs. Tickets. Bookmarks.
+
+Sixty-six dollars. One hundred minutes. Two hundred and forty-five in payments.
+
+“A hundred and seventy-nine before the expense,” she said. “A hundred and forty-four for the repair.”
+
+Ivo stared at the bookmarks.
+
+“Three dollars.”
+
+She knew which comparison he meant.
+
+“You’re dropping our banners for three dollars.”
+
+“Yes.”
+
+“My daughter spent all Sunday on that moon.”
+
+Mara touched the yellow circle with the back of her finger. There was a pencil mark beneath the paint that the scanner had faithfully preserved.
+
+“I know.”
+
+“Someone said a donor might give a hundred tonight.”
+
+“Has anyone heard from them?”
+
+“No. But—”
+
+Mara waited. Ivo folded the orange peel into a tight little parcel.
+
+“No,” he said again.
+
+She put the banner slip aside. This time she did not turn it facedown.
+
+They bought materials for the four selected orders. Ivo fed the posters while Mara checked registration. Programs followed, then tickets, then bookmarks, pale green strips that accumulated beside the cutter like grass clippings. Between runs they stood together in the machine’s sudden silences.
+
+When the hundred minutes were used, Ivo cleaned the rollers without being asked.
+
+After production, the customers paid. Mara counted $245, restored the $66 materials float, and set aside the $35 expense. The repair envelope held $144.
+
+Ivo wrote **$76 STILL NEEDED** on its front.
+
+At six, no donor had called or paid. Mara switched off the machine and put the closed sign in the window. Beside it, Ivo taped up the unprinted banner proof, with its small, crooked moon.
+
+Then he stayed to help her lock the door.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+The initial plan uses **$18 + $10 + $22 + $30 = $80** and **25 + 15 + 30 + 50 = 120 minutes**. Its repair contribution is **$294 − $80 − $35 = $179**.
+
+The revised plan uses **$18 + $24 + $10 + $14 = $66** and **25 + 40 + 15 + 20 = 100 minutes**. Its repair contribution is **$245 − $66 − $35 = $144**. The fixed expense makes maximizing contribution equivalent to maximizing order surplus.
+
+A compact check of optimality by order count:
+
+| Number of orders | Best feasible surplus with $80 | Best feasible surplus with $66 |
+|---|---:|---:|
+| At most three | $204: D, F, G | $176: B, C, G |
+| Four | $214: A, C, F, G | $179: A, B, C, E |
+| Five | $209: A, C, E, F, H | Infeasible |
+| Six or more | Infeasible | Infeasible |
+
+These maxima respect the 120-minute limit. The five cheapest orders cost $80; the six cheapest cost $104.
+
+One feasible competing revised plan is **B, C, G**, which preserves the theater banners. It costs **$64**, takes **105 minutes**, and earns **$240**. Its contribution is **$240 − $64 − $35 = $141**, leaving a **$79 shortfall**. Choosing A, B, C, E improves the confirmed contribution by $3. Neither plan counts the returned materials float as new money.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s completed orders contributed **$144 toward our $220 repair goal**, after materials and the fixed operating expense. **We still need $76.** Someone mentioned a possible $100 donation tonight, but no gift or commitment has been received. The shop is closed following the repair deadline; the remaining repair funding is unconfirmed.

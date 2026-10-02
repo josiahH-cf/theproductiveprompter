@@ -1,0 +1,93 @@
+## 1. THE STORY
+
+**The Last Good Hour**
+
+The toner smell was strongest in the afternoon, when the big Risograph had been running long enough to warm the whole front room. Mara liked it. It smelled like work getting done. Today it smelled like a countdown.
+
+"Eighty dollars and two hours of machine," she said, tapping the whiteboard. "That's what we've got before the repair crew locks the doors Monday. So I've picked the jobs that squeeze the most out of it." She'd chalked four letters in the corner: A, C, F, G. "Posters, tickets, menus, banners. Two hundred ninety-four dollars coming back, minus materials, minus the thirty-five we owe the landlord for the month. One-seventy-nine toward the bill."
+
+Ivo was already grinning at the G. "Banners made the cut. See, I told you the theater matters."
+
+"The theater pays a hundred twelve dollars for thirty in paper and fifty minutes of press. Of course it made the cut." She almost smiled. "You got in on the math, not the sentiment."
+
+That was when Dolores called from the back with the cash box and a face like a dropped plate. "Mara. The float. We only ever had sixty-six in petty cash, not eighty. I logged the deposit wrong last week."
+
+The warm room went very quiet except for the fan.
+
+Mara wiped the board clean and started over. Fourteen dollars gone off the top changed everything, because materials had to be bought before a single sheet ran, and nobody paid her until the job was finished and out the door. Sixty-six dollars. Still two hours of press.
+
+She wrote slowly this time, testing each line against the two limits like a woman stepping across a creek on stones. Programs. Posters. Tickets. Bookmarks. B, A, C, E.
+
+Ivo read it twice. "Where's G?"
+
+"Gone."
+
+"The *banners* are gone." He said it like she'd crossed out a person.
+
+"Thirty dollars in paper, Ivo. On sixty-six, thirty dollars buys one order and crowds out two. I ran it." She turned the clipboard so he could see her scratch marks. "Banners-plus-programs-plus-tickets gets me a hundred seventy-six in surplus. Programs, posters, tickets, bookmarks gets me a hundred seventy-nine, and it fits the paper exactly—sixty-six, to the dollar. Three dollars more, and nobody's theater gets to feel special about it."
+
+"Three dollars." He laughed, not kindly. "You're killing the banners for three dollars."
+
+"I'm saving three dollars because three dollars is three dollars, and we're going to be short either way." She set the clipboard down. "One-seventy-nine surplus. Thirty-five to the landlord. A hundred forty-four toward the repair. The bill wants two-twenty. We're seventy-six light no matter which plan I run. I'm not going to be seventy-nine light *and* tell the theater I bumped a paying job to print their name in red."
+
+Ivo opened his mouth. Closed it. The arithmetic had him and he knew it; she watched the fight drain out of his shoulders and something tireder replace it.
+
+"Petra said a donor might come through tonight," he tried. "A hundred, maybe."
+
+"Might." Mara pulled the first ream of program stock and squared it against the feed tray, the paper cool and faintly powdery under her thumbs. "I've printed a lot of mights. I'll believe a check when it clears." She didn't say the rest—that *might* and *a hundred forty-four* don't add to anything you can hand a repair crew.
+
+So they ran the four jobs. Posters first, the drum thumping a heartbeat she could feel in the counter; then programs, tickets, bookmarks, the stacks growing warm and square. Ivo collated without being asked, snapping the edges true, not talking. By the time the last bookmark dropped into the tray the light through the window had gone orange and the toner smell had folded itself into the smell of a day ending.
+
+"One hundred forty-four," Mara said, to the room more than to him. She wrote it on the clean board and underlined it once. Under it she wrote: *still need 76.*
+
+Ivo looked at the banners that weren't there. Then he picked up a program—crisp, folded, the theater's own show on the cover—and held it a second longer than he needed to.
+
+"The theater's still in here," she said quietly. "Just on the inside page, where it pays its way."
+
+He set it on the stack. "Call me the second that check clears."
+
+"If," she said.
+
+"If," he agreed, and locked the front door behind him.
+
+---
+
+## 2. THE RECEIPT
+
+```json
+{
+  "donation_confirmed": false,
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  }
+}
+```
+
+**Why these plans.** Objective is to maximize surplus (revenue − materials) subject to materials and minutes caps, then subtract the fixed $35.
+
+*Initial ($80 / 120 min):* A+C+F+G uses exactly 80 materials and 120 minutes. Surplus = 294 − 80 = 214; contribution = 214 − 35 = 179; shortfall = 220 − 179 = 41. The binding wall is money *and* time (both maxed), so no order can be added or upgraded.
+
+*Revised ($66 / 120 min):* A+B+C+E uses exactly 66 materials (10+18+24+14) and 100 minutes — materials is the binding limit. Surplus = 245 − 66 = 179; contribution = 144; shortfall = 76. Dropping $14 of float costs only $35 of contribution (179→144), not a full order, because the swap trades the pricey banners (G, $30 paper) for two cheaper high-margin jobs.
+
+**Feasible competing plan (revised):** B+C+G — materials 64, minutes 105, revenue 240, surplus 176, contribution 141, shortfall 79. Keeps the banners but yields $3 less surplus and $3 less contribution, so it loses to A+B+C+E.
+
+---
+
+## 3. THE PUBLIC UPDATE
+
+Final print run complete. After materials and the $35 operating cost, this afternoon's jobs contributed **$144** toward our **$220** repair bill — leaving us **$76 short**. We printed programs, posters, tickets, and bookmarks; the theater banners didn't fit the reduced materials budget this round. A supporter has mentioned a possible $100 gift tonight, but **no donation has been received or committed**. We'll update you the moment anything clears. Thank you.

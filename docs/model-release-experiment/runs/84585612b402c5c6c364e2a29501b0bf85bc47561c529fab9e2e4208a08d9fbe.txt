@@ -1,0 +1,95 @@
+## 1. THE STORY
+
+**The Float**
+
+Mara had the whole day timed before the bank untimed it for her.
+
+By nine she'd fanned eight job tickets across the cutting table like a dealt hand — posters, programs, event tickets, postcards, bookmarks, menus, the theater's banners, a run of trail maps. Eighty dollars in the materials tin. A hundred and twenty minutes on the press before the repair crew came at three to pull the drum. Customers paid on pickup, never before, so whatever she bought this afternoon she bought with what was already in the tin. She'd run it twice and settled: banners, posters, tickets, menus. Two hundred fourteen dollars of margin, once paper and ink came out.
+
+Then the credit union called about a hold she'd let slip her mind, and the tin wasn't eighty anymore. Sixty-six. That was all of it.
+
+Ivo came in on the back of that sentence, shaking rain off a canvas coat, smelling of cold and wet wool. "Banners first," he said, the way he'd said it every afternoon that week. "If the show looks funded, people treat it funded. Hang the banners, the rest follows."
+
+"Tin's sixty-six now." She said it flat, because flat was the only way to say it without her voice doing something.
+
+He stopped mid-unzip. "Since when."
+
+"Since four minutes ago."
+
+He planted a knuckle on the banner ticket. "Then cut something else. Keep these."
+
+She turned a spoiled ticket over and worked it in pencil while the shop ticked around them — the press idling warm, the fluorescent buzz, the smell of toner baked into the walls. Banners ate thirty of her sixty-six in stock and fifty of her hundred twenty minutes. Build the best plan *around* them and you got programs, tickets, banners: a hundred seventy-six in margin. Build the best plan *without* them and you got posters, programs, tickets, bookmarks: a hundred seventy-nine.
+
+"Three dollars better without your banners," she said. "After the thirty-five the shop owes itself for lights and lease, that's a hundred forty-four toward the theater's two-twenty."
+
+"*Three dollars.*" He laughed, not kindly. "You'd sink the banners over three dollars."
+
+"I'd run the plan that clears the most. Three dollars is three dollars I don't have, Ivo. The rule isn't mine. It's the arithmetic's."
+
+"The arithmetic doesn't have to hang in a lobby." He pushed the banner ticket at her. "People give to a thing that looks alive. A hundred forty-four doesn't look alive. It looks like we're already losing."
+
+"A hundred forty-four is real. Banners that bankrupt the float by Thursday aren't." She set the pencil down. "I can't buy anything this afternoon I don't already have the stock for. There's no second tin behind this one."
+
+Someone from the theater board had left a voicemail at noon — a patron *might* wire a hundred tonight, might, the word doing all the work. Ivo brought it up like a card he'd been holding.
+
+"If the hundred lands, the gap's gone."
+
+"If." She let the word sit. "Nobody's sent it. I don't cut paper on a maybe."
+
+He stood a long moment, rain still dripping off his hem onto the concrete. Then he picked up the banner roll himself, the heavy matte stock he'd ordered, and carried it to the rack by the door — set it upright, careful, like it still might go up somewhere.
+
+"Run yours," he said.
+
+She fed the press. Posters first, the big sheets snapping through warm; then programs, the long run, forty minutes of the drum singing its one note; tickets, quick; bookmarks last, narrow strips she'd guillotine once the blade cooled. A hundred minutes of the hundred twenty. Sixty-six dollars of stock, exactly, down to the tin's bottom.
+
+At two-forty the crew's truck backed into the alley. Ivo helped them wheel out the drum without being asked, and the shop went quiet in that specific way machines leave when they stop.
+
+The finished work stood stacked and paid-for-on-paper: a hundred forty-four dollars cleared toward two hundred twenty. Seventy-six short. The banner roll leaned in its rack, uncut, catching the grey light from the window.
+
+Ivo looked at it, then at her. "Phone's on tonight?"
+
+"It's on."
+
+"If the hundred comes—"
+
+"Then tomorrow we talk banners," she said. "With money in the tin instead of in a sentence."
+
+He almost smiled. Outside, the rain kept at the glass, and neither of them pretended the number was anything but what it was.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+**Explanation.** Objective each time: maximize surplus = Σ(payment − materials), subject to materials ≤ budget and minutes ≤ 120; then contribution = surplus − 35.
+
+*Initial (materials ≤ 80, minutes ≤ 120):* Plan **A,C,F,G** uses materials 18+10+22+30 = 80 and minutes 25+15+30+50 = 120 (both limits exactly binding). Revenue 68+38+76+112 = 294, surplus 294−80 = 214, contribution 214−35 = **179**. No feasible plan beats 214: adding G forces the best fitting partners to be A,C,F (the top triple within the leftover 50 materials / 70 minutes); dropping G caps the best 4-set at 212.
+
+*Revised (materials ≤ 66, minutes ≤ 120):* Plan **A,B,C,E** uses materials 18+24+10+14 = 66 (binding) and minutes 25+40+15+20 = 100. Revenue 68+90+38+49 = 245, surplus 179, contribution 179−35 = **144**. The banners (G) can no longer sit in the optimum: the best banner-inclusive plan is **G,B,C** (materials 64, minutes 105, surplus 176 → contribution 141), which is $3 worse — the story's hinge.
+
+*One feasible competing revised plan:* **G,B,C** → materials 64, minutes 105, revenue 240, surplus 176, contribution **141**, shortfall 79. Feasible but dominated by A,B,C,E.
+
+## 3. THE PUBLIC UPDATE
+
+**Print Shop Update.** On our final production afternoon, a reduced materials budget meant we couldn't run every job. The plan we completed clears **$144** toward the theater's **$220** repair bill, leaving a gap of **$76**. A patron has been mentioned as possibly giving $100 tonight, but no gift or commitment has been received. We'll report the moment anything is confirmed. Thank you for standing with the shop.

@@ -1,0 +1,109 @@
+# 1. THE STORY
+
+**Sixty-Six Dollars of Paper**
+
+At two o'clock the cash envelope held eighty dollars, because that was what the ledger said. At two-fifteen it held sixty-six, because that was what Mara's fingers said.
+
+She counted twice on the light table, the bills gone soft as cloth. Behind her the duplicator ticked as it cooled, and the room smelled of warm toner and the lemon cleaner she used on the platen glass.
+
+"Fourteen," she said. "Drum wiper. Tuesday. I never wrote it down."
+
+Ivo didn't come down off the ladder. He was holding a banner proof flat against the brick above the door, THE LANTERN PLAYERS in forty-point condensed, the cyan running a shade toward sky. "Fourteen dollars."
+
+"Fourteen dollars of paper we don't have."
+
+"We have paper."
+
+"We have paper that belongs to somebody's wedding in October." She pulled the slips off the spike and fanned them across the light table. Posters, programs, tickets, postcards, bookmarks, menus, banners, maps. Eight jobs, and Delgado coming at five to pull the fuser, and two hours of run time before that. Not two hours and ten. He'd been specific.
+
+She had worked it out the night before on the back of a misprinted order of service, and she had been proud of it: posters, tickets, menus, banners. Eighty dollars of stock to the dollar, a hundred twenty machine minutes to the minute. After the thirty-five-dollar operating draw, a hundred seventy-nine toward the two hundred twenty they owed. Forty-one short, but the banners were in it. The banners had been in it.
+
+Now she did the whole thing again with sixty-six.
+
+Ivo came down while she wrote, the proof curled under his arm like a rolled fish. He read numbers upside down better than most people read them right side up.
+
+"Banners, programs, tickets," he said. "Sixty-four of stock. A hundred five minutes. That fits."
+
+"That's a hundred forty-one."
+
+"And yours?"
+
+"Posters, programs, tickets, bookmarks. Sixty-six to the dollar, a hundred minutes flat. A hundred forty-four."
+
+He laid the proof on the cutter bed and smoothed it with the side of his hand. "Three dollars."
+
+"Three dollars."
+
+"Mara." His palm stayed on the banner, over the L. "The Lantern sends us everything. Marguerite brought us the summer camp programs when the strip-mall place quoted her cheaper. Our name's on the back of every playbill since 2019."
+
+"I know what they do for us."
+
+"Then put them on the press."
+
+"I can't take the plan that's worth less." It came out flatter than she wanted. "If I get to decide which three dollars don't matter, then it's me deciding every single time, and the board says whatever I feel like that day. I'd rather it be arithmetic than me."
+
+"It's seventy-six either way. Seventy-six, seventy-nine. The gap doesn't feel the difference."
+
+"Then neither should you."
+
+That landed wrong and she heard it land. Ivo stood with his hand on the proof, and the clock over the door made its small plastic sound, and the duplicator finished cooling and went quiet, and neither of them filled it.
+
+"Fine," he said. "Give me the tickets."
+
+Posters went first, because the drum pulled cleanest cold. Then programs, forty minutes of it, the long rhythm of sheets dropping into the tray like someone shuffling a deck underwater. Ivo ran the guillotine on the tickets, thumb gone cyan at the knuckle, the blade coming down with a sound you felt in the floorboards. Bookmarks last, twenty minutes, the ribbon holes punched by hand because the die was part of what Delgado was coming to fix.
+
+Marguerite called at twenty to four. Mara told her plainly: not today, not this afternoon, the money didn't reach. Marguerite was kind about it in the way that costs you something to hear, and said she'd try the strip-mall place for opening weekend, and that was that. Ivo taped the banner proof inside the supply cabinet, face to the wall.
+
+Last sheet at 4:21. The payments came in while she was still sweeping chad off the floor: sixty-eight, ninety, thirty-eight, forty-nine. Two hundred forty-five dollars in the cash box, sixty-six of it already spent on stock, thirty-five out for the month's operating. A hundred forty-four.
+
+She wrote it on the whiteboard under REPAIR — 220, then 144, then 76 — while Ivo rinsed his hands at the slop sink.
+
+"Pellegrino said he might come by tonight," Ivo said. "A hundred, he said. Maybe."
+
+"Maybe," Mara said.
+
+The phone rang once at ten of five. It was a woman asking whether they were open Saturdays. Delgado's van pulled up at five on the nose, and nobody had given them anything yet, and the 76 stayed where it was.
+
+# 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+**Initial plan (≤ $80, ≤ 120 min).** A+C+F+G: materials 18+10+22+30 = 80 (exactly at cap); minutes 25+15+30+50 = 120 (exactly at cap); revenue 68+38+76+112 = 294; surplus 294 − 80 = 214; contribution 214 − 35 = 179; shortfall 220 − 179 = 41.
+
+Why it wins: a fractional bound on the materials cap alone caps surplus at about 220, so only sets scoring 215–220 could beat 214, and each of them breaks a cap — {C,B,G,H} = 218 needs 130 minutes; {A,B,D,E} = 219 needs $84; {C,A,B,G} = 226 needs $82. Only one five-order set fits $80 at all ({A,C,E,F,H}, cheapest five = exactly 80) and it yields 209. Including both G and D caps out at 204 ({D,F,G}).
+Competing initial plan: {A,B,C,D} — materials 80, minutes 115, revenue 292, surplus 212, contribution 177.
+
+**Revised plan (≤ $66, ≤ 120 min).** A+B+C+E: materials 18+24+10+14 = 66 (exactly at cap); minutes 25+40+15+20 = 100; revenue 68+90+38+49 = 245; surplus 245 − 66 = 179; contribution 179 − 35 = 144; shortfall 220 − 144 = 76.
+
+Why it wins: no five-order set is affordable (the five cheapest stocks total $80 > $66). Exactly six four-order sets fit $66, all within 120 minutes — {A,C,E,H} 155, {C,E,F,H} 159, {B,C,E,H} 171, {A,C,E,F} 167, {A,C,F,H} 174, {A,B,C,E} **179**. The best three-order set is {B,C,G} at 176. So 179 is the maximum surplus available.
+Competing revised plan (the one Ivo wanted): {B,C,G} — materials 64, minutes 105, revenue 240, surplus 176, contribution 141, shortfall 79. Keeping the banners costs exactly $3 of contribution.
+
+# 3. THE PUBLIC UPDATE
+
+**Print Shop Repair Fund — Update**
+
+Our final production afternoon is finished. After materials and a $35 operating expense, we contributed **$144** toward the $220 we need to raise for the press repair. That leaves a gap of **$76**.
+
+A supporter mentioned a possible $100 gift. As of today, no donation and no commitment have been received, so the $76 gap stands. Theater banners could not be produced within our reduced materials budget. Thank you for your continued support.

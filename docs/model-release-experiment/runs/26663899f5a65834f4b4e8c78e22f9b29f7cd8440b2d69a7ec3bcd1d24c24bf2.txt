@@ -1,0 +1,157 @@
+## 1. THE STORY
+
+### The Last Clean Run
+
+At three-thirty, the shop smelled of hot paper and cinnamon gum.
+
+Mara stood behind the counter with a yellow legal pad, her reading glasses pushed into her hair. Beyond the glass partition, the old cutter sat mute beneath a dusting of paper lint. The press was running only because she had coaxed it through the morning with a screwdriver and a threat.
+
+“Banners first,” Ivo said.
+
+He had brought them in a cardboard tube from the Riverview Theater: three long strips of red canvas, already hemmed, waiting for gold lettering. OPENING NIGHT. A MIDSUMMER NIGHT’S DREAM. The theater’s director had sent him with a note full of exclamation points.
+
+Mara did not look up. “The banners are not automatically first because you carried them in like a flag.”
+
+“They’re for the theater.”
+
+“And the repairman is for the press.”
+
+“The theater has been lending us costumes for the school print class since before I got here.”
+
+Mara made a mark on the pad. She had written the orders in rows, lettered A through H. Beside each, she had listed materials, minutes, payment. The repair bill needed two hundred and twenty dollars in new money by tomorrow. Not cash they already had in the materials drawer. Not good intentions. Money earned after the afternoon’s jobs, less what they spent making them and less the thirty-five dollars for power, cleaning solvent, and the delivery pickup.
+
+Ivo leaned over the counter. “You’re going to make this into a funeral spreadsheet.”
+
+“It’s a repair spreadsheet. Different mood.”
+
+The press hiccupped behind them, then resumed its steady metallic thump.
+
+Mara tapped four letters on the page. “Posters. Tickets. Menus. Theater banners.” She spoke as if announcing a seating chart. “Eighty dollars in materials exactly. One hundred twenty minutes exactly. Payments total two ninety-four. After materials, that’s two fourteen. After operating expense, one seventy-nine toward the repair.”
+
+Ivo’s face softened. “So the banners stay.”
+
+“They stay in the best plan I can make with what we have.”
+
+“Then why do you look like somebody canceled Christmas?”
+
+“Because one seventy-nine is still forty-one short.”
+
+He read the figures. “What about programs?”
+
+“Programs push something else out. Everything that replaces this set earns less after costs.” Mara turned the pad toward him. “I checked.”
+
+For a moment, Ivo said nothing. He ran a thumb over the theater tube’s dented edge. Outside, rain painted silver threads across Main Street. The shop’s front sign blinked PRINT / REPAIR / COPY, with the last Y failing every third cycle.
+
+Then the bell over the door rang.
+
+Mrs. DeSoto entered carrying an envelope against her chest. She was the building manager, and Mara knew from the way she avoided the counter that this was not a customer order.
+
+“The supply account,” Mrs. DeSoto said. “I called the bank.”
+
+Mara’s stomach tightened.
+
+“There’s sixty-six available. Not eighty. That auto-payment for the trash service cleared this morning.”
+
+Ivo made a small, involuntary sound.
+
+Mrs. DeSoto set the statement down and left, leaving rainwater darkening the doormat.
+
+The press thumped on. Mara stared at the pad until the numbers stopped looking like numbers and became doors closing.
+
+Ivo spoke first. “We can still do the banners. Theater can pay a deposit later.”
+
+“Payments arrive after production,” Mara said. “You know that.”
+
+“They’ll make it right.”
+
+“Tonight is not later.”
+
+He looked at her sharply. “You’re saying no.”
+
+“I’m saying I have sixty-six dollars to turn into the most repair money possible.”
+
+“That makes the theater disposable?”
+
+“No. It makes the press mortal.”
+
+She recalculated in silence, pencil scratching through the old plan. The banners needed thirty dollars in materials and fifty minutes. They were still good work, still worth doing. But the new limit changed the shape of the day.
+
+At last she circled four different letters: posters, programs, tickets, bookmarks.
+
+“No banners,” Ivo said.
+
+“Those four cost sixty-six. They take one hundred minutes. They bring in two forty-five.” She swallowed. “One seventy-nine after materials. One forty-four after operating expense.”
+
+“And seventy-six short.”
+
+“Yes.”
+
+He turned away and stared through the partition at the press, its rollers flashing ink-black, ink-black, ink-black.
+
+“The theater will think we abandoned them.”
+
+“Then tell them the truth,” Mara said, quieter now. “Tell them I chose four jobs that keep the lights on longer than one beautiful banner does.”
+
+Ivo’s shoulders stayed rigid. Then he picked up the red canvas tube and tucked it beneath his arm.
+
+“Mrs. Lark at the theater said a donor might give a hundred tonight,” he said.
+
+“Might?”
+
+“She heard it from the director.”
+
+Mara folded the bank statement over the legal pad. “Then it is not money.”
+
+He nodded once, angry at the answer and perhaps more angry because it was fair.
+
+At four o’clock, he loaded poster stock into the feeder. Mara set the programs’ files, the tickets, and the bookmark sheet in a neat queue. They worked without speaking for ten minutes, listening to rain, fans, and the stubborn press.
+
+Then Ivo held out a hand for the next stack.
+
+“Bookmarks?” he asked.
+
+“Bookmarks.”
+
+As the first sheet came warm from the machine, he said, “I’ll call the theater. I’ll tell them we can print their banners after the repair is paid.”
+
+Mara looked at him. “Thank you.”
+
+He shrugged, but not cruelly. “Don’t make me volunteer for math again.”
+
+The press ran until the windows turned dark. No donor called. No new money appeared. At closing, Mara wrote $144 on the repair envelope and $76 beneath it.
+
+She locked the theater banners in the flat-file drawer, not as a promise, exactly, but as something that had survived the day.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Initial: A+C+F+G uses all $80 and all 120 minutes. Its $294 revenue minus $80 materials leaves $214; less the fixed $35 expense leaves $179.
+
+Revised: A+B+C+E uses all $66 materials and 100 minutes. Its $245 revenue minus $66 materials leaves $179; less $35 leaves $144. A feasible competing revised plan is B+C+D: $62 materials, 90 minutes, $224 revenue, $162 order surplus, and $127 repair contribution.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s confirmed print-run contribution to the press repair is **$144**. The remaining gap is **$76** toward the $220 repair goal. A possible $100 donor gift was mentioned, but no gift or commitment has been received.

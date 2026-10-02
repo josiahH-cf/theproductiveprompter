@@ -1,0 +1,94 @@
+# 1. THE STORY
+
+**Sixty-Six**
+
+The envelope in the till should have held eighty dollars. Mara counted it twice at one o'clock — rain ticking the skylight, the Risograph already warm and smelling like hot pepper and solvent — and both counts came to sixty-six, plus a slip in Teo's handwriting: *borrowed for roller cleaner, back Friday.* Friday was two days gone and Teo had had a tooth out.
+
+"He'll bring it," Ivo said from the doorway, coat dripping, a tube of banner stock under one arm like a baguette.
+
+"Not by five."
+
+"Then run what you already planned. The banners were in."
+
+They had been. That morning she'd taped all eight order slips to the corkboard and worked the afternoon out in pencil on the back of a misprint. Posters, tickets, menus, banners: eighty dollars of stock and ink exactly, a hundred and twenty minutes of drum time exactly, two hundred ninety-four dollars walking back through the door at five. Two hundred fourteen over materials. Thirty-five of that went to the co-op for the electric and the water cooler, the way it did every month, no arguing. One seventy-nine for the press. She had circled it twice and spent four hours feeling like a person with a plan.
+
+Because the press was the afternoon. Dessie came at eight tomorrow with a drum bearing and a bill, and the jar in the office held everything scraped together since August and still needed two hundred twenty more to meet her. Nobody paid before five, and no payment could buy anybody else's paper. At five the shop's one working machine became parts on a towel.
+
+So Mara sharpened the pencil and ran it again against sixty-six.
+
+Programs, posters, tickets, bookmarks. Sixty-six dollars of materials to the dollar. A hundred minutes, twenty in reserve. Two hundred forty-five coming back, one seventy-nine over materials, one forty-four after the co-op took its thirty-five.
+
+The banners were not on it.
+
+Ivo read the misprint upside down, lips moving, and then flattened a hand on it. "Where's G?"
+
+"It doesn't fit."
+
+"Thirty dollars. You have sixty-six."
+
+"I ran it with them." She turned the sheet around. "Programs, tickets, banners — sixty-four in stock, a hundred five minutes, two forty in. One seventy-six. Three dollars worse, and the banner eats fifty minutes, which is posters and bookmarks both."
+
+"Three dollars," Ivo said.
+
+"Three dollars is three dollars when you're seventy-six short."
+
+"We open Friday." Their voice went up and came back down, which was how Ivo argued when they meant it. "The box office is Dolores and a cash tin. Nobody buys a ticket to a thing they can't see from the street."
+
+"You're getting tickets. And programs. Both of yours are on the sheet."
+
+"Not the one that's outside."
+
+"Ivo." She put the pencil down. "I told the co-op I'd run the numbers, not my preferences. If I shave three dollars off the press to make your Friday prettier, that's me deciding for everybody with a pencil nobody elected."
+
+"Hollis said a hundred tonight."
+
+"Hollis says a lot by Thursday." Mara pulled her coat off the hook. "I believe they mean it. I can't buy paper with meaning it."
+
+She came back at twenty past one with sixty-six dollars of cardstock, newsprint, and ink, and they ran it. The thermal master cut with a sound like a zipper. The drum went in with its clunk; the counter ticked; sheets came out slapping into the tray warm, and Ivo jogged the stacks against the table edge until the edges went true, counting under their breath. Programs took forty minutes and most of their patience. Bookmarks went last because they were quick, and because Mara wanted to end the day on something that felt like money. At 4:41 the counter read one hundred. She shut it down and flushed the drum with the last of Teo's solvent.
+
+The customers came in through the rain at five: two hundred forty-five dollars, counted twice on the cutting table. Sixty-six went back in the envelope, where it had started and where it still wasn't income. Thirty-five went in the co-op tin. One hundred forty-four went in the jar, which left seventy-six.
+
+Ivo didn't leave. At six they were on the floor with a brush and the gray dregs of the flush water and ink, lettering the theater's name across the back of last spring's banner. No machine. No materials. Nothing Mara had to put on a sheet.
+
+"This doesn't count," Ivo said.
+
+"Not on the sheet."
+
+At seven she called Hollis and got voicemail. At a quarter to eight she wrote the notice for the window, and when she taped it up the gap in it was still seventy-six dollars, because that was what was true.
+
+# 2. THE RECEIPT
+
+```json
+{
+  "donation_confirmed": false,
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  }
+}
+```
+
+**Initial plan (A, C, F, G).** Materials 18+10+22+30 = 80 (cap exactly); minutes 25+15+30+50 = 120 (cap exactly); revenue 68+38+76+112 = 294; surplus 294−80 = 214; contribution 214−35 = 179; shortfall 220−179 = 41.
+Competing feasible plan: **A, B, C, D** — materials 80, minutes 115, revenue 292, surplus 212, contribution 177 ($2 worse). The only five-order set affordable at $80 is A, C, E, F, H (surplus 209). B, C, G, H scores 218 on materials ($80) but needs 130 minutes, so it is infeasible.
+
+**Revised plan (A, B, C, E).** Materials 18+24+10+14 = 66 (cap exactly); minutes 25+40+15+20 = 100 (20 spare); revenue 68+90+38+49 = 245; surplus 179; contribution 144; shortfall 76.
+Why the banners drop out: taking G spends $30 of the $66, leaving $36, and the best G-plan is **B, C, G** — materials 64, minutes 105, revenue 240, surplus 176, contribution 141. That is the feasible competing plan Ivo wants, and it is $3 worse. No five-order set fits $66 (the five cheapest are C+E+H+A+F = $80), so only sets of four or fewer qualify; ranked by surplus they go 179 (A,B,C,E), 176 (B,C,G), 174 (A,C,F,H), 171 (B,C,E,H).
+One coincidence worth flagging so it doesn't read as a transcription slip: the initial contribution and the revised order surplus are both 179.
+
+# 3. THE PUBLIC UPDATE
+
+**Press repair update.** Today's four jobs — posters, programs, tickets and bookmarks — brought in $245. After $66 in materials and our fixed $35 operating cost, **$144 goes to the repair fund.** We needed $220, so we are **$76 short** with the technician due tomorrow morning. A supporter has mentioned a possible $100 gift, but **no donation has been pledged or received.** If you can help close the $76, come by.

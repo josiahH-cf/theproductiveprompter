@@ -1,0 +1,91 @@
+# 1. THE STORY
+
+**The Last Afternoon Before Thursday**
+
+The toner smelled like warm pennies. Mara had the shop's back window cracked open a finger's width, enough to hear the Thursday traffic and the pigeon that lived in the gutter above the alley. The repair invoice was pinned to the corkboard with a thumbtack she'd bent straightening it. Two hundred twenty dollars by Friday morning, or the big press stayed broken into next week, and next week there was nothing on the schedule to run on it anyway.
+
+Ivo came in with the banner proofs rolled under one arm like a baguette. "Tell me you saved me the fifty minutes."
+
+"I didn't save you anything yet," Mara said. She had the order slips fanned out on the counter: posters, programs, tickets, postcards, bookmarks, menus, the theater's banners, a stack of neighborhood maps. "I'm doing the arithmetic."
+
+"Do it out loud. I'll be useful."
+
+"You'll be loud."
+
+He grinned and leaned on the counter anyway. The banners were order G — thirty dollars in vinyl, fifty minutes on the wide-format, a hundred and twelve coming back when the theater picked them up Friday. "That's eighty-two of surplus right there," he said, tapping the slip. "Half the gap in one job."
+
+"It's eighty-two if I only run that one job. I've got eighty dollars for materials and two hours of machine time. The programs and postcards together bring back one-eighty-six on fifty-two in paper. Add the posters and the tickets and I'm at eighty flat on materials, one-fifteen on the clock, and two hundred and twelve dollars of surplus before the thirty-five in operating."
+
+"So one seventy-seven toward the invoice."
+
+"One seventy-seven. Forty-three short. Which is a conversation we can have at four." She uncapped a pen. "The banners alone leave me a hundred and thirty under. I'd need the donor and then some."
+
+Ivo's mouth did the thing it did. "The theater's been with us since the storm."
+
+"I know."
+
+"They sent people when nobody sent people."
+
+"I *know*, Ivo." The pigeon above the gutter did its small complaint. "I'm not declining them to be cruel. I'm declining them because fifty minutes of the press plus thirty in vinyl gets me one job's worth of money and I need four jobs' worth."
+
+He didn't answer right away. He unrolled a corner of the proof and flattened it with his palm — a magenta lion with the season dates arched above its head. "Tell them Monday," he said finally. "I'll call Yusra myself."
+
+The phone rang before he could. It was Devi from the bank, who did the shop's deposits and sometimes mentioned things she wasn't supposed to mention. Mara listened, said "okay" twice, and set the receiver down carefully.
+
+"Fourteen dollars got reversed on last week's deposit," she said. "Bad check from the dentist. I've got sixty-six for materials, not eighty."
+
+Ivo closed his eyes. "The posters are eighteen."
+
+"The posters are out. So are the postcards." She pulled the slips toward her and started again, pencil now, lighter marks so she could change her mind. Programs, posters, tickets, bookmarks: ninety plus sixty-eight plus thirty-eight plus forty-nine, two hundred and forty-five back on sixty-six of paper. One hundred minutes on the clock. One seventy-nine of surplus. One forty-four toward the invoice after the operating cost.
+
+"That's seventy-six short," Ivo said.
+
+"That's seventy-six short."
+
+"And the donor —"
+
+"Hasn't called. Hasn't written. May. May give a hundred. May give nothing. I'm not going to run vinyl I can't pay for because somebody might be generous tonight."
+
+He nodded, slow. The magenta lion was still looking up at him from the counter. "I'll tell Yusra Monday morning. First thing. I'll tell her you tried."
+
+"Tell her I'll run them Monday on my own time if the press holds."
+
+"If."
+
+"If."
+
+He rolled the proof back up. Mara pulled the programs slip to the top of the stack, keyed in the first job, and listened to the small press clear its throat and begin.
+
+# 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "B", "C", "D"],
+    "materials": 80,
+    "minutes": 115,
+    "revenue": 292,
+    "order_surplus": 212,
+    "repair_contribution": 177,
+    "shortfall": 43
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Initial plan A+B+C+D uses the full $80 budget and 115/120 minutes for revenue $292 − $66... correction: materials $80, surplus $292−$80=$212, minus $35 = $177. A feasible competitor is B+F+A+H ($80 mat, 120 min, surplus $212, contribution $177) — tied on contribution but tighter on machine time. The banners G alone yield only $82−$35=$47 toward the goal.
+
+Revised plan A+B+C+E uses exactly $66 and 100 minutes: $245−$66=$179 surplus, $179−$35=$144 contribution. A feasible competitor is B+H+C+E ($64 mat, 100 min, surplus $171, contribution $136), which is strictly worse. G cannot combine with any three-order set that stays under $66 and beats $179 (best G combo is G+A+H at contribution $139).
+
+# 3. THE PUBLIC UPDATE
+
+Thursday update: Today's print jobs will contribute **$144** toward our **$220** press-repair bill, leaving a confirmed gap of **$76** before Friday's deadline. We were sorry to postpone the theater banners this week; we'll run them Monday if the press is back. A possible $100 gift was mentioned to us but has **not** been pledged or received. If you can help close the $76, stop by the counter or call the shop before noon tomorrow. Thank you.

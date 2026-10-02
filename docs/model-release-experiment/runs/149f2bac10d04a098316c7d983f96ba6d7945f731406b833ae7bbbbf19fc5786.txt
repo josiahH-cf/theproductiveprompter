@@ -1,0 +1,141 @@
+## 1. THE STORY
+
+### The Last Good Paper
+
+At three o’clock, the print shop smelled of hot dust, damp cardboard, and the sharp lemon cleaner Mara used on the counter when she needed to think.
+
+The old cutter stood quiet in the back, its red emergency button glowing like an accusation. By tomorrow morning, the repair company needed a deposit or they would give the replacement motor to someone else. Mara had written $220 on a yellow legal pad and taped it beside the register.
+
+Ivo came in carrying a rolled canvas sample under one arm.
+
+“The theater needs their banners,” he said. “Opening night is Friday. They said they can pay one-twelve.”
+
+Mara looked at the sample: violet letters, gold stars, a ridiculous little crown over the word *King*. “They need fifty machine minutes.”
+
+“They’re a community theater.”
+
+“So are we,” Mara said. “A community print shop with a cutter held together by optimism.”
+
+She had already made her first plan on the legal pad. Posters, programs, tickets, postcards: A, B, C, D. Eighty dollars in materials exactly. One hundred fifteen minutes. The customer payments would total $292; after paper, ink, and stock, the surplus would be $212. Then the fixed operating expense—thirty-five dollars for electricity, toner waste, and the service call—would leave $177 for the repair.
+
+Not enough, but closer than anything else she could make from the orders waiting in the rack.
+
+Ivo leaned over the counter. “You’re picking postcards over the theater?”
+
+“I’m picking the work that keeps this place open after Friday.”
+
+“The banners might bring people back.”
+
+“Might doesn’t buy a motor.”
+
+He shook his head, not angrily at first. “You always make it sound like numbers are more real than people.”
+
+Mara folded the legal pad closed. “Numbers are people when the supplier wants cash.”
+
+The bell above the door gave its thin, tired jangle. It was Nessa from the paper warehouse, rain beading on her jacket.
+
+“I’m sorry,” she said before Mara could speak. “Your account adjustment came through. You’ve got sixty-six available today, not eighty.”
+
+For a moment, nobody moved. The shop’s two printers clicked through their cooling cycle, plastic parts ticking in the warm air.
+
+“Sixty-six,” Mara repeated.
+
+Nessa nodded. “I checked twice.”
+
+Ivo looked toward the banners. “Then do the theater one. It’s thirty dollars. We can build around it.”
+
+“We can’t build around money that arrives after the work ends,” Mara said, though her voice had lost its edge. Customers paid at pickup. Their payments could not buy paper for another job this afternoon. There would be no borrowing from tomorrow, no second run, no miracle stack of orders under the counter.
+
+After Nessa left, Mara opened the pad again. Ivo stood across from her, arms crossed.
+
+“The banner job, programs, tickets,” he said. “That’s sixty-four in materials. One hundred five minutes. It works.”
+
+“It works,” Mara said. “But it leaves less.”
+
+“Three dollars less.”
+
+“Three dollars is three dollars.”
+
+“Three dollars is not a theater.”
+
+Mara wrote the combinations in small columns. A, B, C, E. Posters, programs, tickets, bookmarks. Sixty-six dollars. One hundred minutes. Customer payments of $245. After materials: $179. After the operating expense: $144.
+
+The theater combination would leave $141 toward the repair.
+
+She stared at the difference until it became insulting: three dollars. Three dollars and a choice that would be remembered by people who would never see the paper invoices.
+
+Ivo’s face softened. “Mara.”
+
+“The bookmarks are for the library’s literacy table,” she said. “The posters are for the clinic. The programs are for the school concert. Tickets are for the bus raffle.”
+
+“And the theater?”
+
+“The theater gets told no.”
+
+He picked up the canvas sample, then put it back down carefully. “I promised them I’d fight for it.”
+
+“You did.”
+
+Outside, a truck hissed through puddles. Mara imagined the shop dark, the cutter silent, the theater’s banners hung elsewhere. She also imagined telling the clinic, the school, the library, and the raffle committee that she had chosen a crown and some gold stars.
+
+Ivo exhaled through his nose. “There’s a donor who might give a hundred tonight.”
+
+“Might?”
+
+“Dale said he’d ask his aunt.”
+
+“Then Dale’s aunt has not given us anything.”
+
+He looked wounded, and Mara hated herself for the neatness of her answer. She touched the yellow pad between them.
+
+“I need confirmed money,” she said. “So do you.”
+
+For a long moment, Ivo said nothing. Then he nodded once, hard.
+
+“Fine,” he said. “I’ll call the theater.”
+
+Mara started the posters. Ivo trimmed the ticket stock and loaded the bookmark sheets. Together they worked through the afternoon, hands gray with paper dust, the shop loud with rollers and fans. At five-forty, the last bookmark slid into the catch tray.
+
+The payments would come at pickup. The contribution was still only $144. The gap was still $76.
+
+At six, Dale texted Ivo: *Aunt says maybe later.*
+
+Ivo showed Mara the screen. She did not write $100 anywhere.
+
+He turned off the violet sample lamp. Mara locked the front door. Behind them, the cutter waited for a repair neither of them could yet promise.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "B", "C", "D"],
+    "materials": 80,
+    "minutes": 115,
+    "revenue": 292,
+    "order_surplus": 212,
+    "repair_contribution": 177,
+    "shortfall": 43
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Initial choice: A+B+C+D uses exactly $80 in materials and produces $292 − $80 = $212 in order surplus; after the fixed $35 operating expense, $177 remains for repairs.
+
+Revised choice: A+B+C+E uses exactly $66 and produces $245 − $66 = $179; after $35, the repair contribution is $144.
+
+A feasible revised competing plan is B+C+G: $64 materials, 105 minutes, $240 revenue, and $176 order surplus. Its repair contribution is $141, which is $3 below the revised choice.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s completed work provides a confirmed $144 repair contribution after operating costs. The remaining repair gap is $76. A possible $100 donor gift was mentioned, but no gift or commitment has been received.

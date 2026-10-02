@@ -1,0 +1,166 @@
+## 1. THE STORY
+
+### The Width of a Door
+
+At three o’clock, the print shop smelled of hot dust and the orange Ivo had peeled over the wastebasket. A strip of rind lay on the floor like a small, abandoned ear.
+
+Mara had two hours before the repair deadline. The machine ticked behind her, cooling from its morning work. Every fourth tick sounded wrong.
+
+“The banners,” Ivo said. He set the theater’s artwork on her desk. “People have rehearsed for eleven weeks.”
+
+“People have also ordered menus.”
+
+“Menus don’t open tomorrow.”
+
+She wanted to tell him that neither would the shop if they couldn’t raise the repair money. Instead she drew two boxes on the back of a spoiled poster: eighty dollars for materials, one hundred twenty minutes for the machine.
+
+Ivo watched her write. He had painted scenery here when the shop still let volunteers work after closing. His fingerprints remained in blue on the underside of the cutting table.
+
+“Can we please decide like people?” he said.
+
+“I’m trying to.”
+
+She worked through the orders with a pencil worn short enough to disappear inside her fist. The customers would pay when everything was finished. Until then, eighty dollars was all the paper, ink, and banner stock she could buy.
+
+At last she circled posters, tickets, menus, banners.
+
+“Eighty in materials. All two hours. Two hundred ninety-four coming back.”
+
+Ivo smiled.
+
+“Subtract the materials,” she said. “Then thirty-five to keep this afternoon running. We get one hundred seventy-nine toward the repair.”
+
+His smile remained, but carefully now.
+
+“So forty-one short.”
+
+“Yes.”
+
+“But the banners fit.”
+
+“They fit because this is the best plan.”
+
+He picked up the artwork with both hands, as though she had already printed it.
+
+Then Mara’s phone vibrated against the desk. The bookkeeper’s message was six words: *Correction. Materials float available is only $66.*
+
+Nothing had been purchased. Nothing had begun. Nevertheless, Mara felt the unpleasant sensation of having to pull a sheet backward through rollers.
+
+She crossed out the first box.
+
+Ivo lowered the artwork.
+
+“We can still do them.”
+
+“We can. That’s different.”
+
+Outside, somebody rattled the locked side door, then went around to the front. Mara recalculated while Ivo admitted the woman collecting postcards and explained that the afternoon’s schedule wasn’t settled yet.
+
+When he returned, Mara had circled posters, programs, tickets, bookmarks.
+
+“No banners,” he said.
+
+“Sixty-six for materials. One hundred minutes. Payments total two hundred forty-five. After materials and operating costs, one hundred forty-four for repairs.”
+
+“That leaves twenty minutes.”
+
+“Yes.”
+
+“Enough to start—”
+
+“We can’t sell half an order.”
+
+He looked toward the machine. Twenty unused minutes seemed to offend him more than an empty drawer.
+
+“What about banners, programs, tickets?”
+
+“Sixty-four dollars. One hundred five minutes. After everything, one hundred forty-one.”
+
+“Three dollars.”
+
+“Three dollars less.”
+
+“Mara.”
+
+She pressed the pencil flat beneath her palm.
+
+“I know whose banners they are.”
+
+He had played the father in last winter’s production. His daughter had sat in the front row wearing the coat her mother had left behind. Mara had printed the programs herself.
+
+“There might be a hundred from that donor tonight,” he said.
+
+“Has anyone promised it?”
+
+“No. But—”
+
+“Then I can’t put it in the drawer.”
+
+For a while they listened to the faulty tick.
+
+Ivo turned the theater artwork facedown. “I’ll call them.”
+
+Mara offered to do it. He shook his head.
+
+She bought only the materials for the four circled orders. While she loaded the posters, Ivo stood beside the front window with his phone against his ear. She couldn’t hear his words over the machine, but she saw him stop gesturing. Then he nodded once.
+
+He returned and aligned the ticket sheets against the table’s blue-stained edge.
+
+“They’re disappointed,” he said.
+
+“I know.”
+
+“They asked whether you’d forgotten us.”
+
+Mara looked up.
+
+“I told them no.”
+
+The machine ran for one hundred minutes. The bookmarks came out last, warm and smelling faintly sweet. Ivo bundled them with the same care he had given the banner artwork.
+
+After the customers paid, Mara set aside the materials money and the operating expense. She counted the remaining one hundred forty-four twice.
+
+At five, they were still seventy-six dollars short. No donor had called.
+
+Mara sent the repair office the amount they had actually raised and reported the gap. Then she hung the closed sign. Ivo swept up the orange rind before they left together.
+
+## 2. THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+Comparing feasible combinations gives these maximum order surpluses:
+
+| Materials limit | Including G | Excluding G |
+|---|---:|---:|
+| $80 | $214: A, C, F, G | $212: A, B, C, D |
+| $66 | $176: B, C, G | $179: A, B, C, E |
+
+The fixed $35 deduction preserves that ranking. Initially, $294 − $80 − $35 = **$179** for repairs. After revision, $245 − $66 − $35 = **$144**.
+
+One feasible revised competitor is **B, C, G**: $64 materials, 105 minutes, $240 revenue, and $240 − $64 − $35 = **$141** for repairs—$3 less than the chosen plan. The materials float and possible donation do not count as new repair income.
+
+## 3. THE PUBLIC UPDATE
+
+Today’s completed orders raised **$144 toward the repair bill**, after materials and the $35 operating expense. We remain **$76 short of the $220 goal** at the repair deadline. A possible $100 donation has been mentioned, but no gift or commitment has been received. The shop is closed for now; we’ll share reopening news when it is confirmed.

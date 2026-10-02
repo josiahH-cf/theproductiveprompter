@@ -1,0 +1,83 @@
+# THE STORY
+
+## Five Dollars of Difference
+
+The shop smelled like warm toner and old coffee by two o'clock, and Mara had the whiteboard covered in her small, square handwriting: eight orders, two columns of numbers, and a circle around the figure that mattered. Two hundred twenty dollars. That was what the compressor repair would cost beyond what the shop could already cover, and the repair deadline was tomorrow morning.
+
+"Banners first," Ivo said, before she'd even capped the marker. He was folding a drop cloth with the particular energy of a man who had already decided. "The theater opens Friday. Hundred and twelve dollars. Biggest payment on the board."
+
+"Biggest payment, biggest materials bill, longest run," Mara said. "Fifty minutes on a machine that's already wheezing."
+
+She'd worked the numbers over lunch, a grease spot from her sandwich still on the scratch paper. With eighty dollars for materials and 120 minutes of machine time, the best plan did include Ivo's banners: banners, posters, tickets, menus. Eighty dollars out, 294 in, a surplus of 214. Take out the thirty-five dollars the shop owed for the afternoon's operating costs — electricity, the courier, the usual bleed — and 179 would go toward the repair. Not 220. But close enough to beg for the rest.
+
+Ivo grinned when she showed him. "See? Banners."
+
+"Banners because the math says banners," she said. "Not because the theater sends you free tickets."
+
+"They send you free tickets too."
+
+Then Delia called from the supply counter, phone wedged against her shoulder, and the afternoon tilted. The wholesaler's card payment had partially bounced — some hold on the account — and what cleared was sixty-six dollars, not eighty. Customers paid only after production; there was no way to float another cent until evening.
+
+Mara stood at the whiteboard for a long minute. The banners cost thirty dollars in vinyl alone. She tried it: banners plus posters plus maps came to sixty-four dollars and a surplus of 174. Then she tried the other way — programs, posters, tickets, bookmarks — and the chalk stopped moving. Sixty-six dollars exactly. A hundred minutes. Surplus of 179.
+
+Five dollars. The banners lost by five dollars.
+
+"You're kidding," Ivo said. He took the marker from her and redid it himself, breath audible through his nose. Programs, posters, tickets, bookmarks: 245 dollars in, sixty-six out. His version with banners topped out at 174, and he tried three more combinations before putting the cap back on. "Five dollars."
+
+"Five dollars toward a compressor that keeps every machine in this room alive," Mara said. "Including the one that would print your banners next week."
+
+"The theater opens *Friday*."
+
+"And this shop closes for good if that repair doesn't happen. Ivo, I'm not choosing against the theater. I'm choosing against closing."
+
+Someone near the paper racks — Delia, maybe, or the student who came in Thursdays — said they'd heard a donor might give a hundred dollars tonight. The sentence hung in the warm air like something almost solid. Ivo seized it: "If that comes through, the five dollars doesn't matter. Run the banners."
+
+"If," Mara said. "Nobody has called. Nobody has committed. I can't buy vinyl with a rumor."
+
+So they ran the plan the numbers allowed. Ivo fed the program stock in silence at first, the machine thumping its steady four-count, the smell of fresh ink rising off the trays. By the third run he was talking again — about the theater's director, about whether hand-painted banners might do for opening night, about whether Mara would let him use the shop's leftover poster board for free. "That I can do," she said. "Board's already paid for."
+
+At six they stacked the finished work under the window: ninety dollars of programs, sixty-eight of posters, thirty-eight of tickets, forty-nine of bookmarks. Two hundred forty-five dollars coming in, sixty-six spent, thirty-five owed for the day. One hundred forty-four dollars toward two hundred twenty.
+
+Mara wrote the gap on the whiteboard — $76 — and underlined it once. The donor hadn't called. The phone sat on the counter, screen dark, and she didn't stare at it.
+
+"Seventy-six," Ivo said, pulling on his jacket. "I can ask the theater board. They owe you."
+
+"They owe me a hundred and twelve, next week, for banners," Mara said, and for the first time all afternoon he laughed.
+
+She locked the door behind him. The compressor ticked as it cooled, like something counting.
+
+# THE RECEIPT
+
+```json
+{
+  "initial": {
+    "orders": ["A", "C", "F", "G"],
+    "materials": 80,
+    "minutes": 120,
+    "revenue": 294,
+    "order_surplus": 214,
+    "repair_contribution": 179,
+    "shortfall": 41
+  },
+  "revised": {
+    "orders": ["A", "B", "C", "E"],
+    "materials": 66,
+    "minutes": 100,
+    "revenue": 245,
+    "order_surplus": 179,
+    "repair_contribution": 144,
+    "shortfall": 76
+  },
+  "donation_confirmed": false
+}
+```
+
+**Initial plan (budget $80, 120 min):** A+C+F+G uses exactly $80 (18+10+22+30) and exactly 120 minutes (25+15+30+50). Revenue 68+38+76+112 = 294; surplus 294−80 = 214; minus the fixed $35 expense gives $179 toward the goal; shortfall 220−179 = 41. Competing feasible plan: A+B+C+D uses $80 and 115 minutes for surplus 212 — $2 worse.
+
+**Revised plan (budget $66, 120 min):** A+B+C+E uses exactly $66 (18+24+10+14) and 100 minutes (25+40+15+20). Revenue 68+90+38+49 = 245; surplus 245−66 = 179; contribution 179−35 = 144; shortfall 220−144 = 76. Competing feasible plan: A+G+H (the banner option) uses $64 and 100 minutes for surplus 174 and contribution 139 — $5 worse, which is why the banners were dropped.
+
+# THE PUBLIC UPDATE
+
+**Print Shop Repair Fund — Update**
+
+Today's final production run is complete. After materials and operating costs, this afternoon's work contributed a confirmed **$144** toward the $220 repair bill, leaving a **$76 gap** before tomorrow's deadline. A supporter mentioned a possible $100 donation tonight, but no gift or pledge has been received, so we are not counting it. If you can help close the remaining $76, please reach out to the shop directly. Thank you for keeping our presses running.
