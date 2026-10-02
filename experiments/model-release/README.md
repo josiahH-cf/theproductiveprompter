@@ -4,6 +4,8 @@ The complete repeat command is: article-flow model-release update --json
 
 Article Flow researches and publishes an article for newly identified models using the author's existing approved voice, verifies publication, runs missing frozen-prompt settings trials, then republishes the results section and linked run pages. Ordinary articles keep their normal three-option voice gate.
 
+Model-release articles use a TLDR and a few clear paragraphs, 300–650 prose words, with technical evidence in the linked runs. The exact frozen challenge is supplied directly to claim verification. A model discovered during publication waits for its verified article; the command continues automatically. Windows and WSL share the authenticated Windows campaign and history, and explicit same-URL article revisions preserve their campaign scope and approved voice.
+
 The user prompt stays at v1.0 and retains its SHA-256. Protocol v2 adds model/settings identities without changing or replacing the nine original baseline responses or their four preceding authentication errors.
 
 Default components mode tests all advertised thinking levels with default verbosity, plus all native verbosity values at baseline thinking. Full factorial coverage is optional with --matrix factorial. This separates one-setting comparisons from interactions. CLI metadata is authoritative for controls. Claude logging verbosity is not a native model verbosity control.
