@@ -20,6 +20,15 @@ import model_experiment_views as views
 
 
 class PublicationTests(unittest.TestCase):
+    def test_host_fallback_returns_the_actual_task_protocol(self):
+        failure=af.FlowError("No controller-hosted route is eligible; the active host must perform the task packet")
+        with patch.object(bridge,"captured_call",side_effect=failure), \
+             patch.object(af,"load_run",return_value=(Path("run"),{})), \
+             patch.object(af,"next_state_payload",return_value={"action":"perform_task","task_packet":"packet.json"}):
+            code,payload=bridge.advance_article(af,argparse.Namespace(run_id="r"))
+            self.assertEqual(code,af.EXIT_WAITING)
+            self.assertEqual(payload["task_packet"],"packet.json")
+
     def test_same_url_revision_is_reconciled_without_starting_another_article(self):
         with tempfile.TemporaryDirectory() as temporary, patch.object(af,"runs_root",return_value=Path(temporary)), \
              patch.object(bridge,"CAMPAIGN",Path(temporary)/"campaign.json"):

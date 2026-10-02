@@ -29,6 +29,18 @@ def captured_call(function, args):
     return code, json.loads(out.getvalue()) if out.getvalue().strip() else {}
 
 
+def advance_article(af, args):
+    try:
+        return captured_call(af.command_advance, args)
+    except af.FlowError as exc:
+        if str(exc) == "No controller-hosted route is eligible; the active host must perform the task packet":
+            directory, run = af.load_run(args.run_id)
+            payload = af.next_state_payload(directory, run)
+            if payload.get("action") == "perform_task":
+                return af.EXIT_WAITING, payload
+        raise
+
+
 def campaign():
     return m.load(CAMPAIGN) if CAMPAIGN.exists() else {
         "schema_version": 1, "experiment": m.EXPERIMENT, "articles": [],
@@ -287,94 +299,100 @@ def coordinate(af, args):
         raise m.ExperimentError("Live model-release coordination is disabled during conformance tests.")
     STATE.mkdir(parents=True, exist_ok=True)
     with m.update_lock(STATE):
-        m.freeze_prompt()
-        value = campaign()
-        # Resume the exact saved publication before discovery can introduce new work.
-        if (value.get("publication") or {}).get("status") in {"push pending", "verification pending"}:
-            repository = publication_checkout(af)
-            snapshot = m.load(Path(value["publication"]["registry_snapshot"]))
-            m.verify_registry(snapshot)
-            with publication_environment(repository):
-                publication = publish_results(af, value, repository, snapshot)
-            af.emit({"ok": True, "publication_repaired": True, "publication": publication,
-                     "repeat_command": ["article-flow", "model-release", "update", "--json"]}, args.json)
-            return 0
-        catalog, errors = m.discover(expanded=True)
-        if errors:
-            af.emit({"ok": False, "action": "catalog_incomplete", "errors": errors}, args.json)
-            return 10
-        reconcile_article_revision(af, value)
-        if args.model:
-            catalog = [r for r in catalog if r["model"] == args.model]
-            if not catalog:
-                raise m.ExperimentError("This exact model is not in the verified catalogs; no substitution.")
-        known = {identity for entry in value["articles"] for identity in entry["models"]}
-        new = [r for r in catalog if m.model_key(r["provider"], r["model"]) not in known]
+        return continue_campaign(af, args)
+
+
+def continue_campaign(af, args, depth=0):
+    m.freeze_prompt()
+    value = campaign()
+    # Resume the exact saved publication before discovery can introduce new work.
+    if (value.get("publication") or {}).get("status") in {"push pending", "verification pending"}:
         repository = publication_checkout(af)
+        snapshot = m.load(Path(value["publication"]["registry_snapshot"]))
+        m.verify_registry(snapshot)
         with publication_environment(repository):
-            if not value.get("pending_article") and new:
-                number = len(value["articles"])
-                seed = Path(args.seed_file).read_text(encoding="utf-8") if args.seed_file else article_seed(new, initial=number == 0)
-                reservation = {"id": m.sha(seed.encode()), "seed": seed,
-                               "models": [m.model_key(r["provider"], r["model"]) for r in new],
-                               "slug": "model-release-experiment" if number == 0 else "model-release-" + new[0]["model"],
-                               "run_id": None}
-                value["pending_article"] = reservation
+            publication = publish_results(af, value, repository, snapshot)
+        af.emit({"ok": True, "publication_repaired": True, "publication": publication,
+                 "repeat_command": ["article-flow", "model-release", "update", "--json"]}, args.json)
+        return 0
+    catalog, errors = m.discover(expanded=True)
+    if errors:
+        af.emit({"ok": False, "action": "catalog_incomplete", "errors": errors}, args.json)
+        return 10
+    reconcile_article_revision(af, value)
+    if args.model:
+        catalog = [r for r in catalog if r["model"] == args.model]
+        if not catalog:
+            raise m.ExperimentError("This exact model is not in the verified catalogs; no substitution.")
+    known = {identity for entry in value["articles"] for identity in entry["models"]}
+    new = [r for r in catalog if m.model_key(r["provider"], r["model"]) not in known]
+    repository = publication_checkout(af)
+    with publication_environment(repository):
+        if not value.get("pending_article") and new:
+            number = len(value["articles"])
+            seed = Path(args.seed_file).read_text(encoding="utf-8") if args.seed_file else article_seed(new, initial=number == 0)
+            reservation = {"id": m.sha(seed.encode()), "seed": seed,
+                           "models": [m.model_key(r["provider"], r["model"]) for r in new],
+                           "slug": "model-release-experiment" if number == 0 else "model-release-" + new[0]["model"],
+                           "run_id": None}
+            value["pending_article"] = reservation
+            m.atomic_json(CAMPAIGN, value)
+        entry = value.get("pending_article")
+        if entry:
+            if not entry.get("run_id"):
+                # Reconcile a crash after start by its controller-owned campaign identity.
+                matching = []
+                for path in af.runs_root().glob("AF-*/run.json"):
+                    candidate = af.load_json(path)
+                    if candidate.get("run_overrides", {}).get("model_release_campaign_id") == entry["id"]:
+                        matching.append(candidate["run_id"])
+                if len(matching) > 1:
+                    raise m.ExperimentError("Conflicting article identities need reconciliation.")
+                if matching:
+                    entry["run_id"] = matching[0]
+                else:
+                    code, result = captured_call(af.command_start, argparse.Namespace(
+                        seed=entry["seed"], seed_file=None, slug=entry["slug"], auto=False,
+                        draft_model=None, hold_before_publish=False, model_release=True,
+                        approved_voice=True, model_release_campaign_id=entry["id"], json=True))
+                    if code:
+                        af.emit(result, args.json)
+                        return code
+                    entry["run_id"] = result["run_id"]
                 m.atomic_json(CAMPAIGN, value)
-            entry = value.get("pending_article")
-            if entry:
-                if not entry.get("run_id"):
-                    # Reconcile a crash after start by its controller-owned campaign identity.
-                    matching = []
-                    for path in af.runs_root().glob("AF-*/run.json"):
-                        candidate = af.load_json(path)
-                        if candidate.get("run_overrides", {}).get("model_release_campaign_id") == entry["id"]:
-                            matching.append(candidate["run_id"])
-                    if len(matching) > 1:
-                        raise m.ExperimentError("Conflicting article identities need reconciliation.")
-                    if matching:
-                        entry["run_id"] = matching[0]
-                    else:
-                        code, result = captured_call(af.command_start, argparse.Namespace(
-                            seed=entry["seed"], seed_file=None, slug=entry["slug"], auto=False,
-                            draft_model=None, hold_before_publish=False, model_release=True,
-                            approved_voice=True, model_release_campaign_id=entry["id"], json=True))
-                        if code:
-                            af.emit(result, args.json)
-                            return code
-                        entry["run_id"] = result["run_id"]
-                    m.atomic_json(CAMPAIGN, value)
-                code, result = captured_call(af.command_advance, argparse.Namespace(
-                    run_id=entry["run_id"], max_steps=100, json=True))
-                if code:
-                    af.emit({**result, "campaign_resume_command": ["article-flow", "model-release", "update", "--json"]}, args.json)
-                    return code
-                _, _, receipt = require_verified_article(af, entry)
-                entry["url"] = receipt["url"]
-                value["articles"] = [old for old in value["articles"]
-                                     if old["run_id"] != entry.get("replaces_run_id")]
-                value["articles"].append({k: v for k, v in entry.items() if k != "seed"})
-                value["pending_article"] = None
-                m.atomic_json(CAMPAIGN, value)
-            if not value["articles"]:
-                raise m.ExperimentError("No verified article is attached to this campaign.")
-            for entry in value["articles"]:
-                require_verified_article(af, entry)
-            command = ["update", "--matrix", args.matrix, "--workers", str(args.workers)]
-            if args.model:
-                command += ["--model", args.model]
-            if args.limit:
-                command += ["--limit", str(args.limit)]
-            with redirect_stdout(io.StringIO()):
-                introduced = {identity for entry in value["articles"] for identity in entry["models"]}
-                code = m.main(command, allowed_models=introduced)
-            experiment_report = m.load(m.DEFAULT_STATE / "last-check.json")
-            registry = m.load(m.PACK / "registry.json")
-            m.verify_registry(registry)
-            m.verify_history(registry, m.DEFAULT_STATE)
-            publication = publish_results(af, value, repository, registry)
-            af.emit({"ok": code == 0, "experiment": m.EXPERIMENT,
-                     "articles": [x["url"] for x in value["articles"]], "publication": publication,
-                     "experiment_report": experiment_report,
-                     "repeat_command": ["article-flow", "model-release", "update", "--json"]}, args.json)
-            return code
+            code, result = advance_article(af, argparse.Namespace(
+                run_id=entry["run_id"], max_steps=100, json=True))
+            if code:
+                af.emit({**result, "campaign_resume_command": ["article-flow", "model-release", "update", "--json"]}, args.json)
+                return code
+            _, _, receipt = require_verified_article(af, entry)
+            entry["url"] = receipt["url"]
+            value["articles"] = [old for old in value["articles"]
+                                 if old["run_id"] != entry.get("replaces_run_id")]
+            value["articles"].append({k: v for k, v in entry.items() if k != "seed"})
+            value["pending_article"] = None
+            m.atomic_json(CAMPAIGN, value)
+        if not value["articles"]:
+            raise m.ExperimentError("No verified article is attached to this campaign.")
+        for entry in value["articles"]:
+            require_verified_article(af, entry)
+        command = ["update", "--matrix", args.matrix, "--workers", str(args.workers)]
+        if args.model:
+            command += ["--model", args.model]
+        if args.limit:
+            command += ["--limit", str(args.limit)]
+        with redirect_stdout(io.StringIO()):
+            introduced = {identity for entry in value["articles"] for identity in entry["models"]}
+            code = m.main(command, allowed_models=introduced)
+        experiment_report = m.load(m.DEFAULT_STATE / "last-check.json")
+        registry = m.load(m.PACK / "registry.json")
+        m.verify_registry(registry)
+        m.verify_history(registry, m.DEFAULT_STATE)
+        publication = publish_results(af, value, repository, registry)
+        if experiment_report.get("models_waiting_for_article") and not args.limit and depth < 3:
+            return continue_campaign(af, args, depth + 1)
+        af.emit({"ok": code == 0, "experiment": m.EXPERIMENT,
+                 "articles": [x["url"] for x in value["articles"]], "publication": publication,
+                 "experiment_report": experiment_report,
+                 "repeat_command": ["article-flow", "model-release", "update", "--json"]}, args.json)
+        return code
