@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-import base64
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 from datetime import datetime, timezone
 import hashlib
@@ -19,8 +19,11 @@ import sys
 import tempfile
 import threading
 import time
+from types import SimpleNamespace
+import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
 EXPERIMENT = "model-release-v1"
 PROMPT_SHA256 = "d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d"
 PACK = ROOT / "experiments" / "model-release"
@@ -70,6 +73,56 @@ def model_key(provider: str, model: str) -> str:
     return sha(f"{EXPERIMENT}\0{provider}\0{model}".encode())
 
 
+def trial_key(provider: str, model: str, variant=None) -> str:
+    """Retain the original baseline identities while separating settings trials."""
+    if not variant or variant.get("id") == "baseline":
+        return model_key(provider, model)
+    return sha(f"{EXPERIMENT}\0{provider}\0{model}\0{json.dumps(variant, sort_keys=True)}".encode())
+
+
+def variants(row, mode="components"):
+    levels = list(dict.fromkeys(row.get("effort_levels", [])))
+    baseline = row.get("baseline_effort") or ("medium" if "medium" in levels else "default")
+    result = [{"id": "baseline", "effort": baseline, "verbosity": "default"}]
+    if mode == "baseline":
+        return result
+    for effort in levels:
+        if effort != baseline:
+            result.append({"id": f"effort-{effort}", "effort": effort, "verbosity": "default"})
+    if row.get("supports_verbosity"):
+        for verbosity in ("low", "medium", "high"):
+            result.append({"id": f"verbosity-{verbosity}", "effort": baseline, "verbosity": verbosity})
+    if mode == "factorial" and row.get("supports_verbosity"):
+        for effort in levels:
+            if effort != baseline:
+                for verbosity in ("low", "medium", "high"):
+                    result.append({"id": f"effort-{effort}-verbosity-{verbosity}",
+                                   "effort": effort, "verbosity": verbosity})
+    return result
+
+
+def planned_trials(registry, catalog, mode="components"):
+    pinned = {model_key(r["provider"],r["model"]): r for r in registry["models"]}
+    rows = [dict(row, baseline_effort=pinned.get(model_key(row["provider"],row["model"]),{}).get("baseline_effort"))
+            for row in catalog]
+    return [dict(row, _variant=variant) for row in rows for variant in variants(row, mode)]
+
+
+def missing_trials(registry, catalog, mode="components"):
+    recorded = {trial_key(r["provider"], r["model"], r.get("variant")) for r in registry["records"]}
+    return [row for row in planned_trials(registry, catalog, mode)
+            if trial_key(row["provider"], row["model"], row["_variant"]) not in recorded]
+
+
+def unsuccessful_trials(registry, catalog, mode="components"):
+    """Separate attempted failures from unattempted work without scheduling retries."""
+    attempted = {trial_key(r["provider"], r["model"], r.get("variant")) for r in registry["records"]}
+    successful = {trial_key(r["provider"], r["model"], r.get("variant")) for r in registry["records"]
+                  if r["status"] == "response captured"}
+    return [row for row in planned_trials(registry, catalog, mode)
+            if trial_key(row["provider"], row["model"], row["_variant"]) in attempted - successful]
+
+
 def empty_registry():
     return {"schema_version": 1, "experiment": EXPERIMENT,
             "prompt_sha256": PROMPT_SHA256, "models": [], "records": []}
@@ -87,7 +140,7 @@ def verify_registry(registry, pack: Path = PACK) -> None:
         raise ExperimentError("Registry belongs to another experiment or prompt.")
     seen = set()
     for record in registry["records"]:
-        base = model_key(record["provider"], record["model"])
+        base = trial_key(record["provider"], record["model"], record.get("variant"))
         attempt = record.get("attempt", 1)
         if not isinstance(attempt, int) or attempt < 1:
             raise ExperimentError("Invalid result attempt identity.")
@@ -197,6 +250,8 @@ def normalize_codex(data):
                        "release_date": item.get("release_date"),
                        "release_date_source": item.get("release_date_source"),
                        "revision_status": "revision not exposed", "_native": item,
+                       "supports_verbosity": bool(item.get("support_verbosity", False)),
+                       "default_verbosity": item.get("default_verbosity"),
                        "effort_levels": [level.get("effort", level.get("reasoning_effort"))
                                          for level in item.get("supported_reasoning_levels", [])]})
     return models
@@ -216,17 +271,20 @@ def normalize_claude(data):
             "display_name": model, "aliases": [], "source": "Claude CLI initialization model catalog",
             "release_date": None, "release_date_source": None,
             "effort_levels": item.get("supportedEffortLevels", []),
+            "supports_verbosity": False,
             "revision_status": "snapshot ID" if re.search(r"-\d{8}$", model) else "revision not exposed"})
         if item["value"] not in row["aliases"]:
             row["aliases"].append(item["value"])
     return list(models.values())
 
 
-def claude_catalog():
+def claude_catalog(extra_ids=None):
     # An initialize control request contains no user turn and performs no generation.
     args = [cli("claude"), "--safe-mode", "--disable-slash-commands",
             "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}', "--tools", "",
             "--print", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose"]
+    if extra_ids:
+        args += ["--settings", json.dumps({"availableModels": extra_ids})]
     with tempfile.TemporaryDirectory(prefix="model-catalog-") as cwd:
         p = process(args, cwd=cwd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                     stderr=subprocess.DEVNULL, text=True, encoding="utf-8")
@@ -261,13 +319,53 @@ def claude_catalog():
                 stream.close()
 
 
-def discover():
+CLAUDE_MODELS_SOURCE = "https://support.claude.com/en/articles/11940350-claude-code-model-configuration"
+
+
+def documented_claude_models():
+    request = urllib.request.Request(CLAUDE_MODELS_SOURCE, headers={"User-Agent": "ProductivePrompterModelExperiment/2.0"})
+    with urllib.request.urlopen(request, timeout=30) as response:
+        source = html.unescape(response.read().decode("utf-8"))
+    # Read only the actual supported-model section, never examples or suggested aliases.
+    start = re.search(r">\s*Supported models\s*</h[1-6]>", source, re.I)
+    if not start:
+        raise ExperimentError("The official Claude supported-model section could not be verified.")
+    tail = source[start.end():]
+    section = re.split(r"<h[12](?:\s|>)", tail, maxsplit=1, flags=re.I)[0]
+    ids = list(dict.fromkeys(re.findall(r"\bclaude-(?:opus|sonnet|fable|haiku)-\d+(?:-\d+)*\b", section)))
+    if not ids:
+        raise ExperimentError("The official Claude supported-model section contains no model IDs.")
+    return ids
+
+
+def discover(expanded=False):
     catalog, errors = [], {}
     for provider, discover_provider in (("codex", codex_catalog), ("claude", claude_catalog)):
         try:
             catalog.extend(discover_provider())
         except (ExperimentError, OSError, ValueError, subprocess.SubprocessError) as exc:
             errors[provider] = str(exc)
+    if expanded:
+        try:
+            ids = documented_claude_models()
+            existing = {(row["provider"], row["model"]): row for row in catalog}
+            for row in claude_catalog(ids):
+                identity = (row["provider"], row["model"])
+                if identity not in existing:
+                    row["source"] = "Official Claude supported-model list plus CLI initialization"
+                    row["catalog_source_url"] = CLAUDE_MODELS_SOURCE
+                    row["availability"] = "candidate; access verified by captured response"
+                    catalog.append(row)
+                    existing[identity] = row
+            for identity in ids:
+                if ("claude", identity) not in existing:
+                    catalog.append({"provider": "claude", "model": identity, "aliases": [identity],
+                        "display_name": identity, "effort_levels": [], "supports_verbosity": False,
+                        "source": "Official supported model ID; client capability metadata not exposed",
+                        "catalog_source_url": CLAUDE_MODELS_SOURCE, "availability": "candidate; access unverified",
+                        "revision_status": "revision not exposed", "client_metadata_status": "not exposed"})
+        except (ExperimentError, OSError, ValueError, subprocess.SubprocessError) as exc:
+            errors["claude_documented_models"] = str(exc)
     if not catalog:
         raise ExperimentError("Neither provider's current model catalog could be verified.")
     return catalog, errors
@@ -280,6 +378,7 @@ def reconcile(registry, catalog):
         key = model_key(row["provider"], row["model"])
         if key not in existing:
             item = dict({k: v for k, v in row.items() if not k.startswith("_")}, first_seen=now())
+            item["baseline_effort"] = "medium" if "medium" in row.get("effort_levels",[]) else "default"
             registry["models"].append(item)
             existing[key] = item
         else:
@@ -287,6 +386,10 @@ def reconcile(registry, catalog):
             for alias in row["aliases"]:
                 if alias not in aliases:
                     aliases.append(alias)
+            for field in ("effort_levels", "supports_verbosity", "default_verbosity"):
+                if field in row:
+                    existing[key][field] = row[field]
+        existing[key].setdefault("baseline_effort", "medium" if "medium" in row.get("effort_levels",[]) else "default")
         date = dated.get(row["model"])
         if date and not existing[key].get("release_date"):
             existing[key]["release_date"] = date["date"]
@@ -362,7 +465,13 @@ def exclusive_write(path: Path, content: bytes) -> None:
 
 
 def candidate_args(row, private: Path):
-    effort = "medium" if "medium" in row.get("effort_levels", []) else None
+    variant = row.get("_variant") or variants(row, "baseline")[0]
+    effort = variant["effort"] if variant["effort"] != "default" else None
+    verbosity = variant["verbosity"]
+    if effort and effort not in row.get("effort_levels", []):
+        raise ExperimentError("Requested thinking level is not advertised for this exact model.")
+    if verbosity != "default" and not row.get("supports_verbosity"):
+        raise ExperimentError("This client/model does not expose a native verbosity setting.")
     if row["provider"] == "claude":
         args = [cli("claude"), "--safe-mode", "--disable-slash-commands", "--tools", "",
             "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}', "--model", row["model"],
@@ -389,8 +498,12 @@ def candidate_args(row, private: Path):
             "--output-last-message", str((private / "final.txt").resolve()), "-"]
         if effort:
             args[2:2] = ["-c", "model_reasoning_effort=" + json.dumps(effort)]
+        if verbosity != "default":
+            args[2:2] = ["-c", "model_verbosity=" + json.dumps(verbosity)]
         isolation = "scoped config; empty workspace; task tools removed from catalog; no observed tool calls required"
-    return args, {"effort": effort or "client default", "isolation": isolation}
+    return args, {"effort": effort or "client default", "verbosity": verbosity,
+                  "configuration_evidence": "explicit CLI configuration; provider does not expose internal effort verification",
+                  "isolation": isolation}
 
 
 def parse_events(provider, data: bytes):
@@ -436,7 +549,8 @@ def parse_events(provider, data: bytes):
 
 
 def run_once(row, state: Path, timeout: int = 600, attempt: int = 1):
-    base = model_key(row["provider"], row["model"])
+    variant = row.get("_variant")
+    base = trial_key(row["provider"], row["model"], variant)
     key = base if attempt == 1 else f"{base}-attempt-{attempt}"
     private = state / "attempts" / key
     captured = private / "captured.json"
@@ -457,8 +571,11 @@ def run_once(row, state: Path, timeout: int = 600, attempt: int = 1):
                "attempt": attempt,
                "prompt_sha256": sha(prompt), "started_at": now(), "settings": settings,
                "client_version": version.stdout.decode("utf-8", errors="replace").strip()}
+    if variant:
+        started["variant"] = variant
     exclusive_write(private / "started.json", json.dumps(started, indent=2).encode())
-    print(json.dumps({"event": "model_started", "model": row["model"]}), flush=True)
+    print(json.dumps({"event": "model_started", "model": row["model"],
+                      "variant": (variant or {}).get("id", "baseline")}), flush=True)
     begin = time.monotonic()
     timed_out = False
     with tempfile.TemporaryDirectory(prefix="model-candidate-") as cwd:
@@ -476,8 +593,10 @@ def run_once(row, state: Path, timeout: int = 600, attempt: int = 1):
     if row["provider"] == "codex" and final.exists():
         response = final.read_bytes()
     exclusive_write(private / "response.txt", response)
+    mismatch = parsed["actual_model"] and re.sub(r"\[[^]]+\]$", "", parsed["actual_model"]) != row["model"]
     status = ("timeout" if timed_out else "protocol violation" if parsed["tool_used"]
               else "generation failed" if p.returncode or parsed["failed"]
+              else "identity mismatch" if mismatch
               else "response captured" if response else "incomplete response")
     metadata = dict(started, **parsed, status=status, exit_code=p.returncode,
                     ended_at=now(), elapsed_seconds=round(time.monotonic()-begin, 3),
@@ -507,6 +626,8 @@ def append_result(registry, metadata, response: bytes, pack: Path = PACK):
         "attempt": metadata.get("attempt", 1),
         "prompt_sha256": PROMPT_SHA256, "status": metadata["status"], "tested_at": metadata["started_at"],
         "artifacts": {relative: sha(response), evidence: sha(safe_path(pack, evidence).read_bytes())}}
+    if metadata.get("variant"):
+        record["variant"] = metadata["variant"]
     registry["records"].append(record)
 
 
@@ -523,8 +644,9 @@ def access_recovery_candidates(registry, catalog, ready, pack: Path = PACK):
     for row in catalog:
         if row["provider"] != "claude":
             continue
+        identity = trial_key(row["provider"], row["model"], row.get("_variant"))
         prior = [record for record in registry["records"]
-                 if (record["provider"], record["model"]) == (row["provider"], row["model"])]
+                 if trial_key(record["provider"], record["model"], record.get("variant")) == identity]
         if not prior or any(record["status"] == "response captured" for record in prior):
             continue
         latest = prior[-1]
@@ -543,48 +665,8 @@ def claude_auth_ready():
 
 
 def render(registry, pack: Path = PACK) -> str:
-    records = {}
-    for row in registry["records"]:
-        base = model_key(row["provider"], row["model"])
-        # Prefer the first observed successful response; preserve preceding eligibility failures.
-        if base not in records or records[base]["status"] != "response captured":
-            records[base] = row
-    lanes = []
-    for provider, name in (("claude", "Claude"), ("codex", "Codex")):
-        cards = []
-        rows = sorted((row for row in registry["models"] if row["provider"] == provider), key=chronological)
-        for row in rows:
-            key = model_key(provider, row["model"])
-            record = records.get(key)
-            date = (f"Released {row['release_date']}" if row.get("release_date")
-                    else f"First seen {row['first_seen'][:10]}; release date unavailable")
-            if record:
-                artifact_key = record["key"]
-                response_path = safe_path(pack, f"records/{artifact_key}/response.txt")
-                response = response_path.read_text(encoding="utf-8")
-                evidence_path = safe_path(pack, f"records/{artifact_key}/evidence.json")
-                evidence = load(evidence_path) if evidence_path.exists() else record
-                download = base64.b64encode(response_path.read_bytes()).decode("ascii")
-                content = (f'<p>{html.escape(record["status"])}</p>'
-                    f'<pre class="response">{html.escape(response)}</pre>'
-                    f'<details><summary>Checks and usage</summary><pre><code>{html.escape(json.dumps(evidence, indent=2))}</code></pre></details>'
-                    f'<p><a download="{html.escape(row["model"])}.txt" href="data:text/plain;base64,{download}">Exact response</a></p>')
-                prior = [old for old in registry["records"] if old["provider"] == provider
-                         and old["model"] == row["model"] and old["key"] != artifact_key]
-                if prior:
-                    content += '<details><summary>Earlier attempts</summary><pre>' + html.escape(json.dumps(prior, indent=2)) + '</pre></details>'
-            else:
-                content = '<p>Missing result</p>'
-            cards.append(f'<details class="release-entry"><summary class="cursor-interaction">'
-                f'{html.escape(row["display_name"])}</summary><div class="release-detail">{content}'
-                f'<p>{html.escape(date)}</p><p>{html.escape(row["model"])}</p></div></details>')
-        if not cards:
-            cards = ['<p class="empty-group">No models recorded.</p>']
-        lanes.append(f'<section class="{provider}-lane" aria-labelledby="mre-{provider}">'
-            f'<div class="lane-heading"><span class="provider-dot" aria-hidden="true"></span>'
-            f'<h3 id="mre-{provider}">{name}</h3></div><div class="release-list">{"".join(cards)}</div></section>')
-    template = (pack / "preview-template.html").read_text(encoding="utf-8")
-    return template.replace("<!-- MODEL_LANES -->", "".join(lanes))
+    from model_experiment_views import index_fragment
+    return index_fragment(SimpleNamespace(**globals()), registry, pack)
 
 
 def write_preview(registry, state: Path, destination: Path, pack: Path = PACK) -> None:
@@ -612,6 +694,12 @@ def main(argv=None):
     parser.add_argument("--output", type=Path)
     parser.add_argument("--model", help="Run only this exact discovered model ID")
     parser.add_argument("--timeout", type=int, default=600)
+    parser.add_argument("--matrix", choices=["baseline", "components", "factorial"], default="components",
+                        help="Components varies one setting at a time; factorial crosses every supported setting.")
+    parser.add_argument("--variant", action="append", help="Restrict to a named settings trial (repeatable).")
+    parser.add_argument("--limit", type=int, help="Bound the number of new calls in this invocation.")
+    parser.add_argument("--workers", type=int, choices=[1, 2, 3], default=2)
+    parser.add_argument("--current-only", action="store_true", help="Skip the official extended Claude model catalog.")
     args = parser.parse_args(argv)
     freeze_prompt()
     registry_path = PACK / "registry.json"
@@ -621,7 +709,9 @@ def main(argv=None):
         verify_history(registry, args.state_dir)
         print(json.dumps({"experiment": EXPERIMENT, "records": len(registry["records"]),
                           "known_models": len(registry["models"]), "prompt_verified": True,
-                          "models_without_response": len(response_coverage(registry))}))
+                          "models_without_response": len(response_coverage(registry)),
+                          "unsuccessful_settings_trials": len(unsuccessful_trials(registry, registry["models"], args.matrix)),
+                          "missing_settings_trials": len(missing_trials(registry, registry["models"], args.matrix))}))
         return 0
     with update_lock(args.state_dir):
         registry = load(registry_path) if registry_path.exists() else empty_registry()
@@ -632,8 +722,8 @@ def main(argv=None):
             catalog, errors = fixture["models"], fixture.get("errors", {})
             source = "fixture"
         else:
-            catalog, errors = discover()
-            source = "live client catalogs"
+            catalog, errors = discover(expanded=not args.current_only)
+            source = "live client catalogs and official Claude supported models"
         missing = reconcile(registry, catalog)
         verify_registry(registry)
         atomic_json(registry_path, registry)
@@ -643,26 +733,48 @@ def main(argv=None):
         if args.action == "update":
             if args.catalog:
                 raise ExperimentError("Live generation cannot use a fixture catalog.")
-            selected = [(row, 1) for row in missing if not args.model or row["model"] == args.model]
-            if any(row["provider"] == "claude" for row in response_coverage(registry)):
+            available_variants = {row["_variant"]["id"] for row in planned_trials(registry, catalog, args.matrix)
+                                  if not args.model or row["model"] == args.model}
+            if args.variant and set(args.variant) - available_variants:
+                raise ExperimentError("Requested settings trial is not supported: " +
+                                      ", ".join(sorted(set(args.variant) - available_variants)))
+            selected = [(row, 1) for row in missing_trials(registry, catalog, args.matrix)
+                        if (not args.model or row["model"] == args.model)
+                        and (not args.variant or row["_variant"]["id"] in args.variant)]
+            if any(row["provider"] == "claude" for row in unsuccessful_trials(registry, catalog, args.matrix)):
                 selected += [(row, attempt) for row, attempt in access_recovery_candidates(
-                    registry, catalog, claude_auth_ready()) if not args.model or row["model"] == args.model]
+                    registry, planned_trials(registry, catalog, args.matrix),
+                    claude_auth_ready()) if (not args.model or row["model"] == args.model)
+                    and (not args.variant or row["_variant"]["id"] in args.variant)]
             if args.model and not any(row["model"] == args.model for row in catalog):
                 raise ExperimentError("Requested model is not in the verified current catalogs; no substitution.")
+            if args.limit is not None:
+                if args.limit < 1:
+                    raise ExperimentError("The call limit must be positive.")
+                selected = selected[:args.limit]
             for row, attempt in selected:
-                try:
-                    freeze_prompt()
-                    verify_registry(registry)
-                    verify_history(registry, args.state_dir)
-                    metadata, response = run_once(row, args.state_dir, args.timeout, attempt)
-                    append_result(registry, metadata, response)
-                    verify_registry(registry)
-                    atomic_json(registry_path, registry)
-                    anchor_history(registry, args.state_dir)
-                    added.append({"provider": row["provider"], "model": row["model"], "status": metadata["status"]})
-                    print(json.dumps({"event": "model_recorded", **added[-1]}), flush=True)
-                except (ExperimentError, OSError, ValueError, subprocess.SubprocessError) as exc:
-                    run_errors[row["model"]] = str(exc)
+                freeze_prompt()
+                verify_registry(registry)
+                verify_history(registry, args.state_dir)
+            with ThreadPoolExecutor(max_workers=args.workers) as pool:
+                pending = {pool.submit(run_once, row, args.state_dir, args.timeout, attempt): row
+                           for row, attempt in selected}
+                for future in as_completed(pending):
+                    row = pending[future]
+                    try:
+                        metadata, response = future.result()
+                        freeze_prompt()
+                        verify_registry(registry)
+                        verify_history(registry, args.state_dir)
+                        append_result(registry, metadata, response)
+                        verify_registry(registry)
+                        atomic_json(registry_path, registry)
+                        anchor_history(registry, args.state_dir)
+                        added.append({"provider": row["provider"], "model": row["model"],
+                                      "variant": row["_variant"]["id"], "status": metadata["status"]})
+                        print(json.dumps({"event": "model_recorded", **added[-1]}), flush=True)
+                    except (ExperimentError, OSError, ValueError, subprocess.SubprocessError) as exc:
+                        run_errors[row["model"] + ":" + row["_variant"]["id"]] = str(exc)
             missing = reconcile(registry, catalog)
         report = {"experiment": EXPERIMENT, "discovery": source, "prompt_verified": True,
             "existing_evidence_verified": True, "catalog_models": len(catalog),
@@ -673,6 +785,17 @@ def main(argv=None):
         report["missing_responses"] = [{"provider": row["provider"], "model": row["model"]}
                                        for row in response_coverage(registry)]
         report["added_results"] = added
+        report["matrix"] = args.matrix
+        report["client_metadata_gaps"] = [row["model"] for row in catalog if row.get("client_metadata_status") == "not exposed"]
+        report["unavailable_models"] = [{"provider": "codex", "model": "gpt-5.3-codex-spark",
+                                        "status": "retired", "retired_on": "2026-09-14",
+                                        "source": "https://learn.chatgpt.com/docs/models"}]
+        report["missing_settings_trials"] = [{"provider": row["provider"], "model": row["model"],
+                                            "variant": row["_variant"]}
+                                           for row in missing_trials(registry, catalog, args.matrix)]
+        report["unsuccessful_settings_trials"] = [{"provider": row["provider"], "model": row["model"],
+                                                 "variant": row["_variant"]}
+                                                for row in unsuccessful_trials(registry, catalog, args.matrix)]
         report["run_errors"] = run_errors
         if args.action in ("preview", "update"):
             destination = args.output or args.state_dir / "preview.html"
@@ -680,7 +803,9 @@ def main(argv=None):
             report["preview"] = str(destination.resolve())
         atomic_json(args.state_dir / "last-check.json", report)
         print(json.dumps(report, indent=2))
-        return 2 if errors or run_errors or (args.action == "update" and report["missing_responses"]) else 0
+        return 2 if errors or run_errors or (args.action == "update" and
+                   (report["missing_responses"] or report["missing_settings_trials"] or
+                    report["unsuccessful_settings_trials"])) else 0
 
 
 if __name__ == "__main__":

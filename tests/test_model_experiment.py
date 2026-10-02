@@ -10,9 +10,20 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("model_experiment", ROOT / "scripts/model_experiment.py")
 m = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(m)
+import model_experiment_views as views
 
 
 class ExperimentTests(unittest.TestCase):
+    def test_failed_settings_profile_stays_visible_without_being_rescheduled(self):
+        row = {"provider": "codex", "model": "m", "effort_levels": ["low", "medium"]}
+        low = m.variants(row)[1]
+        registry = {"models": [row], "records": [
+            {"provider": "codex", "model": "m", "status": "response captured"},
+            {"provider": "codex", "model": "m", "variant": low, "status": "generation failed"}]}
+        self.assertEqual(m.missing_trials(registry, [row]), [])
+        self.assertEqual(len(m.unsuccessful_trials(registry, [row])), 1)
+        self.assertEqual(m.response_coverage(registry), [])
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.pack = Path(self.tmp.name) / "pack"
@@ -123,18 +134,66 @@ class ExperimentTests(unittest.TestCase):
 
     def test_generated_preview_does_not_execute_output_or_overwrite_manual_edits(self):
         registry = m.empty_registry()
-        self.record(registry)
+        path, _ = self.record(registry)
         m.reconcile(registry, [self.row("old-model")])
         target = self.state / "preview.html"
         m.write_preview(registry, self.state, target, self.pack)
         text = target.read_text()
-        self.assertIn("&lt;script&gt;", text)
-        self.assertNotIn("<script>alert", text)
+        self.assertIn("/runs/", text)
+        escaped = views.response_html(path.read_text(encoding="utf-8"))
+        self.assertIn("&lt;script&gt;", escaped)
+        self.assertNotIn("<script>alert", escaped)
         m.write_preview(registry, self.state, target, self.pack)
         target.write_text("human changes")
         with self.assertRaisesRegex(m.ExperimentError, "unowned changes"):
             m.write_preview(registry, self.state, target, self.pack)
         self.assertEqual(target.read_text(), "human changes")
+
+    def test_profiles_cover_native_efforts_and_verbosity_without_changing_prompt(self):
+        row = dict(self.row(), effort_levels=["low", "medium", "high", "xhigh"], supports_verbosity=True)
+        profiles = m.variants(row)
+        self.assertEqual({v["effort"] for v in profiles}, {"low", "medium", "high", "xhigh"})
+        self.assertEqual({v["verbosity"] for v in profiles}, {"default", "low", "medium", "high"})
+        self.assertEqual(len(m.variants(row, "factorial")), 16)
+        self.assertEqual(m.sha(m.freeze_prompt(self.pack)), m.PROMPT_SHA256)
+
+    def test_settings_identity_preserves_baseline_and_separates_combinations(self):
+        baseline = {"id":"baseline","effort":"medium","verbosity":"default"}
+        low = {"id":"effort-low","effort":"low","verbosity":"default"}
+        high = {"id":"verbosity-high","effort":"medium","verbosity":"high"}
+        self.assertEqual(m.trial_key("codex", "example", baseline), m.model_key("codex","example"))
+        self.assertNotEqual(m.trial_key("codex","example",low), m.trial_key("codex","example",high))
+        registry = m.empty_registry()
+        self.record(registry, "example")
+        row = dict(self.row("example"), effort_levels=["low","medium"], supports_verbosity=True)
+        self.assertNotIn("baseline", [r["_variant"]["id"] for r in m.missing_trials(registry,[row])])
+
+    def test_unsupported_controls_are_rejected_before_launch(self):
+        row = dict(self.row("claude-example","claude"), effort_levels=["low","medium"])
+        with patch.object(m,"cli",return_value="claude"), self.assertRaisesRegex(m.ExperimentError,"not advertised"):
+            m.candidate_args(dict(row,_variant={"id":"effort-max","effort":"max","verbosity":"default"}), self.state)
+        with patch.object(m,"cli",return_value="claude"), self.assertRaisesRegex(m.ExperimentError,"verbosity"):
+            m.candidate_args(dict(row,_variant={"id":"verbosity-high","effort":"medium","verbosity":"high"}), self.state)
+
+    def test_claude_effort_and_codex_verbosity_are_real_client_arguments(self):
+        claude = dict(self.row("claude-example","claude"),effort_levels=["low","high"],
+                      _variant={"id":"effort-high","effort":"high","verbosity":"default"})
+        with patch.object(m,"cli",return_value="client"):
+            args, settings = m.candidate_args(claude,self.state)
+            self.assertEqual(args[args.index("--effort")+1],"high")
+            codex = dict(self.row("example"),effort_levels=["medium"],supports_verbosity=True,
+                         _native={"slug":"example"},_variant={"id":"verbosity-high","effort":"medium","verbosity":"high"})
+            args, settings = m.candidate_args(codex,self.state)
+            self.assertIn('model_verbosity="high"',args)
+            self.assertIn('model_reasoning_effort="medium"',args)
+
+    def test_response_prose_and_code_are_escaped_and_code_is_collapsible(self):
+        text = "# A story\n\nReadable **prose** <script>alert(1)</script>\n\n" + chr(96)*3 + "json\n{}\n" + chr(96)*3
+        rendered = views.response_html(text)
+        self.assertIn("<p>Readable <strong>prose</strong>",rendered)
+        self.assertIn("<summary>Receipt</summary>",rendered)
+        self.assertIn("&lt;script&gt;",rendered)
+        self.assertNotIn("<script>",rendered)
 
     def test_chronological_order_and_explicit_date_fallback(self):
         older = dict(self.row("z-older"), release_date="2025-01-01", first_seen="2026-10-02T00:00:00Z")

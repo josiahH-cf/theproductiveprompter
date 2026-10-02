@@ -1,18 +1,12 @@
 ---
 name: model-experiment
-description: Refresh The Productive Prompter Model Release Experiment, verify its frozen prompt and preserved records, and identify missing models. Use for /model-experiment, $model-experiment, or an experiment catalog update.
+description: Inspect or refresh The Productive Prompter's frozen model experiment, including native thinking and verbosity profiles, preserved records, readable cards, and linked runs. Use for /model-experiment, $model-experiment, or an experiment update.
 ---
 
-Run the repository controller from the repository root:
+For the complete article plus experiment plus publication workflow, run the installed article-flow model-release update --json. The author authorized this campaign to reuse the approved author voice automatically. The controller publishes and verifies its article before generation, then appends missing experiment profiles and republishes scoped backend results. Read its final report and honor any blocker.
 
-`python scripts/model_experiment.py update`
+For experiment-only work, run python scripts/model_experiment.py update from this repository. It refreshes current catalogs plus documented Claude legacy candidates, verifies the frozen prompt and prior evidence, and appends one original response per exact model/settings profile. Default components mode tests every advertised thinking level with default verbosity and each native verbosity at baseline thinking. --matrix factorial crosses the supported dimensions. Claude diagnostic --verbose is not model verbosity and must never be represented as that experiment.
 
-This refreshes the authenticated Codex and Claude CLI catalogs, verifies the frozen challenge and saved evidence hashes, deduplicates aliases, runs the exact stored prompt once on missing models, saves each original response, and regenerates the minimal preview. Existing results and ambiguous interrupted attempts are never regenerated. Read the returned JSON before reporting success. Open the returned preview when the user asks to see it.
+preview refreshes cards without generation; check discovers coverage without rendering or generation; status inspects saved evidence without discovery. --model restricts an exact catalog identity; --variant restricts a named profile. Original baselines and all earlier attempts remain immutable. Ordinary failures are not retried. Known authentication failures may get a separately numbered first-response attempt after normal sign-in status confirms access. Interrupted requests with unknown completion need reconciliation, never a blind resend.
 
-A known Claude authentication failure stays recorded. After normal sign-in status confirms restored access, update may append the first actual response as a separate recovery attempt. Ordinary generation failures stay skipped. Report missing response coverage separately from models missing an entry.
-
-`python scripts/model_experiment.py preview` refreshes the preview without generation. `python scripts/model_experiment.py check` performs discovery and checks without rendering or generation. `python scripts/model_experiment.py status` inspects saved state without refreshing catalogs. To restrict an update to one release, pass `--model` followed by the user's exact discovered model ID as one argument; do not silently substitute an alias or successor.
-
-Never overwrite an original response, treat an unsuccessful catalog read as an empty model list, or describe a missing result as a completed test. A partial catalog is incomplete coverage. This command's catalog scope is client-visible models, not every model supported by an API or hidden service models. Use the hash-verified `experiments/model-release/prompt.txt` for any subsequent candidate call; do not reconstruct the challenge from memory.
-
-The automatic checker invokes this same update controller. Read `experiments/model-release/runner-prompt.txt` for the separate website publication contract. The controller appends repository results and a local preview; public-site publication follows the repository's release process and is not implied by generation. Never report a live URL without verifying it.
+Use experiments/model-release/prompt.txt exactly, including its pinned SHA-256. Report unavailable models, incomplete catalogs, requested settings, responder identity, and response coverage honestly. A captured response does not establish literary quality or reliability. Report only client-supplied usage; client cost estimates are not verified cash charges. Preserve the author's responses and unrelated work.

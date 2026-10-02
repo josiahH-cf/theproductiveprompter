@@ -18,7 +18,7 @@
         "required": ["path", "scope", "role", "rule_set", "sha256", "byte_size"],
         "properties": {
           "path": {"type": "string", "minLength": 1},
-          "scope": {"enum": ["spec", "repository"]},
+          "scope": {"enum": ["spec", "repository", "source"]},
           "role": {"enum": ["normative", "template", "runtime", "documentation", "archived"]},
           "rule_set": {"type": "string"},
           "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},

@@ -31,6 +31,12 @@ Later editorial repairs receive the latest accepted article and preserve its sel
 
 `article-flow list` is the small operational index. It shows the original idea, current state, run directory, and returned live link for every run. The same response identifies the canonical process directory, private captured-material directory, and public `docs/` directory. Windows and WSL keep separate installation and health records but use one private captured-material directory, so either command sees and resumes the same runs. A stopped session is resumed with `article-flow resume RUN_ID`; the idea does not need to be entered again.
 
+## Automatic model-release articles
+
+Run `article-flow model-release update --json` to discover current Codex models and the documented Claude CLI catalog, publish and verify a researched article, then append missing frozen-challenge trials and republish the model cards and linked run pages. Existing responses and evidence are immutable. Repeat the same command after a release; completed trials are skipped. Native thinking levels and Codex verbosity are varied one factor at a time by default; `--matrix factorial` requests their full cross-product where supported.
+
+The author authorized automatic reuse of the approved voice for this campaign. This exception pins the approved profile and records its authorization without inventing a new voice preference. Ordinary articles retain their voice choice. `model-release check`, `preview`, and `status` do not generate responses or publish. A saved publication failure resumes the same revision before new discovery or generation.
+
 ## Authority
 
 The machine-readable authority is [`workflow/workflow.json`](workflow/workflow.json). Conflicts resolve in this order:

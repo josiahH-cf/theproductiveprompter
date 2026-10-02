@@ -16,7 +16,7 @@
         "required": ["path", "scope", "role", "rule_set"],
         "properties": {
           "path": {"type": "string", "minLength": 1},
-          "scope": {"enum": ["spec", "repository"]},
+          "scope": {"enum": ["spec", "repository", "source"]},
           "role": {"enum": ["normative", "template", "runtime", "documentation", "archived"]},
           "rule_set": {"type": "string", "minLength": 1}
         },

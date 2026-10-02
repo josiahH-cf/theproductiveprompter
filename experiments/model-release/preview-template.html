@@ -1,35 +1,28 @@
 <div id="model-release-experiment-preview" class="viz-dotted-background">
   <style>
-    #model-release-experiment-preview { padding: 16px; }
-    #model-release-experiment-preview .experiment-surface {
-      background: #0a192f; color: #ccd6f6; padding: 24px; border-radius: 8px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      font-size: 14px; line-height: 1.55;
-    }
-    #model-release-experiment-preview h2 { color: #e6f1ff; font-size: 28px; font-weight: 500; line-height: 1.2; margin: 0 0 24px; }
-    #model-release-experiment-preview h3 { font-size: 19px; font-weight: 500; margin: 0; color: #e6f1ff; }
-    #model-release-experiment-preview .provider-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; }
-    #model-release-experiment-preview .lane-heading { display: flex; gap: 10px; align-items: center; padding-bottom: 14px; }
-    #model-release-experiment-preview .provider-dot { height: 10px; width: 10px; border-radius: 50%; background: #e6f1ff; flex: 0 0 auto; }
-    #model-release-experiment-preview .claude-lane .provider-dot { background: #d97757; }
-    #model-release-experiment-preview .release-list { display: grid; gap: 10px; }
-    #model-release-experiment-preview .release-entry { margin: 0; padding: 14px; border: 1px solid #8892b0; border-radius: 6px; background: #172a45; color: #e6f1ff; }
-    #model-release-experiment-preview .claude-lane .release-entry { background: #211d1b; color: #faf9f5; border-color: #d97757; }
-    #model-release-experiment-preview summary { font-weight: 500; min-height: 24px; overflow-wrap: anywhere; }
-    #model-release-experiment-preview .release-detail { font-size: 12px; overflow-wrap: anywhere; }
-    #model-release-experiment-preview pre { white-space: pre-wrap; overflow-wrap: anywhere; color: inherit; font: inherit; }
-    #model-release-experiment-preview pre.response { font-size: 14px; line-height: 1.6; }
-    #model-release-experiment-preview a { color: #64ffda; }
-    @media (max-width: 540px) {
-      #model-release-experiment-preview { padding: 8px; }
-      #model-release-experiment-preview .experiment-surface { padding: 18px; }
-      #model-release-experiment-preview .provider-columns { grid-template-columns: minmax(0, 1fr); gap: 24px; }
-      #model-release-experiment-preview h2 { font-size: 24px; }
-    }
-    @media (pointer: coarse) { #model-release-experiment-preview summary { min-height: 44px; } }
+    #model-release-experiment-preview { padding: 12px; }
+    #model-release-experiment-preview .experiment-surface { background: #0a192f; color: #e6f1ff; padding: 28px; border-radius: 8px; font: 16px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+    #model-release-experiment-preview h1 { margin: 0 0 30px; font-size: 28px; line-height: 1.25; font-weight: 500; }
+    #model-release-experiment-preview h2 { margin: 0 0 16px; font-size: 22px; font-weight: 500; }
+    #model-release-experiment-preview h3 { margin: 0 0 6px; font-size: 19px; font-weight: 500; overflow-wrap: anywhere; }
+    #model-release-experiment-preview .provider-stack { display: grid; grid-template-columns: minmax(0,1fr); gap: 36px; }
+    #model-release-experiment-preview .release-list { display: grid; grid-template-columns: minmax(0,1fr); gap: 18px; }
+    #model-release-experiment-preview .model-card { background: #172a45; color: #e6f1ff; border: 1px solid #8892b0; border-radius: 8px; padding: 22px; }
+    #model-release-experiment-preview .claude-lane .model-card { background: #211d1b; color: #faf9f5; border-color: #d97757; }
+    #model-release-experiment-preview .model-date { margin: 0 0 16px; font-size: 13px; color: #ccd6f6; }
+    #model-release-experiment-preview .claude-lane .model-date { color: #e2cfbf; }
+    #model-release-experiment-preview .run-links { list-style: none; margin: 0; padding: 0; }
+    #model-release-experiment-preview .run-links li + li { border-top: 1px solid #4f617d; }
+    #model-release-experiment-preview a { color: #64ffda; text-decoration: none; }
+    #model-release-experiment-preview .run-links a { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 0; flex-wrap: wrap; overflow-wrap: anywhere; }
+    #model-release-experiment-preview .claude-lane a { color: #edb59e; }
+    #model-release-experiment-preview .run-status { font-size: 13px; color: #e6f1ff; }
+    #model-release-experiment-preview a:hover { text-decoration: underline; }
+    #model-release-experiment-preview a:focus-visible { outline: 2px solid #64ffda; outline-offset: 4px; }
+    @media (max-width:480px) { #model-release-experiment-preview { padding: 6px; } #model-release-experiment-preview .experiment-surface { padding: 20px 16px; } #model-release-experiment-preview .model-card { padding: 18px; } #model-release-experiment-preview h1 { font-size: 24px; } }
   </style>
   <section class="experiment-surface" aria-label="Model Release Experiment">
-    <h2>The Model Release Experiment</h2>
-    <div class="provider-columns"><!-- MODEL_LANES --></div>
+    <h1>The Model Release Experiment</h1>
+    <div class="provider-stack"><!-- MODEL_LANES --></div>
   </section>
 </div>
