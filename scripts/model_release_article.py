@@ -53,6 +53,8 @@ def publication_checkout(af):
     repository = STATE / "publication-checkout"
     source = af.REPO_ROOT
     if not repository.exists():
+        if os.name == "nt":
+            af.git(["config", "--local", "core.longpaths", "true"], cwd=source)
         af.git(["fetch", "origin", "main"], cwd=source)
         af.git(["worktree", "add", "--detach", str(repository), "origin/main"], cwd=source)
     if af.git(["status", "--porcelain=v1", "-uall"], cwd=repository).strip():

@@ -12,6 +12,7 @@ PUBLIC = "docs/model-release-experiment"
 def inline(text):
     escaped = html.escape(text)
     escaped = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", escaped)
+    escaped = re.sub(r"(?<!\*)\*([^*\n]+)\*(?!\*)", r"<em>\1</em>", escaped)
     return re.sub(chr(96) + "([^" + chr(96) + "]+)" + chr(96), r"<code>\1</code>", escaped)
 
 
@@ -63,6 +64,16 @@ def run_path(record):
     return f"{PUBLIC}/runs/{record['key']}.html"
 
 
+def display_name(model):
+    name = model.get("display_name", model["model"])
+    if name == model["model"] and model["provider"] == "claude":
+        match = re.fullmatch(r"claude-(opus|sonnet|haiku|fable)-(\d+)(?:-(\d))?(?:-\d{8})?", name)
+        if match:
+            family, major, minor = match.groups()
+            return "Claude " + family.capitalize() + " " + major + ("." + minor if minor else "")
+    return name
+
+
 def settings_order(record):
     variant = record.get("variant") or {"id":"baseline"}
     identity = variant["id"]
@@ -96,7 +107,7 @@ def index_fragment(m, registry, pack, base=SITE, article_url=None):
                              f'<span class="run-status">{html.escape(status)}</span></a></li>')
             date = (f"Released {model['release_date']}" if model.get("release_date") else
                     f"First seen {model['first_seen'][:10]}; release date unavailable")
-            cards.append(f'<article class="model-card"><h3>{html.escape(model["display_name"])}</h3>'
+            cards.append(f'<article class="model-card"><h3>{html.escape(display_name(model))}</h3>'
                          f'<p class="model-date">{html.escape(date)}</p><ul class="run-links">'
                          f'{"".join(links) or "<li>No response captured</li>"}</ul></article>')
         if provider == "codex":
@@ -137,6 +148,8 @@ def site_bundle(m, registry, pack, article_url):
                                             SITE + "/" + PUBLIC + "/index.html").encode()}
     files[f"{PUBLIC}/prompt.txt"] = m.freeze_prompt(pack)
     for r in registry["records"]:
+        model = next((row for row in registry["models"] if row["provider"] == r["provider"] and row["model"] == r["model"]),r)
+        name = display_name(model)
         evidence = m.load(m.safe_path(pack, f"records/{r['key']}/evidence.json"))
         raw = m.safe_path(pack, f"records/{r['key']}/response.txt").read_bytes()
         actual = evidence.get("actual_model") or "Not exposed by client"
@@ -144,14 +157,14 @@ def site_bundle(m, registry, pack, article_url):
         result = ("passed" if checks.get("receipt_passed") else "failed") if r["status"] == "response captured" else "not scored"
         elapsed = evidence.get("elapsed_seconds")
         duration = f"{elapsed:g} seconds" if isinstance(elapsed, (int, float)) else "Time not reported"
-        body = (f'<a href="/{PUBLIC}/index.html">← All model runs</a><h1>{html.escape(r["model"])}</h1>'
+        body = (f'<a href="/{PUBLIC}/index.html">← All model runs</a><h1>{html.escape(name)}</h1>'
                 f'<p class="run-meta">{html.escape(label(r,evidence))}<br>{html.escape(duration)} · Receipt {result}<br>'
                 f'Run {html.escape(r.get("tested_at","unreported"))}<br>Responder: {html.escape(actual)}</p>'
                 '<section aria-label="Original model response">' + response_html(raw.decode("utf-8", errors="replace")) + '</section>'
                 f'<details class="run-code"><summary>Settings, checks and reported usage</summary><pre><code>{html.escape(json.dumps(evidence,indent=2))}</code></pre></details>'
                 f'<p><a href="{r["key"]}.txt" download>Exact original response</a> · '
                 f'<a href="{r["key"]}.json">Evidence</a> · <a href="../prompt.txt">Frozen prompt</a></p>')
-        files[run_path(r)] = standalone(r["model"] + " · " + label(r,evidence), body, RUN_CSS, SITE + "/" + run_path(r)).encode()
+        files[run_path(r)] = standalone(name + " · " + label(r,evidence), body, RUN_CSS, SITE + "/" + run_path(r)).encode()
         files[f"{PUBLIC}/runs/{r['key']}.txt"] = raw
         files[f"{PUBLIC}/runs/{r['key']}.json"] = m.safe_path(pack,f"records/{r['key']}/evidence.json").read_bytes()
     return files

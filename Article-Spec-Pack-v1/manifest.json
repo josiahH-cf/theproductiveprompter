@@ -3,7 +3,7 @@
   "workflow_version": "3.1.0",
   "hash_algorithm": "sha256",
   "generator_name_and_version": "article-flow 3.1.1",
-  "generated_at": "2026-10-02T14:33:45Z",
+  "generated_at": "2026-10-02T14:56:11Z",
   "generated_from": "index",
   "files": [
     {
@@ -59,16 +59,16 @@
       "scope": "source",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "82c66ab4a51ea7448436eb6b2f48ebc098014e4730d8cf2f5a1d59fd09143202",
-      "byte_size": 9265
+      "sha256": "c824398ce3f7e4e40dde9dbfbbcedbf2df69ee1a25325f845f238669248528e7",
+      "byte_size": 9916
     },
     {
       "path": "scripts/model_release_article.py",
       "scope": "source",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "2b3c9a2ef6acf3ef97c8be8d2550477ecd76f81af3ac6ca533e1a3cee2833e2b",
-      "byte_size": 19115
+      "sha256": "97d595b6af1c98afe1b295329bc363016f409b6c2e2ba3bc87b4a895af280d2d",
+      "byte_size": 19223
     },
     {
       "path": "tests/test_model_experiment.py",
@@ -627,8 +627,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "54d722b379a7e6ec881aee7d1975fb3308364abe52248ca34b6e0ad63d105df3",
-      "byte_size": 24087
+      "sha256": "666274c16740b1bef76c7870620f0d7505aa59332d35bff7eb6154a2a452ac1e",
+      "byte_size": 24853
     },
     {
       "path": "scripts/package_article.py",
@@ -667,8 +667,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "conformance",
-      "sha256": "296ece50b16eb9e43da13451dff81479a2a9b5ed306cd418c691c2f9c1f573ea",
-      "byte_size": 17112
+      "sha256": "6c24ee909663fa9441988416b4498dd32db8799d5dd49d503183e80861acafc5",
+      "byte_size": 18229
     },
     {
       "path": "workflow/article-recipe.defaults.json",

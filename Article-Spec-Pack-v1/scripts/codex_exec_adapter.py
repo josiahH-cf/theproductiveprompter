@@ -55,6 +55,14 @@ DISABLED_HOST_TOOL_FEATURES = (
     "tool_call_mcp_elicitation",
 )
 
+RESEARCH_TRANSPORT_FEATURES = ("code_mode_host", "deferred_executor")
+
+
+def disabled_features(web_search_mode: str) -> tuple[str, ...]:
+    # Current CLI research needs the tool transport; file, shell, app and agent tools stay disabled.
+    transport = {"code_mode", *RESEARCH_TRANSPORT_FEATURES} if web_search_mode == "live" else set()
+    return tuple(feature for feature in DISABLED_HOST_TOOL_FEATURES if feature not in transport)
+
 
 class CodexExecError(RuntimeError):
     """A bounded failure returned by the Codex CLI adapter."""
@@ -195,8 +203,12 @@ def build_codex_command(
         "--config",
         f'web_search="{web_search_mode}"',
     ]
-    for feature in DISABLED_HOST_TOOL_FEATURES:
+    for feature in disabled_features(web_search_mode):
         command.extend(["--disable", feature])
+    if web_search_mode == "live":
+        command.extend(["--config", "tools.web_search=true"])
+        for feature in RESEARCH_TRANSPORT_FEATURES:
+            command.extend(["--enable", feature])
     command.extend([
         "--cd",
         str(working_directory),
@@ -464,7 +476,8 @@ def execute_codex(
             "host_tool_access": "disabled",
             "host_file_access": "none_via_model_tools",
             "tool_access_enforcement": "fixed_cli_feature_disables",
-            "disabled_host_tool_features": list(DISABLED_HOST_TOOL_FEATURES),
+            "disabled_host_tool_features": list(disabled_features(web_search_mode)),
+            "enabled_tool_transport_features": list(RESEARCH_TRANSPORT_FEATURES) if web_search_mode == "live" else [],
             "web_search_mode": web_search_mode,
             "structured_output_transport": "json-string-envelope" if output_schema is not None else None,
             "structured_output_envelope_field": JSON_ENVELOPE_FIELD if output_schema is not None else None,
