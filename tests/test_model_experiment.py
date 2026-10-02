@@ -1,10 +1,12 @@
 """Behavioral checks of the experiment's prompt, coverage, and preservation guards."""
 import importlib.util
+import io
 import json
 from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
+from contextlib import redirect_stdout
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("model_experiment", ROOT / "scripts/model_experiment.py")
@@ -14,6 +16,22 @@ import model_experiment_views as views
 
 
 class ExperimentTests(unittest.TestCase):
+    def test_model_discovered_after_article_is_not_generated_before_introduction(self):
+        registry=m.empty_registry()
+        old=self.row("old-model")
+        new=self.row("new-model")
+        m.reconcile(registry,[old])
+        self.record(registry)
+        m.atomic_json(self.pack/"registry.json",registry)
+        verify=m.verify_registry
+        with patch.object(m,"PACK",self.pack), patch.object(m,"discover",return_value=([old,new],{})), \
+             patch.object(m,"verify_registry",side_effect=lambda value: verify(value,self.pack)), \
+             patch.object(m,"run_once") as launch, patch.object(m,"write_preview"), redirect_stdout(io.StringIO()):
+            m.main(["update","--state-dir",str(self.state)],allowed_models={m.model_key("codex","old-model")})
+        launch.assert_not_called()
+        report=m.load(self.state/"last-check.json")
+        self.assertEqual(report["models_waiting_for_article"],[{"provider":"codex","model":"new-model"}])
+
     def test_failed_settings_profile_stays_visible_without_being_rescheduled(self):
         row = {"provider": "codex", "model": "m", "effort_levels": ["low", "medium"]}
         low = m.variants(row)[1]

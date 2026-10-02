@@ -685,7 +685,7 @@ def write_preview(registry, state: Path, destination: Path, pack: Path = PACK) -
     atomic_json(ownership, {"path": str(destination.resolve()), "sha256": sha(content)})
 
 
-def main(argv=None):
+def main(argv=None, *, allowed_models=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=["check", "preview", "update", "status"], nargs="?", default="update")
     parser.add_argument("--catalog", type=Path, help="Recorded fixture catalog; never reported as live discovery")
@@ -733,21 +733,25 @@ def main(argv=None):
         if args.action == "update":
             if args.catalog:
                 raise ExperimentError("Live generation cannot use a fixture catalog.")
-            available_variants = {row["_variant"]["id"] for row in planned_trials(registry, catalog, args.matrix)
+            trial_catalog = [row for row in catalog if allowed_models is None or
+                             model_key(row["provider"], row["model"]) in allowed_models]
+            available_variants = {row["_variant"]["id"] for row in planned_trials(registry, trial_catalog, args.matrix)
                                   if not args.model or row["model"] == args.model}
             if args.variant and set(args.variant) - available_variants:
                 raise ExperimentError("Requested settings trial is not supported: " +
                                       ", ".join(sorted(set(args.variant) - available_variants)))
-            selected = [(row, 1) for row in missing_trials(registry, catalog, args.matrix)
+            selected = [(row, 1) for row in missing_trials(registry, trial_catalog, args.matrix)
                         if (not args.model or row["model"] == args.model)
                         and (not args.variant or row["_variant"]["id"] in args.variant)]
-            if any(row["provider"] == "claude" for row in unsuccessful_trials(registry, catalog, args.matrix)):
+            if any(row["provider"] == "claude" for row in unsuccessful_trials(registry, trial_catalog, args.matrix)):
                 selected += [(row, attempt) for row, attempt in access_recovery_candidates(
-                    registry, planned_trials(registry, catalog, args.matrix),
+                    registry, planned_trials(registry, trial_catalog, args.matrix),
                     claude_auth_ready()) if (not args.model or row["model"] == args.model)
                     and (not args.variant or row["_variant"]["id"] in args.variant)]
             if args.model and not any(row["model"] == args.model for row in catalog):
                 raise ExperimentError("Requested model is not in the verified current catalogs; no substitution.")
+            if args.model and not any(row["model"] == args.model for row in trial_catalog):
+                raise ExperimentError("The requested model needs a verified campaign article before generation.")
             if args.limit is not None:
                 if args.limit < 1:
                     raise ExperimentError("The call limit must be positive.")
@@ -785,6 +789,8 @@ def main(argv=None):
         report["missing_responses"] = [{"provider": row["provider"], "model": row["model"]}
                                        for row in response_coverage(registry)]
         report["added_results"] = added
+        report["models_waiting_for_article"] = [{"provider": row["provider"], "model": row["model"]}
+            for row in catalog if allowed_models is not None and model_key(row["provider"], row["model"]) not in allowed_models]
         report["matrix"] = args.matrix
         report["client_metadata_gaps"] = [row["model"] for row in catalog if row.get("client_metadata_status") == "not exposed"]
         report["unavailable_models"] = [{"provider": "codex", "model": "gpt-5.3-codex-spark",

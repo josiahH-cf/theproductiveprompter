@@ -3,7 +3,7 @@
   "workflow_version": "3.1.0",
   "hash_algorithm": "sha256",
   "generator_name_and_version": "article-flow 3.1.1",
-  "generated_at": "2026-10-02T15:26:10Z",
+  "generated_at": "2026-10-02T15:42:26Z",
   "generated_from": "index",
   "files": [
     {
@@ -51,8 +51,8 @@
       "scope": "source",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "e22bb298066c001e37d2f61b9100b4de0953654a89e43408d701abfa96c1c50a",
-      "byte_size": 42475
+      "sha256": "56ad3dbdc8514eeacc0872d7ea4e608fabdbb155ab5472776520674349114e0f",
+      "byte_size": 43129
     },
     {
       "path": "scripts/model_experiment_views.py",
@@ -67,24 +67,24 @@
       "scope": "source",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "2092fa740366d53c1d8d1c1bd4e4a1679e17414a98d172a33529a2efd930315d",
-      "byte_size": 22608
+      "sha256": "7b6de21870c4ac0e23fc1ee37038aa6ac61696b395f3682b2e8e56f80b688fce",
+      "byte_size": 22738
     },
     {
       "path": "tests/test_model_experiment.py",
       "scope": "source",
       "role": "runtime",
       "rule_set": "conformance",
-      "sha256": "e320ddf261043bf0102e58eb7c3c7739f8063983279ff608c5e899fddd6db675",
-      "byte_size": 17832
+      "sha256": "80281305ede2fb0093673dd982cf6b61f0a093761bab835ee5aefd5fead7dd8e",
+      "byte_size": 18856
     },
     {
       "path": "tests/test_model_release_article.py",
       "scope": "source",
       "role": "runtime",
       "rule_set": "conformance",
-      "sha256": "30e432c04d7ff8814a18717880d518dae7cca8c70658a0ce9fee80c3f33253c9",
-      "byte_size": 10851
+      "sha256": "3326cde79812213702ecdeb495da2cc51391ef5da8ff639d125118b9ba75fa14",
+      "byte_size": 11268
     },
     {
       "path": "0-README.md",
@@ -619,8 +619,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "b3e56f9dbdc26aa87bdf99dbe5b2fbc213d42eb2ff88292ab5cfc96acbd2123f",
-      "byte_size": 599594
+      "sha256": "f26e0084f30f5507553006d728e6eff5fb6847c9c7f7e664b13447bd34349448",
+      "byte_size": 599784
     },
     {
       "path": "scripts/codex_exec_adapter.py",

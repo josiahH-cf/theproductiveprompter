@@ -366,7 +366,8 @@ def coordinate(af, args):
             if args.limit:
                 command += ["--limit", str(args.limit)]
             with redirect_stdout(io.StringIO()):
-                code = m.main(command)
+                introduced = {identity for entry in value["articles"] for identity in entry["models"]}
+                code = m.main(command, allowed_models=introduced)
             experiment_report = m.load(m.DEFAULT_STATE / "last-check.json")
             registry = m.load(m.PACK / "registry.json")
             m.verify_registry(registry)

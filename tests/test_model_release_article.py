@@ -180,6 +180,13 @@ class ApprovedVoiceTests(unittest.TestCase):
         self.assertIn("reuse_approved_voice",revision["run_overrides"])
         self.assertEqual(revision["parent_run_id"],run["run_id"])
 
+    def test_campaign_verifier_receives_the_frozen_challenge_source(self):
+        directory,run=self.start_at_voice()
+        with patch.object(af,"state_definition",return_value={"required_inputs":[]}):
+            for state in ("CLAIM_VERIFICATION","POST_EDIT_CLAIM_VERIFICATION"):
+                inputs=af.packet_inputs(directory,run,state)
+                self.assertIn("seed",[item["id"] for item in inputs])
+
 
 if __name__ == "__main__":
     unittest.main()

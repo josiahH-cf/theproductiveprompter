@@ -2524,6 +2524,9 @@ def automated_route_health() -> dict[str, Any]:
 
 def packet_inputs(directory: Path, run: dict[str, Any], state: str) -> list[dict[str, str]]:
     required = set(str(item) for item in state_definition(state, run).get("required_inputs", []))
+    if run.get("run_overrides", {}).get("model_release") == "model-release-v1" and state in {
+            "CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION"}:
+        required.add("seed")
     latest = {str(item["type"]): item for item in run.get("artifact_index", [])}
     missing = sorted(required - set(latest))
     if missing:
