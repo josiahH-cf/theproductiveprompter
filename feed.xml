@@ -5,7 +5,7 @@
     <link>https://theproductiveprompter.com/docs/blog.html</link>
     <description>Practical writing on AI workflows, prompting systems, evaluation, and publication design.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 02 Oct 2026 12:00:00 -0500</lastBuildDate>
+    <lastBuildDate>Fri, 02 Oct 2026 15:57:06 +0000</lastBuildDate>
     <atom:link href="https://theproductiveprompter.com/feed.xml" rel="self" type="application/rss+xml"/>
 
     <!-- ARTICLE_FLOW_FEED_START -->
@@ -14,7 +14,7 @@
   <link>https://theproductiveprompter.com/docs/the-model-release-experiment.html</link>
   <guid isPermaLink="true">https://theproductiveprompter.com/docs/the-model-release-experiment.html</guid>
   <pubDate>Fri, 02 Oct 2026 12:00:00 -0500</pubDate>
-  <description>A concise, pre-results reference guide to the recurring experiment: its frozen PRINT-SHOP CHALLENGE v1.0, model and settings profiles, preservation rules, evidence limits, and post-publication results process.</description>
+  <description>A concise introduction to an ongoing anecdotal experiment that runs one frozen story-and-math prompt across available Claude and Codex models and preserves each response as an inspectable observation.</description>
 </item>
 <item>
   <title>What Prompt Precision Bought in 24 Agent Trials</title>

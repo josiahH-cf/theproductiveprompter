@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="A concise, pre-results reference guide to the recurring experiment: its frozen PRINT-SHOP CHALLENGE v1.0, model and settings profiles, preservation rules, evidence limits, and post-publication results process.">
+    <meta name="description" content="A concise introduction to an ongoing anecdotal experiment that runs one frozen story-and-math prompt across available Claude and Codex models and preserves each response as an inspectable observation.">
     <meta name="author" content="Josiah Hunter">
     <meta name="robots" content="index, follow">
     <title>The Model Release Experiment | Josiah Hunter</title>
@@ -13,29 +13,29 @@
     <meta property="og:type" content="article">
     <meta property="og:site_name" content="The Productive Prompter">
     <meta property="og:title" content="The Model Release Experiment">
-    <meta property="og:description" content="A concise, pre-results reference guide to the recurring experiment: its frozen PRINT-SHOP CHALLENGE v1.0, model and settings profiles, preservation rules, evidence limits, and post-publication results process.">
+    <meta property="og:description" content="A concise introduction to an ongoing anecdotal experiment that runs one frozen story-and-math prompt across available Claude and Codex models and preserves each response as an inspectable observation.">
     <meta property="og:url" content="https://theproductiveprompter.com/docs/the-model-release-experiment.html">
     <meta property="article:published_time" content="2026-10-02T12:00:00-05:00">
-    <meta property="article:modified_time" content="2026-10-02T12:00:00-05:00">
+    <meta property="article:modified_time" content="2026-10-02T15:57:06Z">
     <meta property="article:author" content="Josiah Hunter">
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="The Model Release Experiment">
-    <meta name="twitter:description" content="A concise, pre-results reference guide to the recurring experiment: its frozen PRINT-SHOP CHALLENGE v1.0, model and settings profiles, preservation rules, evidence limits, and post-publication results process.">
-    <meta name="article-flow-revision" content="26bf3b585af0c24ebb6ef062746b62bfafc876aec086f1f9816dcacfaa8dd8e7">
-    <meta name="article-flow-recipe" content="{&quot;archetype&quot;:&quot;reference-guide&quot;,&quot;opening&quot;:&quot;artifact&quot;,&quot;ending&quot;:&quot;callback&quot;,&quot;summary&quot;:&quot;always&quot;,&quot;narrative_person&quot;:&quot;mixed&quot;}">
+    <meta name="twitter:description" content="A concise introduction to an ongoing anecdotal experiment that runs one frozen story-and-math prompt across available Claude and Codex models and preserves each response as an inspectable observation.">
+    <meta name="article-flow-revision" content="d9e100e8e219ca4f258fe6553fb3a35825ffb356f7023bf7025b23852ba8af4f">
+    <meta name="article-flow-recipe" content="{&quot;archetype&quot;:&quot;reference-guide&quot;,&quot;opening&quot;:&quot;claim&quot;,&quot;ending&quot;:&quot;quiet-synthesis&quot;,&quot;summary&quot;:&quot;always&quot;,&quot;narrative_person&quot;:&quot;first&quot;}">
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
         "@type": "BlogPosting",
         "headline": "The Model Release Experiment",
-        "description": "A concise, pre-results reference guide to the recurring experiment: its frozen PRINT-SHOP CHALLENGE v1.0, model and settings profiles, preservation rules, evidence limits, and post-publication results process.",
+        "description": "A concise introduction to an ongoing anecdotal experiment that runs one frozen story-and-math prompt across available Claude and Codex models and preserves each response as an inspectable observation.",
         "url": "https://theproductiveprompter.com/docs/the-model-release-experiment.html",
         "mainEntityOfPage": "https://theproductiveprompter.com/docs/the-model-release-experiment.html",
         "datePublished": "2026-10-02T12:00:00-05:00",
-        "dateModified": "2026-10-02T12:00:00-05:00",
+        "dateModified": "2026-10-02T15:57:06Z",
         "inLanguage": "en-US",
-        "wordCount": 929,
-        "keywords": ["model-release-experiment", "AI-models", "evaluation", "reproducibility"],
+        "wordCount": 584,
+        "keywords": [],
         "author": {"@type": "Person", "name": "Josiah Hunter", "url": "https://theproductiveprompter.com/"},
         "publisher": {"@type": "Person", "name": "Josiah Hunter", "url": "https://theproductiveprompter.com/"},
         "isPartOf": {"@type": "Blog", "name": "The Productive Prompter", "url": "https://theproductiveprompter.com/docs/blog.html"}
@@ -64,41 +64,21 @@
             <article class="article-content">
                 <header class="article-header">
                     <h1>The Model Release Experiment</h1>
-                    <div class="article-header__meta" role="group" aria-label="Article details"><span>By Josiah Hunter</span><span aria-hidden="true">•</span><time datetime="2026-10-02T12:00:00-05:00">October 2, 2026</time><span aria-hidden="true">•</span><span>4 min read</span></div>
+                    <div class="article-header__meta" role="group" aria-label="Article details"><span>By Josiah Hunter</span><span aria-hidden="true">•</span><time datetime="2026-10-02T12:00:00-05:00">October 2, 2026</time><span aria-hidden="true">•</span><span>3 min read</span></div>
                 </header>
                 <!-- GENERATED_ARTICLE_START -->
 <h2>TLDR</h2>
 <ul>
-<li>Every trial receives the same user-prompt bytes: <strong>PRINT-SHOP CHALLENGE v1.0</strong>.</li>
-<li>The protocol preserves one original response for each model and settings profile, including failures and unavailable states.</li>
-<li>Recorded settings show the requested configuration. They do not independently verify how much internal reasoning occurred.</li>
-<li>Each response is an individual field observation, not a universal model ranking or proof that a setting caused a difference.</li>
-<li>This introduction has no campaign results. Model cards, run pages, and saved results will be attached only after publication is verified.</li>
+<li>I am running one frozen story-and-math prompt across available Claude and Codex models, then continuing as new models appear.</li>
+<li>I preserve each model-and-settings profile’s original response, including saved failures. Model cards and linked run pages will hold the supporting records and client-reported usage where available.</li>
+<li>The receipt gives us arithmetic we can check. The story gives us something to read and judge for ourselves.</li>
 </ul>
-<h2>The frozen challenge</h2>
-<p>PRINT-SHOP CHALLENGE v1.0 is the fixed artifact at the center of the experiment. The frozen challenge asks for a 600–800 word story, a JSON receipt, and a public notice of at most 80 words.</p>
-<p>The scenario starts with an $80 materials budget and 120 machine minutes. Before production, the materials budget falls to $66. The response must also account for a fixed $35 expense while tracking the contribution toward a $220 repair goal. A possible $100 donation remains uncommitted at the end of the story, so it cannot be treated as confirmed income.</p>
-<p>These details are the task, not background decoration. Together, they test how each response handles narrative requirements, numerical constraints, a revised plan, structured data, and a short public update. This article will not solve the challenge or suggest an order plan because either choice would change the artifact before the trials begin.</p>
-<p>The user prompt remains byte-identical across trials. The draft records its SHA-256 as <code>d6ea22391915e294a6ed80dc109550b035cf7c9548159dc71d0efc39e661f96d</code>, but the exact frozen prompt bytes were not available for independent recomputation here. The value must be recomputed before publication.</p>
-<p>Fixing the user prompt does not make every provider environment identical. Native instructions and CLI behavior can differ. The protocol therefore records the model, settings profile, and provider environment separately from the common user-facing challenge.</p>
-<h2>What changes between profiles</h2>
-<p>The experiment preserves one original response for each model/settings profile. The main profiles change one factor at a time, creating a local comparison with the relevant baseline. Trials that combine settings belong to a separate factorial mode.</p>
-<p>If two preserved responses differ, that difference can be described. One response from each profile cannot show that the changed setting caused it, and it cannot support a broad conclusion about the model.</p>
-<p>The available controls also differ by provider. Where the selected model and client support them, the <a href="https://learn.chatgpt.com/docs/config-file/config-reference">Codex configuration reference</a> documents reasoning effort and a separate optional Responses API verbosity override. The documented verbosity values are low, medium, and high.</p>
-<p><a href="https://code.claude.com/docs/en/model-config">Claude Code’s model configuration documentation</a> describes a per-session effort control for compatible models. Its effort levels are calibrated per model, so matching labels do not establish equal amounts of reasoning across models. Organization controls can also cap a requested effort level. A stored request for high effort is evidence of the requested client configuration, not independent proof of how much internal reasoning occurred.</p>
-<p>Verbosity needs a separate distinction. Claude Code’s <a href="https://code.claude.com/docs/en/cli-reference">@@AF0@@ flag</a> controls diagnostic logging. It is not a native response-verbosity setting comparable to Codex’s documented output control.</p>
-<p>These documentation claims were checked on October 2, 2026. They should be checked again at publication because model and client capabilities can change.</p>
-<h2>What the evidence can support</h2>
-<p>A preserved output records one field observation: this model, in this provider environment, with this requested profile, returned this response to the frozen prompt.</p>
-<p>That record can show whether the required parts appeared, how the response represented its receipt, and whether the run failed. It cannot establish general model quality, produce a universal ranking, or prove that a setting caused an observed difference.</p>
-<p>Preservation also covers inconvenient outcomes. Original responses remain unpolished. Failures stay recorded as failures. If a model is unavailable, the experiment records that state instead of silently replacing it.</p>
-<p>Official documentation can identify candidates, but a catalog listing does not verify access through the experiment account. Claude’s <a href="https://support.claude.com/en/articles/11940350-claude-code-model-configuration">supported-model documentation</a> lists models supported by Claude Code, but that listing does not verify access through the experiment account.</p>
-<p>For example, the <a href="https://learn.chatgpt.com/docs/models">official Codex model documentation</a> lists GPT-5.3-Codex-Spark as retired on September 14, 2026 and unavailable in the ChatGPT desktop app, Codex CLI, and IDE extension. If Spark appears in the candidate set, the experiment must preserve that unavailable state. A successor cannot stand in for it.</p>
-<p>This keeps three kinds of evidence separate. Documentation can describe a model or control. Account checks determine whether the configured account can use it. The preserved run records what was requested and what actually happened.</p>
-<h2>Why there are no results here</h2>
-<p>This is the protocol article, published before the campaign runs. It contains no campaign findings, verified account-access results, rankings, costs, usage figures, or live results pages. Candidate documentation and planned profiles do not supply any of those results.</p>
-<p>After publication is verified, the controller is intended to check for missing trials and attach the saved results. The resulting model cards, individual run pages, and results section will place the frozen prompt beside the settings and original output needed to interpret each observation.</p>
-<p>For now, PRINT-SHOP CHALLENGE v1.0 remains the fixed artifact introduced at the start: a prompt awaiting preserved responses, not a source of results that do not yet exist.</p>
+<p>I have an anecdotal feel for how Claude and Codex work. I want a record to put alongside that impression: the same task, the requested settings, and the response each model actually gave. The Model Release Experiment starts that record. When another model becomes available, it can receive the frozen prompt and join the collection.</p>
+<p>The prompt is PRINT-SHOP CHALLENGE v1.0. Mara runs a community print shop, and Ivo wants her to prioritize the theater’s banners. They have eight possible orders, limited materials, and limited machine time. The model chooses its own voice and point of view, but the calculation must change what the characters do and how they relate to each other. Its response includes a titled 600–800-word story, a JSON receipt with a brief checkable explanation and a feasible competing plan, and a public notice of at most 80 words.</p>
+<p>The numbers give the prose a decision it has to respect. Mara starts with $80 for materials and 120 machine minutes. Before work begins, the materials limit falls to $66 while the time limit stays the same. A fixed $35 expense comes out after production, and only the remainder counts toward a $220 repair goal. Someone might donate $100, but no commitment has arrived by the end of the story. The revised plan must leave that unconfirmed money out of the confirmed contribution.</p>
+<p>I also want to observe what happens when the model stays the same and one supported setting changes. Standard profiles vary one native control at a time; any factorial testing is separate. <a href="https://learn.chatgpt.com/docs/config-file/config-reference">Codex documents reasoning effort and output verbosity as separate controls</a>, with supported reasoning levels depending on the model and client and verbosity offering low, medium, or high where supported. <a href="https://code.claude.com/docs/en/model-config">Claude’s effort control is available on supported models and calibrated per model</a>. Claude Code’s <a href="https://code.claude.com/docs/en/cli-reference">@@AF0@@ flag instead controls diagnostic logging and turn display</a>; it is not a model output-verbosity setting. The records capture requested configurations and reported outputs, not hidden internal reasoning.</p>
+<p>Claude and Codex will have separate collections of readable model cards, with each card linking to individual run pages. This keeps the original story readable while placing receipts and technical evidence with the relevant run. The user prompt remains byte-identical across trials, although native provider instructions may differ. Original responses and saved failures remain in the record. If a model is unavailable, it keeps that status instead of receiving a silent substitute.</p>
+<p>Each model-and-settings profile is one anecdotal observation. A different receipt or story is worth examining, but it does not establish a universal ranking or prove that a setting caused the difference. Checking the arithmetic is also narrower than judging the full response. Story quality, consistency, and word limits need separate assessment. The growing collection gives each observation a place where it can be inspected without asking it to prove more than it can.</p>
 <footer class="article-model-attribution" data-style-policy-sha256="f6b03e5f629ac61eda927f09c8e83854c18fd08bb44043cd2bedf3984accb701"><p>Drafting model: GPT-5.6 Sol</p></footer>
                 <!-- GENERATED_ARTICLE_END -->
             </article>
