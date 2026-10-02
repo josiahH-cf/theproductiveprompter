@@ -104,9 +104,25 @@ def require_verified_article(af, entry):
 
 def result_section(registry):
     successes = [r for r in registry["records"] if r["status"] == "response captured"]
+    passed = 0
+    outcomes = {}
+    for record in successes:
+        evidence = m.load(m.safe_path(m.PACK,f"records/{record['key']}/evidence.json"))
+        good = bool(evidence.get("validation",{}).get("receipt_passed"))
+        passed += good
+        outcomes.setdefault((record['provider'],record['model']),set()).add(good)
+    mixed = sum(len(values) > 1 for values in outcomes.values())
+    failures = len(registry["records"]) - len(successes)
     return (START + '\n<section id="model-experiment-results" aria-label="Model experiment results">'
-            '<h2>The experiment runs</h2>'
-            f'<p>{len(successes)} original responses are saved. Each run shows the selected thinking and verbosity settings, '
+            '<h2>The experiment runs</h2><p><strong>Results update</strong></p>'
+            f'<p>{len(successes)} original responses from {len(outcomes)} models are now saved. '
+            f'{passed} receipts matched both optimal order plans, their totals, and the unconfirmed donation. '
+            f'{len(successes)-passed} receipts failed at least one of those checks. '
+            f'{failures} earlier failed attempts remain in the record.</p>'
+            f'<p>{mixed} models returned both passing and failing receipts across their saved profiles. '
+            'Each profile has one response, so these differences do not establish that a setting caused a result. '
+            'The receipt check does not assess story quality, story consistency, or word limits.</p>'
+            '<p>Each run shows the requested thinking and verbosity settings, '
             'the original response, the receipt checks, and the usage reported by the client.</p>'
             f'<p><a href="/{PUBLIC}/index.html">Explore the model cards and runs →</a></p>'
             '</section>\n' + END)
@@ -146,6 +162,10 @@ def prepare_publication(af, value, repository, registry):
             if expected is not None and digest != expected:
                 raise m.ExperimentError("Published content has unowned changes: " + relative)
             if relative.startswith(PUBLIC + "/runs/") and digest != m.sha(content):
+                if relative.endswith('.html') and expected == digest:
+                    # Keep the first published readable view when a future renderer changes.
+                    files[relative] = path.read_bytes()
+                    continue
                 raise m.ExperimentError("Refusing to replace a published original run: " + relative)
             if expected is None and relative.startswith(PUBLIC + "/") and digest != m.sha(content):
                 raise m.ExperimentError("Refusing to overwrite an unrelated page: " + relative)

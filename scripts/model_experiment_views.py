@@ -107,9 +107,16 @@ def index_fragment(m, registry, pack, base=SITE, article_url=None):
                              f'<span class="run-status">{html.escape(status)}</span></a></li>')
             date = (f"Released {model['release_date']}" if model.get("release_date") else
                     f"First seen {model['first_seen'][:10]}; release date unavailable")
+            selected_keys = {record['key'] for record in groups.values()}
+            earlier = [record for record in records if record['key'] not in selected_keys]
+            history = ''
+            if earlier:
+                items = ''.join(f'<li><a href="{html.escape(base.rstrip("/")+"/"+run_path(record),quote=True)}">'
+                                f'Attempt {record.get("attempt",1)} · {html.escape(record["status"])}</a></li>' for record in earlier)
+                history = f'<details><summary>Earlier attempts ({len(earlier)})</summary><ul class="run-links">{items}</ul></details>'
             cards.append(f'<article class="model-card"><h3>{html.escape(display_name(model))}</h3>'
                          f'<p class="model-date">{html.escape(date)}</p><ul class="run-links">'
-                         f'{"".join(links) or "<li>No response captured</li>"}</ul></article>')
+                         f'{"".join(links) or "<li>No response captured</li>"}</ul>{history}</article>')
         if provider == "codex":
             cards.insert(0, '<article class="model-card"><h3>GPT-5.3-Codex-Spark</h3>'
                          '<p class="model-date">Retired 2026-09-14</p>'
