@@ -14,3 +14,5 @@ If the command does not resolve, use article-flow.cmd on native Windows or /home
 For perform_task, read only the task_packet, create the expected_output, then execute submission_command. Wait for an ongoing stage before resuming or retrying. For a normal human_decision, present all three exact passages through the host's selectable-question tool and wait for the author's actual answer; elapsed time and a preselected option are not answers. Continue with the returned command after selection.
 
 Honor explicit holds and blockers. Keep publication and verification inside the controller. The retired start-article adapters stay retired; article-flow is the surviving entry point.
+
+For a model-release campaign's routine source, citation, or formatting repair that the authorized inputs resolve, follow the returned repair command, obtain its new task packet, submit the repaired current artifact, and resume the campaign. Preserve unaffected content and original experiment records. Ask only for a genuinely missing material decision or source; never invent a gate PASS.
