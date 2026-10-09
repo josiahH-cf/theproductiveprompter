@@ -318,6 +318,175 @@ class SharedSurfaceVerificationTests(fixtures.TemporaryRuntime):
             af.discovery_entry((original + duplicate).encode(), "homepage", canonical, base)
 
 
+class SettledDeploymentRecoveryTests(fixtures.TemporaryRuntime):
+    live_verification_fixture = fixtures.WorkflowV31RegressionTests.live_verification_fixture
+    committed_collection = SharedSurfaceVerificationTests.committed_collection
+
+    def prepared(self, *, same_head=False):
+        run_id, directory, target, repo, published, _ = self.committed_collection()
+        if same_head:
+            af.git(["checkout", "-B", "main", published], cwd=repo)
+            af.git(["push", "--force", "origin", "main"], cwd=repo)
+        _, run = af.load_run(run_id)
+        package_path = directory / "package/package.json"
+        package = af.load_json(package_path)
+        package["run_id"] = run_id
+        af.write_json(directory / "package/public/assets.json", {"assets": [{"visual_id": "owned", "public_path": "assets/owned.svg", "sha256": af.sha256_path(repo / "assets/owned.svg")}]})
+        package["public_files"] = [{"path": path.relative_to(directory / "package").as_posix(), "sha256": af.sha256_path(path)} for path in (directory / "package").rglob("*") if path.is_file() and path != package_path]
+        af.write_json(package_path, package)
+        af.record_artifact(directory, run, package_path, "package", {"actor": "test"})
+        authority = {"run_id": run_id, "target": target["target_id"], "package_revision": package["package_revision"], "approval_id": "AP-original"}
+        self.record_json(directory, run, "publish-approval", {**authority, "status": "APPROVED"})
+        self.record_json(directory, run, "publication", {**authority, "status": "PUSHED", "commit": published})
+        def fetched(url, timeout=30):
+            rel = url.removeprefix(target["homepage_url"]) or "index.html"
+            return 200, (repo / rel).read_bytes(), {}
+        def stale(url, timeout=30):
+            return (200, b"previous deployment", {}) if url == target["feed_url"] else fetched(url, timeout)
+        with mock.patch.object(af, "publication_repo_root", return_value=repo), mock.patch.object(af, "fetch_url", side_effect=stale):
+            for _ in range(4):
+                code, result = call(af.command_verify_live, run_id=run_id)
+                self.assertEqual(code, af.EXIT_FAILED, result)
+                self.assertEqual(result["classification"], "deployment_propagation")
+        return run_id, directory, target, repo, fetched
+
+    def recover(self, run_id):
+        return call(af.command_repair, run_id=run_id, gate_id="G-LIVE-REVISION", finding="The author authorized one additional verification after the deployment settled.")
+
+    def test_settled_bytes_open_one_check_and_preserve_original_authority(self):
+        for same_head in (True, False):
+            with self.subTest(same_head=same_head):
+                run_id, directory, _, repo, fetched = self.prepared(same_head=same_head)
+                _, run = af.load_run(run_id)
+                paths = [af.artifact_path(directory, run, kind) for kind in ("package", "publication", "publish-approval")]
+                paths += list((directory / "receipts").glob("live-verification-*.json"))
+                before = {path: path.read_bytes() for path in paths}
+                with mock.patch.object(af, "publication_repo_root", return_value=repo), mock.patch.object(af, "fetch_url", side_effect=fetched):
+                    code, result = self.recover(run_id)
+                    self.assertEqual((code, result["state"], result["maximum_attempts"]), (af.EXIT_OK, "LIVE_VERIFICATION", 1))
+                    code, result = call(af.command_verify_live, run_id=run_id)
+                self.assertEqual(code, af.EXIT_OK, result)
+                self.assertEqual(result["state"], "COMPLETE")
+                receipt = af.load_json(directory / "receipts/live-verification-05.json")
+                self.assertEqual((receipt["attempt"], receipt["maximum_attempts"]), (5, 1))
+                self.assertEqual({path: path.read_bytes() for path in paths}, before)
+                self.assertFalse((directory / "receipts/live-verification-06.json").exists())
+
+    def test_failed_extra_check_cannot_be_repeated_by_verify_advance_or_repair(self):
+        run_id, directory, target, repo, fetched = self.prepared()
+        with mock.patch.object(af, "publication_repo_root", return_value=repo), mock.patch.object(af, "fetch_url", side_effect=fetched):
+            self.recover(run_id)
+        def stale(url, timeout=30):
+            return (200, b"stale again", {}) if url == target["feed_url"] else fetched(url, timeout)
+        with mock.patch.object(af, "publication_repo_root", return_value=repo), mock.patch.object(af, "fetch_url", side_effect=stale):
+            code, result = call(af.command_verify_live, run_id=run_id)
+            self.assertEqual((code, result["retryable"], result["maximum_attempts"]), (af.EXIT_FAILED, False, 1))
+            with self.assertRaisesRegex(af.FlowError, "exhausted"):
+                call(af.command_verify_live, run_id=run_id)
+            code, result = call(af.command_advance, run_id=run_id)
+            self.assertEqual(code, af.EXIT_WAITING, result)
+            with self.assertRaisesRegex(af.FlowError, "already recorded"):
+                self.recover(run_id)
+        self.assertEqual(af.load_run(run_id)[1]["status"], "BLOCKED")
+        self.assertFalse((directory / "receipts/live-verification-06.json").exists())
+
+    def test_stale_article_shared_style_and_asset_cannot_reopen_the_stop(self):
+        run_id, directory, target, repo, fetched = self.prepared(same_head=True)
+        before = (directory / "events.jsonl").read_bytes()
+        for rel in ("docs/bounded-live-verification.html", "feed.xml", "styles.css", "assets/owned.svg"):
+            def stale(url, timeout=30):
+                return (200, b"stale", {}) if url == target["homepage_url"] + rel else fetched(url, timeout)
+            with self.subTest(rel=rel), mock.patch.object(af, "publication_repo_root", return_value=repo), mock.patch.object(af, "fetch_url", side_effect=stale):
+                with self.assertRaisesRegex(af.FlowError, "has not settled"):
+                    self.recover(run_id)
+            self.assertEqual((directory / "events.jsonl").read_bytes(), before)
+        self.assertFalse(list((directory / "receipts").glob("deployment-propagation-observation-*.json")))
+
+    def test_the_authorized_check_rechecks_style_even_at_the_original_commit(self):
+        run_id, directory, target, repo, fetched = self.prepared(same_head=True)
+        with mock.patch.object(af, "publication_repo_root", return_value=repo), mock.patch.object(af, "fetch_url", side_effect=fetched):
+            self.recover(run_id)
+        style_url = target["homepage_url"] + "styles.css"
+        def changed(url, timeout=30):
+            return (200, b"changed after observation", {}) if url == style_url else fetched(url, timeout)
+        with mock.patch.object(af, "publication_repo_root", return_value=repo), mock.patch.object(af, "fetch_url", side_effect=changed):
+            code, result = call(af.command_verify_live, run_id=run_id)
+        self.assertEqual(code, af.EXIT_FAILED, result)
+        self.assertFalse(result["retryable"])
+        failed = [item for item in result["checks"] if not item["ok"]]
+        self.assertEqual(len(failed), 1)
+        self.assertEqual(failed[0]["url"], style_url)
+        self.assertNotEqual(failed[0]["expected_sha256"], failed[0]["actual_sha256"])
+        self.assertEqual(af.load_run(run_id)[1]["status"], "BLOCKED")
+
+    def test_tampered_authority_history_and_original_files_cannot_recover(self):
+        cases = ("publication", "package", "publish-approval", "live-verification-attempt:1", "live-verification-attempt:4", "events", "packaged_file", "article", "remote", "replaced_package", "replaced_receipt")
+        for kind in cases:
+            with self.subTest(kind=kind):
+                run_id, directory, _, repo, fetched = self.prepared(same_head=True)
+                _, run = af.load_run(run_id)
+                if kind == "events":
+                    path = directory / "events.jsonl"
+                    path.write_bytes(path.read_bytes().replace(b'"test"', b'"changed"', 1))
+                elif kind == "packaged_file":
+                    path = directory / "package/public/article.md"
+                    path.write_bytes(path.read_bytes() + b"changed")
+                elif kind == "replaced_package":
+                    path = af.artifact_path(directory, run, "package")
+                    af.record_artifact(directory, run, path, "package", {"actor": "test"})
+                elif kind == "replaced_receipt":
+                    path = af.artifact_path(directory, run, "live-verification-attempt:4")
+                    receipt = af.load_json(path)
+                    receipt.update(target="different-target", created_at="2099-01-01T00:00:00Z")
+                    af.write_json(path, receipt)
+                    af.record_artifact(directory, run, path, "live-verification-attempt:4", {"actor": "test"})
+                elif kind in {"article", "remote"}:
+                    path = repo / ("docs/bounded-live-verification.html" if kind == "article" else "unpublished.txt")
+                    path.write_bytes(path.read_bytes() + b"changed" if path.exists() else b"new")
+                    af.git(["add", "."], cwd=repo)
+                    af.git(["commit", "-m", "Changed source"], cwd=repo)
+                    if kind == "article":
+                        af.git(["push", "origin", "main"], cwd=repo)
+                else:
+                    path = af.artifact_path(directory, run, kind)
+                    path.write_bytes(path.read_bytes() + b" ")
+                with mock.patch.object(af, "publication_repo_root", return_value=repo), mock.patch.object(af, "fetch_url", side_effect=fetched):
+                    with self.assertRaises(af.FlowError):
+                        self.recover(run_id)
+                self.assertFalse(list((directory / "receipts").glob("deployment-propagation-observation-*.json")))
+
+    def test_missing_finding_and_nonpropagation_failure_do_not_authorize_recovery(self):
+        run_id, directory, _, repo, fetched = self.prepared()
+        _, run = af.load_run(run_id)
+        with self.assertRaisesRegex(af.FlowError, "explicit authorized finding"):
+            af.repair_settled_deployment(directory, run, fixtures.namespace(run_id=run_id, finding=None))
+        # A real permanent failure cannot acquire a propagation allowance.
+        path = directory / "receipts/live-verification-04.json"
+        receipt = af.load_json(path)
+        receipt["classification"] = "permanent_validation_failure"
+        receipt["checks"] = [{"name": "canonical", "ok": False}]
+        af.write_json(path, receipt)
+        af.record_artifact(directory, run, path, "live-verification-attempt:4", {"actor": "test"})
+        with mock.patch.object(af, "publication_repo_root", return_value=repo), mock.patch.object(af, "fetch_url", side_effect=fetched):
+            with self.assertRaises(af.FlowError):
+                af.repair_settled_deployment(directory, run, fixtures.namespace(run_id=run_id, finding="Explicit request"))
+        self.assertEqual(af.load_run(run_id)[1]["state"], "LIVE_VERIFICATION")
+
+    def test_observation_is_bound_and_live_checks_are_serialized(self):
+        run_id, directory, _, repo, fetched = self.prepared()
+        with mock.patch.object(af, "publication_repo_root", return_value=repo), mock.patch.object(af, "fetch_url", side_effect=fetched):
+            self.recover(run_id)
+            _, run = af.load_run(run_id)
+            with af.run_lock(directory, run):
+                with self.assertRaisesRegex(af.FlowError, "already locked"):
+                    call(af.command_verify_live, run_id=run_id)
+            path = af.artifact_path(directory, run, "deployment-propagation-observation:4")
+            path.write_bytes(path.read_bytes() + b" ")
+            with self.assertRaisesRegex(af.FlowError, "artifact changed"):
+                call(af.command_verify_live, run_id=run_id)
+        self.assertFalse((directory / "receipts/live-verification-05.json").exists())
+
+
 class EditorialRecoveryTests(fixtures.TemporaryRuntime):
     anchor = fixtures.UsefulVisualPolicyTests.anchor
     fixture = fixtures.UsefulVisualPolicyTests.fixture
