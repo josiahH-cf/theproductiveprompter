@@ -9,10 +9,17 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
-## October 9, 2026: Article-bound limits and owned results rendering (3.2.3)
+## October 9, 2026: Revision preservation, bounded repairs and current publication scope (3.2.3)
 
 - Keep referenced challenge and component word limits local instead of rejecting the whole article; retain explicit article limits and source-integrity checks.
 - Preserve and render the exact source-bound model-experiment results panel once through normal publication, with a narrow HTML allowlist and rejection of changed, missing or duplicate panels. Arbitrary HTML remains escaped and no trials run.
+
+- Keep current revision prose and the current manifest authoritative; reject omitted controller SVGs restored from historical articles at edit, QA and publication.
+
+- Let an explicit late editorial development finding reopen DRAFT with a bound reason and renewed verification; preserve prior receipts and final-edit locks.
+
+- Refresh publication scope after late amendments before held or automatic approval; reject stale direct approvals.
+- Avoid repeating a visual title when its preserved caption already begins with that title.
 
 ## October 9, 2026: Rendered visual review and held-article repair (3.2.2)
 

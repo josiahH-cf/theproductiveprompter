@@ -511,7 +511,8 @@ class RunAndSmokeTests(TemporaryRuntime):
         directory, run = af.load_run(run_id)
         revision = "b" * 64
         af.write_json(directory / "package" / "package.json", {"package_revision": revision, "public_files": []})
-        plan = {"run_id": run_id, "target": "theproductiveprompter", "base_commit": "c" * 40, "package_revision": revision, "changes": []}
+        base_commit = str(af.git(["rev-parse", "HEAD"], cwd=af.publication_repo_root(required=True))).strip()
+        plan = {"run_id": run_id, "target": "theproductiveprompter", "base_commit": base_commit, "package_revision": revision, "changes": []}
         plan_path = directory / "publication" / "plan.json"
         af.write_json(plan_path, plan)
         expired_id = "AP-expired"

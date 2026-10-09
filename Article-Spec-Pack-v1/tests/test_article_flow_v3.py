@@ -317,6 +317,77 @@ class PublicationTargetLockRegressionTests(TemporaryRuntime):
         af.transition(directory, run, "PUBLISH", "test", "exercise publication serialization")
         return run_id, approval_id, directory
 
+    def test_expired_approval_renews_only_the_exact_partially_committed_publication(self):
+        repository = self.publication_repository()
+        run_id, approval_id, directory = self.publishable_run(repository, "partial.html", "<p>A checked result.</p>\n")
+        real_git = af.git
+
+        def git_with_failed_push(arguments, **kwargs):
+            if arguments[0] == "push":
+                raise af.FlowError("Fixture push failed after the publication commit")
+            return real_git(arguments, **kwargs)
+
+        with mock.patch.dict(os.environ, {"ARTICLE_FLOW_TEST_NO_PUBLISH": ""}, clear=False), \
+             mock.patch.object(af, "publication_repo_root", return_value=repository), \
+             mock.patch.object(af, "publication_push_preflight", return_value={"ok": True}), \
+             mock.patch.object(af, "git", side_effect=git_with_failed_push):
+            code, result = call(af.command_publish_execute, run_id=run_id, approval=approval_id, commit=True, push=True)
+            self.assertEqual(code, af.EXIT_WAITING, result)
+            incomplete = af.load_json(directory / "publication/incomplete.json")
+            plan = af.load_json(directory / "publication/plan.json")
+            head = str(real_git(["rev-parse", "HEAD"], cwd=repository)).strip()
+            self.assertEqual(incomplete["commit"], head)
+            self.assertNotEqual(plan["base_commit"], head)
+            _, run = af.load_run(run_id)
+            approval_path = directory / "approvals" / f"{approval_id}.json"
+            expired = af.load_json(approval_path)
+            expired["expires_at"] = "2020-01-01T00:00:00Z"
+            af.write_json(approval_path, expired)
+            af.record_artifact(directory, run, approval_path, "publish-approval", {"actor": "test"})
+            code, renewed = call(af.command_publish_renew_approval, run_id=run_id)
+            self.assertEqual(code, af.EXIT_OK, renewed)
+            _, run = af.load_run(run_id)
+            self.assertEqual(af.json_artifact(directory, run, "publish-approval")["package_revision"], plan["package_revision"])
+            # Fresh approval cannot use the exception, and an unrelated HEAD
+            # cannot be mistaken for the run's own partial commit.
+            with self.assertRaisesRegex(af.FlowError, "plan is stale"):
+                af.create_publish_approval(directory, run, plan)
+            (repository / "unrelated.txt").write_text("A separate change.\n", encoding="utf-8")
+            real_git(["add", "unrelated.txt"], cwd=repository)
+            real_git(["commit", "-qm", "unrelated change"], cwd=repository)
+            with self.assertRaisesRegex(af.FlowError, "plan is stale"):
+                af.create_publish_approval(directory, run, plan, renewed_from=renewed["approval_id"])
+
+    def test_expired_before_write_approval_recovers_a_moved_target_through_fresh_planning(self):
+        repository = self.publication_repository()
+        run_id, approval_id, directory = self.publishable_run(repository, "pending.html", "<p>A pending result.</p>\n")
+        _, run = af.load_run(run_id)
+        approval_path = directory / "approvals" / f"{approval_id}.json"
+        expired = af.load_json(approval_path)
+        expired["expires_at"] = "2020-01-01T00:00:00Z"
+        af.write_json(approval_path, expired)
+        af.record_artifact(directory, run, approval_path, "publish-approval", {"actor": "test"})
+        (repository / "unrelated.txt").write_text("Another article changed.\n", encoding="utf-8")
+        af.git(["add", "unrelated.txt"], cwd=repository)
+        af.git(["commit", "-qm", "unrelated publication"], cwd=repository)
+        with mock.patch.object(af, "publication_repo_root", return_value=repository):
+            with self.assertRaisesRegex(af.FlowError, "return to planning") as caught:
+                call(af.command_publish_renew_approval, run_id=run_id)
+            self.assertEqual(caught.exception.code, af.EXIT_WAITING)
+            _, run = af.load_run(run_id)
+            self.assertEqual(run["state"], "PUBLISH_APPROVAL")
+            self.assertFalse((directory / "publication/incomplete.json").exists())
+            self.assertFalse((repository / "docs/pending.html").exists())
+            self.assertEqual(af.load_json(approval_path), expired)
+            self.assertEqual(af.next_state_payload(directory, run)["command"], ["article-flow", "publish", "--plan", run_id])
+            code, _ = call(af.command_publish_plan, run_id=run_id)
+            self.assertEqual(code, af.EXIT_OK)
+            _, run = af.load_run(run_id)
+            plan = af.load_json(directory / "publication/plan.json")
+            new_id, _ = af.create_publish_approval(directory, run, plan)
+            self.assertNotEqual(new_id, approval_id)
+            self.assertTrue(af.publication_plan_is_current(directory, run, plan))
+
     def test_target_identity_uses_one_shared_lock_outside_checkout(self):
         first_repository = self.publication_repository("first-publication-repo")
         second_repository = self.publication_repository("second-publication-repo")

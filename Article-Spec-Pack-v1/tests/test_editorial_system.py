@@ -416,6 +416,86 @@ class CurrentAutomationTests(NoPublishAutomationTests):
             return af.json_artifact(directory, run, "brief")
         return super().stage_value(state, directory, run)
 
+    def late_amendment_publication_round_trip(self, mode):
+        run_id = self.start(hold_before_publish=True)
+        original_stage = self.stage_value
+        amended = False
+
+        def value(state, directory, run):
+            if amended and state == "DRAFT":
+                return af.artifact_path(directory, run, "article").read_text(encoding="utf-8") + "\nThe supported explanation connects the recorded decision to its observable result.\n"
+            if amended and state == "EDIT":
+                return af.artifact_path(directory, run, "draft").read_text(encoding="utf-8")
+            if amended and mode == "visual" and state == "VISUAL_PLAN":
+                return {"visual_plan_schema_version": "1.0.0", "run_id": run_id, "visuals": [],
+                        "omission_reason": "The explanation carries the relationship without an unnecessary diagram."}
+            return original_stage(state, directory, run)
+
+        def advance_to_hold():
+            code, waiting = call(af.command_advance, run_id=run_id)
+            choices = 0
+            while code == af.EXIT_WAITING and waiting.get("state") == "VOICE_PROBE":
+                choice = af.build_parser().parse_args(["choose-voice", run_id, "B", "--json"])
+                with contextlib.redirect_stdout(io.StringIO()) as output:
+                    code = af.command_choose_voice(choice)
+                waiting = json.loads(output.getvalue())
+                choices += 1
+                self.assertLessEqual(choices, 2)
+            self.assertEqual(code, af.EXIT_WAITING, waiting)
+            self.assertEqual(waiting["action"], "publication_hold", waiting)
+
+        with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)), \
+             mock.patch.object(self, "stage_value", side_effect=value), \
+             mock.patch.object(af, "command_execute_stage", side_effect=self.execute_fixture_stage), \
+             mock.patch.object(af, "command_publish_execute", side_effect=AssertionError("must not publish")):
+            advance_to_hold()
+            directory, run = af.load_run(run_id)
+            old_plan = af.load_json(directory / "publication/plan.json")
+            old_package = old_plan["package_revision"]
+            options = {"run_id": run_id, "title": None, "description": None, "article": None}
+            if mode == "development":
+                options.update(reopen_development=True, reason="A missing supported connection needs development before new claim locks.")
+            elif mode == "visual":
+                options.update(diagrams="off", reason="The existing graph is unnecessary; the explanation preserves the relationship.")
+            elif mode == "display":
+                options["description"] = "An amended explanation of the observable publication boundary."
+            else:
+                path = directory / "submissions/late-article.md"
+                af.atomic_write(path, (af.artifact_path(directory, run, "article").read_text(encoding="utf-8") + "\nThis supported explanation clarifies the existing result.\n").encode("utf-8"))
+                options["article"] = str(path)
+            code, _ = call(af.command_amend, **options)
+            self.assertEqual(code, af.EXIT_OK)
+            amended = True
+            advance_to_hold()
+            directory, run = af.load_run(run_id)
+            package = af.load_json(directory / "package/package.json")
+            plan = af.load_json(directory / "publication/plan.json")
+            self.assertNotEqual(package["package_revision"], old_package)
+            self.assertEqual(plan["package_revision"], package["package_revision"])
+            self.assertTrue(af.publication_plan_is_current(directory, run, plan))
+            # Direct approval and manual next must also reject old scope.
+            with self.assertRaisesRegex(af.FlowError, "plan is stale"):
+                af.create_publish_approval(directory, run, old_plan)
+            af.write_json(directory / "publication/plan.json", old_plan)
+            next_step = af.next_state_payload(directory, run)
+            self.assertEqual(next_step["command"], ["article-flow", "publish", "--plan", run_id])
+            # Automatic continuation must refresh scope before issuing approval.
+            run["run_overrides"]["auto_publish"] = True
+            af.save_run(directory, run)
+            call(af.command_advance, run_id=run_id, max_steps=1)
+            directory, run = af.load_run(run_id)
+            self.assertEqual(run["state"], "PUBLISH")
+            self.assertEqual(af.json_artifact(directory, run, "publish-approval")["package_revision"], package["package_revision"])
+            self.assertEqual(af.load_json(directory / "publication/plan.json")["package_revision"], package["package_revision"])
+
+    def test_late_development_rebuilds_publication_scope_before_automatic_approval(self):
+        self.late_amendment_publication_round_trip("development")
+
+    def test_late_visual_display_and_article_amendments_renew_publication_scope(self):
+        for mode in ("visual", "display", "article"):
+            with self.subTest(mode=mode):
+                self.late_amendment_publication_round_trip(mode)
+
     def test_new_stage_packets_use_compact_guide_and_brief(self):
         self.test_no_publish_advance_has_one_human_gate_then_completes()
         directory = next((self.runtime / "runs").glob("AF-*"))
