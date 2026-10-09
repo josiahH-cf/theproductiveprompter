@@ -2,8 +2,8 @@
   "manifest_schema_version": "2.0.0",
   "workflow_version": "3.2.0",
   "hash_algorithm": "sha256",
-  "generator_name_and_version": "article-flow 3.2.4",
-  "generated_at": "2026-10-09T19:14:01Z",
+  "generator_name_and_version": "article-flow 3.2.5",
+  "generated_at": "2026-10-09T20:18:22Z",
   "generated_from": "index",
   "files": [
     {
@@ -19,16 +19,16 @@
       "scope": "source",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "43c5effae94795f1e71c60572ba5314154c77ad72076efeb6cacd2abafa41e0c",
-      "byte_size": 10088
+      "sha256": "0feb9356bf604cd7706ac9a33de536d196a1d295c5df34fb4ab28be9912f933b",
+      "byte_size": 10647
     },
     {
       "path": ".claude/skills/article-flow/references/editorial.md",
       "scope": "source",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "43c5effae94795f1e71c60572ba5314154c77ad72076efeb6cacd2abafa41e0c",
-      "byte_size": 10088
+      "sha256": "0feb9356bf604cd7706ac9a33de536d196a1d295c5df34fb4ab28be9912f933b",
+      "byte_size": 10647
     },
     {
       "path": ".gitattributes",
@@ -107,8 +107,8 @@
       "scope": "spec",
       "role": "documentation",
       "rule_set": "overview",
-      "sha256": "b7e68d2fa07a0daf359b308ac6a0def37c7480646379ebe5aaff532b1075796b",
-      "byte_size": 19172
+      "sha256": "837c95355af179581265c7be00940797edaca750f27f945fa060fed260971dc5",
+      "byte_size": 19731
     },
     {
       "path": "1-Master/Article-Master-Spec.md",
@@ -291,8 +291,8 @@
       "scope": "spec",
       "role": "normative",
       "rule_set": "editorial",
-      "sha256": "7ca594a59380389e42eaee6f220d20fdba4f6ab1837c77cc3e6c71c660f6e152",
-      "byte_size": 23421
+      "sha256": "e5b8da5a0c75cbc4ca4f828dcf5c0687238f21862a4cb684576e27e0429c5c77",
+      "byte_size": 23980
     },
     {
       "path": "evaluations/adversarial-cases.json",
@@ -707,8 +707,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "7d2f9f37be12b45537e34a7c76648e234e4609bd6f69a872173fb558a5be5a23",
-      "byte_size": 631714
+      "sha256": "2d7783656f625bb625f1b57434c72c79d7ff4d7ce4acb0565f6600ed9ba520bf",
+      "byte_size": 639056
     },
     {
       "path": "scripts/article_maintenance.py",
@@ -803,8 +803,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "evaluation",
-      "sha256": "7fb3364a1f7db1390ec29f0734430fcd67cc5164a42fa31ceeb5014a6599fe4c",
-      "byte_size": 47127
+      "sha256": "e50d9dd48e361d7e6a34d8c3ae88967b49fcbc92ebb1422feca968f7c5144926",
+      "byte_size": 57434
     },
     {
       "path": "tests/test_editorial_system.py",
@@ -819,8 +819,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "evaluation",
-      "sha256": "36d25129f40347f2f82a7c8869b0b0c69f2386eb2994fe233ea265e6ceee5bde",
-      "byte_size": 27744
+      "sha256": "fa60e306075e03ba84596d37a93800bf5c1c52545ecc63554c1033fc726774fa",
+      "byte_size": 28972
     },
     {
       "path": "workflow/article-recipe.defaults.json",

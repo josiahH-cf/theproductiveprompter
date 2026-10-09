@@ -3,7 +3,7 @@ import html
 import re
 import sys
 from pathlib import Path
-from unittest import mock
+from unittest import TestCase, mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import editorial_context as context
@@ -11,6 +11,139 @@ import revision_sources
 import test_article_flow_v3 as fixtures
 
 af, call = fixtures.af, fixtures.call
+
+
+class LegacyCardRevisionTests(TestCase):
+    slug = "from-idea-to-verified-url"
+    canonical = f"https://theproductiveprompter.com/docs/{slug}.html"
+
+    def card(self, href=None, *, marked=False, featured=False):
+        marker = f' data-article-flow-slug="{self.slug}"' if marked else ""
+        feature = ' article-card--featured' if featured else ''
+        badge = '<span class="article-card__badge">Latest</span>' if featured else ''
+        # Preserve the legacy tutorial's thumbnail, categories, reveal class,
+        # CTA and multiline summary rather than replacing its entire template.
+        return (f'<article class="article-card reveal-on-scroll{feature}"{marker}>' + badge +
+                '<div class="article-card__thumbnail" aria-hidden="true"><svg viewBox="0 0 120 120"><circle cx="20" cy="60" r="11"/></svg></div>'
+                '<div class="article-card__content"><div class="article-card__meta">'
+                '<time class="article-card__date" datetime="2026-08-18">August 18, 2026</time>'
+                '<span class="article-card__reading-time">11 min read</span></div>'
+                '<div class="article-card__categories"><span>Workflow design</span><span>Writing systems</span></div>'
+                f'<h3><a href="{href or self.slug + ".html"}" class="article-card__link">Original tutorial</a></h3>'
+                '<p class="article-card__summary">\nOriginal summary.\n</p>'
+                f'<a href="{href or self.slug + ".html"}" class="article-card__cta">Read the article →</a></div></article>')
+
+    def replacement(self):
+        return (f'<article class="article-card article-card--featured" data-article-flow-slug="{self.slug}">'
+                '<span class="article-card__badge">Latest</span>'
+                '<time class="article-card__date" datetime="2026-08-18">August 18, 2026</time>'
+                '<span class="article-card__reading-time">13 min read</span>'
+                f'<h3><a href="{self.slug}.html" class="article-card__link">Revised tutorial</a></h3>'
+                '<p class="article-card__summary">A clearer &amp; bounded explanation.</p></article>')
+
+    def test_legacy_and_repeated_revisions_preserve_layout_details_and_position(self):
+        for home in (False, True):
+            for featured in (False, True):
+                with self.subTest(home=home, featured=featured):
+                    href = ("docs/" if home else "") + self.slug + ".html"
+                    old = self.card(href, featured=featured)
+                    replacement = self.replacement().replace(f'href="{self.slug}.html"', f'href="{href}"')
+                    before = '<!-- unchanged before -->\r\n<article class="article-card"><a href="other.html">Other</a></article>\r\n'
+                    after = '\r\n<!-- unchanged after -->'
+                    base = "https://theproductiveprompter.com/" if home else "https://theproductiveprompter.com/docs/blog.html"
+                    updated = af.replace_existing_article_card(before + old + after, self.slug, replacement, canonical=self.canonical, base_url=base)
+                    expected = old.replace('class="article-card reveal-on-scroll' + (' article-card--featured' if featured else '') + '">',
+                                           'class="article-card reveal-on-scroll' + (' article-card--featured' if featured else '') + f'" data-article-flow-slug="{self.slug}">')
+                    expected = expected.replace('11 min read', '13 min read').replace('Original tutorial', 'Revised tutorial')
+                    expected = expected.replace('\nOriginal summary.\n', 'A clearer &amp; bounded explanation.')
+                    self.assertEqual(updated, before + expected + after)
+                    self.assertEqual(af.replace_existing_article_card(updated, self.slug, replacement, canonical=self.canonical, base_url=base), updated)
+
+    def test_comments_single_quotes_and_normalized_urls_use_real_card_spans(self):
+        old = self.card('/docs/%66rom-idea-to-verified-url.html?old=1#part').replace('"', "'")
+        lookalike = '<!-- ' + old + ' -->'
+        updated = af.replace_existing_article_card(lookalike + old, self.slug, self.replacement())
+        self.assertTrue(updated.startswith(lookalike))
+        self.assertEqual(updated.count('Revised tutorial'), 1)
+        self.assertEqual(updated.count(f'data-article-flow-slug="{self.slug}"'), 1)
+
+    def test_duplicate_url_and_conflicting_identifiers_fail_closed(self):
+        for content in (self.card() * 2, self.card(marked=True) + self.card(),
+                        self.card(marked=True).replace(f'data-article-flow-slug="{self.slug}"', 'data-article-flow-slug="other"'),
+                        self.card('https://unrelated.example/docs/' + self.slug + '.html', marked=True)):
+            with self.subTest(content=content), self.assertRaises(af.FlowError):
+                af.replace_existing_article_card(content, self.slug, self.replacement())
+
+    def test_incidental_links_foreign_bases_and_ambiguous_fields_fail_closed(self):
+        old = self.card()
+        invalid = (old.replace('class="article-card__link"', 'class="citation"'),
+                   '<base href="https://unrelated.example/">' + old,
+                   '<base href="https://unrelated.example/">' + self.card(self.canonical),
+                   '<base href="/other/">' + self.card(self.canonical),
+                   old.replace('class="article-card__link"', 'class="article-card__link" href="other.html"'),
+                   old.replace('<p class="article-card__summary">', '<p class="article-card__summary" class="other">'),
+                   old.replace('</article>', '<p class="article-card__summary">Duplicate</p></article>'),
+                   old.replace('Original tutorial', '<em>Original tutorial</em>'),
+                   old.replace('article-card__date', 'unknown-date'), old.replace('</article>', ''))
+        for content in invalid:
+            with self.subTest(content=content), self.assertRaises(af.FlowError):
+                af.replace_existing_article_card(content, self.slug, self.replacement())
+
+    def test_populated_marked_cards_cannot_use_bare_placeholder_fallback(self):
+        old = self.card(marked=True)
+        invalid = (old.replace('article-card__link', 'changed-title-class'),
+                   re.sub(r'<a[^>]*class="article-card__link"[^>]*>.*?</a>', '', old),
+                   old.replace('article-card__summary', 'changed-summary-class'),
+                   old.replace('11 min read', '<em>11 min read</em>'))
+        for content in invalid:
+            with self.subTest(content=content), self.assertRaises(af.FlowError):
+                af.replace_existing_article_card(content, self.slug, self.replacement())
+
+    def test_self_closing_managed_fields_cannot_diverge_from_browser_ownership(self):
+        for role, tag in af.ArticleCardHTMLParser.managed_fields.items():
+            old = self.card()
+            content, count = re.subn(r'<' + tag + r'([^>]*class="' + role + r'"[^>]*)>.*?</' + tag + '>',
+                                    lambda match: '<' + tag + match[1] + '/>', old, flags=re.DOTALL)
+            self.assertEqual(count, 1)
+            with self.subTest(role=role):
+                with self.assertRaises(af.FlowError):
+                    af.replace_existing_article_card(content, self.slug, self.replacement())
+                with self.assertRaises(af.FlowError):
+                    af.discovery_entry(content.encode(), 'blog', self.canonical, 'https://theproductiveprompter.com/docs/blog.html')
+
+    def test_inert_cards_and_bases_cannot_authorize_mutation_or_discovery(self):
+        real = self.card()
+        base = 'https://theproductiveprompter.com/docs/blog.html'
+        for tag in ('template', 'textarea', 'noscript', 'script', 'style', 'title', 'xmp', 'iframe', 'noembed'):
+            inert = f'<{tag}><base href="https://unrelated.example/">' + real + f'</{tag}>'
+            with self.subTest(tag=tag):
+                with self.assertRaises(af.FlowError):
+                    af.replace_existing_article_card(inert, self.slug, self.replacement())
+                with self.assertRaises(af.FlowError):
+                    af.discovery_entry(inert.encode(), 'blog', self.canonical, base)
+                updated = af.replace_existing_article_card(inert + real, self.slug, self.replacement())
+                self.assertTrue(updated.startswith(inert))
+                self.assertEqual(updated.count('Revised tutorial'), 1)
+                self.assertEqual(af.discovery_entry((inert + real).encode(), 'blog', self.canonical, base), (0, real))
+        nested = '<template><textarea></template>' + real + '</textarea></template>'
+        self.assertEqual(af.discovery_entry((nested + real).encode(), 'blog', self.canonical, base), (0, real))
+        for content in ('<plaintext>' + real + '</plaintext>' + real, '<template/>' + real):
+            with self.assertRaises(af.FlowError):
+                af.replace_existing_article_card(content, self.slug, self.replacement())
+        # The ownership parser and field parser must agree: an inert summary
+        # inside a real card cannot stand in for a reader-facing summary.
+        content = real.replace('<p class="article-card__summary">\nOriginal summary.\n</p>',
+                               '<template><p class="article-card__summary">Hidden summary</p></template>')
+        with self.assertRaises(af.FlowError):
+            af.replace_existing_article_card(content, self.slug, self.replacement())
+
+    def test_title_authority_requires_canonical_origin_with_default_port_equivalence(self):
+        for origin in ('https://theproductiveprompter.com:8443', 'https://theproductiveprompter.com:80', 'https://theproductiveprompter.com:0',
+                       'http://theproductiveprompter.com:80', 'https://theproductiveprompter.com:invalid'):
+            with self.subTest(origin=origin), self.assertRaises(af.FlowError):
+                af.replace_existing_article_card(self.card(origin + '/docs/' + self.slug + '.html'), self.slug, self.replacement())
+        explicit_default = self.card('https://theproductiveprompter.com:443/docs/' + self.slug + '.html')
+        self.assertIn('Revised tutorial', af.replace_existing_article_card(explicit_default, self.slug, self.replacement()))
 
 
 class SharedSurfaceVerificationTests(fixtures.TemporaryRuntime):

@@ -9,6 +9,11 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## October 9, 2026: Preserve legacy discovery cards during revision (3.2.5)
+
+- Resolve older cards through their canonical title link when a controller identifier is absent. Require the canonical scheme, host and effective port for mutation, ignore inert/raw-text markup and bases, and reject duplicate cards, conflicting identifiers and malformed populated fields.
+- Update only controller-owned display fields on populated cards; retain thumbnails, categories, classes, featured state and original position, including subsequent revisions. Share URL/card parsing with live discovery verification.
+
 ## October 9, 2026: Literal source integrity before claim locks (3.2.4)
 
 - Preserve fenced code and preformatted payloads through visual cleanup/materialization, including blank lines and trailing whitespace. Recheck source evidence before accepting the visualized draft and creating factual locks.

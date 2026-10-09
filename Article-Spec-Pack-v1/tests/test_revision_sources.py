@@ -92,9 +92,15 @@ class RevisionSourceTests(TemporaryRuntime):
         self.record_text(directory, run, 'article', article)
         self.record_json(directory, run, 'brief', {'title': 'Original title', 'date': '2026-09-15', 'description': 'A revised explanation'})
         run['model_experiment']['actual_models'] = ['gpt-5.6-sol']
-        card = f'<article class="article-card" data-article-flow-slug="{self.slug}">Original</article>'
+        card = ('<article class="article-card reveal-on-scroll"><div class="article-card__thumbnail"><svg><circle r="11"/></svg></div>'
+                '<div class="article-card__categories">Workflow design · Writing systems</div>'
+                '<time class="article-card__date" datetime="2026-09-15">September 15, 2026</time>'
+                '<span class="article-card__reading-time">11 min read</span>'
+                f'<a href="{self.slug}.html" class="article-card__link">Original title</a>'
+                '<p class="article-card__summary">Original description</p></article>')
         for path in ('docs/blog.html', 'index.html'):
-            (self.repo / path).write_bytes(card.encode())
+            actual_card = card.replace(f'href="{self.slug}.html"', f'href="docs/{self.slug}.html"') if path == 'index.html' else card
+            (self.repo / path).write_bytes(actual_card.encode())
         (self.repo / 'feed.xml').write_bytes(f'<rss><channel><lastBuildDate>old</lastBuildDate><item><link>{self.url}</link><pubDate>old</pubDate></item></channel></rss>'.encode())
         (self.repo / 'sitemap.xml').write_bytes(f'<urlset><url><loc>{self.url}</loc></url></urlset>'.encode())
         package = directory / 'owned-panel-package'
@@ -107,6 +113,15 @@ class RevisionSourceTests(TemporaryRuntime):
         self.assertNotIn('<script>alert(1)</script>', rendered)
         self.assertEqual(sources.preservation_findings(af, rendered, run), [])
         self.assertIn('&lt;section', af.markdown_to_html(article))
+        for path in ('docs/blog.html', 'index.html'):
+            discovery = (package / 'site' / path).read_text(encoding='utf-8')
+            self.assertIn(f'data-article-flow-slug="{self.slug}"', discovery)
+            self.assertIn('<svg><circle r="11"/></svg>', discovery)
+            self.assertIn('Workflow design · Writing systems', discovery)
+            self.assertIn('reveal-on-scroll', discovery)
+            self.assertIn('A revised explanation', discovery)
+            self.assertNotIn('Original description', discovery)
+            self.assertNotIn('article-card--featured', discovery)
 
     def test_missing_modified_duplicate_or_fenced_owned_panel_is_rejected(self):
         panel = self.install_owned_panel()
