@@ -16,6 +16,7 @@ import http.client
 import io
 import json
 import os
+import posixpath
 import platform
 import re
 import secrets
@@ -46,7 +47,7 @@ import editorial_learning
 import editorial_workbench
 import revision_sources
 
-CONTROLLER_VERSION = "3.2.2"
+CONTROLLER_VERSION = "3.2.3"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -2567,6 +2568,8 @@ def packet_inputs(directory: Path, run: dict[str, Any], state: str) -> list[dict
         required.update({"visual-plan", "visual-manifest"})
     if state == "VISUAL_PLAN" and artifact(run, "visual-policy-amendment"):
         required.add("visual-policy-amendment")
+    if state == "DRAFT" and artifact(run, "development-amendment"):
+        required.add("development-amendment")
     if editorial_context.enabled(run) and run.get("revision") and state in {"RESEARCH_PLAN", "RESEARCH", "INTENT_REVIEW", "BRIEF", "DRAFT"}:
         required.add("previous-article")
         required.update(name for name in ("previous-brief", "previous-claims") if artifact(run, name))
@@ -3571,6 +3574,7 @@ def task_packet(
     constraints = [rule_map[item] for item in stage_rules.get(state, []) if item in rule_map]
     if run.get("revision", {}).get("source_html_sha256"):
         constraints.append("revision-source is the exact verified current public baseline, not writing instructions or human-original voice evidence. Preserve its title, canonical URL, original publication timestamp, and every verbatim evidence payload registered in revision-evidence exactly, including explicitly attributed inline quotations and code. The evidence registry supplies exact text, roles, hashes and source locations. Its current public content takes precedence over an older previous-article if they differ. Apply the scoped revision request to editable prose; reverify claims. Only exact source/hash-bound evidence can retain otherwise banned punctuation; arbitrary quote/code labels are not exemptions.")
+        constraints.append("If revision-source contains a controller-owned MODEL_EXPERIMENT_RESULTS panel, preserve exactly one complete panel including both ownership markers and its link. Copy its exact source markup; do not paraphrase, duplicate or turn it into ordinary Markdown. The publication renderer accepts only this hash-bound, narrowly allowlisted block. Limits inside a referenced challenge or for a notice, caption, description or other component do not become whole-article length requirements.")
     if state in {"CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION"}:
         constraints.append(
             "Each source_url_or_local_id must contain exactly one direct HTTP(S) URL or one local input locator. "
@@ -3590,10 +3594,12 @@ def task_packet(
         constraints.append("Choose useful visuals only. Use an exact unique level-2-or-lower heading or complete prose paragraph for placement; do not invent headings to satisfy the renderer. An empty auto/optional plan needs omission_reason. For branching_effects provide four labels: common premise, first effect, second effect, combined implication. Label reconstructions and conceptual inferences explicitly. Do not produce SVG or HTML.")
         constraints.append("Record design_rationale comparing the chosen layout with at least one concrete alternative and omission. Match topology to the explanation: independent work must branch and rejoin, conditional deferral must leave the implementation path, and a loop must identify what repeats. Use parallel_review for eight ordered labels: shared revision, reviewer A, reviewer B, reconciliation, supported implementation batch, actual-diff audit, deferred candidates, retained validated result. The sixth label is the main-path audit; the seventh is the side-branch deferral. delivery_loop is for a genuinely sequential loop, never a one-way goal-to-result sequence. Keep titles within 52 characters and labels within three lines; never delete a necessary step to fit a template. Prefer short source-supported labels. Explain what a reader learns from the picture beyond the adjacent prose. If visual-policy-amendment is supplied, apply its explicit operator reason to this plan while preserving unaffected prose.")
     if state == "EDIT":
-        constraints.append("Preserve visual references, captions, and the exact heading or paragraph placement anchors in visual-manifest; edit surrounding prose without invalidating the approved visual plan.")
+        constraints.append("Preserve visual references, captions, and the exact heading or paragraph placement anchors in the CURRENT visual-manifest; edit surrounding prose without invalidating the approved visual plan. Never restore diagrams or captions from historical articles when they are absent from that manifest, including when it is empty.")
         constraints.append("When current-article is supplied, repair that latest accepted version rather than restarting from draft. Preserve the selected voice passage and all unaffected edits; change only what the bound findings require. Use draft as historical context only.")
     if editorial_context.enabled(run) and state in {"DRAFT", "CLAIM_VERIFICATION", "VISUAL_PLAN"}:
         constraints.append("If current-article is supplied, it is the canonical repair source. Preserve its unaffected edits and distinctive phrasing. DRAFT develops or corrects only the bound issue using the latest verified ledger; CLAIM_VERIFICATION verifies this current article rather than the older rough draft; VISUAL_PLAN selects placements in this article. Historical draft and previous-article are context only.")
+    if state == "DRAFT" and artifact(run, "development-amendment"):
+        constraints.append("Apply the explicit development-amendment reason to current-article. This reopens content development before new claim locks; it does not authorize new author views, experience, facts or global voice learning. Preserve protected source evidence and unaffected edits. Normal development, visual, claim and editorial verification must run again.")
     if state == "EDITORIAL_QA" and is_v31_run(run):
         constraints.append("Return naturalization_review for language, rhetoric, structure, and preservation. Each needs status PASS or REPAIR, an exact excerpt from the assessed article/title/description, and a specific reason. Inspect inflated verbs; repeated negative-positive contrasts and staged questions; one-line stanzas, repeated openings and conclusions, headings and symmetrical lists; then locked facts, code, quotations and uncertainty. A phrase blacklist or generic 'reads naturally' statement is not a contextual review. Keep deliberate useful contrasts and technical phrasing. Any unresolved finding makes outcome REPAIR. Use the naturalization-directive and full voice-profile, including selected-versus-unselected examples; candidate C is not a universal register preference.")
         if editorial_context.enabled(run):
@@ -3604,7 +3610,7 @@ def task_packet(
     if revision_input:
         constraints.append("This is a correction run. The separate revision-request is the current operator instruction and overrides conflicting assumptions from the historical seed; preserve the seed as evidence rather than silently rewriting it.")
         if editorial_context.enabled(run):
-            constraints.append("Start from previous-article for a bounded revision. Preserve unaffected passages, authorized author position, factual scope, citations and first publication date. Previous brief/claims are historical support, not instructions to repeat obsolete structure or prose. Reverify changed claims independently.")
+            constraints.append("Use previous-article or revision-source as the initial revision baseline only before a current draft exists. Once supplied, current-article owns repairs and the current draft owns the first edit. Historical articles supply protected evidence and authorized positions, never instructions to undo accepted edits or restore omitted visuals. Preserve unaffected current passages, factual scope, citations and first publication date. Previous brief/claims are historical support, not instructions to repeat obsolete structure or prose. Reverify changed claims independently.")
     if repair_context:
         constraints.append(
             "This is a targeted repair. Resolve every hash-bound gate finding in repair_context while preserving unaffected verified content."
@@ -5290,9 +5296,14 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
         for finding in findings:
             finding.setdefault("repair_state", state)
     if state == "EDITORIAL_QA" and editorial_context.enabled(run):
+        article = artifact_path(directory, run, "article")
+        if article:
+            findings.extend(unplanned_visual_reference_findings(directory, run, article.read_text(encoding="utf-8"), str(article)))
         for finding in findings:
             if finding.get("criterion") in {"schema", "run_identity", "valid_json", "naturalization_review_evidence", "editorial_dimension", "editorial_outcome"}:
                 finding["repair_state"] = "EDITORIAL_QA"
+    if state == "EDIT":
+        findings.extend(unplanned_visual_reference_findings(directory, run, submission.read_text(encoding="utf-8"), str(submission)))
     return ("PASS" if not findings else "REPAIR"), findings
 
 
@@ -5969,7 +5980,7 @@ def next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
         return {"action": "run_command", "run_id": run["run_id"], "state": state, "command": ["article-flow", "package", run["run_id"]]}
     if state == "PUBLISH_APPROVAL":
         plan = directory / "publication" / "plan.json"
-        if not plan.exists():
+        if not plan.exists() or not publication_plan_is_current(directory, run, load_json(plan)):
             return {"action": "run_command", "run_id": run["run_id"], "state": state, "command": ["article-flow", "publish", "--plan", run["run_id"]]}
         run["status"] = "WAITING_HUMAN"
         save_run(directory, run)
@@ -6936,6 +6947,24 @@ def create_publish_approval(
     renewed_from: str | None = None,
     actor: str = "operator",
 ) -> tuple[str, Path]:
+    if renewed_from is not None:
+        prior = json_artifact(directory, run, "publish-approval") or {}
+        if (prior.get("approval_id") != renewed_from
+                or prior.get("plan_sha256") != sha256_path(directory / "publication" / "plan.json")
+                or prior.get("package_revision") != plan.get("package_revision")
+                or prior.get("target") != plan.get("target")):
+            raise FlowError("Publication renewal requires the unchanged prior approval and plan scope", EXIT_APPROVAL)
+    if not publication_plan_is_current(directory, run, plan, allow_resumed_own_commit=renewed_from is not None):
+        if (renewed_from is not None and run["state"] == "PUBLISH"
+                and not (directory / "publication" / "incomplete.json").exists()
+                and publication_plan_matches_package(directory, run, plan)):
+            # No publication commit exists yet. Preserve the old approval and
+            # recover exactly as a target move discovered by the publisher.
+            (directory / "publication" / "plan.json").unlink(missing_ok=True)
+            transition(directory, run, "PUBLISH_APPROVAL", "controller",
+                       "Publication target moved before unchanged-scope renewal; fresh planning and approval required")
+            raise FlowError("Repository HEAD changed before publication; return to planning and review the fresh scope", EXIT_WAITING)
+        raise FlowError("Publication plan is stale; run publish --plan again and review the current package before approval", EXIT_INTEGRITY)
     plan_path = directory / "publication" / "plan.json"
     ttl = int(policy()["publication"]["approval_ttl_minutes"])
     expires = dt.datetime.now(dt.timezone.utc) + dt.timedelta(minutes=ttl)
@@ -7542,6 +7571,33 @@ def strip_planned_visual_blocks(markdown: str, manifest: dict[str, Any]) -> str:
     return re.sub(r"\n{3,}", "\n\n", cleaned).rstrip() + "\n"
 
 
+def unplanned_visual_reference_findings(directory: Path, run: dict[str, Any], markdown: str, source: str) -> list[dict[str, Any]]:
+    """Reject omitted controller SVGs reintroduced from historical prose."""
+    manifest_path = artifact_path(directory, run, "visual-manifest")
+    if not manifest_path:
+        return []
+    manifest = load_json(manifest_path)
+    allowed = {str(asset["public_path"]) for asset in manifest.get("assets", [])}
+    slug = package_metadata_slug(directory, run)
+    prefix = f"/assets/articles/{slug}/"
+    target = load_json(SPEC_ROOT / "publication" / "theproductiveprompter.json")
+    canonical = target["canonical_url"].format(slug=slug)
+    canonical_host = (urllib.parse.urlsplit(canonical).hostname or "").casefold()
+    # Inspect rendered images, so code examples and escaped raw HTML remain
+    # source text rather than being mistaken for displayed illustrations.
+    rendered = markdown_to_html(markdown)
+    findings = []
+    for raw in re.findall(r'<img\b[^>]*\bsrc="([^"]+)"', rendered, flags=re.IGNORECASE):
+        parsed = urllib.parse.urlsplit(urllib.parse.urljoin(canonical, html.unescape(raw).replace("\\", "/")))
+        path = posixpath.normpath(urllib.parse.unquote(parsed.path))
+        if (parsed.hostname or "").casefold() == canonical_host and path.startswith(prefix) and path.casefold().endswith(".svg") and path not in allowed:
+            findings.append({"criterion": "unplanned_visual_reference", "artifact": source, "location": None,
+                             "finding": f"Article displays an omitted or unbound controller visual: {path}",
+                             "repair_instruction": "Remove this historical image and its caption. Use only the current visual-manifest; a changed visual decision requires visual planning.",
+                             "repair_state": "EDIT"})
+    return findings
+
+
 def materialize_manifest_visuals_markdown(markdown: str, manifest: dict[str, Any]) -> str:
     """Replace draft placeholders with the exact hash-bound public visual references."""
     cleaned = strip_planned_visual_blocks(markdown, manifest)
@@ -7977,6 +8033,10 @@ def inject_manifest_visuals(directory: Path, run: dict[str, Any], body: str) -> 
     manifest = load_json(manifest_path)
     rendered = body
     for asset in manifest.get("assets", []):
+        caption = str(asset["caption"])
+        title_prefix = str(asset["title"]) + "."
+        if caption.startswith(title_prefix + " "):
+            caption = caption[len(title_prefix):].lstrip()
         placement = asset["placement"]
         if "after_paragraph" in placement:
             anchor_html = markdown_to_html(placement["after_paragraph"]).strip()
@@ -7991,7 +8051,7 @@ def inject_manifest_visuals(directory: Path, run: dict[str, Any], body: str) -> 
             f'data-asset-sha256="{html.escape(str(asset["sha256"]), quote=True)}">'
             f'<img src="{html.escape(str(asset["public_path"]), quote=True)}" alt="{html.escape(str(asset["alt_text"]), quote=True)}" '
             'loading="lazy" decoding="async">'
-            f'<figcaption><strong>{html.escape(str(asset["title"]))}.</strong> {html.escape(str(asset["caption"]))}</figcaption>'
+            f'<figcaption><strong>{html.escape(str(asset["title"]))}.</strong> {html.escape(caption)}</figcaption>'
             '</figure>'
         )
         rendered, count = pattern.subn(lambda match: match.group(1) + "\n" + figure, rendered, count=1)
@@ -8011,10 +8071,13 @@ def render_publication_files(directory: Path, run: dict[str, Any], package_root:
     packaged_article_path = package_root / "public" / "article.md"
     revision_article_path = packaged_article_path if packaged_article_path.is_file() else article_path
     article_markdown = revision_article_path.read_text(encoding="utf-8")
+    visual_findings = unplanned_visual_reference_findings(directory, run, article_markdown, str(revision_article_path))
+    if visual_findings:
+        raise FlowError("Article contains visuals outside the current manifest", EXIT_INTEGRITY, visual_findings)
     manifest_path = artifact_path(directory, run, "visual-manifest")
     if manifest_path:
         article_markdown = strip_planned_visual_blocks(article_markdown, load_json(manifest_path))
-    body = inject_manifest_visuals(directory, run, markdown_to_html(article_markdown))
+    body = inject_manifest_visuals(directory, run, revision_sources.render_article_markdown(sys.modules[__name__], article_markdown, run))
     drafting_models = metadata.get("drafting_models", [])
     if is_v3_run(run) and not drafting_models:
         raise FlowError("Cannot render a workflow 3 article without drafting-model disclosure", EXIT_INTEGRITY)
@@ -8512,7 +8575,49 @@ def command_amend_diagrams(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def command_reopen_development(args: argparse.Namespace) -> int:
+    directory, run = load_run(args.run_id)
+    reason = str(getattr(args, "reason", None) or "").strip()
+    if not reason:
+        raise FlowError("Reopening development requires --reason with the concrete editorial finding", EXIT_USAGE)
+    if any(getattr(args, key, None) is not None for key in ("title", "description", "article", "diagrams")):
+        raise FlowError("Reopen development separately from display, article or visual amendments", EXIT_USAGE)
+    with run_lock(directory, run):
+        if run["state"] not in ARTICLE_AMENDABLE_STATES or not editorial_context.enabled(run):
+            raise FlowError("Reopening development requires an editorial article in EDITORIAL_QA, PACKAGE or PUBLISH_APPROVAL", EXIT_USAGE)
+        source_state = run["state"]
+        item = artifact(run, "article")
+        source = artifact_path(directory, run, "article")
+        if not item or not source or not source.is_file() or sha256_path(source) != item["sha256"]:
+            raise FlowError("Reopening development requires an unchanged hash-bound current article", EXIT_INTEGRITY)
+        path = directory / "artifacts" / f"development-amendment-{secrets.token_hex(4)}.json"
+        write_json_immutable(path, {"actor": "operator", "reason": reason, "source_state": source_state,
+                                    "article_sha256": item["sha256"], "reverify_from": "DRAFT"})
+        amendment = record_artifact(directory, run, path, "development-amendment", {"actor": "operator"}, inputs=[item["artifact_id"]])
+        if source_state in MODEL_STATES:
+            source_baseline = reset_attempt_window(directory, run, source_state)
+            append_event(directory, run, "REPAIR", "operator", {"gate_id": state_definition(source_state, run)["gate"],
+                         "finding": reason, "source_state": source_state, "repair_state": source_state,
+                         "attempt_ordinal_baseline": source_baseline, "execution_count_baseline": run["attempt_baselines"][source_state],
+                         "repair_context_required": False, "clear_route_failures": True})
+            run.setdefault("route_failures", {}).pop(source_state, None)
+            run.setdefault("route_retry_candidates", {}).pop(source_state, None)
+        baseline = reset_attempt_window(directory, run, "DRAFT")
+        append_event(directory, run, "REPAIR", "operator", {"gate_id": state_definition("DRAFT", run)["gate"],
+                     "finding": reason, "source_state": source_state, "repair_state": "DRAFT",
+                     "attempt_ordinal_baseline": baseline, "execution_count_baseline": run["attempt_baselines"]["DRAFT"],
+                     "repair_context_required": False, "clear_route_failures": True,
+                     "development_amendment_sha256": amendment["sha256"]})
+        run.setdefault("route_failures", {}).pop("DRAFT", None)
+        run.setdefault("route_retry_candidates", {}).pop("DRAFT", None)
+        transition(directory, run, "DRAFT", "operator", "Explicit development finding; renew development and all downstream verification")
+    emit({"ok": True, "state": run["state"], "amendment": str(path), "next_command": ["article-flow", "next", run["run_id"]]}, args.json)
+    return EXIT_OK
+
+
 def command_amend(args: argparse.Namespace) -> int:
+    if getattr(args, "reopen_development", False):
+        return command_reopen_development(args)
     if getattr(args, "diagrams", None) is not None:
         return command_amend_diagrams(args)
     directory, run = load_run(args.run_id)
@@ -8718,6 +8823,27 @@ def command_package(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def publication_plan_matches_package(directory: Path, run: dict[str, Any], plan: dict[str, Any]) -> bool:
+    package = load_json(directory / "package" / "package.json")
+    target = load_json(SPEC_ROOT / "publication" / "theproductiveprompter.json")
+    return bool(plan.get("package_revision") == package.get("package_revision")
+                and plan.get("target") == target.get("target_id")
+                and (not is_v3_run(run) or plan.get("style_policy_sha256") == package.get("style_policy_sha256") == style_policy_sha256(run)))
+
+
+def publication_plan_is_current(directory: Path, run: dict[str, Any], plan: dict[str, Any], *, allow_resumed_own_commit: bool = False) -> bool:
+    if not publication_plan_matches_package(directory, run, plan):
+        return False
+    repository = publication_repo_root(required=True)
+    head = str(git(["rev-parse", "HEAD"], cwd=repository)).strip()
+    base_is_current = plan.get("base_commit") == head
+    if not base_is_current and allow_resumed_own_commit and run["state"] == "PUBLISH":
+        incomplete_path = directory / "publication" / "incomplete.json"
+        incomplete = load_json(incomplete_path) if incomplete_path.is_file() else {}
+        base_is_current = incomplete.get("commit") == head and incomplete.get("package_revision") == plan.get("package_revision")
+    return bool(base_is_current)
+
+
 def command_publish_plan(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
     if run["state"] != "PUBLISH_APPROVAL":
@@ -8729,7 +8855,7 @@ def command_publish_plan(args: argparse.Namespace) -> int:
     plan_path = directory / "publication" / "plan.json"
     if plan_path.is_file():
         existing = load_json(plan_path)
-        if existing.get("package_revision") == package.get("package_revision") and existing.get("base_commit") == str(git(["rev-parse", "HEAD"], cwd=repository)).strip() and existing.get("target") == target.get("target_id") and (not is_v3_run(run) or existing.get("style_policy_sha256") == package.get("style_policy_sha256") == style_policy_sha256(run)):
+        if publication_plan_is_current(directory, run, existing):
             emit({"ok": True, "dry_run": True, "idempotent": True, "plan": str(plan_path), **existing, "approval_command": ["article-flow", "gate", run["run_id"], "G-PUBLISH-APPROVAL", "--outcome", "PASS"]}, args.json)
             return EXIT_OK
     site_root = directory / "package" / "site"
@@ -9698,13 +9824,12 @@ def command_advance(args: argparse.Namespace) -> int:
             continue
         if state == "PUBLISH_APPROVAL":
             plan_path = directory / "publication" / "plan.json"
-            if not plan_path.is_file():
-                code, result = _silent_command(command_publish_plan, argparse.Namespace(run_id=run["run_id"], json=True))
-                progress.append({"state": state, "command": "publish-plan", "exit_code": code, "result": result})
-                if code != EXIT_OK:
-                    emit({"ok": False, "action": "blocked", "run_id": run["run_id"], "state": state, "progress": progress}, args.json)
-                    return code
-                continue
+            code, result = _silent_command(command_publish_plan, argparse.Namespace(run_id=run["run_id"], json=True))
+            progress.append({"state": state, "command": "publish-plan", "exit_code": code, "result": result})
+            if code != EXIT_OK:
+                emit({"ok": False, "action": "blocked", "run_id": run["run_id"], "state": state, "progress": progress}, args.json)
+                return code
+            directory, run = load_run(args.run_id)
             if not run.get("run_overrides", {}).get("auto_publish", False):
                 run["status"] = "WAITING_HUMAN"
                 save_run(directory, run)
@@ -11002,7 +11127,8 @@ def build_parser() -> argparse.ArgumentParser:
     amend.add_argument("--title")
     amend.add_argument("--description")
     amend.add_argument("--diagrams", choices=["auto", "optional", "required", "off"], help="Amend diagram policy; held editorial articles reopen visual planning and downstream verification.")
-    amend.add_argument("--reason", help="Operator instruction supporting a diagram policy amendment.")
+    amend.add_argument("--reopen-development", action="store_true", help="Reopen held editorial content development before new claim locks; requires a concrete reason and renewed downstream verification.")
+    amend.add_argument("--reason", help="Operator instruction supporting a visual or development amendment.")
     amend.add_argument("--article", help="Revised Markdown article; deterministic naturalization checks run before downstream reverification.")
     add_json(amend)
 

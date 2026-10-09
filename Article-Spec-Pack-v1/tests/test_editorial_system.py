@@ -184,6 +184,67 @@ class EditorialTests(TemporaryRuntime):
         af.record_artifact(directory, run, request, "revision-request", {"actor": "test"})
         self.assertEqual(context.binding_length_limits(af, directory, run), {})
 
+    def test_challenge_and_component_bounds_do_not_limit_the_article(self):
+        directory, run = self.start_current()
+        seed = af.artifact_path(directory, run, "seed")
+        seed.write_bytes(("Introduce the experiment with a short TLDR and a few readable paragraphs. "
+                          "Describe the frozen challenge and preserve the 600-800 word story and at-most-80-word notice requirements.\n"
+                          "Exact frozen challenge (reference material):\n"
+                          "Write an original short story. Return a notice of at most 80 words.\n").encode())
+        af.record_artifact(directory, run, seed, "seed", {"actor": "test"})
+        self.assertEqual(context.binding_length_limits(af, directory, run), {})
+        self.assertEqual(context.length_violations(af, directory, run, "word " * 900), [])
+
+    def test_article_and_local_limits_in_one_clause_keep_the_article_bound(self):
+        directory, run = self.start_current()
+        seed = af.artifact_path(directory, run, "seed")
+        seed.write_bytes(b"Write the article in at most 500 words and a notice of at most 80 words.")
+        af.record_artifact(directory, run, seed, "seed", {"actor": "test"})
+        limits = context.binding_length_limits(af, directory, run)
+        self.assertEqual(limits["maximum"]["words"], 500)
+        self.assertEqual(context.length_violations(af, directory, run, "word " * 501)[0]["criterion"], "binding_author_length")
+        self.assertEqual(context.length_violations(af, directory, run, "word " * 499), [])
+
+    def test_quote_and_html_source_bounds_are_data(self):
+        directory, run = self.start_current()
+        seed = af.artifact_path(directory, run, "seed")
+        seed.write_bytes(b'Explain the example.\n> Write at most 10 words.\n<pre>Write at most 20 words.</pre>\n<blockquote>Use exactly 30 words.</blockquote>')
+        af.record_artifact(directory, run, seed, "seed", {"actor": "test"})
+        self.assertEqual(context.binding_length_limits(af, directory, run), {})
+
+    def test_local_bound_suffix_cannot_become_a_whole_article_limit(self):
+        directory, run = self.start_current()
+        seed = af.artifact_path(directory, run, "seed")
+        seed.write_bytes(b"Use at most 80 words for the notice. Keep the article under 500 words.")
+        af.record_artifact(directory, run, seed, "seed", {"actor": "test"})
+        self.assertEqual(context.binding_length_limits(af, directory, run)["maximum"]["words"], 500)
+
+    def test_coordinated_local_bounds_keep_their_subject(self):
+        directory, run = self.start_current()
+        seed = af.artifact_path(directory, run, "seed")
+        seed.write_bytes(b"Write a notice of at least 20 words and at most 80 words.")
+        af.record_artifact(directory, run, seed, "seed", {"actor": "test"})
+        self.assertEqual(context.binding_length_limits(af, directory, run), {})
+
+    def test_an_article_topic_cannot_replace_its_length_subject(self):
+        directory, run = self.start_current()
+        seed = af.artifact_path(directory, run, "seed")
+        seed.write_bytes(b"Keep the article about this challenge under 500 words.")
+        af.record_artifact(directory, run, seed, "seed", {"actor": "test"})
+        self.assertEqual(context.binding_length_limits(af, directory, run)["maximum"]["words"], 500)
+
+    def test_component_pronouns_stay_local_until_an_explicit_article_subject(self):
+        directory, run = self.start_current()
+        seed = af.artifact_path(directory, run, "seed")
+        for text in ("Write a notice. Keep it under 80 words.",
+                     "Write a summary. It must contain exactly 50 words."):
+            seed.write_bytes(text.encode())
+            af.record_artifact(directory, run, seed, "seed", {"actor": "test"})
+            self.assertEqual(context.binding_length_limits(af, directory, run), {})
+        seed.write_bytes(b"Write a notice. Keep it under 80 words. Keep the article under 500 words.")
+        af.record_artifact(directory, run, seed, "seed", {"actor": "test"})
+        self.assertEqual(context.binding_length_limits(af, directory, run)["maximum"]["words"], 500)
+
     def test_obligations_retain_distinct_passages_and_require_the_correct_surface(self):
         directory, run = self.start_current()
         article = directory / "artifacts/article.md"
@@ -354,6 +415,86 @@ class CurrentAutomationTests(NoPublishAutomationTests):
         if state == "DISPLAY_REVISION":
             return af.json_artifact(directory, run, "brief")
         return super().stage_value(state, directory, run)
+
+    def late_amendment_publication_round_trip(self, mode):
+        run_id = self.start(hold_before_publish=True)
+        original_stage = self.stage_value
+        amended = False
+
+        def value(state, directory, run):
+            if amended and state == "DRAFT":
+                return af.artifact_path(directory, run, "article").read_text(encoding="utf-8") + "\nThe supported explanation connects the recorded decision to its observable result.\n"
+            if amended and state == "EDIT":
+                return af.artifact_path(directory, run, "draft").read_text(encoding="utf-8")
+            if amended and mode == "visual" and state == "VISUAL_PLAN":
+                return {"visual_plan_schema_version": "1.0.0", "run_id": run_id, "visuals": [],
+                        "omission_reason": "The explanation carries the relationship without an unnecessary diagram."}
+            return original_stage(state, directory, run)
+
+        def advance_to_hold():
+            code, waiting = call(af.command_advance, run_id=run_id)
+            choices = 0
+            while code == af.EXIT_WAITING and waiting.get("state") == "VOICE_PROBE":
+                choice = af.build_parser().parse_args(["choose-voice", run_id, "B", "--json"])
+                with contextlib.redirect_stdout(io.StringIO()) as output:
+                    code = af.command_choose_voice(choice)
+                waiting = json.loads(output.getvalue())
+                choices += 1
+                self.assertLessEqual(choices, 2)
+            self.assertEqual(code, af.EXIT_WAITING, waiting)
+            self.assertEqual(waiting["action"], "publication_hold", waiting)
+
+        with mock.patch.object(af, "route_candidates", side_effect=lambda stage, excluded_routes=None: self.route_set(stage)), \
+             mock.patch.object(self, "stage_value", side_effect=value), \
+             mock.patch.object(af, "command_execute_stage", side_effect=self.execute_fixture_stage), \
+             mock.patch.object(af, "command_publish_execute", side_effect=AssertionError("must not publish")):
+            advance_to_hold()
+            directory, run = af.load_run(run_id)
+            old_plan = af.load_json(directory / "publication/plan.json")
+            old_package = old_plan["package_revision"]
+            options = {"run_id": run_id, "title": None, "description": None, "article": None}
+            if mode == "development":
+                options.update(reopen_development=True, reason="A missing supported connection needs development before new claim locks.")
+            elif mode == "visual":
+                options.update(diagrams="off", reason="The existing graph is unnecessary; the explanation preserves the relationship.")
+            elif mode == "display":
+                options["description"] = "An amended explanation of the observable publication boundary."
+            else:
+                path = directory / "submissions/late-article.md"
+                af.atomic_write(path, (af.artifact_path(directory, run, "article").read_text(encoding="utf-8") + "\nThis supported explanation clarifies the existing result.\n").encode("utf-8"))
+                options["article"] = str(path)
+            code, _ = call(af.command_amend, **options)
+            self.assertEqual(code, af.EXIT_OK)
+            amended = True
+            advance_to_hold()
+            directory, run = af.load_run(run_id)
+            package = af.load_json(directory / "package/package.json")
+            plan = af.load_json(directory / "publication/plan.json")
+            self.assertNotEqual(package["package_revision"], old_package)
+            self.assertEqual(plan["package_revision"], package["package_revision"])
+            self.assertTrue(af.publication_plan_is_current(directory, run, plan))
+            # Direct approval and manual next must also reject old scope.
+            with self.assertRaisesRegex(af.FlowError, "plan is stale"):
+                af.create_publish_approval(directory, run, old_plan)
+            af.write_json(directory / "publication/plan.json", old_plan)
+            next_step = af.next_state_payload(directory, run)
+            self.assertEqual(next_step["command"], ["article-flow", "publish", "--plan", run_id])
+            # Automatic continuation must refresh scope before issuing approval.
+            run["run_overrides"]["auto_publish"] = True
+            af.save_run(directory, run)
+            call(af.command_advance, run_id=run_id, max_steps=1)
+            directory, run = af.load_run(run_id)
+            self.assertEqual(run["state"], "PUBLISH")
+            self.assertEqual(af.json_artifact(directory, run, "publish-approval")["package_revision"], package["package_revision"])
+            self.assertEqual(af.load_json(directory / "publication/plan.json")["package_revision"], package["package_revision"])
+
+    def test_late_development_rebuilds_publication_scope_before_automatic_approval(self):
+        self.late_amendment_publication_round_trip("development")
+
+    def test_late_visual_display_and_article_amendments_renew_publication_scope(self):
+        for mode in ("visual", "display", "article"):
+            with self.subTest(mode=mode):
+                self.late_amendment_publication_round_trip(mode)
 
     def test_new_stage_packets_use_compact_guide_and_brief(self):
         self.test_no_publish_advance_has_one_human_gate_then_completes()

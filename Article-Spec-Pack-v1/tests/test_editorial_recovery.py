@@ -13,6 +13,133 @@ class EditorialRecoveryTests(fixtures.TemporaryRuntime):
     anchor = fixtures.UsefulVisualPolicyTests.anchor
     fixture = fixtures.UsefulVisualPolicyTests.fixture
 
+    def test_edit_and_publication_reject_reintroduced_omitted_diagram(self):
+        directory, run, _, _ = self.prepared()
+        path = "/assets/articles/competing-effects/retired-graph.svg"
+        text = af.artifact_path(directory, run, "article").read_text(encoding="utf-8") + f"\n![Retired graph]({path})\n\n*Old caption.*\n"
+        candidate = directory / "artifacts" / "reintroduced.md"
+        candidate.write_bytes(text.encode())
+        outcome, findings = af.automatic_gate(directory, run, "EDIT", candidate)
+        self.assertEqual(outcome, "REPAIR")
+        self.assertTrue(any(f["criterion"] == "unplanned_visual_reference" and path in f["finding"] for f in findings))
+        for index, url in enumerate((path, "../assets/articles/competing-effects/retired-graph.svg", "/assets/other/../articles/competing-effects/retired-graph.svg", "https://theproductiveprompter.com:443" + path)):
+            self.record_text(directory, run, "article", text.replace(path, url), f"reintroduced-article-{index}.md")
+            with self.subTest(url=url), self.assertRaisesRegex(af.FlowError, "outside the current manifest"):
+                af.render_publication_files(directory, run, directory / "package", {})
+
+    def test_visual_reference_check_distinguishes_current_images_from_source_examples(self):
+        directory, run, _, _ = self.prepared()
+        accepted = af.json_artifact(directory, run, "visual-manifest")["assets"][0]["public_path"]
+        old = "/assets/articles/competing-effects/retired-graph.svg"
+        safe = f"![Current]({accepted})\n\n```markdown\n![Example]({old})\n```\n\n<img src=\"{old}\">\n"
+        self.assertEqual(af.unplanned_visual_reference_findings(directory, run, safe, "candidate"), [])
+        self.assertEqual(af.unplanned_visual_reference_findings(directory, run, f"![External](https://example.com{old})\n", "candidate"), [])
+        for url in (old, "https://theproductiveprompter.com" + old, "https://theproductiveprompter.com:443" + old, old.replace("retired", "%72etired"),
+                    "../assets/articles/competing-effects/retired-graph.svg", "/assets/other/../articles/competing-effects/retired-graph.svg",
+                    "/assets/other/%2e%2e/articles/competing-effects/retired-graph.svg"):
+            with self.subTest(url=url):
+                self.assertTrue(af.unplanned_visual_reference_findings(directory, run, f"![Old]({url})\n", "candidate"))
+        self.record_json(directory, run, "visual-manifest", {"assets": [], "omission_reason": "No diagram is useful."}, "empty-manifest.json")
+        self.assertTrue(af.unplanned_visual_reference_findings(directory, run, f"![Previously accepted]({accepted})\n", "candidate"))
+
+    def test_qa_cannot_pass_an_omitted_image_in_the_current_article(self):
+        directory, run, _, _ = self.prepared()
+        text = af.artifact_path(directory, run, "article").read_text(encoding="utf-8")
+        text += "\n![Old](/assets/articles/competing-effects/retired-graph.svg)\n"
+        self.record_text(directory, run, "article", text, "qa-omitted-image.md")
+        review = {key: {"status": "PASS", "excerpt": self.anchor, "reason": "This exact retained passage explains the two competing mechanisms."} for key in ("language", "rhetoric", "structure", "preservation")}
+        assessment = {"editorial_assessment_schema_version": "1.0.0", "run_id": run["run_id"], "outcome": "PASS",
+                      "dimensions": {key: {"status": "PASS"} for key in ("intent_fidelity", "clarity_utility", "voice_fit", "naturalness", "public_surface_voice", "structural_interest", "proportional_length")},
+                      "findings": [], "naturalization_review": review, "calibration_status": "uncalibrated-advisory"}
+        path = self.record_json(directory, run, "editorial-qa", assessment, "qa-omitted-image.json")
+        outcome, findings = af.automatic_gate(directory, run, "EDITORIAL_QA", path)
+        self.assertEqual(outcome, "REPAIR")
+        self.assertIn("unplanned_visual_reference", {f["criterion"] for f in findings})
+
+    def test_renderer_does_not_repeat_a_caption_title_already_in_the_bound_caption(self):
+        directory, run, _, _ = self.prepared()
+        plan = af.json_artifact(directory, run, "visual-plan")
+        visual = plan["visuals"][0]
+        original_caption = visual["caption"]
+        visual["caption"] = visual["title"] + ". " + original_caption
+        self.record_json(directory, run, "visual-plan", plan, "caption-title-plan.json")
+        af.transition(directory, run, "VISUAL_RENDER", "test", "Render the title-prefixed caption")
+        call(af.command_visual_render, run_id=run["run_id"])
+        directory, run = af.load_run(run["run_id"])
+        body = af.inject_manifest_visuals(directory, run, af.markdown_to_html("## Two competing effects\n\n" + self.anchor))
+        expected = f'<figcaption><strong>{visual["title"]}.</strong> {original_caption}</figcaption>'
+        self.assertIn(expected, body)
+        self.assertNotIn(f'</strong> {visual["title"]}.', body)
+        self.assertEqual(af.json_artifact(directory, run, "visual-manifest")["assets"][0]["caption"], visual["caption"])
+
+    def test_revision_edit_packet_keeps_current_prose_and_manifest_authoritative(self):
+        directory, run, _, _ = self.prepared()
+        run["revision"] = {"source_run_id": "original", "source_html_sha256": "0" * 64}
+        source = self.record_text(directory, run, "revision-source", "<article><p>Historical prose.</p></article>", "revision-source.html")
+        run["revision"]["source_html_sha256"] = af.sha256_path(source)
+        self.record_json(directory, run, "revision-evidence", {"evidence": []})
+        self.record_text(directory, run, "revision-request", "Revise the current article.")
+        self.record_text(directory, run, "previous-article", "# Historical article\n\nOld prose.\n")
+        self.record_json(directory, run, "locked-fields", {"tokens": {}})
+        af.transition(directory, run, "EDIT", "test", "Inspect current repair guidance")
+        candidate = {"provider": "active-host", "model": "active-capable-host", "kind": "agent-hosted", "eligible": True}
+        route = {"stage": "EDIT", "candidates": [candidate], "chosen": candidate, "fallbacks": [], "reason": "fixture"}
+        # Packet text is the contract under test; no model is executed.
+        with fixtures.mock.patch.object(af, "route_candidates", return_value=route), fixtures.mock.patch.object(af, "pin_writing_route", side_effect=lambda run, state, route: route), af.run_lock(directory, run):
+            _, packet = af.task_packet(directory, run)
+        guidance = "\n".join(packet["constraints"])
+        self.assertNotIn("Start from previous-article", guidance)
+        self.assertIn("current draft owns the first edit", guidance)
+        self.assertIn("Never restore diagrams or captions", guidance)
+
+    def test_explicit_development_reopening_preserves_current_prose_and_committed_evidence(self):
+        directory, run, old_packet_path, _ = self.prepared()
+        old_packet = old_packet_path.read_bytes()
+        article = af.artifact_path(directory, run, "article")
+        old_article = article.read_bytes()
+        locked = self.record_json(directory, run, "locked-fields", {"tokens": {"numbers": ["3.2.1"]}})
+        old_locked = locked.read_bytes()
+        reason = "The tutorial repeats state inventories and needs a worked development explanation before new claim locks."
+        code, payload = call(af.command_amend, run_id=run["run_id"], reopen_development=True, reason=reason)
+        self.assertEqual(code, af.EXIT_OK)
+        self.assertEqual(payload["state"], "DRAFT")
+        directory, run = af.load_run(run["run_id"])
+        self.assertEqual(article.read_bytes(), old_article)
+        self.assertEqual(locked.read_bytes(), old_locked)
+        self.assertEqual(old_packet_path.read_bytes(), old_packet)
+        self.assertEqual(af.json_artifact(directory, run, "development-amendment")["article_sha256"], af.sha256_path(article))
+        for kind in af.state_definition("DRAFT", run)["required_inputs"]:
+            if not af.artifact(run, kind):
+                self.record_json(directory, run, kind, {})
+        candidate = {"provider": "active-host", "model": "active-capable-host", "kind": "agent-hosted", "eligible": True}
+        route = {"stage": "DRAFT", "candidates": [candidate], "chosen": candidate, "fallbacks": [], "reason": "fixture"}
+        with fixtures.mock.patch.object(af, "route_candidates", return_value=route), fixtures.mock.patch.object(af, "pin_writing_route", side_effect=lambda run, state, route: route), af.run_lock(directory, run):
+            _, packet = af.task_packet(directory, run)
+        inputs = {item["id"]: item for item in packet["inputs"]}
+        self.assertIn("development-amendment", inputs)
+        self.assertEqual(af.load_json(Path(inputs["development-amendment"]["path"]))["reason"], reason)
+        self.assertEqual(inputs["current-article"]["sha256"], af.sha256_path(article))
+        self.assertIn("before new claim locks", "\n".join(packet["constraints"]))
+        self.assertEqual(af.state_definition("DRAFT", run)["next_on_pass"], "DEVELOPMENT_REVIEW")
+
+    def test_development_reopening_rejects_missing_reason_mixed_edits_changed_source_and_published_state(self):
+        for case in ("reason", "mixed", "source", "published"):
+            with self.subTest(case=case):
+                directory, run, _, _ = self.prepared()
+                options = {"reopen_development": True, "reason": "A specific missing argument requires development before fresh claims."}
+                if case == "reason":
+                    options["reason"] = " "
+                elif case == "mixed":
+                    options["article"] = "other.md"
+                elif case == "source":
+                    article = af.artifact_path(directory, run, "article")
+                    article.write_bytes(article.read_bytes() + b" ")
+                else:
+                    af.transition(directory, run, "COMPLETE", "test", "Published articles require a new revision")
+                with self.assertRaises(af.FlowError):
+                    call(af.command_amend, run_id=run["run_id"], **options)
+                self.assertIsNone(af.artifact(af.load_run(run["run_id"])[1], "development-amendment"))
+
     def prepared(self):
         directory, run, _, _ = self.fixture(current=True)
         af.transition(directory, run, "VISUAL_RENDER", "test", "Render reviewed caption")

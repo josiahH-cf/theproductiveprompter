@@ -127,17 +127,53 @@ def binding_length_limits(af: Any, directory: Path, run: dict) -> dict:
     for text in texts:
         # Quoted examples and fenced/code material are source data. Recognize
         # only a narrow positive author instruction, never an embedded target.
+        text = re.sub(r"(?is)<(pre|code|blockquote)\b[^>]*>.*?</\1>", " ", text)
+        text = re.sub(r"(?m)^\s*>.*$", " ", text)
         text = re.sub(r"(?s)```.*?```|~~~.*?~~~|`[^`]*`|\"[^\"]*\"|“[^”]*”", " ", text)
+        previous_subject = None
         for clause in re.split(r"[.!?;\n]", text):
+            if not clause.strip():
+                continue
             if re.search(r"\bno (?:fixed|binding|mandatory) (?:word|length)|\bno word band", clause, re.I):
                 limits = {}
+                previous_subject = None
                 continue
             guard = re.sub(r"\bno (?:more|fewer) than\b", "bounded", clause, flags=re.I)
             if re.search(r"\b(?:not|never|ignore|obsolete|retired|example|illustrative|suggested|recommended|target)\b|\bdo(?:es)?n['’]t\b", guard, re.I):
+                previous_subject = None
                 continue
-            for name, pattern in patterns.items():
-                for match in re.finditer(pattern, clause, re.I):
-                    limits[name] = {"words": int(match.group(1).replace(",", "")), "exact_author_excerpt": match.group(0)}
+            subjects_pattern = (r"\b(article|post|essay|piece|story|notice|summary|tldr|caption|description|"
+                                r"headline|title|quotation|quote|excerpt|prompt|challenge|receipt|response)\b")
+            inherited_subject = previous_subject if re.search(r"\b(?:it|its)\b", clause, re.I) else None
+            named = list(re.finditer(subjects_pattern, re.split(r"\b(?:about|on)\b", clause, maxsplit=1, flags=re.I)[0], re.I))
+            previous_subject = named[-1].group(1).lower() if named else inherited_subject
+            matches = sorted(((match, name) for name, pattern in patterns.items()
+                              for match in re.finditer(pattern, clause, re.I)), key=lambda item: item[0].start())
+            previous_end = 0
+            subject = inherited_subject
+            for match, name in matches:
+                # A source prompt or an article component can have its own
+                # length. Never promote that local bound to the whole article.
+                # Scope each match separately so a later notice limit cannot
+                # replace an earlier explicit article limit in the same clause.
+                prefix = clause[previous_end:match.start()]
+                previous_end = match.end()
+                # Topic objects do not change the governed output: in
+                # "keep the article about this challenge under 500 words",
+                # article is the subject and challenge is its topic.
+                prefix = re.split(r"\b(?:about|on)\b", prefix, maxsplit=1, flags=re.I)[0]
+                subjects = list(re.finditer(subjects_pattern, prefix, re.I))
+                if subjects:
+                    subject = subjects[-1].group(1).lower()
+                suffix = clause[match.end():]
+                local_suffix = re.match(r"\s+(?:for|in|as)\s+(?:(?:a|an|the|each)\s+)?"
+                                        r"(story|notice|summary|tldr|caption|description|headline|title|quote|"
+                                        r"excerpt|prompt|challenge|receipt|response)\b", suffix, re.I)
+                if local_suffix:
+                    subject = local_suffix.group(1).lower()
+                if subject is not None and subject not in {"article", "post", "essay", "piece"}:
+                    continue
+                limits[name] = {"words": int(match.group(1).replace(",", "")), "exact_author_excerpt": match.group(0)}
     return limits
 
 
