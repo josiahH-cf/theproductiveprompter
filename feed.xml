@@ -5,7 +5,7 @@
     <link>https://theproductiveprompter.com/docs/blog.html</link>
     <description>Practical writing on AI workflows, prompting systems, evaluation, and publication design.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 09 Oct 2026 18:49:04 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 09 Oct 2026 18:51:45 +0000</lastBuildDate>
     <atom:link href="https://theproductiveprompter.com/feed.xml" rel="self" type="application/rss+xml"/>
 
     <!-- ARTICLE_FLOW_FEED_START -->
@@ -35,7 +35,7 @@
   <link>https://theproductiveprompter.com/docs/what-prompt-precision-bought-in-24-agent-trials.html</link>
   <guid isPermaLink="true">https://theproductiveprompter.com/docs/what-prompt-precision-bought-in-24-agent-trials.html</guid>
   <pubDate>Fri, 02 Oct 2026 12:00:00 -0500</pubDate>
-  <description>A result-first experimental case study showing that surface errors did not change measured outcomes in 24 bounded agent trials, while vague governing rules transferred decisions to the agent and coincided with more output.</description>
+  <description>Observed: All 24 trials in this small synthetic study met the full intended specification on the first pass. Spelling-error mean output stayed within 2% of clear; reduced-grammar runs used 5% more output for Task A and 18% more for Task B; ambiguous-rule runs used 9% more and 27% more. Interpretation: Ambiguous rules transferred rule selection to the agent, so specify governing rules, exceptions, invariants, and success checks first. The one-model, two-task sample, conventional intended answers, non-causal design, and all-success ceiling do not show that ambiguity is safe or that surface form never matters.</description>
 </item>
 <item>
   <title>What I Mean by AI Alignment and Why I Expect It to Improve</title>
