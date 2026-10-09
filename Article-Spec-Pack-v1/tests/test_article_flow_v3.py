@@ -5232,14 +5232,20 @@ class WorkflowV31RegressionTests(TemporaryRuntime):
         request = self.root / "revision-request.md"
         request.write_text("Replace the generic prose with a concrete field note.\n", encoding="utf-8")
 
-        code, payload = call(
-            af.command_revise,
-            source_run_id=source_run_id,
-            request_file=str(request),
-            draft_model=None,
-            hold_before_publish=True,
-            auto=False,
-        )
+        # This unit exercises request precedence after source validation. The
+        # real Git/live/metadata seam is exercised in test_revision_sources.
+        snapshot = {"bytes": b"<html>Original publication</html>", "sha256": af.sha256_bytes(b"<html>Original publication</html>"),
+                    "metadata": {"slug": "same-public-url", "date": "2026-08-31", "date_iso": "2026-08-31T12:00:00-05:00"},
+                    "commit": "a" * 40, "observed_at": af.utc_now()}
+        with mock.patch.object(af.revision_sources, "checked_snapshot", return_value=snapshot):
+            code, payload = call(
+                af.command_revise,
+                source_run_id=source_run_id,
+                request_file=str(request),
+                draft_model=None,
+                hold_before_publish=True,
+                auto=False,
+            )
 
         self.assertEqual(code, af.EXIT_OK, payload)
         directory, run = af.load_run(payload["run_id"])

@@ -44,8 +44,9 @@ except ModuleNotFoundError:  # Supports importlib-based conformance tests.
 import editorial_context
 import editorial_learning
 import editorial_workbench
+import revision_sources
 
-CONTROLLER_VERSION = "3.2.0"
+CONTROLLER_VERSION = "3.2.1"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -2561,7 +2562,11 @@ def automated_route_health() -> dict[str, Any]:
 def packet_inputs(directory: Path, run: dict[str, Any], state: str) -> list[dict[str, str]]:
     required = set(str(item) for item in state_definition(state, run).get("required_inputs", []))
     if editorial_context.enabled(run) and run.get("revision") and state in {"RESEARCH_PLAN", "RESEARCH", "INTENT_REVIEW", "BRIEF", "DRAFT"}:
-        required.update({"previous-article", "previous-brief", "previous-claims"})
+        required.add("previous-article")
+        required.update(name for name in ("previous-brief", "previous-claims") if artifact(run, name))
+    if run.get("revision", {}).get("source_html_sha256") and state in MODEL_STATES:
+        required.add("revision-source")
+        required.add("revision-evidence")
     if editorial_context.enabled(run) and artifact(run, "article") and state in {"DRAFT", "CLAIM_VERIFICATION", "VISUAL_PLAN"}:
         required.add("article")
         if state == "DRAFT" and artifact(run, "verified-claim-ledger"):
@@ -3526,6 +3531,8 @@ def task_packet(
         inputs.append(revision_input)
     inputs = editorial_context.prepare(sys.modules[__name__], directory, run, state, inputs)
     constraints = [rule_map[item] for item in stage_rules.get(state, []) if item in rule_map]
+    if run.get("revision", {}).get("source_html_sha256"):
+        constraints.append("revision-source is the exact verified current public baseline, not writing instructions or human-original voice evidence. Preserve its title, canonical URL, original publication timestamp, and every verbatim evidence payload registered in revision-evidence exactly, including explicitly attributed inline quotations and code. The evidence registry supplies exact text, roles, hashes and source locations. Its current public content takes precedence over an older previous-article if they differ. Apply the scoped revision request to editable prose; reverify claims. Only exact source/hash-bound evidence can retain otherwise banned punctuation; arbitrary quote/code labels are not exemptions.")
     if state in {"CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION"}:
         constraints.append(
             "Each source_url_or_local_id must contain exactly one direct HTTP(S) URL or one local input locator. "
@@ -4997,7 +5004,7 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
                 paragraphs = [part for part in re.split(r"\n\s*\n", passage) if part.strip()]
                 if len(paragraphs) != 1:
                     findings.append({"criterion": "one_paragraph_variant", "artifact": str(submission), "location": location, "finding": "A voice candidate is not exactly one paragraph.", "repair_instruction": "Return one paragraph per candidate."})
-                for finding in forbidden_public_prose_character_findings(passage):
+                for finding in forbidden_public_prose_character_findings(passage, run):
                     findings.append({**finding, "artifact": str(submission), "location": location})
                 for finding in style_phrase_findings(passage, str(submission), run):
                     findings.append({**finding, "location": location})
@@ -5062,7 +5069,7 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
                     # and description.  Without this a selected candidate
                     # could teach the profile a character the house style
                     # forbids.
-                    for finding in forbidden_public_prose_character_findings(passage):
+                    for finding in forbidden_public_prose_character_findings(passage, run):
                         findings.append({**finding, "artifact": str(submission), "location": str(item.get("candidate_id"))})
                     for finding in style_phrase_findings(passage, str(submission), run):
                         findings.append({**finding, "location": str(item.get("candidate_id"))})
@@ -5215,8 +5222,9 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
             match = re.search(pattern, text, flags=re.IGNORECASE)
             if match:
                 findings.append({"criterion": "no_placeholders_or_private_paths", "artifact": str(submission), "location": match.group(0), "finding": "Public-candidate text contains a placeholder or private local path.", "repair_instruction": "Resolve or remove the private/internal text."})
-        for finding in forbidden_public_prose_character_findings(text):
+        for finding in forbidden_public_prose_character_findings(text, run):
             findings.append({**finding, "artifact": str(submission)})
+        findings.extend(revision_sources.preservation_findings(sys.modules[__name__], text, run))
         findings.extend(style_phrase_findings(text, str(submission), run))
         if state == "DRAFT":
             findings.extend(draft_coverage_findings(
@@ -6128,23 +6136,17 @@ def command_start(args: argparse.Namespace) -> int:
 
 
 def command_revise(args: argparse.Namespace) -> int:
-    """Create a new, fully verified run that replaces one completed URL in place."""
+    """Create a fresh revision from an intact completed run or verified public page."""
     if getattr(args, "unattended_editorial", False) and not getattr(args, "authorization", None):
         raise FlowError("Unattended revision requires the actual author authorization", EXIT_USAGE)
-    source_directory, source_run = load_run(args.source_run_id)
-    if source_run.get("state") != "COMPLETE":
-        raise FlowError("A same-URL revision requires a completed source run", EXIT_USAGE)
-    request_path = Path(args.request_file).expanduser().resolve()
-    if not request_path.is_file() or not request_path.read_text(encoding="utf-8").strip():
-        raise FlowError(f"Revision request does not exist or is empty: {request_path}", EXIT_USAGE)
-    source_seed = artifact_path(source_directory, source_run, "seed")
-    source_metadata_path = source_directory / "package" / "public" / "metadata.json"
-    if not source_seed or not source_metadata_path.is_file():
-        raise FlowError("Completed source run lacks its seed or publication metadata", EXIT_INTEGRITY)
-    source_metadata = load_json(source_metadata_path)
+    # All source validation precedes command_start: a rejected adoption must not
+    # leave a partial run or consume a writing-model reservation.
+    source = revision_sources.prepare(sys.modules[__name__], args)
+    snapshot, source_run = source["snapshot"], source["source_run"]
+    source_metadata = snapshot["metadata"]
     start_args = argparse.Namespace(
-        seed=None,
-        seed_file=str(source_seed),
+        seed=source["seed"].decode("utf-8"),
+        seed_file=None,
         slug=str(source_metadata.get("slug") or ""),
         draft_model=getattr(args, "draft_model", None),
         auto=False,
@@ -6161,36 +6163,41 @@ def command_revise(args: argparse.Namespace) -> int:
     directory, run = load_run(run_id)
     with run_lock(directory, run):
         request_destination = directory / "artifacts" / "revision-request.md"
-        request_bytes = request_path.read_bytes()
+        request_bytes = source["request"]
         immutable_write(request_destination, request_bytes)
         request_artifact = record_artifact(
             directory,
             run,
             request_destination,
             "revision-request",
-            {"actor": "delegated_editor" if getattr(args, "unattended_editorial", False) else "operator", "source_run_id": source_run["run_id"], "preserved_verbatim": True},
+            {"actor": "delegated_editor" if getattr(args, "unattended_editorial", False) else "operator", "source_run_id": source["source_run_id"], "preserved_verbatim": True},
             expected_bytes=request_bytes,
         )
         target = load_json(SPEC_ROOT / "publication" / "theproductiveprompter.json")
         revision = {
-            "revision_schema_version": "1.0.0",
-            "source_run_id": source_run["run_id"],
+            "revision_schema_version": "1.1.0",
+            "source_run_id": source["source_run_id"],
+            "source_kind": "completed_run" if source["source_run_id"] else "verified_published_snapshot",
             "mode": "replace_in_place",
             "slug": str(source_metadata["slug"]),
             "canonical_url": target["canonical_url"].format(slug=source_metadata["slug"]),
             "original_published_date": str(source_metadata["date"]),
+            "original_published_timestamp": str(source_metadata["date_iso"]),
+            "source_html_sha256": snapshot["sha256"],
+            "source_commit": snapshot["commit"],
+            "source_observed_at": snapshot["observed_at"],
             "requested_at": utc_now(),
             "request_sha256": request_artifact["sha256"],
         }
-        for previous_type, source_type in (("previous-article", "article"), ("previous-brief", "brief"), ("previous-claims", "post-edit-claim-ledger")):
-            previous_source = artifact_path(source_directory, source_run, source_type)
-            if not previous_source and source_type == "post-edit-claim-ledger":
-                previous_source = artifact_path(source_directory, source_run, "verified-claim-ledger")
-            if not previous_source:
-                raise FlowError(f"Revision source lacks {source_type}", EXIT_INTEGRITY)
-            previous_path = directory / "artifacts" / f"{previous_type}{previous_source.suffix}"
-            immutable_write(previous_path, previous_source.read_bytes())
-            record_artifact(directory, run, previous_path, previous_type, {"actor": "controller", "source_run_id": source_run["run_id"], "historical_reference": True})
+        for filename, data in {**source["previous"], "revision-source.html": snapshot["bytes"]}.items():
+            previous_path = directory / "artifacts" / filename
+            immutable_write(previous_path, data)
+            record_artifact(directory, run, previous_path, Path(filename).stem, {"actor": "controller", "source_run_id": source["source_run_id"], "historical_reference": True})
+        evidence_path = directory / "artifacts/revision-evidence.json"
+        write_json_immutable(evidence_path, revision_sources.registry(snapshot["bytes"]))
+        record_artifact(directory, run, evidence_path, "revision-evidence", {"actor": "controller", "source_html_sha256": snapshot["sha256"]})
+        if not source["source_run_id"]:
+            record_artifact(directory, run, artifact_path(directory, run, "seed"), "seed", {"actor": "controller", "evidence_kind": "verified_published_source", "human_original": False})
         revision_path = directory / "artifacts" / "revision.json"
         write_json(revision_path, revision)
         errors = validate_json_schema(revision_path, "revision.schema.json", run)
@@ -6204,12 +6211,13 @@ def command_revise(args: argparse.Namespace) -> int:
             profile_item = artifact(run, "voice-profile")
             run["run_overrides"]["reuse_approved_voice"] = {"profile_sha256": profile_item["sha256"], "authorization": authorization, "scope": "delegated_revision", "human_quality_judgment": "pending"}
         run["revision"] = revision
-        run["parent_run_id"] = source_run["run_id"]
+        if source["source_run_id"]:
+            run["parent_run_id"] = source["source_run_id"]
         append_event(directory, run, "REVISION_CREATED", "controller", revision)
         save_run(directory, run)
     if bool(getattr(args, "auto", False)):
         return command_advance(argparse.Namespace(run_id=run_id, max_steps=100, json=args.json))
-    emit({"ok": True, "run_id": run_id, "source_run_id": source_run["run_id"], "state": run["state"], "revision": revision, "next_command": ["article-flow", "advance", run_id]}, args.json)
+    emit({"ok": True, "run_id": run_id, "source_run_id": source["source_run_id"], "state": run["state"], "revision": revision, "next_command": ["article-flow", "advance", run_id]}, args.json)
     return EXIT_OK
 
 
@@ -7614,14 +7622,21 @@ def package_metadata_slug(directory: Path, run: dict[str, Any]) -> str:
 
 
 def markdown_inline(value: str) -> str:
+    # Decode before choosing a namespace: entity-encoded literal markers must
+    # receive the same collision protection as literal source characters.
+    value = html.unescape(value)
     placeholders: dict[str, str] = {}
+    # Choose a namespace absent from the source so literal placeholder-like
+    # text cannot be replaced by generated markup.
+    prefix = "@@AF"
+    while prefix in value:
+        prefix += "X"
     def hold(rendered: str) -> str:
-        key = f"@@AF{len(placeholders)}@@"
+        key = f"{prefix}{len(placeholders)}@@"
         placeholders[key] = rendered
         return key
     # Decode entities to characters before escaping. This renders legitimate
     # Markdown entities such as &nbsp; once, while encoded HTML remains text.
-    value = html.unescape(value)
     def safe_target(raw: str) -> str | None:
         target = raw.strip()
         parsed = urllib.parse.urlparse(target)
@@ -7647,7 +7662,9 @@ def markdown_inline(value: str) -> str:
     value = html.escape(value)
     value = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", value)
     value = re.sub(r"(?<!\*)\*([^*]+)\*(?!\*)", r"<em>\1</em>", value)
-    for key, rendered in placeholders.items():
+    # Containers are held after their inline children. Restore in reverse
+    # order so a link's code label resolves after its enclosing link.
+    for key, rendered in reversed(list(placeholders.items())):
         value = value.replace(key, rendered)
     return value
 
@@ -7791,6 +7808,7 @@ def package_metadata(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
     revision = run.get("revision") if isinstance(run.get("revision"), dict) else {}
     slug = slugify(str(revision.get("slug") or brief.get("slug") or title), 80)
     date_value = str(revision.get("original_published_date") or brief.get("date") or dt.date.today().isoformat())
+    published_timestamp = str(revision.get("original_published_timestamp") or (date_value if "T" in date_value else f"{date_value}T12:00:00-05:00"))
     modified_value = utc_now() if revision else (date_value if "T" in date_value else f"{date_value}T12:00:00-05:00")
     description = str(brief.get("description") or brief.get("reader_job") or title)
     tags = brief.get("tags", [])
@@ -7812,7 +7830,7 @@ def package_metadata(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
         "description": description,
         "reader_job": brief.get("reader_job"),
         "date": date_value,
-        "date_iso": date_value if "T" in date_value else f"{date_value}T12:00:00-05:00",
+        "date_iso": published_timestamp,
         "modified_date": modified_value[:10],
         "modified_date_iso": modified_value,
         "author": "Josiah Hunter",
@@ -7928,6 +7946,7 @@ def inject_manifest_visuals(directory: Path, run: dict[str, Any], body: str) -> 
 
 
 def render_publication_files(directory: Path, run: dict[str, Any], package_root: Path, metadata: dict[str, Any]) -> list[Path]:
+    revision_sources.assert_unchanged_source(sys.modules[__name__], run)
     article_path = artifact_path(directory, run, "article")
     if not article_path:
         raise FlowError("Approved article artifact is missing")
@@ -8118,6 +8137,7 @@ def phrase_scan_text(value: str) -> str:
 
 
 def surface_prose_hits(value: str, run: dict[str, Any] | None = None) -> list[str]:
+    value = revision_sources.mask_bound_evidence(sys.modules[__name__], value, run)
     normalized = phrase_scan_text(value)
     configured = policy_for_run(run).get("style_gate", {}).get("high_confidence_phrases", SURFACE_PROSE_PATTERNS)
     phrases = [str(item) for item in configured] if isinstance(configured, list) else list(SURFACE_PROSE_PATTERNS)
@@ -8137,8 +8157,9 @@ def style_phrase_findings(value: str, artifact: str = "current", run: dict[str, 
     ]
 
 
-def forbidden_public_prose_character_findings(value: str) -> list[dict[str, Any]]:
+def forbidden_public_prose_character_findings(value: str, run: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     findings: list[dict[str, Any]] = []
+    value = revision_sources.mask_bound_evidence(sys.modules[__name__], value, run)
     decoded_value = unicodedata.normalize("NFKC", html.unescape(value))
     for character, policy_value in FORBIDDEN_PUBLIC_PROSE_CHARACTERS.items():
         count = decoded_value.count(character)
@@ -8173,6 +8194,11 @@ def forbidden_public_prose_character_findings(value: str) -> list[dict[str, Any]
 
 def validate_public_package(package_root: Path, metadata: dict[str, Any], run: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     findings: list[dict[str, Any]] = []
+    if run and run.get("revision", {}).get("source_html_sha256"):
+        original = revision_sources.published_metadata(sys.modules[__name__], revision_sources.source_bytes(sys.modules[__name__], run), run["revision"]["canonical_url"], run["revision"]["slug"])
+        for field in ("title", "slug", "date", "date_iso"):
+            if metadata.get(field) != original[field]:
+                findings.append({"criterion": "revision_publication_history", "path": f"metadata.{field}", "finding": f"Revision changed protected original {field}.", "repair_instruction": "Restore the verified current public title, URL and first-publication timestamp."})
     public_root = package_root / "public"
     site_root = package_root / "site"
     repository = publication_repo_root()
@@ -8211,8 +8237,10 @@ def validate_public_package(package_root: Path, metadata: dict[str, Any], run: d
     if article_markdown.is_file():
         article_text = article_markdown.read_text(encoding="utf-8", errors="replace")
         findings.extend(style_phrase_findings(article_text, str(article_markdown), run))
-        for finding in forbidden_public_prose_character_findings(article_text):
+        for finding in forbidden_public_prose_character_findings(article_text, run):
             findings.append({**finding, "path": str(article_markdown)})
+        if run:
+            findings.extend(revision_sources.preservation_findings(sys.modules[__name__], article_text, run))
     rendered_surfaces = [article_html, site_root / "docs" / "blog.html", site_root / "index.html", site_root / "feed.xml"]
     for surface in rendered_surfaces:
         if not surface.is_file():
@@ -8236,7 +8264,7 @@ def validate_public_package(package_root: Path, metadata: dict[str, Any], run: d
                 scan_text = item
         for finding in style_phrase_findings(scan_text, str(surface), run):
             findings.append({**finding, "path": str(surface)})
-        for finding in forbidden_public_prose_character_findings(scan_text):
+        for finding in forbidden_public_prose_character_findings(scan_text, run if surface == article_html else None):
             findings.append({**finding, "path": str(surface)})
     for xml_name in ("feed.xml", "sitemap.xml"):
         path = site_root / xml_name
@@ -8247,6 +8275,8 @@ def validate_public_package(package_root: Path, metadata: dict[str, Any], run: d
                 findings.append({"criterion": "valid_xml", "path": str(path), "finding": str(exc)})
     if article_html.is_file():
         text = article_html.read_text(encoding="utf-8")
+        if run:
+            findings.extend(revision_sources.preservation_findings(sys.modules[__name__], text, run))
         canonical = load_json(SPEC_ROOT / "publication" / "theproductiveprompter.json")["canonical_url"].format(slug=metadata["slug"])
         for name, required_text in {
             "title": metadata["title"],
@@ -8595,6 +8625,7 @@ def command_publish_plan(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
     if run["state"] != "PUBLISH_APPROVAL":
         raise FlowError(f"Publication planning requires PUBLISH_APPROVAL, current state is {run['state']}")
+    revision_sources.assert_unchanged_source(sys.modules[__name__], run)
     package = load_json(directory / "package" / "package.json")
     target = load_json(SPEC_ROOT / "publication" / "theproductiveprompter.json")
     repository = publication_repo_root(required=True)
@@ -8900,6 +8931,8 @@ def _command_publish_execute_locked(
         incomplete.get("package_revision") == plan.get("package_revision")
         and incomplete.get("commit") == current_commit
     )
+    if not resumed_own_commit:
+        revision_sources.assert_unchanged_source(sys.modules[__name__], run)
     if current_commit != plan.get("base_commit") and not resumed_own_commit:
         # The plan is a snapshot of the target, and the target repository moves
         # for reasons unrelated to this run.  Nothing has been copied yet, so
@@ -10767,8 +10800,10 @@ def build_parser() -> argparse.ArgumentParser:
     releases.add_argument("--seed-file")
     add_json(releases)
 
-    revise = sub.add_parser("revise", help="Create a new verified run that replaces one completed article at the same URL.")
-    revise.add_argument("source_run_id")
+    revise = sub.add_parser("revise", help="Create a verified same-URL revision from a completed run or exact published snapshot.")
+    revise.add_argument("source_run_id", nargs="?")
+    revise.add_argument("--published-slug", help="Adopt an allowlisted live article without changing historical run states.")
+    revise.add_argument("--expected-source-sha256", help="Require the approved current HTML hash; mandatory with --published-slug.")
     revise.add_argument("--request-file", required=True)
     revise.add_argument("--auto", action="store_true", help="Continue synchronously until the voice choice, a blocker, or completion.")
     revise.add_argument("--draft-model", choices=DEFAULT_DRAFT_MODEL_POOL)

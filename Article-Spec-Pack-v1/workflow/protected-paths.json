@@ -658,6 +658,18 @@
       "scope": "source",
       "role": "runtime",
       "rule_set": "editorial"
+    },
+    {
+      "path": "scripts/revision_sources.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "editorial"
+    },
+    {
+      "path": "tests/test_revision_sources.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "evaluation"
     }
   ]
 }

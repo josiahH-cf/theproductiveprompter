@@ -2,8 +2,8 @@
   "manifest_schema_version": "2.0.0",
   "workflow_version": "3.2.0",
   "hash_algorithm": "sha256",
-  "generator_name_and_version": "article-flow 3.2.0",
-  "generated_at": "2026-10-09T13:02:26Z",
+  "generator_name_and_version": "article-flow 3.2.1",
+  "generated_at": "2026-10-09T14:57:17Z",
   "generated_from": "index",
   "files": [
     {
@@ -19,16 +19,16 @@
       "scope": "source",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "b5fc4c7aa7d311c991d8d59ea2c75e9e9aa5ff160bddc9e0a6179c8a72111a29",
-      "byte_size": 3221
+      "sha256": "054a9165522add1bc7854bc0e9b416d5c9a0c60034903caa6aecf0df86e8ca3b",
+      "byte_size": 4801
     },
     {
       "path": ".claude/skills/article-flow/references/editorial.md",
       "scope": "source",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "b5fc4c7aa7d311c991d8d59ea2c75e9e9aa5ff160bddc9e0a6179c8a72111a29",
-      "byte_size": 3221
+      "sha256": "054a9165522add1bc7854bc0e9b416d5c9a0c60034903caa6aecf0df86e8ca3b",
+      "byte_size": 4801
     },
     {
       "path": ".gitattributes",
@@ -99,16 +99,16 @@
       "scope": "source",
       "role": "runtime",
       "rule_set": "conformance",
-      "sha256": "1c164c8d246e071263b89ac14cf5ff17cf326217a32ed1bd2beda96b15580645",
-      "byte_size": 14565
+      "sha256": "ab99ae70675e0611da9fa1c6df94bdc834edfafd8950d9c0cdd17a0bbeb97d05",
+      "byte_size": 15098
     },
     {
       "path": "0-README.md",
       "scope": "spec",
       "role": "documentation",
       "rule_set": "overview",
-      "sha256": "e46affaa6043fffca47d8d7eaac9787394d3c6cea45d2b81dbce14ddbd92d355",
-      "byte_size": 13805
+      "sha256": "76e4bc13e4fc63ea6ab0e0fea89a38768840d94cce741d230e235c7f02632fab",
+      "byte_size": 14647
     },
     {
       "path": "1-Master/Article-Master-Spec.md",
@@ -179,8 +179,8 @@
       "scope": "spec",
       "role": "normative",
       "rule_set": "authority",
-      "sha256": "95ca079ab3bb839f525766f7b1d603a735b9922aea38f9db77f76c7336f25eac",
-      "byte_size": 12567
+      "sha256": "df4dd16671e4eefe741b1ae54c7e355091e75e37b654fc6f61d4c97b3a7901ec",
+      "byte_size": 12824
     },
     {
       "path": "2-Templates/Article-Brief-Template.md",
@@ -291,8 +291,8 @@
       "scope": "spec",
       "role": "normative",
       "rule_set": "editorial",
-      "sha256": "ea335be6f554df92471e30e953a45c580bc71c030d0860a3e6cad45207ae5285",
-      "byte_size": 14870
+      "sha256": "37729039ca0252c199225bed8d0e8eb45b0fa551051f3d0a5c95eaea20b8fdb8",
+      "byte_size": 17696
     },
     {
       "path": "evaluations/adversarial-cases.json",
@@ -531,8 +531,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "schemas",
-      "sha256": "8e022b0ce3fa662706793e0494314d97d72d0a60d7091a2e8783b981145b1d30",
-      "byte_size": 13827
+      "sha256": "cac712b3cbef893b42f57522a5f8154511fa3e5c401baf04b4f1121de7609001",
+      "byte_size": 14045
     },
     {
       "path": "schemas/intent.schema.json",
@@ -611,8 +611,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "schemas",
-      "sha256": "f711c34f51d1548982c0f9d54bf4871431d3f353519e325f05e9aa1b827030e6",
-      "byte_size": 833
+      "sha256": "ee5fecee8acb2bbce73cca8156f3e2521cc7ddfda096fee43c8bcfd048056968",
+      "byte_size": 1914
     },
     {
       "path": "schemas/run.schema.json",
@@ -707,8 +707,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "00f854330e3943297a470e8be741c166081642c6e97e4302c4e0837bde117e21",
-      "byte_size": 597519
+      "sha256": "ab1f8c7cf32a058eff5e66e95eaef3526b24d45c845fd21f315bb6c44550ff80",
+      "byte_size": 600892
     },
     {
       "path": "scripts/article_maintenance.py",
@@ -767,6 +767,14 @@
       "byte_size": 4756
     },
     {
+      "path": "scripts/revision_sources.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "editorial",
+      "sha256": "18c3c06254d1fe221edc5ea5e707420edb015c5222c568a2e086de8e98b58f98",
+      "byte_size": 16056
+    },
+    {
       "path": "tests/test_article_flow.py",
       "scope": "spec",
       "role": "runtime",
@@ -779,8 +787,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "conformance",
-      "sha256": "806e294c1eb554f332fdbe8fe8f0cbc7630014d6a2927af261d5a4227a9c3526",
-      "byte_size": 292690
+      "sha256": "76dca7d4cec91ee316c97a305af133d8adbd8f3045599b8df3cd143250d4c820",
+      "byte_size": 293298
     },
     {
       "path": "tests/test_codex_exec_adapter.py",
@@ -797,6 +805,14 @@
       "rule_set": "editorial",
       "sha256": "b83d8062e1c1fcef887ab1dce52d94354d5c652a32590a3fa10aff2cf5efa0d0",
       "byte_size": 37935
+    },
+    {
+      "path": "tests/test_revision_sources.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "evaluation",
+      "sha256": "72197a0db6d5d47d1a807c44ca147d9edecf5d2aee08bf4fb645a12769d524b8",
+      "byte_size": 23609
     },
     {
       "path": "workflow/article-recipe.defaults.json",
@@ -819,16 +835,16 @@
       "scope": "spec",
       "role": "normative",
       "rule_set": "house-policy",
-      "sha256": "2daa81737e4546bafe97504a62351c0ee21899ef99bac8662cd2c7f3c4a17436",
-      "byte_size": 9593
+      "sha256": "337d4f40fa00690962bc27b84f25ef07c8388bd9a7319c2d1f7cd035c676faf7",
+      "byte_size": 9673
     },
     {
       "path": "workflow/protected-paths.json",
       "scope": "spec",
       "role": "runtime",
       "rule_set": "integrity",
-      "sha256": "732729d59b557a3612e7b7a0825a490ed467ea6f651ed68cfc075c6581035268",
-      "byte_size": 15882
+      "sha256": "4d14839d4e43f8587eb72ee22053e13c79b5b4c39182ae2276e1f1fc51d573b2",
+      "byte_size": 16158
     },
     {
       "path": "workflow/workflow.json",

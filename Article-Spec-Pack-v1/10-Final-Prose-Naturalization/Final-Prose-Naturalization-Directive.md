@@ -35,7 +35,7 @@ Do not use the em dash character U+2014 in editable public prose. This is a dete
 
 Replace each occurrence according to meaning with a comma, colon, parentheses, or separate sentences. Do not mechanically substitute one punctuation mark everywhere.
 
-If a locked quotation, code sample, identifier, or other protected field contains U+2014, do not silently alter it. Reopen the evidence or quotation decision, then paraphrase, omit, or replace the protected material through the appropriate workflow gate. A publication candidate containing U+2014 does not pass.
+If a locked quotation, code sample, identifier, or other protected field contains U+2014, do not silently alter it. A current same-URL revision may preserve exact source/hash-bound block quotations, explicitly attributed inline quotations and code payloads registered by the controller from its verified published snapshot. A quotation or code label alone is not an exemption, and changed or unregistered payloads still fail. Historical runs retain their frozen policy. Outside that narrow exception, reopen the evidence decision through the appropriate workflow gate.
 
 ---
 
