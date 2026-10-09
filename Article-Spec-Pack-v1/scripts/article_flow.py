@@ -48,7 +48,7 @@ import editorial_learning
 import editorial_workbench
 import revision_sources
 
-CONTROLLER_VERSION = "3.2.4"
+CONTROLLER_VERSION = "3.2.5"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -8057,19 +8057,200 @@ def demote_latest_cards(value: str) -> str:
     return value
 
 
-def replace_existing_article_card(content: str, slug: str, replacement: str) -> str:
-    pattern = re.compile(
-        rf'<article\b(?=[^>]*\bdata-article-flow-slug="{re.escape(slug)}")[^>]*>.*?</article>',
-        flags=re.DOTALL,
-    )
-    matches = list(pattern.finditer(content))
+class ArticleCardHTMLParser(HTMLParser):
+    """Exclude inert/raw-text markup from reader-facing card ownership."""
+    inert_tags = {"template", "textarea", "noscript", "script", "style", "title", "xmp", "iframe", "noembed", "plaintext"}
+    managed_fields = {"article-card__date": "time", "article-card__reading-time": "span",
+                      "article-card__link": "a", "article-card__summary": "p"}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.inert: list[str] = []
+
+    def enter_inert(self, tag):
+        pass
+
+    def handle_starttag(self, tag, attrs):
+        if self.inert:
+            if self.inert[-1] == "template" and tag in self.inert_tags:
+                self.inert.append(tag)
+            return
+        if tag in self.inert_tags:
+            self.enter_inert(tag)
+            self.inert.append(tag)
+            return
+        self.visible_starttag(tag, attrs)
+
+    def handle_endtag(self, tag):
+        if self.inert:
+            if tag == self.inert[-1] and tag != "plaintext":
+                self.inert.pop()
+            return
+        self.visible_endtag(tag)
+
+    def handle_startendtag(self, tag, attrs):
+        managed = set(str(dict(attrs).get("class") or "").split()) & self.managed_fields.keys()
+        if not self.inert and (tag in self.inert_tags or tag == "article" or managed):
+            raise FlowError("Self-closing article ownership containers are unsupported", EXIT_INTEGRITY)
+        self.handle_starttag(tag, attrs)
+        if tag not in self.inert_tags and tag != "article":
+            self.handle_endtag(tag)
+
+
+def article_link_owns(value: str, canonical: str, base_url: str) -> bool:
+    link = urllib.parse.urlsplit(urllib.parse.urljoin(base_url, value.replace("\\", "/")))
+    destination = urllib.parse.urlsplit(canonical)
+    normalize = lambda path: posixpath.normpath("/" + urllib.parse.unquote(path).lstrip("/"))
+    return link.scheme in {"http", "https"} and link.hostname == destination.hostname and normalize(link.path) == normalize(destination.path)
+
+
+def article_title_owns(value: str, canonical: str, base_url: str) -> bool:
+    """Mutation requires the canonical origin, not only a duplicate-like path."""
+    try:
+        link = urllib.parse.urlsplit(urllib.parse.urljoin(base_url, value.replace("\\", "/")))
+        destination = urllib.parse.urlsplit(canonical)
+        port = lambda url: url.port if url.port is not None else (443 if url.scheme == "https" else 80)
+        return article_link_owns(value, canonical, base_url) and link.scheme == destination.scheme and port(link) == port(destination)
+    except ValueError:
+        return False
+
+
+def article_card_entries(text: str, surface: str, base_url: str) -> tuple[list[dict[str, Any]], str]:
+    """Read real card spans and links, respecting comments and document bases."""
+    offsets = [0]
+    for line in text.splitlines(keepends=True):
+        offsets.append(offsets[-1] + len(line))
+
+    class Cards(ArticleCardHTMLParser):
+        def __init__(self):
+            super().__init__(convert_charrefs=True)
+            self.stack: list[dict[str, Any]] = []
+            self.cards: list[dict[str, Any]] = []
+            self.base: str | None = None
+
+        def position(self):
+            line, column = self.getpos()
+            return offsets[line - 1] + column
+
+        def enter_inert(self, tag):
+            for item in self.stack:
+                item["bare_placeholder"] = False
+
+        def visible_starttag(self, tag, attrs):
+            if tag in {"article", "a", "base"} and len({key for key, _ in attrs}) != len(attrs):
+                raise FlowError(f"Ambiguous duplicate HTML attributes in {surface}", EXIT_INTEGRITY)
+            fields = dict(attrs)
+            for item in self.stack:
+                if tag != "h3" or attrs:
+                    item["bare_placeholder"] = False
+            if tag == "base" and fields.get("href") is not None and self.base is None:
+                self.base = fields["href"]
+            elif tag == "article":
+                self.stack.append({"start": self.position(), "opening_end": self.position() + len(self.get_starttag_text()),
+                                   "attrs": fields, "card": "article-card" in str(fields.get("class") or "").split(),
+                                   "links": [], "title_links": [], "bare_placeholder": True})
+            elif tag == "a" and fields.get("href"):
+                for item in self.stack:
+                    item["links"].append(fields["href"])
+                    if "article-card__link" in str(fields.get("class") or "").split():
+                        item["title_links"].append(fields["href"])
+
+        def visible_endtag(self, tag):
+            if tag == "article" and self.stack:
+                item = self.stack.pop()
+                if item["card"]:
+                    item["end"] = text.index(">", self.position()) + 1
+                    item["text"] = text[item["start"]:item["end"]]
+                    self.cards.append(item)
+
+    parser = Cards()
+    parser.feed(text)
+    if parser.stack:
+        raise FlowError(f"Unclosed article in {surface}", EXIT_INTEGRITY)
+    return sorted(parser.cards, key=lambda item: item["start"]), urllib.parse.urljoin(base_url, (parser.base or "").replace("\\", "/"))
+
+
+def article_card_field_spans(text: str) -> dict[str, tuple[int, int]]:
+    """Locate the four plain-text fields owned by article publication."""
+    roles = ArticleCardHTMLParser.managed_fields
+    offsets = [0]
+    for line in text.splitlines(keepends=True):
+        offsets.append(offsets[-1] + len(line))
+
+    class Fields(ArticleCardHTMLParser):
+        def __init__(self):
+            super().__init__(convert_charrefs=True)
+            self.spans: dict[str, tuple[int, int]] = {}
+            self.active: tuple[str, str, int] | None = None
+
+        def position(self):
+            line, column = self.getpos()
+            return offsets[line - 1] + column
+
+        def enter_inert(self, tag):
+            if self.active:
+                raise FlowError("Nested article-card fields", EXIT_INTEGRITY)
+
+        def visible_starttag(self, tag, attrs):
+            if self.active or len({key for key, _ in attrs}) != len(attrs):
+                raise FlowError("Ambiguous or nested article-card fields", EXIT_INTEGRITY)
+            matched = set(str(dict(attrs).get("class") or "").split()) & roles.keys()
+            if matched:
+                role = next(iter(matched))
+                if len(matched) != 1 or roles[role] != tag or role in self.spans:
+                    raise FlowError("Ambiguous article-card field ownership", EXIT_INTEGRITY)
+                self.active = (role, tag, self.position())
+
+        def visible_endtag(self, tag):
+            if self.active:
+                role, expected_tag, start = self.active
+                if tag != expected_tag:
+                    raise FlowError("Unclosed article-card field", EXIT_INTEGRITY)
+                self.spans[role] = (start, text.index(">", self.position()) + 1)
+                self.active = None
+
+    parser = Fields()
+    parser.feed(text)
+    if parser.active or set(parser.spans) != set(roles):
+        raise FlowError("Expected exactly one title, summary, date and reading time in article card", EXIT_INTEGRITY)
+    return parser.spans
+
+
+def replace_existing_article_card(content: str, slug: str, replacement: str, *,
+                                  canonical: str | None = None,
+                                  base_url: str = "https://theproductiveprompter.com/docs/blog.html") -> str:
+    canonical = canonical or f"https://theproductiveprompter.com/docs/{slug}.html"
+    cards, resolved_base = article_card_entries(content, "same-URL publication", base_url)
+    matches = [card for card in cards if card["attrs"].get("data-article-flow-slug") == slug
+               or any(article_link_owns(link, canonical, resolved_base) for link in card["links"])]
     if len(matches) != 1:
         raise FlowError(f"Expected exactly one existing card for same-URL revision {slug}; found {len(matches)}")
-    old = matches[0].group(0)
-    if "article-card--featured" not in old:
+    card = matches[0]
+    marker = card["attrs"].get("data-article-flow-slug")
+    if marker is not None and marker != slug:
+        raise FlowError("Article card identifier conflicts with its URL", EXIT_INTEGRITY)
+    if card["links"] and not any(article_link_owns(link, canonical, resolved_base) for link in card["links"]):
+        raise FlowError("Article card URL conflicts with its identifier", EXIT_INTEGRITY)
+    old = card["text"]
+    if marker is None or not card["bare_placeholder"]:
+        if len(card["title_links"]) != 1 or not article_title_owns(card["title_links"][0], canonical, resolved_base):
+            raise FlowError("Legacy article card requires one matching title link", EXIT_INTEGRITY)
+        old_fields, new_fields = article_card_field_spans(old), article_card_field_spans(replacement)
+        new_cards, _ = article_card_entries(replacement, "replacement card", base_url)
+        if len(new_cards) != 1 or len(new_cards[0]["title_links"]) != 1 or not article_title_owns(new_cards[0]["title_links"][0], canonical, resolved_base):
+            raise FlowError("Replacement title link would not resolve to the canonical article", EXIT_INTEGRITY)
+        updated = old
+        for role, (start, end) in sorted(old_fields.items(), key=lambda item: item[1][0], reverse=True):
+            new_start, new_end = new_fields[role]
+            updated = updated[:start] + replacement[new_start:new_end] + updated[end:]
+        if marker is None:
+            opening_end = card["opening_end"] - card["start"]
+            updated = updated[:opening_end - 1] + f' data-article-flow-slug="{html.escape(slug, quote=True)}"' + updated[opening_end - 1:]
+        replacement = updated
+    elif "article-card--featured" not in str(card["attrs"].get("class") or "").split():
         replacement = replacement.replace("article-card article-card--featured", "article-card")
         replacement = re.sub(r'\s*<span class="article-card__badge">Latest</span>', "", replacement)
-    return content[:matches[0].start()] + replacement + content[matches[0].end():]
+    return content[:card["start"]] + replacement + content[card["end"]:]
 
 
 def replace_existing_feed_item(content: str, canonical: str, replacement: str) -> str:
@@ -8229,7 +8410,9 @@ def render_publication_files(directory: Path, run: dict[str, Any], package_root:
         source = repository / source_rel
         source_text = source.read_text(encoding="utf-8")
         if metadata.get("revision_mode") == "replace_in_place":
-            updated = replace_existing_article_card(source_text, metadata["slug"], replacement)
+            updated = replace_existing_article_card(source_text, metadata["slug"], replacement,
+                                                    canonical=canonical,
+                                                    base_url=target["blog_url" if source_rel == "docs/blog.html" else "homepage_url"])
         else:
             updated = prepend_marked(
                 source_text,
@@ -9521,55 +9704,11 @@ def transient_external_link_failures(failed: list[dict[str, Any]]) -> bool:
 
 def discovery_entry(content: bytes, surface: str, canonical: str, base_url: str) -> tuple[int, str]:
     """Select exactly one article-owned entry without accepting changed metadata."""
-    destination = urllib.parse.urlsplit(canonical)
-
     def owns(value: str, resolved_base: str = base_url) -> bool:
-        link = urllib.parse.urlsplit(urllib.parse.urljoin(resolved_base, value.replace("\\", "/")))
-        normalize = lambda path: posixpath.normpath("/" + urllib.parse.unquote(path).lstrip("/"))
-        return link.scheme in {"http", "https"} and link.hostname == destination.hostname and normalize(link.path) == normalize(destination.path)
+        return article_link_owns(value, canonical, resolved_base)
 
     if surface in {"blog", "homepage"}:
-        text = content.decode("utf-8")
-        offsets = [0]
-        for line in text.splitlines(keepends=True):
-            offsets.append(offsets[-1] + len(line))
-
-        class Cards(HTMLParser):
-            def __init__(self):
-                super().__init__(convert_charrefs=True)
-                self.stack: list[dict[str, Any]] = []
-                self.cards: list[dict[str, Any]] = []
-                self.base: str | None = None
-
-            def position(self):
-                line, column = self.getpos()
-                return offsets[line - 1] + column
-
-            def handle_starttag(self, tag, attrs):
-                if tag in {"article", "a", "base"} and len({key for key, _ in attrs}) != len(attrs):
-                    raise FlowError(f"Ambiguous duplicate HTML attributes in {surface}", EXIT_INTEGRITY)
-                fields = dict(attrs)
-                if tag == "base" and fields.get("href") is not None and self.base is None:
-                    self.base = fields["href"]
-                elif tag == "article":
-                    self.stack.append({"start": self.position(), "card": "article-card" in str(fields.get("class") or "").split(), "links": []})
-                elif tag == "a" and fields.get("href"):
-                    for item in self.stack:
-                        item["links"].append(fields["href"])
-
-            def handle_endtag(self, tag):
-                if tag == "article" and self.stack:
-                    item = self.stack.pop()
-                    if item["card"]:
-                        item["text"] = text[item["start"]:text.index(">", self.position()) + 1]
-                        self.cards.append(item)
-
-        parser = Cards()
-        parser.feed(text)
-        if parser.stack:
-            raise FlowError(f"Unclosed article in {surface}", EXIT_INTEGRITY)
-        cards = sorted(parser.cards, key=lambda item: item["start"])
-        resolved_base = urllib.parse.urljoin(base_url, (parser.base or "").replace("\\", "/"))
+        cards, resolved_base = article_card_entries(content.decode("utf-8"), surface, base_url)
         matches = [(index, card["text"]) for index, card in enumerate(cards) if any(owns(link, resolved_base) for link in card["links"])]
     else:
         try:
