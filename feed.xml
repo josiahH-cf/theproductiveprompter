@@ -5,7 +5,7 @@
     <link>https://theproductiveprompter.com/docs/blog.html</link>
     <description>Practical writing on AI workflows, prompting systems, evaluation, and publication design.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 09 Oct 2026 16:19:39 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 09 Oct 2026 18:24:52 +0000</lastBuildDate>
     <atom:link href="https://theproductiveprompter.com/feed.xml" rel="self" type="application/rss+xml"/>
 
     <!-- ARTICLE_FLOW_FEED_START -->
@@ -49,7 +49,7 @@
   <link>https://theproductiveprompter.com/docs/two-model-pruning-cycle-ai-assisted-codebase.html</link>
   <guid isPermaLink="true">https://theproductiveprompter.com/docs/two-model-pruning-cycle-ai-assisted-codebase.html</guid>
   <pubDate>Tue, 15 Sep 2026 09:04:24 +0000</pubDate>
-  <description>A friendly, evidence-led guide to why successful AI-assisted feature work can leave repository residue and how to prune it with two independent model reviews, small reversible changes, and validation of the actual diff.</description>
+  <description>A practical two-reviewer cycle for pruning an AI-assisted codebase: reconcile independent evidence, make one reversible change, and audit the behavior it must preserve.</description>
 </item>
 <item>
   <title>What Chip Restrictions May Be Teaching China</title>
