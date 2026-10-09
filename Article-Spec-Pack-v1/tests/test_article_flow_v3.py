@@ -89,7 +89,9 @@ class TemporaryRuntime(unittest.TestCase):
             "hold_before_publish": False,
         }
         values.update(overrides)
-        code, payload = call(af.command_start, **values)
+        # These retained fixtures exercise the archived 3.1 state graph.
+        with mock.patch.object(af, "workflow", return_value=af.workflow_for_version("3.1.0")):
+            code, payload = call(af.command_start, **values)
         self.assertEqual(code, af.EXIT_OK, payload)
         return payload["run_id"]
 
@@ -136,12 +138,13 @@ class WorkflowV3ContractTests(unittest.TestCase):
         current = json.loads((SPEC_ROOT / "workflow" / "workflow.json").read_text(encoding="utf-8"))
         legacy = json.loads((SPEC_ROOT / "workflow" / "workflow.v2.0.0.json").read_text(encoding="utf-8"))
         archived_v3 = json.loads((SPEC_ROOT / "workflow" / "workflow.v3.0.0.json").read_text(encoding="utf-8"))
-        self.assertEqual(current["workflow_version"], "3.1.0")
+        self.assertEqual(current["workflow_version"], "3.2.0")
         self.assertEqual(archived_v3["workflow_version"], "3.0.0")
         self.assertEqual(legacy["workflow_version"], "2.0.0")
 
         states = {item["id"]: item for item in current["states"]}
-        self.assertEqual(states["DRAFT"]["next_on_pass"], "VISUAL_PLAN")
+        self.assertEqual(states["DRAFT"]["next_on_pass"], "DEVELOPMENT_REVIEW")
+        self.assertEqual(states["DEVELOPMENT_REVIEW"]["next_on_pass"], "VISUAL_PLAN")
         self.assertEqual(states["VISUAL_PLAN"]["next_on_pass"], "VISUAL_RENDER")
         self.assertEqual(states["VISUAL_RENDER"]["next_on_pass"], "CLAIM_VERIFICATION")
         self.assertEqual(states["CLAIM_VERIFICATION"]["next_on_pass"], "VOICE_PROBE")
@@ -3192,7 +3195,7 @@ class VoiceLearningTests(TemporaryRuntime):
             ],
             "learning": [
                 event for event in events
-                if event["type"] == "VOICE_LEARNING_APPLIED"
+                if event["type"] == "VOICE_LEARNING_PROPOSED"
             ],
         }
 
@@ -3389,7 +3392,7 @@ class VoiceLearningTests(TemporaryRuntime):
         self.assertTrue(af.voice_probe_awaits_human(directory, run))
         self.assertEqual(af.next_state_payload(directory, run)["action"], "human_decision")
 
-    def test_selection_learning_is_immediate_idempotent_and_rollback_preserves_evidence(self):
+    def test_selection_learning_is_local_idempotent_and_preserves_global_evidence(self):
         baseline_path = SPEC_ROOT / "profiles" / "voice-profile.v1.json"
         baseline_hash = af.sha256_path(baseline_path)
         baseline_version = json.loads(baseline_path.read_text(encoding="utf-8"))["version"]
@@ -3410,30 +3413,16 @@ class VoiceLearningTests(TemporaryRuntime):
 
         first = af.apply_voice_learning(directory, run)
         directory, replay_run = af.load_run(run_id)
-        af.transition(directory, replay_run, "VOICE_LEARNING", "test", "replay after a simulated crash")
+        af.transition(directory, replay_run, "VOICE_LEARNING", "test", "Replay local selection")
         second = af.apply_voice_learning(directory, replay_run)
-        first_record = first["learning"]
-        second_record = second["learning"]
-        history = af.voice_history()
-        self.assertEqual(first_record["record_id"], second_record["record_id"])
-        self.assertEqual(first_record["new_profile_version"], second_record["new_profile_version"])
-        self.assertEqual(history["evidence_count"], 1)
-        self.assertEqual(history["current_version"], first_record["new_profile_version"])
-        self.assertEqual(len(history["profiles"]), 2)
-
-        profile, _, pointer = af.active_voice_profile()
-        profile_text = json.dumps(profile, ensure_ascii=False)
-        for passage in (item["passage"] for item in probe["candidates"]):
-            self.assertIn(passage, profile_text)
-        self.assertEqual(pointer["current_version"], first_record["new_profile_version"])
+        self.assertEqual(first["learning"]["record_id"], second["learning"]["record_id"])
+        self.assertFalse(first["learning"]["profile_update"]["activated"])
+        self.assertFalse(first["learning"]["human_original"])
+        self.assertEqual(af.active_voice_profile()[0]["version"], baseline_version)
         self.assertEqual(af.sha256_path(baseline_path), baseline_hash)
+        self.assertEqual(len(list((af.voice_state_root()/"proposals").glob("*.json"))), 1)
 
-        rollback = af.rollback_voice_profile(baseline_version)
-        after = af.voice_history()
-        self.assertEqual(rollback["current_version"], baseline_version)
-        self.assertEqual(after["current_version"], baseline_version)
-        self.assertEqual(after["evidence_count"], 1)
-        self.assertEqual(len(after["profiles"]), 2)
+
 
 
 class NoPublishAutomationTests(TemporaryRuntime):
@@ -5174,7 +5163,7 @@ class WorkflowV31RegressionTests(TemporaryRuntime):
             self.assertFalse(af.transient_external_link_failures([{"name": "external_link", "status": status, "ok": False}]))
         self.assertFalse(af.transient_external_link_failures([{"name": "article_revision", "ok": False}]))
 
-    def test_rejected_article_feedback_retires_provisional_learning_but_keeps_history(self):
+    def test_rejected_article_feedback_stays_scoped_pending_and_keeps_unrelated_learning(self):
         run_id = self.start("Record durable feedback about a published article.")
         directory, run = af.load_run(run_id)
         self.record_text(directory, run, "article", "# Generic article\n\nThis reads like generated copy.\n")
@@ -5210,37 +5199,21 @@ class WorkflowV31RegressionTests(TemporaryRuntime):
         feedback_path = self.root / "feedback.md"
         feedback_path.write_text("Use a concrete senior-engineer field-note voice with shorter paragraphs.", encoding="utf-8")
 
-        code, payload = call(
-            af.command_voice_feedback,
-            run_id=run_id,
-            outcome="rejected",
-            feedback_file=str(feedback_path),
-        )
+        before = af.active_voice_profile()[2]
+        code, payload = call(af.command_voice_feedback, run_id=run_id, outcome="rejected", feedback_file=str(feedback_path), actor="human")
+        self.assertEqual(code, af.EXIT_OK)
+        self.assertFalse(payload["activated"])
+        current, _, pointer = af.active_voice_profile()
+        self.assertEqual(pointer, before)
+        self.assertEqual(len(current["provisional_guidance"]), 2)
+        self.assertEqual(len(current["accepted_rejected_pairs"]), 1)
+        proposal = af.load_json(Path(payload["path"]))
+        self.assertEqual(proposal["scope"], "article")
+        self.assertEqual(proposal["retire_only_source_run"], run_id)
+        _, repeated = call(af.command_voice_feedback, run_id=run_id, outcome="rejected", feedback_file=str(feedback_path), actor="human")
+        self.assertEqual(payload["record_id"], repeated["record_id"])
 
-        self.assertEqual(code, af.EXIT_OK, payload)
-        self.assertEqual(payload["retired_guidance_ids"], ["VG-one", "VG-two"])
-        self.assertTrue(prior_path.is_file())
-        current, _current_path, pointer = af.active_voice_profile()
-        self.assertEqual(len(current["provisional_guidance"]), 1)
-        self.assertIn(feedback_path.read_text(encoding="utf-8").strip(), current["provisional_guidance"][0]["text"])
-        self.assertEqual(current["provisional_guidance"][0]["dimensions"], [])
-        self.assertFalse(any(item.get("source_record_id") in {"VL-one", "VL-two"} for item in current["positive_examples"]))
-        self.assertEqual(current["accepted_rejected_pairs"], [])
-        self.assertTrue(any(item.get("run_id") == run_id for item in current["negative_examples"]))
-        profile_count = len(list((voice_root / "profiles").glob("*.json")))
-        evidence_count = len(af._read_jsonl(voice_root / "article-feedback.jsonl"))
 
-        code, duplicate = call(
-            af.command_voice_feedback,
-            run_id=run_id,
-            outcome="rejected",
-            feedback_file=str(feedback_path),
-        )
-        self.assertEqual(code, af.EXIT_OK, duplicate)
-        self.assertTrue(duplicate["idempotent"])
-        self.assertEqual(pointer["current_version"], duplicate["current_version"])
-        self.assertEqual(profile_count, len(list((voice_root / "profiles").glob("*.json"))))
-        self.assertEqual(evidence_count, len(af._read_jsonl(voice_root / "article-feedback.jsonl")))
 
     def test_revision_creates_a_fresh_run_with_separate_precedence_bound_request(self):
         source_run_id = self.start("Historical seed that remains immutable.")
@@ -5252,6 +5225,9 @@ class WorkflowV31RegressionTests(TemporaryRuntime):
             "date": "2026-08-31",
             "title": "Original title",
         })
+        self.record_text(source_directory, source_run, "article", "# Original title\n\nKeep this accepted passage.\n")
+        self.record_json(source_directory, source_run, "brief", {"title": "Original title", "slug": "same-public-url"})
+        self.record_json(source_directory, source_run, "post-edit-claim-ledger", {"claims": []})
         af.transition(source_directory, source_run, "COMPLETE", "test", "Create a completed revision source")
         request = self.root / "revision-request.md"
         request.write_text("Replace the generic prose with a concrete field note.\n", encoding="utf-8")
@@ -5287,6 +5263,7 @@ class WorkflowV31RegressionTests(TemporaryRuntime):
         with mock.patch.object(af, "route_candidates", return_value=routes):
             _path, packet = af.task_packet(directory, run)
         self.assertIn("revision-request", {item["id"] for item in packet["inputs"]})
+        self.assertIn("previous-article", {item["id"] for item in packet["inputs"]})
         self.assertTrue(any("overrides conflicting assumptions" in item for item in packet["constraints"]))
 
     def test_voice_set_can_be_rejected_without_learning_and_regenerated(self):
@@ -5498,27 +5475,23 @@ class BackendLearningRegressionTests(TemporaryRuntime):
         self.assertEqual(anchor["source_passage"], prose)
         self.assertEqual(anchor["locator"], f"rough draft opening, line {text[:text.index(prose)].count(chr(10)) + 1}")
 
-    def test_voice_refinement_preserves_choice_and_history_and_is_idempotent(self):
+    def test_voice_refinement_proposes_without_reactivating_history(self):
         run_id, directory, run, probe_path, probe = self.prepare_voice_choice(selection="C")
         prior_probe = probe_path.read_bytes()
         af.transition(directory, run, "VOICE_LEARNING", "test", "Apply fixture selection")
-        with mock.patch.object(af, "voice_preference_guidance", return_value="Legacy guidance lists every varied dimension."):
-            result = af.apply_voice_learning(directory, run)
-        old_profile = Path(result["profile_path"])
-        old_bytes = old_profile.read_bytes()
+        af.apply_voice_learning(directory, run)
+        before = af.active_voice_profile()[2]
         af.transition(directory, run, "COMPLETE", "test", "Complete fixture")
         code, refined = call(af.command_voice_refine, run_id=run_id)
         self.assertEqual(code, af.EXIT_OK)
-        self.assertFalse(refined["idempotent"])
-        self.assertIn("Candidate labels are model descriptions", refined["guidance"])
+        self.assertFalse(refined["activated"])
         self.assertEqual(probe_path.read_bytes(), prior_probe)
-        self.assertEqual(old_profile.read_bytes(), old_bytes)
-        profile, _, _ = af.active_voice_profile()
-        selected = next(item for item in probe["candidates"] if item["candidate_id"] == "C")
-        self.assertEqual(profile["provisional_guidance"][-1]["dimensions"], selected["intended_dimensions"])
+        self.assertEqual(af.active_voice_profile()[2], before)
         _, repeated = call(af.command_voice_refine, run_id=run_id)
-        self.assertTrue(repeated["idempotent"])
-        self.assertEqual(len(af._read_jsonl(af.voice_state_root() / "refinements.jsonl")), 1)
+        self.assertEqual(repeated["record_id"], refined["record_id"])
+        self.assertEqual(af.load_json(Path(refined["path"]))["decision_maker"], "assistant")
+
+
 
     def test_contextual_review_requires_real_excerpts_and_cannot_hide_repairs(self):
         run_id = self.start()

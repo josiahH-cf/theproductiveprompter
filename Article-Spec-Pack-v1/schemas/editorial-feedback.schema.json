@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "editorial-feedback",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "decision_maker",
+    "scope",
+    "status",
+    "activated"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "decision_maker": {
+      "enum": [
+        "human",
+        "assistant",
+        "unknown"
+      ]
+    },
+    "scope": {
+      "enum": [
+        "passage",
+        "article",
+        "register",
+        "form",
+        "core"
+      ]
+    },
+    "status": {
+      "enum": [
+        "pending",
+        "accepted",
+        "rejected"
+      ]
+    },
+    "activated": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "author-evidence",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "evidence_kind",
+    "authorship_confirmed",
+    "source_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "evidence_kind": {
+      "enum": [
+        "human_original",
+        "explicit_preference",
+        "generated_interpretation",
+        "historical_record"
+      ]
+    },
+    "authorship_confirmed": {
+      "type": "boolean"
+    },
+    "source_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "additionalProperties": true
+}

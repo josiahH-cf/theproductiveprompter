@@ -110,7 +110,10 @@
               "const": true
             },
             "selection_activation": {
-              "const": "immediate_provisional"
+              "enum": [
+                "immediate_provisional",
+                "local_only_pending_reusable_proposal"
+              ]
             },
             "replay_behavior": {
               "const": "idempotent_by_selection_hash"
@@ -119,7 +122,10 @@
               "const": "move_pointer_without_deleting_evidence"
             },
             "retire_scope": {
-              "const": "runtime_provisional_guidance_only"
+              "enum": [
+                "runtime_provisional_guidance_only",
+                "explicit_source_article_or_rule_only"
+              ]
             },
             "future_runs_use_current_version": {
               "const": true

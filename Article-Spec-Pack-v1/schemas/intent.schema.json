@@ -15,6 +15,7 @@
     "explicit_seed_content": {"type": "array", "items": {"type": "string"}},
     "assumptions": {"type": "array", "items": {"type": "string"}},
     "remaining_unknowns": {"type": "array", "items": {"type": "string"}},
+    "material_questions": {"type": "array", "items": {"type": "string", "minLength": 1}, "description": "Only questions whose actual author answer is required to choose position, audience or scope; otherwise empty."},
     "research_that_shaped_candidate": {"type": "array", "items": {"type": "string"}}
   },
   "additionalProperties": false
