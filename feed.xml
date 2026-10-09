@@ -5,7 +5,7 @@
     <link>https://theproductiveprompter.com/docs/blog.html</link>
     <description>Practical writing on AI workflows, prompting systems, evaluation, and publication design.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 09 Oct 2026 19:29:17 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 09 Oct 2026 19:31:24 +0000</lastBuildDate>
     <atom:link href="https://theproductiveprompter.com/feed.xml" rel="self" type="application/rss+xml"/>
 
     <!-- ARTICLE_FLOW_FEED_START -->
@@ -77,7 +77,7 @@
   <link>https://theproductiveprompter.com/docs/apple-is-not-positioned-for-future-endeavors.html</link>
   <guid isPermaLink="true">https://theproductiveprompter.com/docs/apple-is-not-positioned-for-future-endeavors.html</guid>
   <pubDate>Tue, 25 Aug 2026 12:00:00 -0500</pubDate>
-  <description>Apple&#x27;s new AI partnerships are the right correction—but until they become broadly shipped capability, its closed-system advantage is becoming a speed risk.</description>
+  <description>Apple&#x27;s September Siri AI beta is meaningful progress, but its documented access limits leave a dated concern: Apple&#x27;s integrated operating model may still slow AI delivery until broad, reliable product results prove otherwise.</description>
 </item>
 <item>
   <title>I Built an AI Telemetry System Because My Memory Is Too Forgiving</title>
