@@ -372,7 +372,7 @@
     {
       "id": "EDITORIAL_QA",
       "actor": "code_and_calibrated_evaluator",
-      "objective": "Automatically assess intent, voice, naturalness, structure, length, contextual cliché variants, and every public-facing title and description; issue targeted repairs without routine operator approval. Record excerpt-grounded checks of wording, rhetoric, paragraph structure, and preservation; a generic pass statement is insufficient.",
+      "objective": "Automatically assess intent, voice, naturalness, structure, length, contextual cliché variants, and every public-facing title and description; issue targeted repairs without routine operator approval. Record excerpt-grounded checks of wording, rhetoric, paragraph structure, and preservation; a generic pass statement is insufficient. Compare actual rendered SVG paths and label positions with the article; caption-only inspection cannot establish truthful topology.",
       "required_inputs": [
         "article",
         "brief",
@@ -382,7 +382,9 @@
         "voice-learning",
         "style-policy",
         "naturalization-directive",
-        "voice-profile"
+        "voice-profile",
+        "visual-plan",
+        "visual-manifest"
       ],
       "output": "receipts/editorial-qa.json",
       "output_schema": "editorial-assessment.schema.json",
@@ -609,7 +611,7 @@
     {
       "id": "AF-CHAR-001",
       "level": "MUST",
-      "text": "Reject U+2014 and encoded em-dash entities on every generated and rendered public surface, including quotations and code; repair by paraphrasing, omission, or reopened verification rather than silent protected-text mutation."
+      "text": "Reject U+2014 and encoded em-dash entities on editable public surfaces. The frozen house policy permits only unchanged, controller-bound verbatim evidence from a verified published revision source; quote/code labels alone create no exception. Preserve protected evidence exactly and reopen verification for conflicts rather than silently mutating it."
     },
     {
       "id": "AF-VISUAL-001",

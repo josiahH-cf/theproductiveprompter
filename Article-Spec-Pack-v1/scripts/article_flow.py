@@ -46,7 +46,7 @@ import editorial_learning
 import editorial_workbench
 import revision_sources
 
-CONTROLLER_VERSION = "3.2.1"
+CONTROLLER_VERSION = "3.2.2"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -2561,6 +2561,12 @@ def automated_route_health() -> dict[str, Any]:
 
 def packet_inputs(directory: Path, run: dict[str, Any], state: str) -> list[dict[str, str]]:
     required = set(str(item) for item in state_definition(state, run).get("required_inputs", []))
+    # Existing 3.2 runs retain their frozen graph, but QA must see what the
+    # renderer actually produced, including relationships encoded by arrows.
+    if editorial_context.enabled(run) and state == "EDITORIAL_QA":
+        required.update({"visual-plan", "visual-manifest"})
+    if state == "VISUAL_PLAN" and artifact(run, "visual-policy-amendment"):
+        required.add("visual-policy-amendment")
     if editorial_context.enabled(run) and run.get("revision") and state in {"RESEARCH_PLAN", "RESEARCH", "INTENT_REVIEW", "BRIEF", "DRAFT"}:
         required.add("previous-article")
         required.update(name for name in ("previous-brief", "previous-claims") if artifact(run, name))
@@ -2599,6 +2605,17 @@ def packet_inputs(directory: Path, run: dict[str, Any], state: str) -> list[dict
                 {"expected_sha256": item["sha256"], "actual_sha256": actual, "path": str(path)},
             )
         result.append({"id": artifact_type, "path": str(path), "sha256": actual})
+    if editorial_context.enabled(run) and state == "EDITORIAL_QA":
+        manifest_path = directory / latest["visual-manifest"]["path"]
+        findings = validate_visual_manifest(directory, run, manifest_path)
+        if findings:
+            raise FlowError("Cannot dispatch editorial QA over unbound visuals", EXIT_INTEGRITY, findings)
+        for asset in load_json(manifest_path)["assets"]:
+            path = (directory / safe_relative(asset["source_path"])).resolve()
+            if not path.is_relative_to(directory.resolve()):
+                raise FlowError("Rendered visual escapes the run directory", EXIT_INTEGRITY)
+            result.append({"id": "rendered-visual:" + asset["visual_id"],
+                           "path": str(path), "sha256": asset["sha256"]})
     return result
 
 
@@ -2606,6 +2623,21 @@ def verification_source_type(run: dict[str, Any], state: str) -> str:
     if state != "CLAIM_VERIFICATION" or (editorial_context.enabled(run) and artifact(run, "article")):
         return "article"
     return "draft"
+
+
+def qa_visual_input_set(directory: Path, run: dict[str, Any], inputs: list[dict[str, str]] | None = None) -> list[dict[str, str]]:
+    if not editorial_context.enabled(run) or run["state"] != "EDITORIAL_QA":
+        return []
+    return [item for item in (inputs if inputs is not None else packet_inputs(directory, run, "EDITORIAL_QA"))
+            if item["id"] in {"visual-plan", "visual-manifest"} or item["id"].startswith("rendered-visual:")]
+
+
+def qa_packet_has_current_visuals(directory: Path, run: dict[str, Any], packet: dict[str, Any]) -> bool:
+    if not editorial_context.enabled(run) or run["state"] != "EDITORIAL_QA":
+        return True
+    expected = qa_visual_input_set(directory, run)
+    actual = qa_visual_input_set(directory, run, packet.get("inputs", []))
+    return sorted(expected, key=lambda item: item["id"]) == sorted(actual, key=lambda item: item["id"])
 
 
 def ensure_voice_anchor(directory: Path, run: dict[str, Any]) -> dict[str, str]:
@@ -3513,6 +3545,12 @@ def task_packet(
             path = Path(str(item.get("path", ""))).expanduser().resolve()
             if not path.is_file() or sha256_path(path) != item.get("sha256"):
                 raise FlowError("Durable fallback source input changed", EXIT_INTEGRITY, item)
+        if editorial_context.enabled(run) and state == "EDITORIAL_QA":
+            # A held article may have reopened upstream work since the route
+            # failure. QA must assess one current article/claims/display/visual
+            # snapshot, never old prose paired with a refreshed diagram.
+            inputs = packet_inputs(directory, run, state)
+            inputs.extend(repair_inputs)
     else:
         inputs = packet_inputs(directory, run, state)
         inputs.extend(repair_inputs)
@@ -3550,8 +3588,7 @@ def task_packet(
         ])
     if state == "VISUAL_PLAN":
         constraints.append("Choose useful visuals only. Use an exact unique level-2-or-lower heading or complete prose paragraph for placement; do not invent headings to satisfy the renderer. An empty auto/optional plan needs omission_reason. For branching_effects provide four labels: common premise, first effect, second effect, combined implication. Label reconstructions and conceptual inferences explicitly. Do not produce SVG or HTML.")
-        if not editorial_context.enabled(run):
-            constraints.append("Record design_rationale comparing the chosen layout with at least one concrete alternative and omission. Match topology to the explanation: independent work must branch and rejoin, conditional deferral must leave the implementation path, and a loop must identify what repeats. Use parallel_review for eight ordered labels: shared revision, reviewer A, reviewer B, reconciliation, supported implementation batch, actual-diff audit, deferred candidates, retained validated result. delivery_loop is for a genuinely sequential loop. Keep titles within 42 characters and labels within three lines; never delete a necessary step to fit a template. Prefer short source-supported labels. Explain what a reader learns from the picture beyond the adjacent prose.")
+        constraints.append("Record design_rationale comparing the chosen layout with at least one concrete alternative and omission. Match topology to the explanation: independent work must branch and rejoin, conditional deferral must leave the implementation path, and a loop must identify what repeats. Use parallel_review for eight ordered labels: shared revision, reviewer A, reviewer B, reconciliation, supported implementation batch, actual-diff audit, deferred candidates, retained validated result. The sixth label is the main-path audit; the seventh is the side-branch deferral. delivery_loop is for a genuinely sequential loop, never a one-way goal-to-result sequence. Keep titles within 52 characters and labels within three lines; never delete a necessary step to fit a template. Prefer short source-supported labels. Explain what a reader learns from the picture beyond the adjacent prose. If visual-policy-amendment is supplied, apply its explicit operator reason to this plan while preserving unaffected prose.")
     if state == "EDIT":
         constraints.append("Preserve visual references, captions, and the exact heading or paragraph placement anchors in visual-manifest; edit surrounding prose without invalidating the approved visual plan.")
         constraints.append("When current-article is supplied, repair that latest accepted version rather than restarting from draft. Preserve the selected voice passage and all unaffected edits; change only what the bound findings require. Use draft as historical context only.")
@@ -3559,6 +3596,8 @@ def task_packet(
         constraints.append("If current-article is supplied, it is the canonical repair source. Preserve its unaffected edits and distinctive phrasing. DRAFT develops or corrects only the bound issue using the latest verified ledger; CLAIM_VERIFICATION verifies this current article rather than the older rough draft; VISUAL_PLAN selects placements in this article. Historical draft and previous-article are context only.")
     if state == "EDITORIAL_QA" and is_v31_run(run):
         constraints.append("Return naturalization_review for language, rhetoric, structure, and preservation. Each needs status PASS or REPAIR, an exact excerpt from the assessed article/title/description, and a specific reason. Inspect inflated verbs; repeated negative-positive contrasts and staged questions; one-line stanzas, repeated openings and conclusions, headings and symmetrical lists; then locked facts, code, quotations and uncertainty. A phrase blacklist or generic 'reads naturally' statement is not a contextual review. Keep deliberate useful contrasts and technical phrasing. Any unresolved finding makes outcome REPAIR. Use the naturalization-directive and full voice-profile, including selected-versus-unselected examples; candidate C is not a universal register preference.")
+        if editorial_context.enabled(run):
+            constraints.append("Inspect visual-plan, visual-manifest and each rendered-visual SVG, including its paths/arrows and label positions. Compare the actual direction, branches, joins and loops with the article's explanation, not merely the caption or alt text. A capacity/hash PASS does not prove truthful topology. Report mismatches as visual findings owned by VISUAL_PLAN. An empty manifest is valid when the omission reason fits the article. Source inspection cannot establish browser appearance; state that limit.")
     if editorial_context.enabled(run):
         constraints = [c.replace("full voice-profile, including selected-versus-unselected examples", "compact editorial-context and the selected local preference") for c in constraints]
         constraints.extend(editorial_context.constraints(state))
@@ -4267,6 +4306,11 @@ def current_packet(
                 })
                 save_run(directory, run)
                 raise FlowError("Recorded model-call receipt failed integrity validation", EXIT_INTEGRITY, receipt_issue)
+            if not qa_packet_has_current_visuals(directory, run, packet):
+                abandon_cached_packet(directory, run, run["state"], item, {
+                    "reason": "editorial_visual_inputs_require_upgrade",
+                })
+                return task_packet(directory, run, requested_route=requested_route, allow_canary=allow_canary)
             if model_call:
                 chosen = packet.get("selected_route", {}).get("chosen") or {}
                 chosen_key = f"{chosen.get('provider')}:{chosen.get('model')}"
@@ -4912,7 +4956,13 @@ def naturalization_review_findings(directory: Path, run: dict[str, Any], assessm
         if not isinstance(item, dict) or len(excerpt) < 8 or excerpt not in normalized or len(str(item.get("reason", "")).strip()) < 20 or item.get("status") not in {"PASS", "REPAIR"}:
             findings.append({"criterion": "naturalization_review_evidence", "artifact": source, "location": category, "finding": "The contextual review lacks an exact assessed excerpt and a specific reason.", "repair_instruction": "Inspect this category and return evidence tied to the current public prose.", "repair_state": "EDITORIAL_QA"})
         elif item["status"] == "REPAIR":
-            findings.append({"criterion": "contextual_naturalness", "artifact": "article", "location": excerpt, "finding": item["reason"], "repair_instruction": "Repair the affected prose while preserving its proposition and locked material.", "repair_state": "EDIT"})
+            owner = editorial_context.current_excerpt_owner(sys.modules[__name__], directory, run, excerpt) if editorial_context.enabled(run) else None
+            if editorial_context.enabled(run) and owner is None:
+                findings.append({"criterion": "naturalization_review_location", "artifact": source, "location": category, "finding": "The repair excerpt does not locate one unambiguous owned surface.", "repair_instruction": "Choose an exact unique excerpt from the affected field or paragraph.", "repair_state": "EDITORIAL_QA"})
+            else:
+                owner = owner or {"artifact": "article", "location": excerpt, "repair_state": "EDIT"}
+                criterion = {"VISUAL_PLAN": "visual_naturalness", "DISPLAY_REVISION": "display_naturalness"}.get(owner["repair_state"], "contextual_naturalness")
+                findings.append({"criterion": criterion, **owner, "finding": item["reason"], "repair_instruction": "Repair this owned surface while preserving its proposition and protected evidence."})
     for name, item in (assessment.get("dimensions") or {}).items():
         if isinstance(item, dict) and item.get("status") in {"REPAIR", "FAIL", "ESCALATE"}:
             findings.append({"criterion": "editorial_dimension", "artifact": source, "location": name, "finding": "The overall outcome cannot pass with an unresolved dimension.", "repair_instruction": "Resolve this dimension and make the overall outcome consistent."})
@@ -6446,6 +6496,11 @@ def command_submit(args: argparse.Namespace) -> int:
         if receipt_issue:
             block_attempt_reconciliation(directory, run, args.stage, attempt, packet_hash, receipt_issue)
             raise FlowError("Recorded model-call receipt failed integrity validation", EXIT_INTEGRITY, receipt_issue)
+        if not qa_packet_has_current_visuals(directory, run, packet_value):
+            abandon_cached_packet(directory, run, args.stage, packet_item, {
+                "reason": "editorial_visual_inputs_require_upgrade",
+            })
+            raise FlowError("Older editorial QA packet retired; resume for a task with bound rendered visuals", EXIT_WAITING)
         expected_output = Path(packet_value["expected_outputs"][0]["path"]).expanduser().resolve()
         submissions_root = (directory / "submissions").resolve()
         try:
@@ -7973,6 +8028,11 @@ def render_publication_files(directory: Path, run: dict[str, Any], package_root:
     canonical = target["canonical_url"].format(slug=metadata["slug"])
     words = len(re.findall(r"\b\w+\b", article_markdown))
     reading_minutes = max(1, round(words / 230))
+    def script_json(value: Any) -> str:
+        # JSON script text does not decode HTML entities. Escape HTML delimiters
+        # as JSON Unicode escapes so values round-trip without closing the tag.
+        return json.dumps(value, ensure_ascii=True).replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
+
     replacements = {
         "{{TITLE}}": html.escape(metadata["title"]),
         "{{DESCRIPTION}}": html.escape(metadata["description"], quote=True),
@@ -7982,7 +8042,12 @@ def render_publication_files(directory: Path, run: dict[str, Any], package_root:
         "{{DATE_DISPLAY}}": html.escape(dt.date.fromisoformat(metadata["date"][:10]).strftime("%B %d, %Y").replace(" 0", " ")),
         "{{WORD_COUNT}}": str(words),
         "{{READING_MINUTES}}": str(reading_minutes),
-        "{{TAGS_JSON}}": json.dumps(metadata["tags"]),
+        "{{TITLE_JSON}}": script_json(metadata["title"]),
+        "{{DESCRIPTION_JSON}}": script_json(metadata["description"]),
+        "{{CANONICAL_URL_JSON}}": script_json(canonical),
+        "{{DATE_ISO_JSON}}": script_json(metadata["date_iso"]),
+        "{{MODIFIED_DATE_ISO_JSON}}": script_json(metadata.get("modified_date_iso") or metadata["date_iso"]),
+        "{{TAGS_JSON}}": script_json(metadata["tags"]),
         "{{RECIPE_JSON}}": html.escape(json.dumps({
             "archetype": metadata.get("archetype"),
             "opening": metadata.get("opening"),
@@ -8377,16 +8442,27 @@ def copy_private_run_archive(directory: Path, private_root: Path) -> dict[str, A
 
 def command_amend_diagrams(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
-    if run["state"] not in {"BRIEF", "DRAFT", "VISUAL_PLAN"}:
-        raise FlowError("Diagram policy amendments require BRIEF, DRAFT, or VISUAL_PLAN; later stages must reverify visual changes", EXIT_USAGE)
+    early_states = {"BRIEF", "DRAFT", "VISUAL_PLAN"}
+    allowed_states = early_states | ARTICLE_AMENDABLE_STATES
+    if run["state"] not in allowed_states:
+        raise FlowError("Diagram policy amendments require BRIEF, DRAFT, VISUAL_PLAN, EDITORIAL_QA, PACKAGE, or PUBLISH_APPROVAL", EXIT_USAGE)
     reason = str(getattr(args, "reason", None) or "").strip()
     if not reason:
         raise FlowError("A diagram policy amendment requires --reason with the operator's instruction", EXIT_USAGE)
     if any(getattr(args, key, None) is not None for key in ("title", "description", "article")):
         raise FlowError("Amend diagram policy separately from public display text or article edits", EXIT_USAGE)
     with run_lock(directory, run):
-        if run["state"] not in {"BRIEF", "DRAFT", "VISUAL_PLAN"}:
+        if run["state"] not in allowed_states:
             raise FlowError("Run advanced beyond the diagram policy amendment boundary", EXIT_USAGE)
+        source_state = run["state"]
+        late = source_state in ARTICLE_AMENDABLE_STATES
+        current_article = artifact(run, "article")
+        if late:
+            article_path = artifact_path(directory, run, "article")
+            if (not editorial_context.enabled(run) or not current_article or not article_path
+                    or not article_path.is_file() or sha256_path(article_path) != current_article["sha256"]):
+                raise FlowError("Late visual amendments require a hash-bound current article in an editorial run", EXIT_INTEGRITY)
+        destination = "VISUAL_PLAN" if late else source_state
         previous = artifact(run, "article-recipe")
         recipe = json_artifact(directory, run, "article-recipe")
         if not previous or not recipe:
@@ -8399,18 +8475,39 @@ def command_amend_diagrams(args: argparse.Namespace) -> int:
         path = directory / "artifacts" / f"amended-recipe-{secrets.token_hex(4)}.json"
         write_json(path, recipe)
         item = record_artifact(directory, run, path, "article-recipe", {"actor": "operator", "decision": "diagram-policy-amendment", "reason": reason}, inputs=[previous["artifact_id"]])
-        baseline = reset_attempt_window(directory, run, run["state"])
+        decision_path = directory / "artifacts" / f"visual-policy-amendment-{secrets.token_hex(4)}.json"
+        write_json_immutable(decision_path, {
+            "actor": "operator", "reason": reason, "source_state": source_state,
+            "from": prior_mode, "to": args.diagrams,
+            "article_sha256": current_article["sha256"] if current_article else None,
+            "prior_visual_plan_sha256": (artifact(run, "visual-plan") or {}).get("sha256"),
+            "prior_visual_manifest_sha256": (artifact(run, "visual-manifest") or {}).get("sha256"),
+        })
+        record_artifact(directory, run, decision_path, "visual-policy-amendment", {"actor": "operator"}, inputs=[item["artifact_id"]])
+        if late and source_state in MODEL_STATES:
+            source_baseline = reset_attempt_window(directory, run, source_state)
+            append_event(directory, run, "REPAIR", "operator", {
+                "gate_id": state_definition(source_state, run)["gate"],
+                "finding": "Explicit visual amendment renews the held assessment: " + reason,
+                "source_state": source_state, "repair_state": source_state,
+                "attempt_ordinal_baseline": source_baseline,
+                "execution_count_baseline": run["attempt_baselines"][source_state],
+                "repair_context_required": False, "clear_route_failures": True,
+            })
+            run.setdefault("route_failures", {}).pop(source_state, None)
+            run.setdefault("route_retry_candidates", {}).pop(source_state, None)
+        baseline = reset_attempt_window(directory, run, destination)
         append_event(directory, run, "RECIPE_VISUAL_POLICY_AMENDED", "operator", {"from": prior_mode, "to": args.diagrams, "reason": reason, "prior_recipe_sha256": previous["sha256"], "recipe_sha256": item["sha256"], "attempt_ordinal_baseline": baseline})
         append_event(directory, run, "REPAIR", "controller", {
-            "gate_id": state_definition(run["state"], run)["gate"],
+            "gate_id": state_definition(destination, run)["gate"],
             "finding": "Operator amended the diagram policy: " + reason,
-            "source_state": run["state"], "repair_state": run["state"],
+            "source_state": source_state, "repair_state": destination,
             "attempt_ordinal_baseline": baseline,
-            "execution_count_baseline": run["attempt_baselines"][run["state"]],
+            "execution_count_baseline": run["attempt_baselines"][destination],
             "repair_context": None, "repair_context_required": False,
             "clear_route_failures": True,
         })
-        transition(directory, run, run["state"], "operator", "Diagram policy amended; issue a fresh task over the new recipe")
+        transition(directory, run, destination, "operator", "Diagram policy amended; renew visual review and downstream verification" if late else "Diagram policy amended; issue a fresh task over the new recipe")
     emit({"ok": True, "state": run["state"], "diagram": args.diagrams, "recipe": str(path), "next_command": ["article-flow", "next", run["run_id"]]}, args.json)
     return EXIT_OK
 
@@ -10904,7 +11001,7 @@ def build_parser() -> argparse.ArgumentParser:
     amend.add_argument("run_id")
     amend.add_argument("--title")
     amend.add_argument("--description")
-    amend.add_argument("--diagrams", choices=["auto", "optional", "required", "off"], help="Amend the recipe diagram policy before visual rendering.")
+    amend.add_argument("--diagrams", choices=["auto", "optional", "required", "off"], help="Amend diagram policy; held editorial articles reopen visual planning and downstream verification.")
     amend.add_argument("--reason", help="Operator instruction supporting a diagram policy amendment.")
     amend.add_argument("--article", help="Revised Markdown article; deterministic naturalization checks run before downstream reverification.")
     add_json(amend)

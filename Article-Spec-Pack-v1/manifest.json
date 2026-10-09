@@ -2,8 +2,8 @@
   "manifest_schema_version": "2.0.0",
   "workflow_version": "3.2.0",
   "hash_algorithm": "sha256",
-  "generator_name_and_version": "article-flow 3.2.1",
-  "generated_at": "2026-10-09T14:57:17Z",
+  "generator_name_and_version": "article-flow 3.2.2",
+  "generated_at": "2026-10-09T16:41:30Z",
   "generated_from": "index",
   "files": [
     {
@@ -19,16 +19,16 @@
       "scope": "source",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "054a9165522add1bc7854bc0e9b416d5c9a0c60034903caa6aecf0df86e8ca3b",
-      "byte_size": 4801
+      "sha256": "4b7dd393c3fa5f32fbf40459b4f3f421cec44596b35c56835cb0c38cbe38d3b0",
+      "byte_size": 6535
     },
     {
       "path": ".claude/skills/article-flow/references/editorial.md",
       "scope": "source",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "054a9165522add1bc7854bc0e9b416d5c9a0c60034903caa6aecf0df86e8ca3b",
-      "byte_size": 4801
+      "sha256": "4b7dd393c3fa5f32fbf40459b4f3f421cec44596b35c56835cb0c38cbe38d3b0",
+      "byte_size": 6535
     },
     {
       "path": ".gitattributes",
@@ -107,8 +107,8 @@
       "scope": "spec",
       "role": "documentation",
       "rule_set": "overview",
-      "sha256": "76e4bc13e4fc63ea6ab0e0fea89a38768840d94cce741d230e235c7f02632fab",
-      "byte_size": 14647
+      "sha256": "66e6623366ef94f9f3ec37e861482a84d83ea6d36ac9c11349df8d4ddcab9f0a",
+      "byte_size": 16501
     },
     {
       "path": "1-Master/Article-Master-Spec.md",
@@ -139,8 +139,8 @@
       "scope": "spec",
       "role": "documentation",
       "rule_set": "generated-workflow",
-      "sha256": "73a172679f96e20509efeba2aa91abaa00d3c6c44fd7f7bd2217cc3beb87f25e",
-      "byte_size": 18626
+      "sha256": "1aefbffea213ef15d61d983ab0eca1d3787fa80a965ac698aa44c03ca6709063",
+      "byte_size": 18884
     },
     {
       "path": "1-Master/Critic-Loop-(Single-Pass-Self-Check).md",
@@ -291,8 +291,8 @@
       "scope": "spec",
       "role": "normative",
       "rule_set": "editorial",
-      "sha256": "37729039ca0252c199225bed8d0e8eb45b0fa551051f3d0a5c95eaea20b8fdb8",
-      "byte_size": 17696
+      "sha256": "f79915f125ad6cfe9902a5244c85d13f59df498695a86f9fcc457bcf9271f16b",
+      "byte_size": 19517
     },
     {
       "path": "evaluations/adversarial-cases.json",
@@ -379,8 +379,8 @@
       "scope": "spec",
       "role": "template",
       "rule_set": "publication",
-      "sha256": "10fd7b2d630c60b1768761217cb0fcd8a4391add2bac36769cb4d0e5ac19d55e",
-      "byte_size": 4377
+      "sha256": "e8b00426d1db728ed227a1a347fa6606aea2da863b309aed0c4df2e1526026e6",
+      "byte_size": 4395
     },
     {
       "path": "publication/theproductiveprompter.json",
@@ -707,8 +707,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "ab1f8c7cf32a058eff5e66e95eaef3526b24d45c845fd21f315bb6c44550ff80",
-      "byte_size": 600892
+      "sha256": "e91f21adc91fbe28d5b5b153627c69883e6a4d5221c6612b9e0748f19069fd68",
+      "byte_size": 608651
     },
     {
       "path": "scripts/article_maintenance.py",
@@ -731,8 +731,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "a39180f5eff6171fb44fa1b7b0ef29245e71c7e37d3c2b422ce9b55ed5785482",
-      "byte_size": 24891
+      "sha256": "62b9eaf38ff4f236ea0fbdf75134a5c9b3989f9a83a5957da3c86ba68563f87a",
+      "byte_size": 36398
     },
     {
       "path": "scripts/editorial_learning.py",
@@ -787,8 +787,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "conformance",
-      "sha256": "76dca7d4cec91ee316c97a305af133d8adbd8f3045599b8df3cd143250d4c820",
-      "byte_size": 293298
+      "sha256": "3888d59e3e84c2d93175fb598143ef39c7f615d8d400a46f57124ce6220d2b9d",
+      "byte_size": 305152
     },
     {
       "path": "tests/test_codex_exec_adapter.py",
@@ -797,6 +797,14 @@
       "rule_set": "conformance",
       "sha256": "6c24ee909663fa9441988416b4498dd32db8799d5dd49d503183e80861acafc5",
       "byte_size": 18229
+    },
+    {
+      "path": "tests/test_editorial_recovery.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "evaluation",
+      "sha256": "970fda0dfd0844b812b1eba8816ed26c48e4842de1fc515975c8d714bc8585fb",
+      "byte_size": 14906
     },
     {
       "path": "tests/test_editorial_system.py",
@@ -843,16 +851,16 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "integrity",
-      "sha256": "4d14839d4e43f8587eb72ee22053e13c79b5b4c39182ae2276e1f1fc51d573b2",
-      "byte_size": 16158
+      "sha256": "abfa5be98d8111d201ba425349f298ea0525194b2159722bc5b3b702ec5d807d",
+      "byte_size": 16300
     },
     {
       "path": "workflow/workflow.json",
       "scope": "spec",
       "role": "normative",
       "rule_set": "workflow",
-      "sha256": "024d012f2c2b39f9ad586ecb215f58213e6088cb1b4439ff2cf092f94442ab40",
-      "byte_size": 31554
+      "sha256": "e494106886ddd285010f879a933078941ebb859bb851c43587a87458d240a1fb",
+      "byte_size": 31862
     },
     {
       "path": "workflow/workflow.v2.0.0.json",

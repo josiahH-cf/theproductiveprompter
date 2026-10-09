@@ -9,6 +9,22 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## October 9, 2026: Rendered visual review and held-article repair (3.2.2)
+
+- Supply the approved visual plan, bound manifest and actual SVG geometry to editorial QA, including existing frozen 3.2 runs; missing or modified assets fail before dispatch.
+- Keep topology and capacity instructions on the compact editorial path. State the exact audit/deferral slot order and reject a loop where the explanation is one-way.
+- Allow an explicit visual-policy amendment on held editorial articles to reopen visual planning with its recorded reason, preserve current prose and renew downstream verification. Published articles still require a new revision.
+- Align the active character rule with the existing narrow source-bound evidence exception. Visual checks and publication do not establish author resemblance or browser appearance.
+
+- Retire visually blind pending QA packets on upgrade, route contextual findings by owned field, and recover older malformed locators only from original hash-bound review evidence while preserving IDs and findings.
+- Serialize JSON-LD fields as safe JSON rather than HTML entities, preserving apostrophes, quotes and script delimiters exactly after decoding.
+
+## October 9, 2026: Verified published revision sources (3.2.1)
+
+- Verify current committed/worktree/live bytes before revisions, preserve exact original publication timestamps and support legacy published pages without fabricating a completed parent run.
+- Bind source quotations and code to immutable exact evidence; permit their punctuation only under the scoped frozen policy while keeping editable prose and summaries strict.
+- Preserve nested code in links, literal placeholder markers and verbatim HTML evidence through safe Markdown rendering. Recheck the baseline before packaging and publication.
+
 ## October 9, 2026: Evidence-backed voice and editorial collaboration (3.2.0)
 
 - Freeze effective definitions and supply one compact capstone-backed voice guide before briefing; keep full profile history outside new writer inputs.
