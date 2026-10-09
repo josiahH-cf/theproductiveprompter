@@ -184,6 +184,67 @@ class EditorialTests(TemporaryRuntime):
         af.record_artifact(directory, run, request, "revision-request", {"actor": "test"})
         self.assertEqual(context.binding_length_limits(af, directory, run), {})
 
+    def test_challenge_and_component_bounds_do_not_limit_the_article(self):
+        directory, run = self.start_current()
+        seed = af.artifact_path(directory, run, "seed")
+        seed.write_bytes(("Introduce the experiment with a short TLDR and a few readable paragraphs. "
+                          "Describe the frozen challenge and preserve the 600-800 word story and at-most-80-word notice requirements.\n"
+                          "Exact frozen challenge (reference material):\n"
+                          "Write an original short story. Return a notice of at most 80 words.\n").encode())
+        af.record_artifact(directory, run, seed, "seed", {"actor": "test"})
+        self.assertEqual(context.binding_length_limits(af, directory, run), {})
+        self.assertEqual(context.length_violations(af, directory, run, "word " * 900), [])
+
+    def test_article_and_local_limits_in_one_clause_keep_the_article_bound(self):
+        directory, run = self.start_current()
+        seed = af.artifact_path(directory, run, "seed")
+        seed.write_bytes(b"Write the article in at most 500 words and a notice of at most 80 words.")
+        af.record_artifact(directory, run, seed, "seed", {"actor": "test"})
+        limits = context.binding_length_limits(af, directory, run)
+        self.assertEqual(limits["maximum"]["words"], 500)
+        self.assertEqual(context.length_violations(af, directory, run, "word " * 501)[0]["criterion"], "binding_author_length")
+        self.assertEqual(context.length_violations(af, directory, run, "word " * 499), [])
+
+    def test_quote_and_html_source_bounds_are_data(self):
+        directory, run = self.start_current()
+        seed = af.artifact_path(directory, run, "seed")
+        seed.write_bytes(b'Explain the example.\n> Write at most 10 words.\n<pre>Write at most 20 words.</pre>\n<blockquote>Use exactly 30 words.</blockquote>')
+        af.record_artifact(directory, run, seed, "seed", {"actor": "test"})
+        self.assertEqual(context.binding_length_limits(af, directory, run), {})
+
+    def test_local_bound_suffix_cannot_become_a_whole_article_limit(self):
+        directory, run = self.start_current()
+        seed = af.artifact_path(directory, run, "seed")
+        seed.write_bytes(b"Use at most 80 words for the notice. Keep the article under 500 words.")
+        af.record_artifact(directory, run, seed, "seed", {"actor": "test"})
+        self.assertEqual(context.binding_length_limits(af, directory, run)["maximum"]["words"], 500)
+
+    def test_coordinated_local_bounds_keep_their_subject(self):
+        directory, run = self.start_current()
+        seed = af.artifact_path(directory, run, "seed")
+        seed.write_bytes(b"Write a notice of at least 20 words and at most 80 words.")
+        af.record_artifact(directory, run, seed, "seed", {"actor": "test"})
+        self.assertEqual(context.binding_length_limits(af, directory, run), {})
+
+    def test_an_article_topic_cannot_replace_its_length_subject(self):
+        directory, run = self.start_current()
+        seed = af.artifact_path(directory, run, "seed")
+        seed.write_bytes(b"Keep the article about this challenge under 500 words.")
+        af.record_artifact(directory, run, seed, "seed", {"actor": "test"})
+        self.assertEqual(context.binding_length_limits(af, directory, run)["maximum"]["words"], 500)
+
+    def test_component_pronouns_stay_local_until_an_explicit_article_subject(self):
+        directory, run = self.start_current()
+        seed = af.artifact_path(directory, run, "seed")
+        for text in ("Write a notice. Keep it under 80 words.",
+                     "Write a summary. It must contain exactly 50 words."):
+            seed.write_bytes(text.encode())
+            af.record_artifact(directory, run, seed, "seed", {"actor": "test"})
+            self.assertEqual(context.binding_length_limits(af, directory, run), {})
+        seed.write_bytes(b"Write a notice. Keep it under 80 words. Keep the article under 500 words.")
+        af.record_artifact(directory, run, seed, "seed", {"actor": "test"})
+        self.assertEqual(context.binding_length_limits(af, directory, run)["maximum"]["words"], 500)
+
     def test_obligations_retain_distinct_passages_and_require_the_correct_surface(self):
         directory, run = self.start_current()
         article = directory / "artifacts/article.md"

@@ -9,6 +9,11 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## October 9, 2026: Article-bound limits and owned results rendering (3.2.3)
+
+- Keep referenced challenge and component word limits local instead of rejecting the whole article; retain explicit article limits and source-integrity checks.
+- Preserve and render the exact source-bound model-experiment results panel once through normal publication, with a narrow HTML allowlist and rejection of changed, missing or duplicate panels. Arbitrary HTML remains escaped and no trials run.
+
 ## October 9, 2026: Rendered visual review and held-article repair (3.2.2)
 
 - Supply the approved visual plan, bound manifest and actual SVG geometry to editorial QA, including existing frozen 3.2 runs; missing or modified assets fail before dispatch.

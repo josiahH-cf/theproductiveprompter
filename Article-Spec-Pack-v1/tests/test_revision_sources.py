@@ -73,6 +73,64 @@ class RevisionSourceTests(TemporaryRuntime):
     def article(self):
         return f'# Original title\n\nA tighter explanation preserves the observation.\n\n> {self.payload}\n\n```python\n{self.code}\n```\n'
 
+    def install_owned_panel(self, content=None):
+        panel = (sources.RESULTS_START + '\n<section id="model-experiment-results" aria-label="Model experiment results">'
+                 '<h2>The experiment runs</h2><p><strong>Results update</strong></p><p>121 original responses.</p>'
+                 '<p><a href="/docs/model-release-experiment/index.html">Explore the model cards and runs →</a></p></section>\n'
+                 + sources.RESULTS_END) if content is None else content
+        self.data = self.data.replace(b'</body>', panel.encode('utf-8') + b'</body>')
+        (self.repo / f'docs/{self.slug}.html').write_bytes(self.data)
+        af.git(['add', '.'], cwd=self.repo)
+        af.git(['commit', '-m', 'Preserve owned results'], cwd=self.repo)
+        return panel
+
+    def test_owned_results_panel_survives_actual_publication_render_once(self):
+        panel = self.install_owned_panel()
+        _, result = self.revise()
+        directory, run = af.load_run(result['run_id'])
+        article = self.article() + '\n' + panel + '\n\nUntrusted <script>alert(1)</script> stays text.\n'
+        self.record_text(directory, run, 'article', article)
+        self.record_json(directory, run, 'brief', {'title': 'Original title', 'date': '2026-09-15', 'description': 'A revised explanation'})
+        run['model_experiment']['actual_models'] = ['gpt-5.6-sol']
+        card = f'<article class="article-card" data-article-flow-slug="{self.slug}">Original</article>'
+        for path in ('docs/blog.html', 'index.html'):
+            (self.repo / path).write_bytes(card.encode())
+        (self.repo / 'feed.xml').write_bytes(f'<rss><channel><lastBuildDate>old</lastBuildDate><item><link>{self.url}</link><pubDate>old</pubDate></item></channel></rss>'.encode())
+        (self.repo / 'sitemap.xml').write_bytes(f'<urlset><url><loc>{self.url}</loc></url></urlset>'.encode())
+        package = directory / 'owned-panel-package'
+        af.render_publication_files(directory, run, package, af.package_metadata(directory, run))
+        rendered = (package / f'site/docs/{self.slug}.html').read_text(encoding='utf-8')
+        self.assertEqual(rendered.count(panel), 1)
+        self.assertEqual(rendered.count('id="model-experiment-results"'), 1)
+        self.assertIn('<a href="/docs/model-release-experiment/index.html">', rendered)
+        self.assertNotIn('&lt;section', rendered)
+        self.assertNotIn('<script>alert(1)</script>', rendered)
+        self.assertEqual(sources.preservation_findings(af, rendered, run), [])
+        self.assertIn('&lt;section', af.markdown_to_html(article))
+
+    def test_missing_modified_duplicate_or_fenced_owned_panel_is_rejected(self):
+        panel = self.install_owned_panel()
+        _, result = self.revise()
+        _, run = af.load_run(result['run_id'])
+        for value in (self.article(), self.article() + panel.replace('121', '122'), self.article() + panel + panel,
+                      self.article() + '\n' + panel + '\n' + html.escape(panel),
+                      self.article() + '\n' + panel + '\n' + html.escape(html.escape(panel))):
+            self.assertTrue(sources.preservation_findings(af, value, run))
+            with self.assertRaises(af.FlowError):
+                sources.render_article_markdown(af, value, run)
+        for fence in ('```html', '   ```html', '~~~html'):
+            with self.assertRaisesRegex(af.FlowError, 'code fence'):
+                sources.render_article_markdown(af, self.article() + '\n' + fence + '\n' + panel + '\n```', run)
+
+    def test_source_panel_markup_cannot_enable_arbitrary_raw_html(self):
+        panel = (sources.RESULTS_START + '\n<section id="model-experiment-results" aria-label="Model experiment results">'
+                 '<script>alert(1)</script><p><a href="javascript:alert(1)">Unsafe</a></p></section>\n' + sources.RESULTS_END)
+        self.install_owned_panel(panel)
+        _, result = self.revise()
+        _, run = af.load_run(result['run_id'])
+        with self.assertRaisesRegex(af.FlowError, 'unsupported markup'):
+            sources.render_article_markdown(af, self.article() + '\n' + panel + '\n', run)
+
     def test_legacy_source_creates_fresh_provenance_without_fake_parent(self):
         old_id = self.start('An unfinished historical run stays unfinished.')
         directory, old = af.load_run(old_id)

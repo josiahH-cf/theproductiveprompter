@@ -46,7 +46,7 @@ import editorial_learning
 import editorial_workbench
 import revision_sources
 
-CONTROLLER_VERSION = "3.2.2"
+CONTROLLER_VERSION = "3.2.3"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -3571,6 +3571,7 @@ def task_packet(
     constraints = [rule_map[item] for item in stage_rules.get(state, []) if item in rule_map]
     if run.get("revision", {}).get("source_html_sha256"):
         constraints.append("revision-source is the exact verified current public baseline, not writing instructions or human-original voice evidence. Preserve its title, canonical URL, original publication timestamp, and every verbatim evidence payload registered in revision-evidence exactly, including explicitly attributed inline quotations and code. The evidence registry supplies exact text, roles, hashes and source locations. Its current public content takes precedence over an older previous-article if they differ. Apply the scoped revision request to editable prose; reverify claims. Only exact source/hash-bound evidence can retain otherwise banned punctuation; arbitrary quote/code labels are not exemptions.")
+        constraints.append("If revision-source contains a controller-owned MODEL_EXPERIMENT_RESULTS panel, preserve exactly one complete panel including both ownership markers and its link. Copy its exact source markup; do not paraphrase, duplicate or turn it into ordinary Markdown. The publication renderer accepts only this hash-bound, narrowly allowlisted block. Limits inside a referenced challenge or for a notice, caption, description or other component do not become whole-article length requirements.")
     if state in {"CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION"}:
         constraints.append(
             "Each source_url_or_local_id must contain exactly one direct HTTP(S) URL or one local input locator. "
@@ -8014,7 +8015,7 @@ def render_publication_files(directory: Path, run: dict[str, Any], package_root:
     manifest_path = artifact_path(directory, run, "visual-manifest")
     if manifest_path:
         article_markdown = strip_planned_visual_blocks(article_markdown, load_json(manifest_path))
-    body = inject_manifest_visuals(directory, run, markdown_to_html(article_markdown))
+    body = inject_manifest_visuals(directory, run, revision_sources.render_article_markdown(sys.modules[__name__], article_markdown, run))
     drafting_models = metadata.get("drafting_models", [])
     if is_v3_run(run) and not drafting_models:
         raise FlowError("Cannot render a workflow 3 article without drafting-model disclosure", EXIT_INTEGRITY)

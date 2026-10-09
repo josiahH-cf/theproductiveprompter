@@ -265,6 +265,116 @@ def protected(af: Any, run: dict) -> list[tuple[str, str]]:
     return page.regions
 
 
+RESULTS_START = "<!-- MODEL_EXPERIMENT_RESULTS_START -->"
+RESULTS_END = "<!-- MODEL_EXPERIMENT_RESULTS_END -->"
+
+
+def owned_results_panel(af: Any, run: dict) -> str | None:
+    """Return only an intact, narrowly allowlisted panel from the bound source."""
+    source = source_bytes(af, run)
+    if source is None:
+        return None
+    text = source.decode("utf-8").replace("\r\n", "\n")
+    if RESULTS_START not in text and RESULTS_END not in text:
+        return None
+    if text.count(RESULTS_START) != 1 or text.count(RESULTS_END) != 1:
+        raise af.FlowError("Published results panel markers are ambiguous", af.EXIT_INTEGRITY)
+    start, end = text.index(RESULTS_START), text.index(RESULTS_END)
+    if end <= start:
+        raise af.FlowError("Published results panel markers are reversed", af.EXIT_INTEGRITY)
+    panel = text[start:end + len(RESULTS_END)]
+
+    class Panel(HTMLParser):
+        def __init__(self):
+            super().__init__(convert_charrefs=True)
+            self.stack = []
+            self.sections = 0
+            self.links = 0
+            self.invalid = False
+
+        def handle_starttag(self, tag, attrs):
+            fields = dict(attrs)
+            if len(fields) != len(attrs) or tag not in {"section", "h2", "p", "strong", "a"}:
+                self.invalid = True
+            elif tag == "section":
+                self.sections += 1
+                if self.stack or fields != {"id": "model-experiment-results", "aria-label": "Model experiment results"}:
+                    self.invalid = True
+            elif tag == "a":
+                self.links += 1
+                if fields != {"href": "/docs/model-release-experiment/index.html"}:
+                    self.invalid = True
+            elif fields or not self.stack:
+                self.invalid = True
+            self.stack.append(tag)
+
+        def handle_startendtag(self, tag, attrs):
+            self.invalid = True
+
+        def handle_endtag(self, tag):
+            if not self.stack or self.stack.pop() != tag:
+                self.invalid = True
+
+        def handle_data(self, data):
+            if data.strip() and not self.stack:
+                self.invalid = True
+
+        def handle_comment(self, data):
+            if data.strip() not in {"MODEL_EXPERIMENT_RESULTS_START", "MODEL_EXPERIMENT_RESULTS_END"}:
+                self.invalid = True
+
+        def handle_decl(self, decl):
+            self.invalid = True
+
+        def handle_pi(self, data):
+            self.invalid = True
+
+        def unknown_decl(self, data):
+            self.invalid = True
+
+    parsed = Panel()
+    parsed.feed(panel)
+    if parsed.invalid or parsed.stack or parsed.sections != 1 or parsed.links != 1:
+        raise af.FlowError("Published results panel has unsupported markup", af.EXIT_INTEGRITY)
+    return panel
+
+
+def intact_owned_panel(value: str, panel: str) -> bool:
+    if value.count(panel) != 1:
+        return False
+    remainder = value.replace(panel, "", 1)
+    while True:
+        decoded = html.unescape(remainder)
+        if decoded == remainder:
+            break
+        remainder = decoded
+    return RESULTS_START not in remainder and RESULTS_END not in remainder
+
+
+def render_article_markdown(af: Any, value: str, run: dict) -> str:
+    """Keep arbitrary HTML escaped; render the exact source-owned panel once."""
+    panel = owned_results_panel(af, run)
+    if panel is None:
+        return af.markdown_to_html(value)
+    if not intact_owned_panel(value, panel):
+        raise af.FlowError("Article must preserve exactly one intact source-owned results panel", af.EXIT_INTEGRITY)
+    before, after = value.split(panel)
+    if (before and not before.endswith("\n")) or (after and not after.startswith("\n")):
+        raise af.FlowError("Source-owned results panel must be a standalone block", af.EXIT_INTEGRITY)
+    fence = None
+    for line in before.splitlines():
+        match = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
+        if match:
+            mark, tail = match.groups()
+            if fence is None:
+                fence = mark
+            elif mark[0] == fence[0] and len(mark) >= len(fence) and not tail.strip():
+                fence = None
+    if fence is not None:
+        raise af.FlowError("Source-owned results panel cannot be inside a code fence", af.EXIT_INTEGRITY)
+    return "\n".join(part for part in (af.markdown_to_html(before), panel, af.markdown_to_html(after)) if part)
+
+
 def mask_bound_evidence(af: Any, value: str, run: dict | None) -> str:
     if not run or "source_hash_bound_verbatim_evidence" not in af.policy_for_run(run).get("style_gate", {}).get("em_dash_exclusions", []):
         return value
@@ -283,6 +393,11 @@ def mask_bound_evidence(af: Any, value: str, run: dict | None) -> str:
 def preservation_findings(af: Any, value: str, run: dict) -> list[dict]:
     remaining = [(kind, digest(text)) for _a, _b, kind, text in regions(value)]
     findings = []
+    panel = owned_results_panel(af, run)
+    if panel is not None and not intact_owned_panel(value, panel):
+        findings.append({"criterion": "revision_owned_results_panel", "location": "model-experiment-results",
+                         "finding": "The exact source-owned results panel is absent, modified or duplicated.",
+                         "repair_instruction": "Restore exactly one intact panel from the verified published source, including its ownership markers and working link."})
     for kind, text in protected(af, run):
         key = (kind, digest(text))
         if key in remaining:
