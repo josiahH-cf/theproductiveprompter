@@ -1,17 +1,306 @@
 """Regressions for owned review surfaces and immutable legacy-obligation recovery."""
+import html
+import re
 import sys
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import editorial_context as context
+import revision_sources
 import test_article_flow_v3 as fixtures
 
 af, call = fixtures.af, fixtures.call
 
 
+class SharedSurfaceVerificationTests(fixtures.TemporaryRuntime):
+    live_verification_fixture = fixtures.WorkflowV31RegressionTests.live_verification_fixture
+
+    def committed_collection(self):
+        run_id, directory, target, surfaces = self.live_verification_fixture()
+        slug = "bounded-live-verification"
+        canonical = target["canonical_url"].format(slug=slug)
+        card = f'<article class="article-card" data-article-flow-slug="{slug}"><time>2026-08-18</time><a href="{slug}.html">Title</a><p>Summary</p></article>'
+        for name in ("blog", "homepage"):
+            actual_card = card.replace(f'href="{slug}.html"', f'href="docs/{slug}.html"') if name == "homepage" else card
+            surfaces[name].write_text("<html>" + actual_card + "<!-- other article: old --></html>", encoding="utf-8")
+        surfaces["feed"].write_text(f'<rss><channel><item><title>Title</title><link>{canonical}</link><description>Summary</description><pubDate>Tue, 18 Aug 2026 12:00:00 -0500</pubDate></item><!-- other article: old --></channel></rss>', encoding="utf-8")
+        surfaces["sitemap"].write_text(f'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>{canonical}</loc><lastmod>2026-10-09</lastmod></url><!-- other article: old --></urlset>', encoding="utf-8")
+        site = directory / "package/site"
+        (site / "styles.css").write_bytes(b"body { color: black; }\n")
+        asset = site / "assets/owned.svg"
+        asset.parent.mkdir()
+        asset.write_bytes(b"<svg>original</svg>\n")
+        repo = self.root / run_id
+        repo.mkdir()
+        for path in site.rglob("*"):
+            if path.is_file():
+                dest = repo / path.relative_to(site)
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_bytes(path.read_bytes())
+        af.git(["init", "-b", "main"], cwd=repo)
+        for key, value in (("user.email", "test@example.com"), ("user.name", "Test"), ("core.autocrlf", "false")):
+            af.git(["config", key, value], cwd=repo)
+        af.git(["add", "."], cwd=repo)
+        af.git(["commit", "-m", "Original article"], cwd=repo)
+        published = str(af.git(["rev-parse", "HEAD"], cwd=repo)).strip()
+        remote = self.root / (run_id + "-remote.git")
+        af.git(["init", "--bare", str(remote)], cwd=repo)
+        af.git(["remote", "add", "origin", str(remote)], cwd=repo)
+        _, run = af.load_run(run_id)
+        package = af.load_json(directory / "package/package.json")
+        package["public_files"] = [{"path": path.relative_to(directory / "package").as_posix(), "sha256": af.sha256_path(path)} for path in (directory / "package").rglob("*") if path.is_file() and path.name != "package.json"]
+        af.write_json(directory / "package/package.json", package)
+        af.record_artifact(directory, run, directory / "package/package.json", "package", {"actor": "test"})
+        publication = self.record_json(directory, run, "publication", {"commit": published, "package_revision": package["package_revision"]})
+        for name in ("blog", "homepage", "feed", "sitemap"):
+            path = repo / surfaces[name].relative_to(site)
+            path.write_bytes(path.read_bytes().replace(b"other article: old", b"other article: revised"))
+        af.git(["add", "."], cwd=repo)
+        af.git(["commit", "-m", "Next article changes discovery surfaces"], cwd=repo)
+        af.git(["push", "origin", "main"], cwd=repo)
+        return run_id, directory, target, repo, published, publication
+
+    def fetched(self, target, repo):
+        mapping = {target["canonical_url"].format(slug="bounded-live-verification"): repo / "docs/bounded-live-verification.html",
+                   **{target[name + "_url"]: repo / target[name + "_file"] for name in ("blog", "homepage", "feed", "sitemap")},
+                   target["homepage_url"] + "styles.css": repo / "styles.css"}
+        return lambda url, timeout=30: (200, mapping[url].read_bytes(), {})
+
+    def test_later_collection_commit_verifies_without_rewriting_original_publication(self):
+        run_id, directory, target, repo, published, publication = self.committed_collection()
+        original_receipt = publication.read_bytes()
+        original_package = (directory / "package/package.json").read_bytes()
+        head = str(af.git(["rev-parse", "HEAD"], cwd=repo)).strip()
+        with mock.patch.object(af, "publication_repo_root", return_value=repo), mock.patch.object(af, "fetch_url", side_effect=self.fetched(target, repo)):
+            code, result = call(af.command_verify_live, run_id=run_id)
+        self.assertEqual(code, af.EXIT_OK, result)
+        receipt = af.load_json(directory / "receipts/live-verification-01.json")
+        self.assertEqual((receipt["commit"], receipt["shared_surface_commit"]), (published, head))
+        self.assertEqual(publication.read_bytes(), original_receipt)
+        self.assertEqual((directory / "package/package.json").read_bytes(), original_package)
+        self.assertEqual(af.load_run(run_id)[1]["state"], "COMPLETE")
+        self.assertTrue(all(item["ok"] for item in receipt["checks"]))
+
+    def test_later_discovery_scope_rejects_unbound_or_changed_evidence(self):
+        cases = ("dirty", "remote_moved", "unrelated", "article", "asset", "style", "missing_card", "duplicate_card", "summary", "card_position", "feed_date", "sitemap_date", "package", "publication")
+        for case in cases:
+            with self.subTest(case=case):
+                run_id, directory, target, repo, _, publication = self.committed_collection()
+                if case in {"package", "publication"}:
+                    path = directory / "package/public/metadata.json" if case == "package" else publication
+                    path.write_bytes(path.read_bytes() + b" ")
+                elif case == "unrelated":
+                    af.git(["checkout", "--orphan", "unrelated"], cwd=repo)
+                    af.git(["commit", "-m", "Unrelated root"], cwd=repo)
+                    af.git(["push", "--force", "origin", "HEAD:main"], cwd=repo)
+                elif case == "remote_moved":
+                    (repo / "next.txt").write_bytes(b"not pushed")
+                    af.git(["add", "."], cwd=repo)
+                    af.git(["commit", "-m", "Not published"], cwd=repo)
+                else:
+                    path = repo / ({"article": "docs/bounded-live-verification.html", "asset": "assets/owned.svg", "style": "styles.css", "feed_date": "feed.xml", "sitemap_date": "sitemap.xml"}.get(case, "index.html"))
+                    body = path.read_bytes()
+                    card = re.search(rb'<article\b.*?</article>', body, re.DOTALL)
+                    if case == "missing_card":
+                        body = body.replace(card.group(0), b"")
+                    elif case == "duplicate_card":
+                        body = body.replace(card.group(0), card.group(0) * 2)
+                    elif case == "summary":
+                        body = body.replace(b"Summary", b"Different meaning")
+                    elif case == "card_position":
+                        body = body.replace(card.group(0), b'<article class="article-card"><a href="other.html">Other</a></article>' + card.group(0))
+                    elif case == "feed_date":
+                        body = body.replace(b"18 Aug", b"19 Aug")
+                    elif case == "sitemap_date":
+                        body = body.replace(b"2026-10-09", b"2026-10-10")
+                    else:
+                        body += b" changed"
+                    path.write_bytes(body)
+                    if case != "dirty":
+                        af.git(["add", "."], cwd=repo)
+                        af.git(["commit", "-m", "Changed binding"], cwd=repo)
+                        af.git(["push", "origin", "main"], cwd=repo)
+                _, run = af.load_run(run_id)
+                with mock.patch.object(af, "publication_repo_root", return_value=repo), self.assertRaises(af.FlowError):
+                    af.live_discovery_scope(directory, run, af.load_json(directory / "package/package.json"), af.load_json(directory / "package/public/metadata.json"), target)
+                self.assertEqual(af.load_run(run_id)[1]["state"], "LIVE_VERIFICATION")
+
+    def test_later_scope_still_rejects_stale_http_and_failed_tls(self):
+        for failed in ("feed", "styles.css"):
+            with self.subTest(surface=failed):
+                run_id, directory, target, repo, _, _ = self.committed_collection()
+                fetch = self.fetched(target, repo)
+                def stale(url, timeout=30):
+                    if url == (target["feed_url"] if failed == "feed" else target["homepage_url"] + "styles.css"):
+                        return (200, b"stale", {}) if failed == "feed" else (0, b"", {})
+                    return fetch(url, timeout)
+                with mock.patch.object(af, "publication_repo_root", return_value=repo), mock.patch.object(af, "fetch_url", side_effect=stale):
+                    code, result = call(af.command_verify_live, run_id=run_id)
+                self.assertEqual(code, af.EXIT_FAILED, result)
+                self.assertNotEqual(af.load_run(run_id)[1]["state"], "COMPLETE")
+
+    def test_actual_verifier_rejects_a_duplicate_card_with_root_relative_url(self):
+        run_id, directory, target, repo, _, _ = self.committed_collection()
+        path = repo / "index.html"
+        path.write_bytes(path.read_bytes().replace(b"</html>", b'<article class="article-card"><a href="/docs/bounded-live-verification.html">RETIRED TITLE</a><p>RETIRED SUMMARY</p></article></html>'))
+        af.git(["add", "."], cwd=repo)
+        af.git(["commit", "-m", "Duplicate retired card"], cwd=repo)
+        af.git(["push", "origin", "main"], cwd=repo)
+        with mock.patch.object(af, "publication_repo_root", return_value=repo), mock.patch.object(af, "fetch_url", side_effect=self.fetched(target, repo)), self.assertRaises(af.FlowError):
+            call(af.command_verify_live, run_id=run_id)
+        self.assertEqual(af.load_run(run_id)[1]["state"], "LIVE_VERIFICATION")
+
+    def test_discovery_ownership_counts_equivalent_urls_in_html_and_xml(self):
+        canonical = "https://theproductiveprompter.com/docs/example.html"
+        variants = (canonical, "/docs/example.html", "docs/example.html", "//theproductiveprompter.com/docs/example.html",
+                    "/docs/../docs/example.html", "/docs/%65xample.html", canonical + "?source=old", canonical + "#old", r"\docs\example.html")
+        for surface in ("homepage", "blog", "feed", "sitemap"):
+            base = "https://theproductiveprompter.com/docs/blog.html" if surface == "blog" else "https://theproductiveprompter.com/"
+            for link in variants:
+                if surface == "blog" and link == "docs/example.html":
+                    link = "example.html"
+                with self.subTest(surface=surface, link=link):
+                    if surface in {"homepage", "blog"}:
+                        original = '<article class="article-card"><a href="' + canonical + '">Approved</a></article>'
+                        duplicate = "<article class='article-card'><a href='" + html.escape(link, quote=True) + "'>Retired</a></article>"
+                        content = original + duplicate
+                    else:
+                        owner, key = ("item", "link") if surface == "feed" else ("url", "loc")
+                        entry = lambda value: f"<{owner}><{key}>{html.escape(value)}</{key}></{owner}>"
+                        content = "<root>" + entry(canonical) + entry(link) + "</root>"
+                    with self.assertRaisesRegex(af.FlowError, "found 2"):
+                        af.discovery_entry(content.encode(), surface, canonical, base)
+
+    def test_discovery_selection_respects_document_base_and_rejects_ambiguous_attributes(self):
+        canonical = "https://theproductiveprompter.com/docs/example.html"
+        original = '<article class="article-card"><a href="docs/example.html">Approved</a></article>'
+        base = "https://theproductiveprompter.com/"
+        self.assertEqual(af.discovery_entry(original.encode(), "homepage", canonical, base)[0], 0)
+        for extra in ('<base href="https://unrelated.example/">', '<base href="/other/">'):
+            with self.subTest(base=extra), self.assertRaises(af.FlowError):
+                af.discovery_entry((original + extra).encode(), "homepage", canonical, base)
+        duplicate = '<article class="article-card"><a href="/docs/example.html" href="https://unrelated.example/">Retired</a></article>'
+        with self.assertRaisesRegex(af.FlowError, "duplicate HTML attributes"):
+            af.discovery_entry((original + duplicate).encode(), "homepage", canonical, base)
+
+
 class EditorialRecoveryTests(fixtures.TemporaryRuntime):
     anchor = fixtures.UsefulVisualPolicyTests.anchor
     fixture = fixtures.UsefulVisualPolicyTests.fixture
+
+    tutorial_code = ("EDITORIAL LOOP\n\n                Seed\n                  ↓\n                Confirmed intent\n"
+                     "                  ↓\n                Research + brief\n                  ↓\n                Draft\n"
+                     "                  ↺  repair failed\n                     evidence or voice checks\n"
+                     "                Editorially ready article\n                  ↓\n                PUBLICATION LOOP\n\n"
+                     "                Package\n                  ↓\n                Validate\n                  ↓\n"
+                     "                Deploy\n                  ↓\n                Inspect the live result\n"
+                     "                  ↓\n                Verified URL\n                ")
+
+    def source_code_fixture(self, include=False):
+        directory, run, _, _ = self.fixture(current=True, include=include)
+        source = self.record_text(directory, run, "revision-source", "<pre><code>" + html.escape(self.tutorial_code) + "</code></pre>", "bound-source.html")
+        run["revision"] = {"slug": "competing-effects", "source_html_sha256": af.sha256_path(source)}
+        draft = "# Competing effects\n\n```text\n" + self.tutorial_code + "\n```\n\n" + self.anchor + "\n\nThe net effect remains uncertain.\n"
+        self.record_text(directory, run, "draft", draft, "exact-source-draft.md")
+        return directory, run, draft
+
+    def test_exact_tutorial_code_survives_visuals_and_new_locks(self):
+        self.assertEqual(revision_sources.digest(self.tutorial_code), "71ab5d3ad4bd6bf15650b66095070f22b713f4b892d9be53df024f300d938abd")
+        for include in (False, True):
+            with self.subTest(actual_visual=include):
+                directory, run, draft = self.source_code_fixture(include)
+                self.assertEqual(revision_sources.preservation_findings(af, draft, run), [])
+                af.transition(directory, run, "VISUAL_RENDER", "test", "Preserve source code through actual visual rendering")
+                call(af.command_visual_render, run_id=run["run_id"])
+                directory, run = af.load_run(run["run_id"])
+                actual = af.artifact_path(directory, run, "draft").read_text(encoding="utf-8")
+                self.assertEqual(revision_sources.preservation_findings(af, actual, run), [])
+                self.assertEqual(af.find_locked_tokens(actual)["code_blocks"], af.find_locked_tokens(draft)["code_blocks"])
+                self.assertEqual(af.materialize_manifest_visuals_markdown(actual, af.json_artifact(directory, run, "visual-manifest")), actual)
+                ledger = self.record_json(directory, run, "verified-claim-ledger", {"claims": []})
+                af.lock_verified_fields(directory, run, ledger)
+                self.assertEqual(af.json_artifact(directory, run, "locked-fields")["tokens"]["code_blocks"], af.find_locked_tokens(draft)["code_blocks"])
+
+    def test_visual_cleanup_preserves_code_images_blank_lines_and_literal_markers(self):
+        literal = "```text\n## Owned heading\n\n\n![Example](/assets/example.svg)\n\n*Example caption*\n \t \n```\n"
+        raw = '<pre><code>one\n\n\n two\n \t </code></pre>'
+        text = "@@AF_VISUAL_LITERAL_0@@\n\n" + literal + "\n" + raw + "\n\n## Owned heading\n\n![Old](/assets/example.svg)\n\n*Example caption*\n"
+        manifest = {"assets": [{"public_path": "/assets/example.svg", "caption": "Example caption", "alt_text": "Current", "placement": {"after_heading": "Owned heading"}}]}
+        actual = af.materialize_manifest_visuals_markdown(text, manifest)
+        self.assertIn(literal, actual)
+        self.assertIn(raw, actual)
+        self.assertIn("@@AF_VISUAL_LITERAL_0@@", actual)
+        self.assertNotIn("![Old]", actual)
+        self.assertEqual(actual.count("![Current]"), 1)
+
+    def test_visual_materialization_preserves_longer_and_unclosed_rendered_code(self):
+        for fence, close in (("````", "````"), ("```", "")):
+            with self.subTest(fence=fence, close=close):
+                text = "# Example\n\n" + fence + "text\nalpha\n \t \nbeta\n" + close + "\n"
+                actual = af.materialize_manifest_visuals_markdown(text, {"assets": []})
+                self.assertEqual(af.markdown_to_html(actual), af.markdown_to_html(text))
+
+    def test_literal_tokens_do_not_rewrite_generated_captions_or_alt_text(self):
+        literal = "```text\nPRESERVE THIS EXACT CODE\n```\n"
+        text = "# Article\n\n" + literal + "\n## Owned heading\n\nBody.\n"
+        caption = "Reference @@AF_VISUAL_LITERAL_0@@ stays literal."
+        alt = "Alt @@AF_VISUAL_LITERAL_X0@@ stays literal."
+        manifest = {"assets": [{"public_path": "/assets/example.svg", "caption": caption, "alt_text": alt, "placement": {"after_heading": "Owned heading"}}]}
+        actual = af.materialize_manifest_visuals_markdown(text, manifest)
+        self.assertEqual(actual.count(literal), 1)
+        self.assertIn("*" + caption + "*", actual)
+        self.assertIn("![" + alt + "]", actual)
+
+    def test_lock_creation_and_visual_acceptance_reject_altered_source_code(self):
+        directory, run, draft = self.source_code_fixture()
+        altered = draft.replace("Verified URL\n                \n", "Verified URL\n\n")
+        self.record_text(directory, run, "draft", altered, "altered-source-draft.md")
+        ledger = self.record_json(directory, run, "verified-claim-ledger", {"claims": []})
+        with self.assertRaisesRegex(af.FlowError, "Cannot lock altered"):
+            af.lock_verified_fields(directory, run, ledger)
+        self.assertIsNone(af.artifact(run, "locked-fields"))
+        af.transition(directory, run, "VISUAL_RENDER", "test", "Fail before accepting altered evidence")
+        with self.assertRaisesRegex(af.FlowError, "altered source-bound evidence"):
+            call(af.command_visual_render, run_id=run["run_id"])
+        self.assertEqual(af.load_run(run["run_id"])[1]["state"], "VISUAL_RENDER")
+
+    def test_blocked_edit_reopens_only_proven_intact_source_lock_conflict(self):
+        directory, run, draft = self.source_code_fixture()
+        altered = draft.replace("Verified URL\n                \n", "Verified URL\n\n")
+        bad_draft = self.record_text(directory, run, "draft", altered, "historical-bad-draft.md")
+        locked = self.record_json(directory, run, "locked-fields", {"source_sha256": af.sha256_path(bad_draft), "tokens": af.find_locked_tokens(altered)}, "historical-bad-lock.json")
+        self.record_text(directory, run, "article", draft, "restored-source-article.md")
+        old_bytes = locked.read_bytes()
+        af.transition(directory, run, "EDIT", "test", "An older release locked altered evidence")
+        run["status"] = "BLOCKED"
+        af.save_run(directory, run)
+        self.assertTrue(af.locked_revision_source_conflict(directory, run))
+        call(af.command_amend, run_id=run["run_id"], reopen_development=True, reason="Explicitly restore original source evidence before fresh locks and renew every downstream check.")
+        directory, run = af.load_run(run["run_id"])
+        self.assertEqual(run["state"], "DRAFT")
+        self.assertEqual(locked.read_bytes(), old_bytes)
+        self.assertEqual(af.artifact_path(directory, run, "article").read_text(encoding="utf-8"), draft)
+        self.assertEqual(af.json_artifact(directory, run, "development-amendment")["source_state"], "EDIT")
+
+    def test_blocked_edit_recovery_rejects_good_lock_active_edit_or_changed_evidence(self):
+        for case in ("good_lock", "active", "changed_lock", "changed_draft", "changed_source"):
+            with self.subTest(case=case):
+                directory, run, draft = self.source_code_fixture()
+                source = draft if case == "good_lock" else draft.replace("Verified URL\n                \n", "Verified URL\n\n")
+                draft_path = self.record_text(directory, run, "draft", source, "recovery-source.md")
+                lock = self.record_json(directory, run, "locked-fields", {"source_sha256": af.sha256_path(draft_path), "tokens": af.find_locked_tokens(source)})
+                self.record_text(directory, run, "article", draft)
+                af.transition(directory, run, "EDIT", "test", "Reject unsupported recovery")
+                run["status"] = "ACTIVE" if case == "active" else "BLOCKED"
+                af.save_run(directory, run)
+                target = {"changed_lock": lock, "changed_draft": draft_path, "changed_source": af.artifact_path(directory, run, "revision-source")}.get(case)
+                if target:
+                    target.write_bytes(target.read_bytes() + b" ")
+                with self.assertRaises(af.FlowError):
+                    call(af.command_amend, run_id=run["run_id"], reopen_development=True, reason="A targeted recovery must retain intact source evidence and its historical lock.")
+                self.assertEqual(af.load_run(run["run_id"])[1]["state"], "EDIT")
+                self.assertIsNone(af.artifact(af.load_run(run["run_id"])[1], "development-amendment"))
 
     def test_edit_and_publication_reject_reintroduced_omitted_diagram(self):
         directory, run, _, _ = self.prepared()

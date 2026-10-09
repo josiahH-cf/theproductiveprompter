@@ -2,8 +2,8 @@
   "manifest_schema_version": "2.0.0",
   "workflow_version": "3.2.0",
   "hash_algorithm": "sha256",
-  "generator_name_and_version": "article-flow 3.2.3",
-  "generated_at": "2026-10-09T18:13:01Z",
+  "generator_name_and_version": "article-flow 3.2.4",
+  "generated_at": "2026-10-09T19:14:01Z",
   "generated_from": "index",
   "files": [
     {
@@ -19,16 +19,16 @@
       "scope": "source",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "f0d66fd079fb3b6f942966d4bd63c1eb571048c16b6f5f1b2883a8e3c1562eba",
-      "byte_size": 8964
+      "sha256": "43c5effae94795f1e71c60572ba5314154c77ad72076efeb6cacd2abafa41e0c",
+      "byte_size": 10088
     },
     {
       "path": ".claude/skills/article-flow/references/editorial.md",
       "scope": "source",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "f0d66fd079fb3b6f942966d4bd63c1eb571048c16b6f5f1b2883a8e3c1562eba",
-      "byte_size": 8964
+      "sha256": "43c5effae94795f1e71c60572ba5314154c77ad72076efeb6cacd2abafa41e0c",
+      "byte_size": 10088
     },
     {
       "path": ".gitattributes",
@@ -107,8 +107,8 @@
       "scope": "spec",
       "role": "documentation",
       "rule_set": "overview",
-      "sha256": "0d73177f465e250c807562e4a9620bd6e90a4b957ba8f99213232bfdb7661776",
-      "byte_size": 18930
+      "sha256": "b7e68d2fa07a0daf359b308ac6a0def37c7480646379ebe5aaff532b1075796b",
+      "byte_size": 19172
     },
     {
       "path": "1-Master/Article-Master-Spec.md",
@@ -291,8 +291,8 @@
       "scope": "spec",
       "role": "normative",
       "rule_set": "editorial",
-      "sha256": "e8965ec244512c4acdbe74eee633c6f68559381b4daa69199917713970bbec42",
-      "byte_size": 21946
+      "sha256": "7ca594a59380389e42eaee6f220d20fdba4f6ab1837c77cc3e6c71c660f6e152",
+      "byte_size": 23421
     },
     {
       "path": "evaluations/adversarial-cases.json",
@@ -707,8 +707,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "f2494cab4342060fe82f7884d53b691a01eb8f3e722b642451277f6d46d6dedd",
-      "byte_size": 619148
+      "sha256": "7d2f9f37be12b45537e34a7c76648e234e4609bd6f69a872173fb558a5be5a23",
+      "byte_size": 631714
     },
     {
       "path": "scripts/article_maintenance.py",
@@ -803,8 +803,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "evaluation",
-      "sha256": "9a222f9cbbb97e427aee138e4684b58b5ef8564b515121f26ae40fd83092b801",
-      "byte_size": 25230
+      "sha256": "7fb3364a1f7db1390ec29f0734430fcd67cc5164a42fa31ceeb5014a6599fe4c",
+      "byte_size": 47127
     },
     {
       "path": "tests/test_editorial_system.py",

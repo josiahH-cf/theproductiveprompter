@@ -33,6 +33,7 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from html.parser import HTMLParser
 from typing import Any, Iterable, Iterator, Sequence
 
 try:
@@ -47,7 +48,7 @@ import editorial_learning
 import editorial_workbench
 import revision_sources
 
-CONTROLLER_VERSION = "3.2.3"
+CONTROLLER_VERSION = "3.2.4"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -4828,6 +4829,24 @@ def strip_citation_additions(text: str, additions: set[str]) -> str:
     return text
 
 
+def locked_revision_source_conflict(directory: Path, run: dict[str, Any]) -> bool:
+    """Prove an older lock protects altered source evidence before reopening it."""
+    if not (run.get("revision") or {}).get("source_html_sha256"):
+        return False
+    item = artifact(run, "locked-fields")
+    path = artifact_path(directory, run, "locked-fields")
+    if not item or not path or not path.is_file() or sha256_path(path) != item["sha256"]:
+        raise FlowError("Source-integrity recovery requires intact locked fields", EXIT_INTEGRITY)
+    source_hash = load_json(path).get("source_sha256")
+    for candidate in reversed(run.get("artifact_index", [])):
+        if candidate.get("sha256") != source_hash:
+            continue
+        source = directory / safe_relative(candidate["path"])
+        if source.is_file() and sha256_path(source) == source_hash:
+            return bool(revision_sources.preservation_findings(sys.modules[__name__], source.read_text(encoding="utf-8"), run))
+    raise FlowError("Source-integrity recovery cannot locate the intact locked source", EXIT_INTEGRITY)
+
+
 def lock_verified_fields(directory: Path, run: dict[str, Any], ledger_path: Path) -> None:
     source_type = verification_source_type(run, "CLAIM_VERIFICATION")
     draft = artifact_path(directory, run, source_type)
@@ -4846,6 +4865,9 @@ def lock_verified_fields(directory: Path, run: dict[str, Any], ledger_path: Path
             "checked_at": claim.get("checked_at"),
         })
     draft_text = draft.read_text(encoding="utf-8")
+    source_findings = revision_sources.preservation_findings(sys.modules[__name__], draft_text, run)
+    if source_findings:
+        raise FlowError("Cannot lock altered source-bound evidence; restore it before fresh verification", EXIT_INTEGRITY, source_findings)
     value = {
         "locked_fields_schema_version": "1.0.0",
         "run_id": run["run_id"],
@@ -7533,8 +7555,49 @@ def validate_visual_manifest(directory: Path, run: dict[str, Any], manifest_path
     return findings
 
 
+def protect_visual_literal_blocks(markdown: str, manifest: dict[str, Any]) -> tuple[str, dict[str, str]]:
+    """Keep exact code/pre payloads outside prose whitespace and image cleanup."""
+    prefix = "@@AF_VISUAL_LITERAL_"
+    generated_text = json.dumps(manifest, ensure_ascii=False)
+    while prefix in markdown or prefix in generated_text:
+        prefix += "X"
+    literals: dict[str, str] = {}
+    spans: list[tuple[int, int]] = []
+    opening = None
+    offset = 0
+    for line in markdown.splitlines(keepends=True):
+        # Match the forms actually treated as code by markdown_to_html.
+        if line.startswith("```"):
+            if opening is None:
+                opening = offset
+            else:
+                spans.append((opening, offset + len(line)))
+                opening = None
+        offset += len(line)
+    if opening is not None:
+        spans.append((opening, len(markdown)))
+    for match in re.finditer(r"<pre\b[^>]*>.*?</pre>", markdown, re.I | re.S):
+        if not any(match.start() < end and match.end() > start for start, end in spans):
+            spans.append((match.start(), match.end()))
+    spans.sort()
+    for index, (start, end) in reversed(list(enumerate(spans))):
+        token = f"{prefix}{index}@@"
+        literal = markdown[start:end]
+        newline = "\n" if literal.endswith("\n") else ""
+        literals[token] = literal[:-1] if newline else literal
+        markdown = markdown[:start] + token + newline + markdown[end:]
+    return markdown, literals
+
+
+def restore_visual_literal_blocks(markdown: str, literals: dict[str, str]) -> str:
+    for token, literal in literals.items():
+        markdown = markdown.replace(token, literal)
+    return markdown
+
+
 def strip_planned_visual_blocks(markdown: str, manifest: dict[str, Any]) -> str:
     """Remove model-authored image placeholders in controller-owned sections."""
+    markdown, literals = protect_visual_literal_blocks(markdown, manifest)
     for asset in manifest.get("assets", []):
         path = re.escape(str(asset.get("public_path") or ""))
         caption = re.escape(str(asset.get("caption") or ""))
@@ -7568,7 +7631,7 @@ def strip_planned_visual_blocks(markdown: str, manifest: dict[str, Any]) -> str:
             if following is not None and re.fullmatch(r"\s*\*[^*\n]+\*\s*", lines[following]):
                 remove.add(following)
     cleaned = "\n".join(line for index, line in enumerate(lines) if index not in remove)
-    return re.sub(r"\n{3,}", "\n\n", cleaned).rstrip() + "\n"
+    return restore_visual_literal_blocks(re.sub(r"\n{3,}", "\n\n", cleaned).rstrip() + "\n", literals)
 
 
 def unplanned_visual_reference_findings(directory: Path, run: dict[str, Any], markdown: str, source: str) -> list[dict[str, Any]]:
@@ -7600,6 +7663,7 @@ def unplanned_visual_reference_findings(directory: Path, run: dict[str, Any], ma
 
 def materialize_manifest_visuals_markdown(markdown: str, manifest: dict[str, Any]) -> str:
     """Replace draft placeholders with the exact hash-bound public visual references."""
+    markdown, literals = protect_visual_literal_blocks(markdown, manifest)
     cleaned = strip_planned_visual_blocks(markdown, manifest)
     assets_by_anchor: dict[tuple[str, str], list[dict[str, Any]]] = {}
     for asset in manifest.get("assets", []):
@@ -7618,7 +7682,7 @@ def materialize_manifest_visuals_markdown(markdown: str, manifest: dict[str, Any
     missing = [key for key, count in seen.items() if count != 1]
     if missing:
         raise FlowError("Rendered visuals require exactly one matching Markdown anchor", EXIT_INTEGRITY, {"anchors": missing})
-    return "\n\n".join(output).rstrip() + "\n"
+    return restore_visual_literal_blocks("\n\n".join(output).rstrip() + "\n", literals)
 
 
 
@@ -7704,6 +7768,9 @@ def command_visual_render(args: argparse.Namespace) -> int:
         if prior_manifest_item:
             source_markdown = strip_planned_visual_blocks(source_markdown, load_json(directory / prior_manifest_item["path"]))
         visualized_draft = materialize_manifest_visuals_markdown(source_markdown, manifest)
+        source_findings = revision_sources.preservation_findings(sys.modules[__name__], visualized_draft, run)
+        if source_findings:
+            raise FlowError("Visual materialization altered source-bound evidence", EXIT_INTEGRITY, source_findings)
         visualized_bytes = visualized_draft.encode("utf-8")
         visualized_draft_path = directory / "artifacts" / f"visualized-draft-{plan_hash[:8]}-{sha256_bytes(visualized_bytes)[:16]}.md"
         immutable_write(visualized_draft_path, visualized_bytes)
@@ -8583,8 +8650,10 @@ def command_reopen_development(args: argparse.Namespace) -> int:
     if any(getattr(args, key, None) is not None for key in ("title", "description", "article", "diagrams")):
         raise FlowError("Reopen development separately from display, article or visual amendments", EXIT_USAGE)
     with run_lock(directory, run):
-        if run["state"] not in ARTICLE_AMENDABLE_STATES or not editorial_context.enabled(run):
-            raise FlowError("Reopening development requires an editorial article in EDITORIAL_QA, PACKAGE or PUBLISH_APPROVAL", EXIT_USAGE)
+        integrity_recovery = (editorial_context.enabled(run) and run["state"] == "EDIT"
+                              and run.get("status") == "BLOCKED" and locked_revision_source_conflict(directory, run))
+        if (run["state"] not in ARTICLE_AMENDABLE_STATES and not integrity_recovery) or not editorial_context.enabled(run):
+            raise FlowError("Reopening development requires a held editorial article or a blocked edit with a proven source-integrity lock conflict", EXIT_USAGE)
         source_state = run["state"]
         item = artifact(run, "article")
         source = artifact_path(directory, run, "article")
@@ -9450,6 +9519,139 @@ def transient_external_link_failures(failed: list[dict[str, Any]]) -> bool:
     )
 
 
+def discovery_entry(content: bytes, surface: str, canonical: str, base_url: str) -> tuple[int, str]:
+    """Select exactly one article-owned entry without accepting changed metadata."""
+    destination = urllib.parse.urlsplit(canonical)
+
+    def owns(value: str, resolved_base: str = base_url) -> bool:
+        link = urllib.parse.urlsplit(urllib.parse.urljoin(resolved_base, value.replace("\\", "/")))
+        normalize = lambda path: posixpath.normpath("/" + urllib.parse.unquote(path).lstrip("/"))
+        return link.scheme in {"http", "https"} and link.hostname == destination.hostname and normalize(link.path) == normalize(destination.path)
+
+    if surface in {"blog", "homepage"}:
+        text = content.decode("utf-8")
+        offsets = [0]
+        for line in text.splitlines(keepends=True):
+            offsets.append(offsets[-1] + len(line))
+
+        class Cards(HTMLParser):
+            def __init__(self):
+                super().__init__(convert_charrefs=True)
+                self.stack: list[dict[str, Any]] = []
+                self.cards: list[dict[str, Any]] = []
+                self.base: str | None = None
+
+            def position(self):
+                line, column = self.getpos()
+                return offsets[line - 1] + column
+
+            def handle_starttag(self, tag, attrs):
+                if tag in {"article", "a", "base"} and len({key for key, _ in attrs}) != len(attrs):
+                    raise FlowError(f"Ambiguous duplicate HTML attributes in {surface}", EXIT_INTEGRITY)
+                fields = dict(attrs)
+                if tag == "base" and fields.get("href") is not None and self.base is None:
+                    self.base = fields["href"]
+                elif tag == "article":
+                    self.stack.append({"start": self.position(), "card": "article-card" in str(fields.get("class") or "").split(), "links": []})
+                elif tag == "a" and fields.get("href"):
+                    for item in self.stack:
+                        item["links"].append(fields["href"])
+
+            def handle_endtag(self, tag):
+                if tag == "article" and self.stack:
+                    item = self.stack.pop()
+                    if item["card"]:
+                        item["text"] = text[item["start"]:text.index(">", self.position()) + 1]
+                        self.cards.append(item)
+
+        parser = Cards()
+        parser.feed(text)
+        if parser.stack:
+            raise FlowError(f"Unclosed article in {surface}", EXIT_INTEGRITY)
+        cards = sorted(parser.cards, key=lambda item: item["start"])
+        resolved_base = urllib.parse.urljoin(base_url, (parser.base or "").replace("\\", "/"))
+        matches = [(index, card["text"]) for index, card in enumerate(cards) if any(owns(link, resolved_base) for link in card["links"])]
+    else:
+        try:
+            root = ET.fromstring(content)
+        except ET.ParseError as exc:
+            raise FlowError(f"Invalid {surface} while verifying current discovery scope", EXIT_INTEGRITY) from exc
+        local = lambda tag: tag.rsplit("}", 1)[-1]
+        owner, key = ("item", "link") if surface == "feed" else ("url", "loc")
+        entries = [element for element in root.iter() if local(element.tag) == owner]
+        matches = []
+        for index, entry in enumerate(entries):
+            if any(local(child.tag) == key and owns(child.text or "") for child in entry):
+                entry.tail = None
+                matches.append((index, ET.tostring(entry, encoding="unicode")))
+    if len(matches) != 1:
+        raise FlowError(f"Expected one article entry in {surface}; found {len(matches)}", EXIT_INTEGRITY)
+    return matches[0]
+
+
+def live_discovery_scope(directory: Path, run: dict[str, Any], package: dict[str, Any],
+                         metadata: dict[str, Any], target: dict[str, Any]) -> tuple[dict[str, bytes], str | None]:
+    """Allow later committed discovery surfaces, never a later article or asset."""
+    paths = {name: safe_relative(str(target[f"{name}_file"])) for name in ("blog", "homepage", "feed", "sitemap")}
+    expected = {name: (directory / "package" / "site" / path).read_bytes() for name, path in paths.items()}
+    publication = json_artifact(directory, run, "publication") or {}
+    published = publication.get("commit")
+    if not published:
+        return expected, None
+    repository = publication_repo_root(required=True)
+    head = str(git(["rev-parse", "HEAD"], cwd=repository)).strip()
+    if head == published:
+        return expected, None
+    # A later collection publication may legitimately replace the shared files
+    # while this article waits on network verification. Bind a separate current
+    # commit instead of republishing stale files or rewriting the approval.
+    recorded = artifact(run, "publication")
+    if not recorded or sha256_path(directory / safe_relative(recorded["path"])) != recorded["sha256"]:
+        raise FlowError("Original publication receipt changed", EXIT_INTEGRITY)
+    recorded_package = artifact(run, "package")
+    if not recorded_package or sha256_path(directory / safe_relative(recorded_package["path"])) != recorded_package["sha256"]:
+        raise FlowError("Original package record changed", EXIT_INTEGRITY)
+    if publication.get("package_revision") != package.get("package_revision"):
+        raise FlowError("Original publication does not bind this package", EXIT_INTEGRITY)
+    if git(["status", "--porcelain=v1", "-uall"], cwd=repository).strip():
+        raise FlowError("Current discovery verification requires a clean checkout", EXIT_INTEGRITY)
+    if str(git(["merge-base", str(published), head], cwd=repository)).strip() != published:
+        raise FlowError("Current discovery revision is not a descendant of publication", EXIT_INTEGRITY)
+    remote = str(target["deployment"]["remote"])
+    branch = str(target["publication_branch"])
+    remote_head = str(git(["ls-remote", "--exit-code", remote, f"refs/heads/{branch}"], cwd=repository)).split()
+    if not remote_head or remote_head[0] != head:
+        raise FlowError("Current discovery revision does not match the published target branch", EXIT_INTEGRITY)
+    bound_files = {str(item["path"]): item for item in package.get("public_files", [])}
+    for rel, item in bound_files.items():
+        path = directory / "package" / safe_relative(rel)
+        if not path.is_file() or sha256_path(path) != item["sha256"]:
+            raise FlowError(f"Original packaged public file changed: {rel}", EXIT_INTEGRITY)
+    site_paths = {safe_relative(path).relative_to("site").as_posix() for path in bound_files if path.startswith("site/")}
+    article_path = str(target["canonical_article_file"]).format(slug=metadata["slug"])
+    if not {article_path, "styles.css", *(path.as_posix() for path in paths.values())}.issubset(site_paths):
+        raise FlowError("Published package lacks the required site bindings", EXIT_INTEGRITY)
+    current: dict[str, bytes] = {}
+    for rel in sorted(site_paths):
+        original = directory / "package" / "site" / safe_relative(rel)
+        if not original.is_file() or sha256_path(original) != bound_files[f"site/{rel}"]["sha256"]:
+            raise FlowError(f"Original packaged site file changed: {rel}", EXIT_INTEGRITY)
+        before = git(["show", f"{published}:{rel}"], cwd=repository, binary=True)
+        after = git(["show", f"{head}:{rel}"], cwd=repository, binary=True)
+        if before != original.read_bytes() or (repository / safe_relative(rel)).read_bytes() != after:
+            raise FlowError(f"Committed site binding does not match its source: {rel}", EXIT_INTEGRITY)
+        if rel not in {path.as_posix() for path in paths.values()} and after != before:
+            raise FlowError(f"Article, asset or stylesheet changed since publication: {rel}", EXIT_INTEGRITY)
+        current[rel] = after
+    canonical = target["canonical_url"].format(slug=metadata["slug"])
+    for name, path in paths.items():
+        body = current[path.as_posix()]
+        if discovery_entry(expected[name], name, canonical, target[f"{name}_url"]) != discovery_entry(body, name, canonical, target[f"{name}_url"]):
+            raise FlowError(f"The article's {name} entry or position changed after publication", EXIT_INTEGRITY)
+        expected[name] = body
+    return expected, head
+
+
 def command_verify_live(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
     if run["state"] != "LIVE_VERIFICATION":
@@ -9486,18 +9688,19 @@ def command_verify_live(args: argparse.Namespace) -> int:
     checks.append({"name": "structured_data", "ok": '"@type": "BlogPosting"' in article_text and f'"url": "{urls["article"]}"' in article_text})
     article_markdown = directory / "package" / "public" / "article.md"
     checks.append({"name": "embedded_article_revision", "ok": f'<meta name="article-flow-revision" content="{sha256_path(article_markdown)}">' in article_text})
-    expected_surface_paths = {
-        "blog": directory / "package" / "site" / "docs" / "blog.html",
-        "homepage": directory / "package" / "site" / "index.html",
-        "feed": directory / "package" / "site" / "feed.xml",
-        "sitemap": directory / "package" / "site" / "sitemap.xml",
-    }
+    expected_surfaces, shared_surface_commit = live_discovery_scope(directory, run, package, metadata, target)
     for surface in ("blog", "homepage", "feed", "sitemap"):
         status, body, _ = fetch_url(urls[surface])
         decoded = body.decode("utf-8", errors="replace")
         checks.append({"name": f"{surface}_http", "ok": status == 200, "status": status})
-        checks.append({"name": f"{surface}_revision", "ok": sha256_bytes(body) == sha256_path(expected_surface_paths[surface]), "expected_sha256": sha256_path(expected_surface_paths[surface]), "actual_sha256": sha256_bytes(body)})
+        expected_hash = sha256_bytes(expected_surfaces[surface])
+        checks.append({"name": f"{surface}_revision", "ok": sha256_bytes(body) == expected_hash, "expected_sha256": expected_hash, "actual_sha256": sha256_bytes(body), "shared_surface_commit": shared_surface_commit})
         checks.append({"name": f"{surface}_links_article", "ok": urls["article"] in decoded or f"{metadata['slug']}.html" in decoded})
+    if shared_surface_commit:
+        status, body, _ = fetch_url(urllib.parse.urljoin(target["homepage_url"], "styles.css"))
+        expected_hash = sha256_path(directory / "package" / "site" / "styles.css")
+        checks.append({"name": "stylesheet_revision", "ok": status == 200 and sha256_bytes(body) == expected_hash,
+                       "status": status, "expected_sha256": expected_hash, "actual_sha256": sha256_bytes(body)})
     asset_manifest = load_json(directory / "package" / "public" / "assets.json")
     for asset in asset_manifest.get("assets", []):
         if not isinstance(asset, dict):
@@ -9541,6 +9744,7 @@ def command_verify_live(args: argparse.Namespace) -> int:
         "expires_at": None,
         "status": "VERIFIED" if ok else "FAILED",
         "commit": (json_artifact(directory, run, "publication") or {}).get("commit"),
+        "shared_surface_commit": shared_surface_commit,
         "url": urls["article"] if ok else None,
         "checks": checks,
         "accessibility_proved": ok,
@@ -9574,6 +9778,7 @@ def command_verify_live(args: argparse.Namespace) -> int:
         "status": "VERIFIED",
         "url": receipt["url"],
         "commit": receipt.get("commit"),
+        "shared_surface_commit": shared_surface_commit,
         "package_revision": package["package_revision"],
         "verified_at": receipt["created_at"],
         "represented_for_discovery": receipt["represented_for_discovery"],
