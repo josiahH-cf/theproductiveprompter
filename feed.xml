@@ -5,7 +5,7 @@
     <link>https://theproductiveprompter.com/docs/blog.html</link>
     <description>Practical writing on AI workflows, prompting systems, evaluation, and publication design.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 09 Oct 2026 18:51:45 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 09 Oct 2026 18:53:46 +0000</lastBuildDate>
     <atom:link href="https://theproductiveprompter.com/feed.xml" rel="self" type="application/rss+xml"/>
 
     <!-- ARTICLE_FLOW_FEED_START -->
@@ -28,7 +28,7 @@
   <link>https://theproductiveprompter.com/docs/the-model-release-experiment.html</link>
   <guid isPermaLink="true">https://theproductiveprompter.com/docs/the-model-release-experiment.html</guid>
   <pubDate>Fri, 02 Oct 2026 12:00:00 -0500</pubDate>
-  <description>A concise introduction to an ongoing anecdotal experiment that runs one frozen story-and-math prompt across available Claude and Codex models and preserves each response as an inspectable observation.</description>
+  <description>Why The Model Release Experiment keeps one frozen story-and-math task, where readers can inspect model cards and run pages, and why receipt checks cover arithmetic rather than overall response quality.</description>
 </item>
 <item>
   <title>What Prompt Precision Bought in 24 Agent Trials</title>
