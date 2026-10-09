@@ -5,7 +5,7 @@
     <link>https://theproductiveprompter.com/docs/blog.html</link>
     <description>Practical writing on AI workflows, prompting systems, evaluation, and publication design.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 07 Oct 2026 12:00:00 -0500</lastBuildDate>
+    <lastBuildDate>Fri, 09 Oct 2026 12:56:15 +0000</lastBuildDate>
     <atom:link href="https://theproductiveprompter.com/feed.xml" rel="self" type="application/rss+xml"/>
 
     <!-- ARTICLE_FLOW_FEED_START -->
@@ -14,7 +14,7 @@
   <link>https://theproductiveprompter.com/docs/career-ladder-ai-must-not-hollow-out.html</link>
   <guid isPermaLink="true">https://theproductiveprompter.com/docs/career-ladder-ai-must-not-hollow-out.html</guid>
   <pubDate>Wed, 07 Oct 2026 12:00:00 -0500</pubDate>
-  <description>As AI changes how we build software, I keep thinking about how we give new engineers the room, support, and responsibility to grow.</description>
+  <description>AI can help new engineers finish today’s change, but output alone does not build the understanding and judgment needed to own tomorrow’s problem. Teams should preserve consequential work, explanation, independent diagnosis, feedback, revision, and progressively greater responsibility.</description>
 </item>
 <item>
   <title>The Model Release Experiment: From Intuition to Inspectable Evidence</title>
