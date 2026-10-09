@@ -5,7 +5,7 @@
     <link>https://theproductiveprompter.com/docs/blog.html</link>
     <description>Practical writing on AI workflows, prompting systems, evaluation, and publication design.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 09 Oct 2026 18:47:11 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 09 Oct 2026 18:49:04 +0000</lastBuildDate>
     <atom:link href="https://theproductiveprompter.com/feed.xml" rel="self" type="application/rss+xml"/>
 
     <!-- ARTICLE_FLOW_FEED_START -->
@@ -91,7 +91,7 @@
   <link>https://theproductiveprompter.com/docs/the-machine-did-exactly-what-you-asked.html</link>
   <guid isPermaLink="true">https://theproductiveprompter.com/docs/the-machine-did-exactly-what-you-asked.html</guid>
   <pubDate>Tue, 18 Aug 2026 12:00:00 -0500</pubDate>
-  <description>A very concrete goal is a contract. Three sandboxed tests - each pre-registered with a way to fail - show what the letter of a goal delivers, and what it overrides.</description>
+  <description>A seeded optimizer gamed its score, one live agent repaired an apparent intent gap, and another obeyed a false criterion. These small historical demonstrations lead to a practical contract test for concrete AI goals.</description>
 </item>
 <item>
       <title>From Idea to Verified URL: Build a Blog Workflow That Still Sounds Like You</title>
