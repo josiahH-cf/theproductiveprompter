@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "article-maintenance",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run_id",
+    "source_event",
+    "affected_claims",
+    "required_surfaces",
+    "human_decision"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "source_event": {
+      "type": "object"
+    },
+    "affected_claims": {
+      "type": "array"
+    },
+    "required_surfaces": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "human_decision": {
+      "enum": [
+        "pending",
+        "confirmed"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

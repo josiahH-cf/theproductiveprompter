@@ -1,6 +1,6 @@
 {
   "policy_schema_version": "3.0.0",
-  "workflow_version": "3.1.0",
+  "workflow_version": "3.2.0",
   "status": "operator-configurable defaults; subordinate to run overrides and an approved article recipe",
   "automation": {
     "default_mode": "active_session",
@@ -40,7 +40,7 @@
     "independent_verification_prefer_different_model": true
   },
   "editorial_defaults": {
-    "narrative_person": "second",
+    "narrative_person": null,
     "length": {
       "mode": "auto",
       "target_words": null,
@@ -56,7 +56,7 @@
       "workflow_count": null
     },
     "recent_post_window": 5,
-    "variation_macro_dimensions": 2,
+    "variation_macro_dimensions": 0,
     "visual_policy": "Include diagrams if and when they materially improve comprehension. Default the recipe to auto; do not turn diagrams off merely because an article uses continuous prose or has no section headings. For auto or optional, plan zero to four useful visuals and explain an empty plan with omission_reason. Use required or off only for an explicit article-specific requirement. Bind every included visual to one exact existing heading or unique paragraph, accessible alt text and caption, and claim provenance. Label conceptual mechanisms as inference, not measured results. Render and hash-bind every planned asset; an empty plan still requires a bound empty manifest. Packaging must reject missing or unbound assets."
   },
   "voice": {
@@ -80,10 +80,10 @@
       "profile_versions": "immutable",
       "current_pointer": "atomic",
       "cross_host_lock": true,
-      "selection_activation": "immediate_provisional",
+      "selection_activation": "local_only_pending_reusable_proposal",
       "replay_behavior": "idempotent_by_selection_hash",
       "rollback_behavior": "move_pointer_without_deleting_evidence",
-      "retire_scope": "runtime_provisional_guidance_only",
+      "retire_scope": "explicit_source_article_or_rule_only",
       "future_runs_use_current_version": true
     },
     "forbidden_public_prose_characters": [
@@ -109,7 +109,9 @@
         ],
         "exclusion_policy": "none"
       }
-    ]
+    ],
+    "learning_policy": "No automatic global learning. Human choices are local generated-passage preferences; reusable proposals require actual human reasons, scope and regression evidence. Delegated AI choices never become human-original evidence.",
+    "active_guide_candidate": "profiles/voice-profile.capstone.v1.json"
   },
   "style_gate": {
     "policy_id": "theproductiveprompter-public-prose-v1",

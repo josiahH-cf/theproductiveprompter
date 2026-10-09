@@ -29,7 +29,9 @@
     "opening": {"type": "object", "required": ["strategy", "reason"], "properties": {"strategy": {"enum": [null, "result-first", "scene", "failure", "artifact", "question", "claim", "data"]}, "reason": {"type": ["string", "null"]}}, "additionalProperties": false},
     "ending": {"type": "object", "required": ["strategy", "reason"], "properties": {"strategy": {"enum": [null, "next-action", "decision-rule", "callback", "warning", "open-question", "quiet-synthesis", "checklist"]}, "reason": {"type": ["string", "null"]}}, "additionalProperties": false},
     "summary": {"type": "object", "required": ["policy", "form"], "properties": {"policy": {"enum": ["always", "never", "auto"]}, "form": {"enum": [null, "one-sentence-dek", "bullets", "key-takeaways", "decision-table"]}}, "additionalProperties": false},
-    "narrative_person": {"enum": ["first", "second", "third", "mixed"]},
+    "register": {"type": "string", "description": "Article-specific technical depth, accessibility and warmth within one author voice; not a persona."},
+    "voice_probe_target": {"enum": ["opening", "development", "ending"]},
+    "narrative_person": {"enum": ["first", "second", "third", "mixed", null]},
     "evidence_posture": {"enum": ["practical", "exploratory", "argumentative", "documentary", "comparative"]},
     "citation_mode": {"enum": ["links", "footnotes", "apa", "venue-defined"]},
     "components": {

@@ -1,6 +1,6 @@
 {
   "document_registry_schema_version": "1.0.0",
-  "workflow_version": "3.1.0",
+  "workflow_version": "3.2.0",
   "authoritative_controls": [
     "workflow/workflow.json",
     "workflow/workflow.v3.0.0.json",
@@ -9,7 +9,11 @@
     "workflow/article-recipe.defaults.json",
     "profiles/voice-profile.v1.json",
     "publication/theproductiveprompter.json",
-    "10-Final-Prose-Naturalization/Final-Prose-Naturalization-Directive.md"
+    "10-Final-Prose-Naturalization/Final-Prose-Naturalization-Directive.md",
+    "workflow/workflow.v3.1.0.json",
+    "profiles/voice-profile.capstone.v1.json",
+    "profiles/voice-evidence.capstone.v1.json",
+    "docs/editorial-system.md"
   ],
   "generated_documents": [
     {

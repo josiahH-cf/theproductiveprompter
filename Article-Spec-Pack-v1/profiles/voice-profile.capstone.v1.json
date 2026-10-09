@@ -1,0 +1,159 @@
+{
+  "$schema": "../schemas/voice-profile.schema.json",
+  "voice_profile_schema_version": "1.0.0",
+  "profile_id": "josiah-hunter-theproductiveprompter",
+  "version": "capstone-1.0.0",
+  "status": "provisional",
+  "provenance_note": "Derived from one author-confirmed capstone and explicit current preferences. Academic conventions are not universal article rules. No independent holdout or human cross-genre quality judgment exists.",
+  "author_voice": {
+    "operational_rules": [
+      {
+        "rule_id": "CORE-1",
+        "instruction": "Make the issue consequential. Identify the people, responsibility, decision, or practical consequence that makes an explanation matter. Include only the actors the subject needs. Do not turn every article into a responsibility checklist.",
+        "evidence_ids": [
+          "V01",
+          "V02"
+        ],
+        "classification": "Observed habit with scoped editorial inference; transfer pending"
+      },
+      {
+        "rule_id": "CORE-2",
+        "instruction": "Develop the reasoning. Connect a constraint or incentive to what it changes, then to a supported implication. Give the reader the missing connection instead of repeating that something is important. This is a reasoning habit, not a required paragraph sequence. A reference answer may need only the result.",
+        "evidence_ids": [
+          "V01",
+          "V06"
+        ],
+        "classification": "Observed habit with scoped editorial inference; transfer pending"
+      },
+      {
+        "rule_id": "CORE-3",
+        "instruction": "Translate technical terms into their working meaning. Keep a precise term when it matters; explain it with ordinary language and a concrete consequence for this reader. Do not replace precision with a vague simplification or explain familiar terms to specialists.",
+        "evidence_ids": [
+          "V03",
+          "V04"
+        ],
+        "classification": "Observed habit with scoped editorial inference; transfer pending"
+      },
+      {
+        "rule_id": "CORE-4",
+        "instruction": "Let a paragraph carry a connected thought. Combine explanation and consequence when they belong together. Use a short sentence or imperative to turn or land the thought. Do not impose sentence averages, paragraph word limits, or a chain of one-line slogans. Lists serve retrieval and procedures.",
+        "evidence_ids": [
+          "V05",
+          "V06"
+        ],
+        "classification": "Observed habit with scoped editorial inference; transfer pending"
+      },
+      {
+        "rule_id": "CORE-5",
+        "instruction": "Be direct about the recommendation and specific about its limits. Attach uncertainty to the claim it limits. State the relevant condition, dependency, or scale once where the reader needs it. Preserve necessary qualifications; do not copy the capstone's occasional broad certainty.",
+        "evidence_ids": [
+          "V07",
+          "V08"
+        ],
+        "classification": "Observed habit with scoped editorial inference; transfer pending"
+      },
+      {
+        "rule_id": "CORE-6",
+        "instruction": "Earn comparisons, questions, and plainspoken phrases. Use them when they reveal a practical distinction or make a consequence easier to grasp. A useful contrast is allowed. Repeated 'not X, but Y' sentences and staged questions should not do the work of explaining. Do not manufacture jokes, metaphors, or intimacy.",
+        "evidence_ids": [
+          "V09",
+          "V10"
+        ],
+        "classification": "Observed habit with scoped editorial inference; transfer pending"
+      },
+      {
+        "rule_id": "CORE-7",
+        "instruction": "Make the author's judgment legible through priorities and reasons. First person is available when the brief supplies Josiah's actual view or experience; it is never required to sound personal. Do not invent biography, beliefs, expertise, or events. The capstone supports an evaluative stance, not a general first-person habit.",
+        "evidence_ids": [
+          "V02",
+          "V08",
+          "P01"
+        ],
+        "classification": "Observed habit with scoped editorial inference; transfer pending"
+      },
+      {
+        "rule_id": "CORE-8",
+        "instruction": "Connect and finish according to the reader's job. Use a transition to explain the actual relationship; repeat a key term when clarity benefits. An ending may resolve a decision, identify an action, leave a bounded question, or simply finish an explanation. Do not import the capstone's academic recap, broad opening, or urgent call to action as universal requirements.",
+        "evidence_ids": [
+          "V04",
+          "V08",
+          "V11",
+          "V12",
+          "P02"
+        ],
+        "classification": "Observed habit with scoped editorial inference; transfer pending"
+      }
+    ],
+    "register_adjustments": {
+      "technical": "Keep mechanisms, dependencies, exact terms and decision-relevant verification detail; explain their consequence.",
+      "accessible": "Reduce assumed knowledge and unpack the same mechanism with a supported concrete explanation.",
+      "personable": "Attend to the people affected and allow the supplied author judgment and contractions. Do not invent experience, intimacy or humor."
+    },
+    "scoped_preferences": []
+  },
+  "article_register_dimensions": [
+    "warmth",
+    "urgency",
+    "vulnerability",
+    "skepticism",
+    "playfulness",
+    "technical_depth"
+  ],
+  "form_contracts": {
+    "tutorial": "Reader can reproduce the procedure and interpret its checks.",
+    "case-study": "Reader can distinguish the observed facts, decisions, consequences, and reusable lesson.",
+    "field-note": "Reader receives a bounded observation without a padded universal claim.",
+    "argument": "Reader can inspect the claim, evidence, counterpressure, and decision rule.",
+    "reference-guide": "Reader can retrieve accurate information quickly without reading a staged narrative."
+  },
+  "positive_examples": [
+    {
+      "evidence_id": "V01",
+      "evidence_kind": "human_original",
+      "authorship_confirmed": true,
+      "excerpt": "The incentive is to sell devices, keep engaging with customers, and have more of their devices deployed within hospitals.",
+      "locator": "Josiah Abernathy - Capstone Final Paper.md:65",
+      "scope": "Useful for organizational and systems explanations; do not force an incentive account into a lookup or personal reflection. This quote is stylistic evidence, not a current factual endorsement."
+    },
+    {
+      "evidence_id": "V03",
+      "evidence_kind": "human_original",
+      "authorship_confirmed": true,
+      "excerpt": "Impact defines how bad it will hurt, and likelihood defines how probable it is that a threat will exploit a vulnerability.",
+      "locator": "Josiah Abernathy - Capstone Final Paper.md:129",
+      "scope": "Especially useful for accessible technical writing. Keep the formal definition when the distinction requires it; this is not a rule to oversimplify specialist writing."
+    },
+    {
+      "evidence_id": "V06",
+      "evidence_kind": "human_original",
+      "authorship_confirmed": true,
+      "excerpt": "However, without accurate documentation on the cross correlation of that data (IP address to Internal NIC on the medical device, for instance) much of that data is useless, that is why in the steps outlined above, step 2 is to collect data.",
+      "locator": "Josiah Abernathy - Capstone Final Paper.md:170",
+      "scope": "The connected explanation is useful; the long clause chain and repeated references are incidental roughness, not a target cadence."
+    },
+    {
+      "evidence_id": "V08",
+      "evidence_kind": "human_original",
+      "authorship_confirmed": true,
+      "excerpt": "The key words there are “good enough”. The goal is never to mitigate risk entirely, the goal is to define risk accurately and look at how much risk is acceptable for the organization, then respond accordingly.",
+      "locator": "Josiah Abernathy - Capstone Final Paper.md:195",
+      "scope": "Risk discussion here. Preserve the tradeoff reasoning; do not copy “never,” the maxim, or an invented personal risk philosophy into unrelated work."
+    }
+  ],
+  "negative_examples": [],
+  "accepted_rejected_pairs": [],
+  "held_out_tests": [
+    {
+      "status": "not_run",
+      "limitation": "Full capstone inspected before derivation. No independent holdout; human resemblance judgment pending."
+    }
+  ],
+  "change_history": [
+    {
+      "version": "capstone-1.0.0",
+      "date": "2026-10-09",
+      "status": "provisional",
+      "reason": "Author confirmed sample plus explicitly requested evidence-based single voice. User authorized unattended implementation and revision; no human quality rating invented."
+    }
+  ]
+}

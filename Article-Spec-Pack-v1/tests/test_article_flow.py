@@ -194,6 +194,7 @@ class RunAndSmokeTests(TemporaryRuntime):
         # its historical human-gate and state-order assertions remain meaningful.
         directory, run = af.load_run(payload["run_id"])
         run["workflow_version"] = "2.0.0"
+        run.pop("definition_snapshot", None)
         run["run_overrides"].update({
             "automation_mode": "manual",
             "intent_approval": "required",

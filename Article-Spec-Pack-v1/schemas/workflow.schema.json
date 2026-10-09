@@ -111,6 +111,7 @@
               "null"
             ]
           },
+          "next_on_qa_reverification": {"const": "DRAFT"},
           "repair_state": {
             "type": [
               "string",
@@ -139,6 +140,13 @@
               "automatic",
               "run_command"
             ]
+          },
+          "allowed_repair_states": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
           }
         },
         "additionalProperties": false

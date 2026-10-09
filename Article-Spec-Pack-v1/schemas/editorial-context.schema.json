@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "editorial-context",
+  "type": "object",
+  "required": [
+    "contract",
+    "voice",
+    "local_selection"
+  ],
+  "properties": {
+    "contract": {
+      "type": "object"
+    },
+    "voice": {
+      "type": "object"
+    },
+    "local_selection": {
+      "type": [
+        "object",
+        "null"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

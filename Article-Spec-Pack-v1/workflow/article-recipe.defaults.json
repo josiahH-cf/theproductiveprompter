@@ -22,7 +22,7 @@
     "policy": "auto",
     "form": null
   },
-  "narrative_person": "second",
+  "narrative_person": null,
   "evidence_posture": "practical",
   "citation_mode": "links",
   "components": {
@@ -36,7 +36,7 @@
   "selection_reason": null,
   "recent_post_comparison": null,
   "variation_budget": {
-    "macro_dimensions": 2,
+    "macro_dimensions": 0,
     "recent_post_comparison": true,
     "experiment_seed": null
   }

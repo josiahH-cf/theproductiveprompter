@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/workflow.schema.json",
   "workflow_schema_version": "3.1.0",
-  "workflow_version": "3.2.0",
+  "workflow_version": "3.1.0",
   "authority": true,
-  "name": "The Productive Prompter article workflow v3.2",
+  "name": "The Productive Prompter article workflow v3.1",
   "precedence": [
     "run_overrides",
     "approved_article_recipe",
@@ -23,7 +23,7 @@
     {
       "id": "NEW",
       "actor": "code",
-      "objective": "Create a collision-safe run, reserve its writing model atomically, and lock it to workflow 3.2.0.",
+      "objective": "Create a collision-safe run, reserve its writing model atomically, and lock it to workflow 3.1.0.",
       "required_inputs": [],
       "output": "run.json",
       "output_schema": "run.schema.json",
@@ -97,8 +97,7 @@
       "objective": "Resolve reader, purpose, scope, position, and assumptions automatically when evidence is sufficient; stop only for material ambiguity that policy cannot resolve.",
       "required_inputs": [
         "seed",
-        "claim-ledger",
-        "voice-profile"
+        "claim-ledger"
       ],
       "output": "artifacts/intent.json",
       "output_schema": "intent.schema.json",
@@ -118,8 +117,7 @@
       "required_inputs": [
         "intent",
         "claim-ledger",
-        "recent-article-history",
-        "voice-profile"
+        "recent-article-history"
       ],
       "output": "artifacts/article-recipe.json",
       "output_schema": "article-recipe.schema.json",
@@ -139,8 +137,7 @@
       "required_inputs": [
         "intent",
         "article-recipe",
-        "claim-ledger",
-        "voice-profile"
+        "claim-ledger"
       ],
       "output": "artifacts/brief.json",
       "output_schema": "brief.schema.json",
@@ -168,34 +165,12 @@
       "output_schema": "artifact.schema.json",
       "side_effect_class": "none",
       "gate": "G-DRAFT-COVERAGE",
-      "next_on_pass": "DEVELOPMENT_REVIEW",
+      "next_on_pass": "VISUAL_PLAN",
       "repair_state": "DRAFT",
       "max_attempts": 3,
       "timeout_seconds": 900,
       "retry_policy": "bounded retry with declared repair state and transient backoff",
       "escalation_condition": "Escalate after 3 unsuccessful attempts or when a required operator decision/capability is missing."
-    },
-    {
-      "id": "DEVELOPMENT_REVIEW",
-      "actor": "model_and_policy",
-      "objective": "Reverse-outline the complete draft and find material reasoning gaps, unsupported perspective or redundant development before facts are locked.",
-      "required_inputs": [
-        "draft",
-        "brief",
-        "claim-ledger",
-        "article-recipe",
-        "voice-profile"
-      ],
-      "output": "artifacts/development-review.json",
-      "output_schema": "development-review.schema.json",
-      "side_effect_class": "none",
-      "gate": "G-DEVELOPMENT",
-      "next_on_pass": "VISUAL_PLAN",
-      "repair_state": "DRAFT",
-      "max_attempts": 2,
-      "timeout_seconds": 900,
-      "retry_policy": "bounded retry with declared repair state and transient backoff",
-      "escalation_condition": "Escalate after 2 unsuccessful attempts or when a required operator decision/capability is missing."
     },
     {
       "id": "VISUAL_PLAN",
@@ -240,7 +215,7 @@
     {
       "id": "CLAIM_VERIFICATION",
       "actor": "independent_model_and_code",
-      "objective": "Re-extract every externally checkable claim from the rough draft, verify it independently, and lock facts, dates, numbers, names, citations, and URLs. After QA reopens facts, verify the latest accepted article, then send the verified correction to DRAFT before renewing locks through normal verification.",
+      "objective": "Re-extract every externally checkable claim from the rough draft, verify it independently, and lock facts, dates, numbers, names, citations, and URLs.",
       "required_inputs": [
         "draft",
         "claim-ledger",
@@ -256,8 +231,7 @@
       "max_attempts": 3,
       "timeout_seconds": 900,
       "retry_policy": "bounded retry with declared repair state and transient backoff",
-      "escalation_condition": "Escalate after 3 unsuccessful attempts or when a required operator decision/capability is missing.",
-      "next_on_qa_reverification": "DRAFT"
+      "escalation_condition": "Escalate after 3 unsuccessful attempts or when a required operator decision/capability is missing."
     },
     {
       "id": "VOICE_PROBE",
@@ -285,7 +259,7 @@
     {
       "id": "VOICE_LEARNING",
       "actor": "code",
-      "objective": "Record the selected passage as a bundled local preference and a pending scoped proposal. Preserve rejected prose as historical evidence, keep the frozen profile unchanged, and record the code-owned learning receipt.",
+      "objective": "Apply the selected and rejected evidence idempotently as a provisional runtime voice-profile version, preserving the protected baseline and activating the new version for this run.",
       "required_inputs": [
         "voice-probe",
         "voice-profile",
@@ -305,7 +279,7 @@
     {
       "id": "EDIT",
       "actor": "assigned_writing_model",
-      "objective": "Edit the developed draft using its frozen compact voice guide and applicable local passage preference. Preserve distinctive phrasing, supported reasoning, locked facts, citations, and authorized perspective; send missing development to its upstream owner.",
+      "objective": "Rewrite and naturalize the complete rough draft using the newly effective voice profile while preserving locked claims and excluding forbidden characters and high-confidence clichés.",
       "required_inputs": [
         "draft",
         "verified-claim-ledger",
@@ -314,8 +288,7 @@
         "article-recipe",
         "naturalization-directive",
         "locked-fields",
-        "model-assignment",
-        "brief"
+        "model-assignment"
       ],
       "output": "artifacts/article.md",
       "output_schema": "artifact.schema.json",
@@ -341,29 +314,8 @@
       "output_schema": "claim-ledger.schema.json",
       "side_effect_class": "read_only_external",
       "gate": "G-POST-EDIT-CLAIMS",
-      "next_on_pass": "DISPLAY_REVISION",
-      "repair_state": "EDIT",
-      "max_attempts": 2,
-      "timeout_seconds": 900,
-      "retry_policy": "bounded retry with declared repair state and transient backoff",
-      "escalation_condition": "Escalate after 2 unsuccessful attempts or when a required operator decision/capability is missing."
-    },
-    {
-      "id": "DISPLAY_REVISION",
-      "actor": "model_and_policy",
-      "objective": "Align only title and public description with the finished verified article, preserving all other brief fields.",
-      "required_inputs": [
-        "article",
-        "brief",
-        "article-recipe",
-        "voice-profile"
-      ],
-      "output": "artifacts/display-brief.json",
-      "output_schema": "brief.schema.json",
-      "side_effect_class": "none",
-      "gate": "G-DISPLAY",
       "next_on_pass": "EDITORIAL_QA",
-      "repair_state": "DISPLAY_REVISION",
+      "repair_state": "EDIT",
       "max_attempts": 2,
       "timeout_seconds": 900,
       "retry_policy": "bounded retry with declared repair state and transient backoff",
@@ -393,14 +345,7 @@
       "max_attempts": 3,
       "timeout_seconds": 900,
       "retry_policy": "bounded retry with declared repair state and transient backoff",
-      "escalation_condition": "Escalate after 3 unsuccessful attempts or when a required operator decision/capability is missing.",
-      "allowed_repair_states": [
-        "DISPLAY_REVISION",
-        "DRAFT",
-        "CLAIM_VERIFICATION",
-        "VISUAL_PLAN",
-        "EDIT"
-      ]
+      "escalation_condition": "Escalate after 3 unsuccessful attempts or when a required operator decision/capability is missing."
     },
     {
       "id": "PACKAGE",
@@ -536,9 +481,7 @@
       "G-PUBLISH-APPROVAL",
       "G-PUBLISH-REVISION",
       "G-LIVE-REVISION",
-      "G-COMPLETE",
-      "G-DEVELOPMENT",
-      "G-DISPLAY"
+      "G-COMPLETE"
     ],
     "soft": [
       "G-INTENT-FIDELITY",
@@ -559,7 +502,7 @@
     {
       "id": "AF-PERSON-001",
       "level": "MUST",
-      "text": "Choose narrative person for the supplied author perspective, audience and purpose; no grammatical person is universal. First person requires an authorized view or actual experience."
+      "text": "Select narrative person in the approved article recipe; no grammatical person is universal."
     },
     {
       "id": "AF-LENGTH-001",
@@ -569,7 +512,7 @@
     {
       "id": "AF-SHAPE-001",
       "level": "MUST",
-      "text": "Choose structure for the reader purpose and evidence. Compare recent observable prose moves; avoid unhelpful rhetorical repetition. No fixed article skeleton, separate author personas or mandatory variation quota. Do not require a universal article skeleton."
+      "text": "Do not require a universal article skeleton, workflow count, mental-model section, caution section, checklist, activation header, summary, or closing formula."
     },
     {
       "id": "AF-CITATION-001",
@@ -619,7 +562,7 @@
     {
       "id": "AF-VOICE-001",
       "level": "MUST",
-      "text": "Preserve the protected baseline. Supply one compact evidence-backed guide and scoped article preferences. A voice selection applies locally and creates a pending learning proposal; it never activates a global rule automatically. AI choices and publication are not human-original evidence. Retain versioned rollback."
+      "text": "Keep the protected baseline voice profile immutable; apply each operator voice selection as idempotent provisional runtime evidence, activate a new version immediately, and permit rollback without deleting evidence."
     },
     {
       "id": "AF-ROUTING-001",
@@ -639,7 +582,7 @@
     {
       "id": "AF-EVAL-001",
       "level": "MUST",
-      "text": "Distinguish authorized provisional guide use from demonstrated improvement. Human-confirmed voice promotion requires retained comparisons and actual author judgments; model route eligibility still requires its recorded canary. AI self-assessment and publication are not calibration."
+      "text": "Promote a model route or voice-profile change only from retained fixture results with required human calibration and canary evidence."
     },
     {
       "id": "AF-LIFECYCLE-001",
@@ -654,7 +597,7 @@
     {
       "id": "AF-AUTO-001",
       "level": "MUST",
-      "text": "For ordinary articles, present the exact three local voice options and require an actual answer. Selection continues editing, verification, build, automatic push and exact live verification without another routine confirmation. Explicitly delegated revisions may reuse their pinned guide and record no new human preference. Honor pauses, holds, material ambiguity, exhausted repairs and missing capability."
+      "text": "In workflow 3.1.0 the voice selection is the only routine human decision. Present the exact passages with native selectable A, B, C console options; use a plain-text letter prompt only when the host lacks a selection control. Require an explicit answer, never a preselected default. A selection automatically continues editing, verification, build, push, and exact live verification without another routine confirmation. Rejecting all three candidates with concrete feedback regenerates the set without learning. An explicit pause, unresolved ambiguity, exhausted repairs, missing capability, merge conflict, publication hold, or permanent live-verification failure remains an explicit stop."
     },
     {
       "id": "AF-STYLE-001",
@@ -669,7 +612,7 @@
     {
       "id": "AF-LEGACY-001",
       "level": "MUST",
-      "text": "New runs freeze effective workflow, house policy, recipe defaults and schemas by hash. Retain older workflow definitions and frozen profiles for replay. New feedback/refinement commands create proposals rather than rewriting historical evidence."
+      "text": "Interpret every run under its recorded immutable workflow definition; workflow 2.0.0 runs retain their original state sequence and approval behavior."
     }
   ],
   "lifecycle_states": [
@@ -710,9 +653,7 @@
       "PACKAGE",
       "PUBLISH_APPROVAL",
       "PUBLISH",
-      "LIVE_VERIFICATION",
-      "DEVELOPMENT_REVIEW",
-      "DISPLAY_REVISION"
+      "LIVE_VERIFICATION"
     ],
     "exceptional_stops": [
       "material_ambiguity",

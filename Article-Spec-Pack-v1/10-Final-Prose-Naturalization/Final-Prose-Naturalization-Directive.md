@@ -180,10 +180,4 @@ If the article already satisfies this directive and no supported edit improves i
 
 The later editorial assessment must record exact excerpts and specific reasons for four checks: language, rhetoric, structure, and preservation. A clean phrase scan cannot establish naturalness. A whole-article PASS cannot override an unresolved passage finding. Keep this review private; the naturalization editor still returns only the article.
 
-Read the active voice profile and its paired examples. A selected paragraph is local evidence about that passage's wording and cadence. Candidate letters are not stable style categories, and one choice does not isolate every declared trait. Compare selected and unselected examples, preserve shared qualities, and avoid inventing the author's reason. New guidance remains provisional until independent articles and author feedback support it. Do not treat growing profile history as proof that writing quality has improved.
-
----
-
-**Version:** 1.2
-**Date:** September 15, 2026
-**Status:** Normative, model-agnostic, CLI-enforced final-prose gate for all publication candidates.
+Read the run-pinned compact editorial-context, current brief and local passage selection. Preserve effective distinctive phrasing when smoothing would add no value. A selected generated paragraph is a bundled local preference, not an original author sample or global register rule. Do not load full historical pairs or retired prompt bodies. Never invent the author's reason. Missing reasoning, evidence or supplied perspective belongs in a bounded upstream development repair before final prose editing. Reusable guidance remains a pending proposal until actual author feedback and retained-example/different-form checks support it. Growing history, publication and a fluent self-assessment do not prove improvement.

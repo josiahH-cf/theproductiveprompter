@@ -1,6 +1,6 @@
 {
   "protected_set_schema_version": "1.1.0",
-  "workflow_version": "3.1.0",
+  "workflow_version": "3.2.0",
   "watched_roots": [
     "workflow",
     "schemas",
@@ -556,6 +556,108 @@
       "scope": "source",
       "role": "runtime",
       "rule_set": "conformance"
+    },
+    {
+      "path": "scripts/article_maintenance.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "editorial"
+    },
+    {
+      "path": "scripts/editorial_context.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "editorial"
+    },
+    {
+      "path": "scripts/editorial_learning.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "editorial"
+    },
+    {
+      "path": "scripts/editorial_workbench.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "editorial"
+    },
+    {
+      "path": "schemas/article-maintenance.schema.json",
+      "scope": "spec",
+      "role": "normative",
+      "rule_set": "editorial"
+    },
+    {
+      "path": "schemas/author-evidence.schema.json",
+      "scope": "spec",
+      "role": "normative",
+      "rule_set": "editorial"
+    },
+    {
+      "path": "schemas/development-review.schema.json",
+      "scope": "spec",
+      "role": "normative",
+      "rule_set": "editorial"
+    },
+    {
+      "path": "schemas/editorial-context.schema.json",
+      "scope": "spec",
+      "role": "normative",
+      "rule_set": "editorial"
+    },
+    {
+      "path": "schemas/editorial-feedback.schema.json",
+      "scope": "spec",
+      "role": "normative",
+      "rule_set": "editorial"
+    },
+    {
+      "path": "profiles/voice-evidence.capstone.v1.json",
+      "scope": "spec",
+      "role": "normative",
+      "rule_set": "editorial"
+    },
+    {
+      "path": "profiles/voice-profile.capstone.v1.json",
+      "scope": "spec",
+      "role": "normative",
+      "rule_set": "editorial"
+    },
+    {
+      "path": "workflow/workflow.v3.1.0.json",
+      "scope": "spec",
+      "role": "normative",
+      "rule_set": "editorial"
+    },
+    {
+      "path": "tests/test_editorial_system.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "editorial"
+    },
+    {
+      "path": "docs/editorial-handoff.md",
+      "scope": "spec",
+      "role": "normative",
+      "rule_set": "editorial"
+    },
+    {
+      "path": "docs/editorial-system.md",
+      "scope": "spec",
+      "role": "normative",
+      "rule_set": "editorial"
+    },
+    {
+      "path": ".agents/skills/article-flow/references/editorial.md",
+      "scope": "source",
+      "role": "runtime",
+      "rule_set": "editorial"
+    },
+    {
+      "path": ".claude/skills/article-flow/references/editorial.md",
+      "scope": "source",
+      "role": "runtime",
+      "rule_set": "editorial"
     }
   ]
 }

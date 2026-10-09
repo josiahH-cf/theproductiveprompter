@@ -9,6 +9,15 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## October 9, 2026: Evidence-backed voice and editorial collaboration (3.2.0)
+
+- Freeze effective definitions and supply one compact capstone-backed voice guide before briefing; keep full profile history outside new writer inputs.
+- Make passage selections local and reusable feedback pending, with typed actors, scope, exact reasons, regression checks and immutable profile rollback. Retire automatic global learning, feedback-clearing and reactivation code.
+- Add development review before factual locks, title/description revision after editing, classified repair routes, explicit material clarification, and bounded same-URL continuity from the latest article.
+- Add an isolated, budgeted on-demand AI workbench for rehearsal, focused criticism, local alternatives, reader simulations, matched evaluations, weekly review and source-change maintenance. No scheduled task is created.
+- Remove retired carryover instruction bodies, align generated docs and global skill copies, and include editorial regressions in CI. Ordinary voice selection still continues through automatic publication and exact live verification.
+- The initial guide is authorized for provisional use. Human cross-genre resemblance and future weekly observations remain pending; no quality judgment is inferred from publication.
+
 ## September 9, 2026: Selectable voice choices and automatic publication
 
 - Added a native single-select console handoff for A, B, C with the exact passages, explicit-answer semantics, and free-text regeneration feedback.

@@ -528,6 +528,7 @@ def _load_task_packet(packet_path: Path) -> tuple[dict[str, Any], str, str, dict
     inputs = packet.get("inputs", [])
     if not isinstance(inputs, list):
         raise CodexExecError("Task packet inputs must be an array")
+    seen_inputs: dict[str, str] = {}
     for item in inputs:
         if not isinstance(item, dict) or not isinstance(item.get("path"), str) or not isinstance(item.get("sha256"), str):
             raise CodexExecError("Task packet input entry is incomplete")
@@ -546,7 +547,11 @@ def _load_task_packet(packet_path: Path) -> tuple[dict[str, Any], str, str, dict
             content = data.decode("utf-8")
         except UnicodeDecodeError as exc:
             raise CodexExecError("Task packet input is not UTF-8 text", {"input": item.get("id")}) from exc
-        sections.extend(["", f"INPUT {item.get('id')} sha256={actual_hash}", content])
+        if actual_hash in seen_inputs:
+            sections.extend(["", f"INPUT ALIAS {item.get('id')} = {seen_inputs[actual_hash]} sha256={actual_hash}"])
+        else:
+            seen_inputs[actual_hash] = str(item.get("id"))
+            sections.extend(["", f"INPUT {item.get('id')} sha256={actual_hash}", content])
     return packet, "\n".join(sections), expected_format, output_schema
 
 

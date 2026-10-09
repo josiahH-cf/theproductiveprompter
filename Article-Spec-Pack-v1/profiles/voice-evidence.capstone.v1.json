@@ -1,0 +1,135 @@
+{
+  "schema_version": "1.0.0",
+  "evidence_kind": "human_original",
+  "author": "Josiah Abernathy / Josiah Hunter",
+  "authorship_confirmed": true,
+  "authorship_basis": "Author explicitly confirms the capstone was entirely self-written in the original audit request.",
+  "editing_history": "Entirely self-written per author statement; no additional editing history claimed.",
+  "source_title": "Josiah Abernathy - Capstone Final Paper",
+  "source_sha256": "576b9b73aa135ef8992d36a7cc5a70914354cac73b72ae2b93a5970c5aed2ba4",
+  "source_scope": "Source lines 40–204; references and quoted external material excluded from positive author-style evidence",
+  "independent_holdout": false,
+  "cross_genre_human_validation": "pending",
+  "observations": [
+    {
+      "id": "V01",
+      "exact_excerpt": "The incentive is to sell devices, keep engaging with customers, and have more of their devices deployed within hospitals.",
+      "usable_instruction": "Explain an actor’s incentive and the behavior it encourages before giving a practical implication.",
+      "scope_and_exceptions": "Useful for organizational and systems explanations; do not force an incentive account into a lookup or personal reflection. This quote is stylistic evidence, not a current factual endorsement.",
+      "classification": "Observed habit; appears across the actor analysis and solutions",
+      "confidence": "high within this sample; transfer pending",
+      "assistant_generated_counterexample_or_revision": "Generic: “Stakeholder alignment is crucial.” More concrete: “The desk team checks requests; the collection team receives returns. The gap between those jobs is where the record goes missing.” Generated illustration, not a claim about a real library.",
+      "locator": "Josiah Abernathy - Capstone Final Paper.md:65"
+    },
+    {
+      "id": "V02",
+      "exact_excerpt": "Each entity has a responsibility that is pertinent to their field.",
+      "usable_instruction": "Make responsibility and the reason for an action visible when those determine whether a solution works.",
+      "scope_and_exceptions": "A recurring concern in this topic; may partly reflect the capstone assignment. Keep only relevant actors, not a universal stakeholder section.",
+      "classification": "Observed habit with topic influence",
+      "confidence": "moderate",
+      "assistant_generated_counterexample_or_revision": "Avoid a compulsory “Who owns this?” section in every article. The owner can be one clause in an explanation.",
+      "locator": "Josiah Abernathy - Capstone Final Paper.md:149"
+    },
+    {
+      "id": "V03",
+      "exact_excerpt": "Impact defines how bad it will hurt, and likelihood defines how probable it is that a threat will exploit a vulnerability.",
+      "usable_instruction": "Follow a necessary technical term with its ordinary working meaning.",
+      "scope_and_exceptions": "Especially useful for accessible technical writing. Keep the formal definition when the distinction requires it; this is not a rule to oversimplify specialist writing.",
+      "classification": "Observed choice",
+      "confidence": "high for plain translation; transfer pending",
+      "assistant_generated_counterexample_or_revision": "Generic: “Improve record visibility.” Revision: “Give both desks the same return record so either can see what came back.” Generated illustration.",
+      "locator": "Josiah Abernathy - Capstone Final Paper.md:129"
+    },
+    {
+      "id": "V04",
+      "exact_excerpt": "In other words, instead of recall notices that require pages of understanding, make the notice simple and in plain language so that all departments can easily decipher action steps and execute accordingly.",
+      "usable_instruction": "Use a rephrasing transition to turn an abstract recommendation into an action the reader can understand.",
+      "scope_and_exceptions": "Use when the second formulation adds understanding. Do not make “In other words” a recurring signature. The argument explicitly values plain language here; extending it to all articles is an inference, supported by the current request.",
+      "classification": "Observed choice and topic-specific advocacy; broader preference is tentative",
+      "confidence": "moderate to high",
+      "assistant_generated_counterexample_or_revision": "If the next sentence merely repeats the first, delete it rather than adding a transition.",
+      "locator": "Josiah Abernathy - Capstone Final Paper.md:153"
+    },
+    {
+      "id": "V05",
+      "exact_excerpt": "Collect data.",
+      "usable_instruction": "Use short direct sentences or imperatives as hinges inside fuller explanation.",
+      "scope_and_exceptions": "This occurs in a procedural list. It supports available range, not a universal short-sentence or imperative style.",
+      "classification": "Observed local choice",
+      "confidence": "moderate",
+      "assistant_generated_counterexample_or_revision": "Avoid expanding a simple action into “Undertake a comprehensive data collection initiative.” Generated counterexample.",
+      "locator": "Josiah Abernathy - Capstone Final Paper.md:166"
+    },
+    {
+      "id": "V06",
+      "exact_excerpt": "However, without accurate documentation on the cross correlation of that data (IP address to Internal NIC on the medical device, for instance) much of that data is useless, that is why in the steps outlined above, step 2 is to collect data.",
+      "usable_instruction": "Keep the dependency connecting technical detail to the recommended action; divide an overloaded sentence without dropping that connection.",
+      "scope_and_exceptions": "The connected explanation is useful; the long clause chain and repeated references are incidental roughness, not a target cadence.",
+      "classification": "Observed reasoning habit; sentence-level recommendation is an editorial inference",
+      "confidence": "high for the dependency, moderate for rhythm transfer",
+      "assistant_generated_counterexample_or_revision": "Revision pattern: state the missing mapping, explain what cannot be connected without it, then give the collection action. Do not copy this sentence’s length or medical claims.",
+      "locator": "Josiah Abernathy - Capstone Final Paper.md:170"
+    },
+    {
+      "id": "V07",
+      "exact_excerpt": "It would be incredibly useful to assign a full time or multiple full-time staff to such projects wherever possible, contingent on the size of the healthcare system.",
+      "usable_instruction": "Attach the condition or scale limit to the recommendation it qualifies.",
+      "scope_and_exceptions": "Operational recommendations; retain limits without copying intensifiers or treating the recommendation as universally valid.",
+      "classification": "Observed local qualification",
+      "confidence": "moderate",
+      "assistant_generated_counterexample_or_revision": "Generic: “Every team needs a dedicated owner.” Scoped: “Assign an owner for the pilot; decide the staffing commitment from the workload.” Generated illustration, not an additional test-fixture fact.",
+      "locator": "Josiah Abernathy - Capstone Final Paper.md:174"
+    },
+    {
+      "id": "V08",
+      "exact_excerpt": "The key words there are “good enough”. The goal is never to mitigate risk entirely, the goal is to define risk accurately and look at how much risk is acceptable for the organization, then respond accordingly.",
+      "usable_instruction": "Make the practical standard and reason for it explicit; let evaluation emerge from the decision being made.",
+      "scope_and_exceptions": "Risk discussion here. Preserve the tradeoff reasoning; do not copy “never,” the maxim, or an invented personal risk philosophy into unrelated work.",
+      "classification": "Observed evaluative stance; broader voice inference",
+      "confidence": "moderate",
+      "assistant_generated_counterexample_or_revision": "An ending should settle this article’s decision, not always restate “the goal” as a slogan.",
+      "locator": "Josiah Abernathy - Capstone Final Paper.md:195"
+    },
+    {
+      "id": "V09",
+      "exact_excerpt": "With an entire fleet of smart pumps taken out, how does a hospital administer drugs?",
+      "usable_instruction": "Use a concrete question when it exposes the practical consequence of the preceding explanation.",
+      "scope_and_exceptions": "High-stakes operational illustration in this capstone. No evidence supports a question quota, a question-led opening, or importing this medical scenario into another topic.",
+      "classification": "Observed local technique",
+      "confidence": "moderate",
+      "assistant_generated_counterexample_or_revision": "A staged “What does this mean for the future?” adds little. A question that identifies the exact interrupted task can earn its place. Generated counterexample.",
+      "locator": "Josiah Abernathy - Capstone Final Paper.md:159"
+    },
+    {
+      "id": "V10",
+      "exact_excerpt": "Without an understanding, the cybersecurity professional would just be shooting in the dark.",
+      "usable_instruction": "Allow an ordinary phrase when it compresses an already explained relationship.",
+      "scope_and_exceptions": "A utilitarian idiom, not evidence for ornate metaphor, compulsory humor, or a jokey persona.",
+      "classification": "Observed local choice; limited evidence for casualness",
+      "confidence": "low to moderate",
+      "assistant_generated_counterexample_or_revision": "Do not replace a precise explanation with a colorful analogy; establish the relationship first.",
+      "locator": "Josiah Abernathy - Capstone Final Paper.md:117"
+    },
+    {
+      "id": "V11",
+      "exact_excerpt": "Medical device cybersecurity is an issue of global, national, and local concern.",
+      "usable_instruction": "Treat opening strategy as article-specific rather than inferring a universal result-first or anecdotal opening.",
+      "scope_and_exceptions": "Academic broad-to-specific opening. This is counterevidence to claiming Josiah always starts with a concrete result; it is not an instruction to open future articles this way.",
+      "classification": "Observed academic convention; no universal voice rule",
+      "confidence": "high for this limitation",
+      "assistant_generated_counterexample_or_revision": "Do not write “Josiah always opens with an outcome.” The supplied sample does not establish that.",
+      "locator": "Josiah Abernathy - Capstone Final Paper.md:44"
+    },
+    {
+      "id": "V12",
+      "exact_excerpt": "There must be tangible action steps included into the security of the healthcare setting. It is time to address the situation at hand and act.",
+      "usable_instruction": "Where the purpose is practical, finish with the action or implication that follows from the developed argument.",
+      "scope_and_exceptions": "An academic conclusion with urgency. Transfer the connection between argument and action cautiously; do not require a call to action, recap, or elevated closing in every form.",
+      "classification": "Observed purpose-specific ending; tentative cross-form inference",
+      "confidence": "moderate",
+      "assistant_generated_counterexample_or_revision": "A reference summary can end when the answer is complete. A field note may end at an unresolved but bounded question.",
+      "locator": "Josiah Abernathy - Capstone Final Paper.md:203"
+    }
+  ]
+}

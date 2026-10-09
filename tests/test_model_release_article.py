@@ -187,6 +187,13 @@ class ApprovedVoiceTests(unittest.TestCase):
 
     def test_revision_preserves_authorized_voice_and_campaign_scope(self):
         directory,run=self.start_at_voice()
+        for kind, value, suffix in (("article", "# Existing article\n\nPreserve this passage.\n", ".md"),
+                                    ("brief", {"title":"Existing article","slug":"model-release-experiment"}, ".json"),
+                                    ("post-edit-claim-ledger", {"claims":[]}, ".json")):
+            path=directory/"artifacts"/(kind+suffix)
+            if isinstance(value,dict): af.write_json(path,value)
+            else: path.write_text(value,encoding="utf-8")
+            af.record_artifact(directory,run,path,kind,{"actor":"test"})
         af.transition(directory,run,"COMPLETE","test","Fixture only; no publication")
         af.write_json(directory/"package/public/metadata.json",{"slug":"model-release-experiment","date":"2026-10-02"})
         request=directory/"request.txt"
@@ -198,6 +205,8 @@ class ApprovedVoiceTests(unittest.TestCase):
         self.assertEqual(revision["run_overrides"]["model_release"],"model-release-v1")
         self.assertIn("reuse_approved_voice",revision["run_overrides"])
         self.assertEqual(revision["parent_run_id"],run["run_id"])
+        for kind in ("previous-article","previous-brief","previous-claims"):
+            self.assertIsNotNone(af.artifact(revision,kind))
 
     def test_campaign_verifier_receives_the_frozen_challenge_source(self):
         directory,run=self.start_at_voice()
