@@ -5,7 +5,7 @@
     <link>https://theproductiveprompter.com/docs/blog.html</link>
     <description>Practical writing on AI workflows, prompting systems, evaluation, and publication design.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 09 Oct 2026 19:31:24 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 09 Oct 2026 19:33:11 +0000</lastBuildDate>
     <atom:link href="https://theproductiveprompter.com/feed.xml" rel="self" type="application/rss+xml"/>
 
     <!-- ARTICLE_FLOW_FEED_START -->
@@ -21,7 +21,7 @@
   <link>https://theproductiveprompter.com/docs/model-release-experiment-inspectable-evidence.html</link>
   <guid isPermaLink="true">https://theproductiveprompter.com/docs/model-release-experiment-inspectable-evidence.html</guid>
   <pubDate>Fri, 02 Oct 2026 12:00:00 -0500</pubDate>
-  <description>A compact, method-first field note introducing a repeatable creative-writing and arithmetic experiment for GPT-6.1 Sol, GPT-6 Sol, and GPT-6 Luna, with clear controls and limits on what later runs can establish.</description>
+  <description>What GPT-6.1 Sol, GPT-6 Sol, and GPT-6 Luna add to a frozen-task experiment, how to inspect each saved profile, and why one response per profile establishes neither a universal ranking nor a causal setting effect.</description>
 </item>
 <item>
   <title>The Model Release Experiment</title>
