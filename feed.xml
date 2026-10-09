@@ -5,7 +5,7 @@
     <link>https://theproductiveprompter.com/docs/blog.html</link>
     <description>Practical writing on AI workflows, prompting systems, evaluation, and publication design.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 09 Oct 2026 19:36:50 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 09 Oct 2026 20:28:37 +0000</lastBuildDate>
     <atom:link href="https://theproductiveprompter.com/feed.xml" rel="self" type="application/rss+xml"/>
 
     <!-- ARTICLE_FLOW_FEED_START -->
@@ -94,15 +94,12 @@
   <description>A seeded optimizer gamed its score, one live agent repaired an apparent intent gap, and another obeyed a false criterion. These small historical demonstrations lead to a practical contract test for concrete AI goals.</description>
 </item>
 <item>
-      <title>From Idea to Verified URL: Build a Blog Workflow That Still Sounds Like You</title>
-      <link>https://theproductiveprompter.com/docs/from-idea-to-verified-url.html</link>
-      <guid isPermaLink="true">https://theproductiveprompter.com/docs/from-idea-to-verified-url.html</guid>
-      <pubDate>Tue, 18 Aug 2026 09:12:32 -0500</pubDate>
-      <description>A practical guide to building an AI-assisted blog workflow with observable stages, decision gates, iterative voice calibration, and live publication verification.</description>
-      <author>josiah.hunter.it@gmail.com (Josiah Hunter)</author>
-      <category>Workflow design</category>
-      <category>Writing systems</category>
-    </item>
+  <title>From Idea to Verified URL: Build a Blog Workflow That Still Sounds Like You</title>
+  <link>https://theproductiveprompter.com/docs/from-idea-to-verified-url.html</link>
+  <guid isPermaLink="true">https://theproductiveprompter.com/docs/from-idea-to-verified-url.html</guid>
+  <pubDate>Tue, 18 Aug 2026 09:12:32 -0500</pubDate>
+  <description>Build an inspectable AI-assisted article workflow with observable artifacts, evidence-based voice controls, scoped publication, live verification, and a clear boundary between verified publication and search indexing.</description>
+</item>
 <!-- ARTICLE_FLOW_FEED_END -->
 
     <item>
