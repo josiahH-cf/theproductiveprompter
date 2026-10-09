@@ -9,6 +9,12 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## October 9, 2026: Literal source integrity before claim locks (3.2.4)
+
+- Preserve fenced code and preformatted payloads through visual cleanup/materialization, including blank lines and trailing whitespace. Recheck source evidence before accepting the visualized draft and creating factual locks.
+- Permit explicit upstream recovery of an older blocked editorial edit only when intact original evidence and the historical locked draft prove a source/lock conflict. Keep prior artifacts, restore original evidence before new locks, and renew normal downstream verification.
+- Verify delayed collection publication against a separately recorded current discovery commit only when it descends from the original publication, matches the remote target, and preserves the exact article, assets, stylesheet and article-owned discovery entries/positions. Never republish stale shared surfaces or rewrite the original approval/receipt.
+
 ## October 9, 2026: Revision preservation, bounded repairs and current publication scope (3.2.3)
 
 - Keep referenced challenge and component word limits local instead of rejecting the whole article; retain explicit article limits and source-integrity checks.
