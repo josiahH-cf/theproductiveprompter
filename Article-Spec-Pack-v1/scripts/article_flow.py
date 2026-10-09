@@ -48,7 +48,7 @@ import editorial_learning
 import editorial_workbench
 import revision_sources
 
-CONTROLLER_VERSION = "3.2.5"
+CONTROLLER_VERSION = "3.2.6"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -7224,12 +7224,22 @@ def command_repair(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
     if run["state"] == "LIVE_VERIFICATION" and args.gate_id in {None, "G-LIVE-REVISION"}:
         events = _read_jsonl(directory / str(run["event_log"]))
+        if any((event.get("payload") or {}).get("recovery_kind") == "settled_deployment_propagation" for event in events if event.get("type") == "REPAIR"):
+            raise FlowError("The single settled-deployment recovery is already recorded; continue its check or retain the stop", EXIT_WAITING)
         prior_attempts = sum(1 for event in events if event.get("type") == "VERIFICATION" and (event.get("payload") or {}).get("state") == "LIVE_VERIFICATION")
-        receipt = json_artifact(directory, run, f"live-verification-attempt:{prior_attempts}") or {}
+        receipt = checked_live_artifact(directory, run, events, f"live-verification-attempt:{prior_attempts}")[0] if prior_attempts else {}
         checks = receipt.get("checks") or []
         failed = [item for item in checks if not item.get("ok")]
+        if receipt.get("classification") == "deployment_propagation":
+            return repair_settled_deployment(directory, run, args)
         if transient_external_link_failures(failed) and any(item.get("name") == "article_revision" and item.get("ok") for item in checks):
             with run_lock(directory, run):
+                fresh_events = _read_jsonl(directory / str(run["event_log"]))
+                fresh_prior, _, _ = live_verification_window(fresh_events, run)
+                if (run["state"] != "LIVE_VERIFICATION" or fresh_prior != prior_attempts
+                        or any((event.get("payload") or {}).get("recovery_kind") == "settled_deployment_propagation" for event in fresh_events if event.get("type") == "REPAIR")
+                        or checked_live_artifact(directory, run, fresh_events, f"live-verification-attempt:{fresh_prior}")[0] != receipt):
+                    raise FlowError("Live-verification epoch changed before transport repair", EXIT_WAITING)
                 append_event(directory, run, "REPAIR", "operator_or_controller", {
                     "gate_id": "G-LIVE-REVISION", "source_state": "LIVE_VERIFICATION", "repair_state": "LIVE_VERIFICATION",
                     "finding": args.finding or "Retry transient citation transport failures after the public revision matched.",
@@ -9791,14 +9801,156 @@ def live_discovery_scope(directory: Path, run: dict[str, Any], package: dict[str
     return expected, head
 
 
+def live_verification_window(events: list[dict[str, Any]], run: dict[str, Any]) -> tuple[int, int, int]:
+    prior = sum(1 for event in events if event.get("type") == "VERIFICATION" and (event.get("payload") or {}).get("state") == "LIVE_VERIFICATION")
+    maximum = int(state_definition("LIVE_VERIFICATION", run).get("max_attempts", 4))
+    baseline = 0
+    for event in events:
+        payload = event.get("payload") or {}
+        if event.get("type") != "REPAIR" or "live_verification_baseline" not in payload:
+            continue
+        value, limit = payload["live_verification_baseline"], payload.get("live_verification_max_attempts", maximum)
+        if type(value) is not int or type(limit) is not int or not baseline <= value <= prior or not 1 <= limit <= maximum:
+            raise FlowError("Invalid recorded live-verification window", EXIT_INTEGRITY)
+        baseline, maximum = value, limit
+    return prior, baseline, maximum
+
+
+def checked_live_artifact(directory: Path, run: dict[str, Any], events: list[dict[str, Any]], kind: str) -> tuple[dict[str, Any], dict[str, Any]]:
+    records = [event["payload"]["artifact"] for event in events if event.get("type") == "ARTIFACT_RECORDED" and (event.get("payload") or {}).get("artifact", {}).get("type") == kind]
+    item = records[-1] if records else None
+    if not item or artifact(run, kind) != item:
+        raise FlowError(f"Missing historical live-recovery binding: {kind}", EXIT_INTEGRITY)
+    recorded_at = next(event["sequence"] for event in reversed(events) if event.get("type") == "ARTIFACT_RECORDED" and (event.get("payload") or {}).get("artifact") == item)
+    if kind in {"package", "publication", "publish-approval"}:
+        first_live = next((event["sequence"] for event in events if event.get("type") == "VERIFICATION" and (event.get("payload") or {}).get("state") == "LIVE_VERIFICATION"), len(events) + 1)
+        if recorded_at >= first_live:
+            raise FlowError(f"Original live-recovery authority was replaced after verification: {kind}", EXIT_INTEGRITY)
+    if kind.startswith("live-verification-attempt:"):
+        ordinal = int(kind.rsplit(":", 1)[1])
+        verified_at = next((event["sequence"] for event in events if event.get("type") == "VERIFICATION" and (event.get("payload") or {}).get("state") == "LIVE_VERIFICATION" and (event.get("payload") or {}).get("attempt") == ordinal), None)
+        if verified_at is None or recorded_at >= verified_at:
+            raise FlowError(f"Historical live receipt was replaced after its verification event: {kind}", EXIT_INTEGRITY)
+    path = directory / safe_relative(item["path"])
+    if not path.is_file() or sha256_path(path) != item["sha256"]:
+        raise FlowError(f"Live-recovery artifact changed: {kind}", EXIT_INTEGRITY)
+    return load_json(path), item
+
+
+def settled_deployment_scope(directory: Path, run: dict[str, Any], events: list[dict[str, Any]], target: dict[str, Any]) -> tuple[dict[str, bytes], dict[str, Any]]:
+    """Bind original authority and current remote bytes even at the original HEAD."""
+    package, package_item = checked_live_artifact(directory, run, events, "package")
+    publication, publication_item = checked_live_artifact(directory, run, events, "publication")
+    approval, approval_item = checked_live_artifact(directory, run, events, "publish-approval")
+    if (package_item["path"] != "package/package.json" or publication.get("status") != "PUSHED" or approval.get("status") != "APPROVED"
+            or any(item.get("run_id") != run["run_id"] or item.get("target") != target["target_id"] for item in (publication, approval))
+            or package.get("run_id") != run["run_id"] or not package.get("package_revision")
+            or publication.get("package_revision") != package["package_revision"] or approval.get("package_revision") != package["package_revision"]
+            or not approval.get("approval_id") or publication.get("approval_id") != approval["approval_id"]
+            or not re.fullmatch(r"[0-9a-f]{40}", str(publication.get("commit") or ""))):
+        raise FlowError("Original pushed publication, package and approval do not agree", EXIT_INTEGRITY)
+    repository = publication_repo_root(required=True)
+    head = str(git(["rev-parse", "HEAD"], cwd=repository)).strip()
+    published = publication["commit"]
+    remote = str(git(["ls-remote", "--exit-code", str(target["deployment"]["remote"]), f"refs/heads/{target['publication_branch']}"], cwd=repository)).split()
+    if (git(["status", "--porcelain=v1", "-uall"], cwd=repository).strip() or not remote or remote[0] != head
+            or str(git(["merge-base", published, head], cwd=repository)).strip() != published):
+        raise FlowError("Recovery requires a clean published descendant at the exact remote head", EXIT_INTEGRITY)
+    files = package.get("public_files") or []
+    paths = [str(item.get("path") or "") for item in files]
+    if len(paths) != len(set(paths)) or not {"public/article.md", "public/metadata.json", "public/assets.json"}.issubset(paths):
+        raise FlowError("Recovery package has incomplete or duplicate public bindings", EXIT_INTEGRITY)
+    for item in files:
+        path = directory / "package" / safe_relative(item["path"])
+        if not path.is_file() or sha256_path(path) != item.get("sha256"):
+            raise FlowError(f"Original packaged public file changed: {item['path']}", EXIT_INTEGRITY)
+    metadata = load_json(directory / "package/public/metadata.json")
+    shared = {str(target[name + "_file"]): name for name in ("blog", "homepage", "feed", "sitemap")}
+    required = {str(target["canonical_article_file"]).format(slug=metadata["slug"]), "styles.css", *shared}
+    site_files = {path.removeprefix("site/") for path in paths if path.startswith("site/")}
+    if not required.issubset(site_files):
+        raise FlowError("Recovery package lacks required site bindings", EXIT_INTEGRITY)
+    by_path = {item["path"]: item["sha256"] for item in files}
+    for asset in load_json(directory / "package/public/assets.json").get("assets", []):
+        rel = str(asset.get("public_path") or "").lstrip("/")
+        if not rel or by_path.get("site/" + rel) != asset.get("sha256"):
+            raise FlowError("Recovery asset lacks its approved site binding", EXIT_INTEGRITY)
+    current: dict[str, bytes] = {}
+    for rel in sorted(site_files):
+        before = (directory / "package/site" / safe_relative(rel)).read_bytes()
+        original = git(["show", f"{published}:{rel}"], cwd=repository, binary=True)
+        after = git(["show", f"{head}:{rel}"], cwd=repository, binary=True)
+        if before != original or (repository / safe_relative(rel)).read_bytes() != after or (rel not in shared and after != original):
+            raise FlowError(f"Recovery site binding changed: {rel}", EXIT_INTEGRITY)
+        current[rel] = after
+    expected, shared_commit = live_discovery_scope(directory, run, package, metadata, target)
+    for rel, name in shared.items():
+        if expected[name] != current[rel]:
+            raise FlowError(f"Recovery discovery scope changed: {rel}", EXIT_INTEGRITY)
+    urls = {rel: target[name + "_url"] for rel, name in shared.items()}
+    urls[str(target["canonical_article_file"]).format(slug=metadata["slug"])] = target["canonical_url"].format(slug=metadata["slug"])
+    return {urls.get(rel, urllib.parse.urljoin(target["homepage_url"], rel)): body for rel, body in current.items()}, {
+        "run_id": run["run_id"], "package_revision": package["package_revision"], "approval_id": approval["approval_id"],
+        "commit": published, "current_commit": head, "shared_surface_commit": shared_commit,
+        "package_sha256": package_item["sha256"], "publication_receipt_sha256": publication_item["sha256"], "approval_sha256": approval_item["sha256"],
+    }
+
+
+def repair_settled_deployment(directory: Path, run: dict[str, Any], args: argparse.Namespace) -> int:
+    if not str(args.finding or "").strip():
+        raise FlowError("Settled deployment recovery requires an explicit authorized finding", EXIT_APPROVAL)
+    with run_lock(directory, run):
+        events = _read_jsonl(directory / str(run["event_log"]))
+        prior, baseline, maximum = live_verification_window(events, run)
+        if (run["state"] != "LIVE_VERIFICATION" or run["status"] != "BLOCKED" or prior - baseline < maximum
+                or any((event.get("payload") or {}).get("recovery_kind") == "settled_deployment_propagation" for event in events if event.get("type") == "REPAIR")):
+            raise FlowError("Recovery requires the exhausted original live-verification epoch", EXIT_WAITING)
+        target = load_json(SPEC_ROOT / "publication/theproductiveprompter.json")
+        expected, bindings = settled_deployment_scope(directory, run, events, target)
+        verifications = [event["payload"] for event in events if event.get("type") == "VERIFICATION" and (event.get("payload") or {}).get("state") == "LIVE_VERIFICATION"]
+        for ordinal, event in enumerate(verifications, 1):
+            receipt, item = checked_live_artifact(directory, run, events, f"live-verification-attempt:{ordinal}")
+            if (event.get("attempt") != ordinal or receipt.get("attempt") != ordinal or receipt.get("run_id") != run["run_id"] or receipt.get("target") != target["target_id"]
+                    or receipt.get("commit") != bindings["commit"] or receipt.get("package_revision") != bindings["package_revision"]
+                    or receipt.get("approval_id") != bindings["approval_id"] or receipt.get("checks") != event.get("checks")
+                    or receipt.get("classification") != event.get("classification") or receipt.get("status") != "FAILED" or event.get("ok") is not False):
+                raise FlowError("Historical live-verification receipt does not match its event and publication", EXIT_INTEGRITY)
+        if receipt.get("classification") != "deployment_propagation" or not live_verification_failures_are_propagation(receipt["checks"]):
+            raise FlowError("Settled recovery requires a deployment-propagation failure", EXIT_USAGE)
+        checks = []
+        for url, body in expected.items():
+            status, actual, _ = fetch_url(url)
+            checks.append({"url": url, "status": status, "expected_sha256": sha256_bytes(body), "actual_sha256": sha256_bytes(actual), "ok": status == 200 and actual == body})
+        if not all(item["ok"] for item in checks):
+            raise FlowError("Deployment has not settled to the bound published bytes; retain the stop", EXIT_WAITING, checks)
+        path = directory / "receipts" / f"deployment-propagation-observation-{prior:02d}.json"
+        if path.exists():
+            raise FlowError("A settled-deployment observation already exists; inspect recovery history", EXIT_INTEGRITY)
+        observation = {**bindings, "verification_receipt_sha256": item["sha256"], "failed_attempt": prior,
+                       "event_head": events[-1]["event_hash"], "checks": checks, "created_at": utc_now(), "finding": args.finding}
+        write_json(path, observation)
+        recorded = record_artifact(directory, run, path, f"deployment-propagation-observation:{prior}", {"actor": "controller", "version": CONTROLLER_VERSION})
+        append_event(directory, run, "REPAIR", "operator", {
+            "gate_id": "G-LIVE-REVISION", "source_state": "LIVE_VERIFICATION", "repair_state": "LIVE_VERIFICATION",
+            "finding": args.finding, "recovery_kind": "settled_deployment_propagation", "live_verification_baseline": prior,
+            "live_verification_max_attempts": 1, "verification_receipt_sha256": item["sha256"], "observation_sha256": recorded["sha256"],
+        })
+        transition(directory, run, "LIVE_VERIFICATION", "controller", "Settled published bytes observed; one authorized verification, without republishing")
+    emit({"ok": True, "state": run["state"], "maximum_attempts": 1, "next_command": ["article-flow", "verify-live", run["run_id"]]}, args.json)
+    return EXIT_OK
+
+
 def command_verify_live(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
+    with run_lock(directory, run):
+        return verify_live_locked(directory, run, args)
+
+
+def verify_live_locked(directory: Path, run: dict[str, Any], args: argparse.Namespace) -> int:
     if run["state"] != "LIVE_VERIFICATION":
         raise FlowError(f"Live verification requires LIVE_VERIFICATION, current state is {run['state']}")
     events = _read_jsonl(directory / str(run["event_log"]))
-    prior_attempts = sum(1 for event in events if event.get("type") == "VERIFICATION" and (event.get("payload") or {}).get("state") == "LIVE_VERIFICATION")
-    baseline = max((int((event.get("payload") or {}).get("live_verification_baseline", 0)) for event in events if event.get("type") == "REPAIR"), default=0)
-    maximum = int(state_definition("LIVE_VERIFICATION", run).get("max_attempts", 4))
+    prior_attempts, baseline, maximum = live_verification_window(events, run)
     if prior_attempts - baseline >= maximum:
         run["status"] = "BLOCKED"
         save_run(directory, run)
@@ -9808,6 +9960,13 @@ def command_verify_live(args: argparse.Namespace) -> int:
     package = load_json(directory / "package" / "package.json")
     metadata = load_json(directory / "package" / "public" / "metadata.json")
     target = load_json(SPEC_ROOT / "publication" / "theproductiveprompter.json")
+    recoveries = [event["payload"] for event in events if event.get("type") == "REPAIR" and (event.get("payload") or {}).get("recovery_kind") == "settled_deployment_propagation"]
+    recovery_scope: dict[str, bytes] = {}
+    if recoveries:
+        _observation, recorded = checked_live_artifact(directory, run, events, f"deployment-propagation-observation:{baseline}")
+        if recorded["sha256"] != recoveries[-1].get("observation_sha256") or maximum != 1:
+            raise FlowError("Settled-deployment allowance lost its observation binding", EXIT_INTEGRITY)
+        recovery_scope, _bindings = settled_deployment_scope(directory, run, events, target)
     urls = {
         "article": target["canonical_url"].format(slug=metadata["slug"]),
         "blog": target["blog_url"],
@@ -9841,10 +10000,14 @@ def command_verify_live(args: argparse.Namespace) -> int:
         checks.append({"name": "stylesheet_revision", "ok": status == 200 and sha256_bytes(body) == expected_hash,
                        "status": status, "expected_sha256": expected_hash, "actual_sha256": sha256_bytes(body)})
     asset_manifest = load_json(directory / "package" / "public" / "assets.json")
+    checked_urls = set(urls.values())
+    if shared_surface_commit:
+        checked_urls.add(urllib.parse.urljoin(target["homepage_url"], "styles.css"))
     for asset in asset_manifest.get("assets", []):
         if not isinstance(asset, dict):
             continue
         asset_url = urllib.parse.urljoin(target["homepage_url"], str(asset.get("public_path") or "").lstrip("/"))
+        checked_urls.add(asset_url)
         status, body, _ = fetch_url(asset_url)
         checks.append({
             "name": "visual_asset",
@@ -9855,6 +10018,12 @@ def command_verify_live(args: argparse.Namespace) -> int:
             "actual_sha256": sha256_bytes(body),
             "ok": status == 200 and sha256_bytes(body) == asset.get("sha256"),
         })
+    for url, expected in recovery_scope.items():
+        if url in checked_urls:
+            continue
+        status, body, _ = fetch_url(url)
+        checks.append({"name": "recovery_site_revision", "url": url, "status": status,
+                       "expected_sha256": sha256_bytes(expected), "actual_sha256": sha256_bytes(body), "ok": status == 200 and body == expected})
     article_revision_ok = next(item["ok"] for item in checks if item["name"] == "article_revision")
     external_links = (
         sorted(set(re.findall(r'href="(https?://[^"]+)"', article_text)) - set(urls.values()))
@@ -11451,7 +11620,7 @@ def build_parser() -> argparse.ArgumentParser:
     gate.add_argument("--feedback")
     add_json(gate)
 
-    repair = sub.add_parser("repair", help="Return a failed gate to its declared repair state.")
+    repair = sub.add_parser("repair", help="Repair a failed gate; settled deployment recovery permits one authorized live check without republishing.")
     repair.add_argument("run_id")
     repair.add_argument("gate_id", nargs="?")
     repair.add_argument("--finding")

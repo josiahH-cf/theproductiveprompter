@@ -9,6 +9,11 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## October 9, 2026: One checked recovery after deployment settles (3.2.6)
+
+- Keep exhausted deployment propagation in LIVE_VERIFICATION. An explicit repair first binds historical failures and the original pushed package/approval to a clean exact remote descendant, then observes exact live bytes for every packaged site file.
+- Preserve publication, approval and failed receipts; record a separate settled observation and one durable check allowance. Do not republish to reopen verification. Repeated repair cannot reset the allowance, and concurrent live checks serialize under the run lock.
+
 ## October 9, 2026: Preserve legacy discovery cards during revision (3.2.5)
 
 - Resolve older cards through their canonical title link when a controller identifier is absent. Require the canonical scheme, host and effective port for mutation, ignore inert/raw-text markup and bases, and reject duplicate cards, conflicting identifiers and malformed populated fields.
