@@ -5,7 +5,7 @@
     <link>https://theproductiveprompter.com/docs/blog.html</link>
     <description>Practical writing on AI workflows, prompting systems, evaluation, and publication design.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 09 Oct 2026 19:34:18 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 09 Oct 2026 19:36:50 +0000</lastBuildDate>
     <atom:link href="https://theproductiveprompter.com/feed.xml" rel="self" type="application/rss+xml"/>
 
     <!-- ARTICLE_FLOW_FEED_START -->
@@ -56,7 +56,7 @@
   <link>https://theproductiveprompter.com/docs/what-chip-restrictions-may-be-teaching-china.html</link>
   <guid isPermaLink="true">https://theproductiveprompter.com/docs/what-chip-restrictions-may-be-teaching-china.html</guid>
   <pubDate>Wed, 09 Sep 2026 12:00:00 -0500</pubDate>
-  <description>US chip controls may reward Chinese AI ingenuity while still slowing progress. The evidence supports that tension; an AGI breakthrough remains an open possibility.</description>
+  <description>Restricted and uncertain compute access can reduce experiments while making efficiency more valuable. Chinese model disclosures show adaptation, but not that chip controls caused innovation or improved the odds of breakthroughs, including any path to AGI.</description>
 </item>
 <item>
   <title>The Limit May Not Be in the Model</title>
