@@ -173,7 +173,10 @@
                 }
               },
               "exclusion_policy": {
-                "const": "none"
+                "enum": [
+                  "none",
+                  "source_hash_bound_verbatim_evidence"
+                ]
               }
             },
             "additionalProperties": true
@@ -461,7 +464,11 @@
         },
         "em_dash_exclusions": {
           "type": "array",
-          "maxItems": 0
+          "maxItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "const": "source_hash_bound_verbatim_evidence"
+          }
         },
         "high_confidence_phrases": {
           "type": "array",

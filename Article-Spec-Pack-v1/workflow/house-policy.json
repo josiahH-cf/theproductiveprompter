@@ -107,14 +107,14 @@
           "code",
           "attributed_quotations"
         ],
-        "exclusion_policy": "none"
+        "exclusion_policy": "source_hash_bound_verbatim_evidence"
       }
     ],
     "learning_policy": "No automatic global learning. Human choices are local generated-passage preferences; reusable proposals require actual human reasons, scope and regression evidence. Delegated AI choices never become human-original evidence.",
     "active_guide_candidate": "profiles/voice-profile.capstone.v1.json"
   },
   "style_gate": {
-    "policy_id": "theproductiveprompter-public-prose-v1",
+    "policy_id": "theproductiveprompter-public-prose-v2",
     "hash_algorithm": "sha256",
     "hash_source": "canonical_json_of_style_gate",
     "normalization": [
@@ -138,7 +138,9 @@
       "urls",
       "attributed_quotations"
     ],
-    "em_dash_exclusions": [],
+    "em_dash_exclusions": [
+      "source_hash_bound_verbatim_evidence"
+    ],
     "high_confidence_phrases": [
       "not a magic spell",
       "at its core",

@@ -198,8 +198,14 @@ class ApprovedVoiceTests(unittest.TestCase):
         af.write_json(directory/"package/public/metadata.json",{"slug":"model-release-experiment","date":"2026-10-02"})
         request=directory/"request.txt"
         request.write_text("Keep the introduction concise.",encoding="utf-8")
-        code,result=bridge.captured_call(af.command_revise,argparse.Namespace(source_run_id=run["run_id"],
-            request_file=str(request),draft_model=None,hold_before_publish=False,auto=False,json=True))
+        # Campaign inheritance is tested after the verified-source seam; its
+        # Git/live and timestamp behavior has real integration regressions.
+        source=b"<html>Existing article</html>"
+        snapshot={"bytes":source,"sha256":af.sha256_bytes(source),"commit":"a"*40,"observed_at":af.utc_now(),
+                  "metadata":{"slug":"model-release-experiment","date":"2026-10-02","date_iso":"2026-10-02T12:00:00-05:00"}}
+        with patch.object(af.revision_sources,"checked_snapshot",return_value=snapshot):
+            code,result=bridge.captured_call(af.command_revise,argparse.Namespace(source_run_id=run["run_id"],
+                request_file=str(request),draft_model=None,hold_before_publish=False,auto=False,json=True))
         self.assertEqual(code,0)
         _,revision=af.load_run(result["run_id"])
         self.assertEqual(revision["run_overrides"]["model_release"],"model-release-v1")
