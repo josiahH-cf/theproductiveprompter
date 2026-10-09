@@ -5357,8 +5357,12 @@ class UsefulVisualPolicyTests(TemporaryRuntime):
         self.assertEqual(run["state"], "CLAIM_VERIFICATION")
         self.assertEqual(af.artifact(run, "draft")["sha256"], draft_hash)
 
-    def fixture(self, mode="auto", include=True):
-        run_id = self.start("Explain two competing effects of resource constraints.")
+    def fixture(self, mode="auto", include=True, current=False):
+        if current:
+            _, started = call(af.command_start, seed="Explain two competing effects of resource constraints.", seed_file=None, slug=None)
+            run_id = started["run_id"]
+        else:
+            run_id = self.start("Explain two competing effects of resource constraints.")
         directory, run = af.load_run(run_id)
         recipe = af.load_json(SPEC_ROOT / "workflow" / "article-recipe.defaults.json")
         recipe["components"]["diagram"] = mode
@@ -5466,6 +5470,162 @@ class UsefulVisualPolicyTests(TemporaryRuntime):
         af.transition(directory, run, "PACKAGE", "test", "Reject late amendments without reverification")
         with self.assertRaises(af.FlowError):
             call(af.command_amend, run_id=run["run_id"], diagrams="off", reason="Changed preference", title=None, description=None, article=None)
+
+    def test_editorial_qa_prompt_includes_actual_visuals_and_rejects_tampering(self):
+        # Simulate a valid frozen 3.2 graph created before these inputs were
+        # documented. The current controller must still close the handoff gap.
+        graph = af.workflow()
+        qa = next(state for state in graph["states"] if state["id"] == "EDITORIAL_QA")
+        qa["required_inputs"] = [name for name in qa["required_inputs"] if name not in {"visual-plan", "visual-manifest"}]
+        with mock.patch.object(af, "workflow", return_value=graph):
+            directory, run, _, _ = self.fixture(current=True)
+        af.transition(directory, run, "VISUAL_RENDER", "test", "Render actual geometry")
+        call(af.command_visual_render, run_id=run["run_id"])
+        directory, run = af.load_run(run["run_id"])
+        self.record_text(directory, run, "article", af.artifact_path(directory, run, "draft").read_text(encoding="utf-8"))
+        for kind in ("verified-claim-ledger", "post-edit-claim-ledger", "voice-learning"):
+            self.record_json(directory, run, kind, {})
+        af.transition(directory, run, "EDITORIAL_QA", "test", "Inspect the actual diagram")
+        with af.run_lock(directory, run):
+            _, packet = af.task_packet(directory, run)
+        inputs = {item["id"]: item for item in packet["inputs"]}
+        self.assertTrue({"visual-plan", "visual-manifest", "rendered-visual:competing-effects"} <= set(inputs))
+        svg = Path(inputs["rendered-visual:competing-effects"]["path"])
+        self.assertIn(svg.read_text(encoding="utf-8"), af.model_prompt(packet))
+        self.assertTrue(any("paths/arrows" in text for text in packet["constraints"]))
+        svg.write_bytes(svg.read_bytes().replace(b'Net effect uncertain', b'Net benefit certain!'))
+        with self.assertRaisesRegex(af.FlowError, "unbound visuals"):
+            af.packet_inputs(directory, run, "EDITORIAL_QA")
+
+    def test_late_visual_amendment_preserves_article_and_reopens_verification(self):
+        for state in ("EDITORIAL_QA", "PACKAGE", "PUBLISH_APPROVAL"):
+            with self.subTest(state=state):
+                directory, run, old_plan_path, _ = self.fixture(current=True)
+                old_plan_bytes = old_plan_path.read_bytes()
+                af.transition(directory, run, "VISUAL_RENDER", "test", "Prepare a held article")
+                call(af.command_visual_render, run_id=run["run_id"])
+                directory, run = af.load_run(run["run_id"])
+                prose = af.artifact_path(directory, run, "draft").read_text(encoding="utf-8") + "\nA distinctive final sentence stays intact.\n"
+                self.record_text(directory, run, "article", prose)
+                article_hash = af.artifact(run, "article")["sha256"]
+                af.transition(directory, run, state, "test", "Hold before publication")
+                if state == "EDITORIAL_QA":
+                    for attempt in range(1, 4):
+                        af.append_event(directory, run, "MODEL_OUTPUT_REJECTED", "test", {
+                            "state": state, "attempt": attempt,
+                            "task_packet_sha256": str(attempt) * 64,
+                        })
+                    self.assertEqual(af.stage_attempt_evidence(directory, run, state)["window_used"], 3)
+                reason = "Omit this diagram because its arrows imply unsupported dependencies."
+                call(af.command_amend, run_id=run["run_id"], diagrams="off", reason=reason, title=None, description=None, article=None)
+                directory, run = af.load_run(run["run_id"])
+                self.assertEqual(run["state"], "VISUAL_PLAN")
+                self.assertEqual(af.artifact(run, "article")["sha256"], article_hash)
+                self.assertEqual(old_plan_path.read_bytes(), old_plan_bytes)
+                with af.run_lock(directory, run):
+                    _, packet = af.task_packet(directory, run)
+                self.assertIn("visual-policy-amendment", {item["id"] for item in packet["inputs"]})
+                self.assertIn(reason, af.model_prompt(packet))
+                self.assertTrue(any("sixth label is the main-path audit" in text for text in packet["constraints"]))
+                self.record_json(directory, run, "visual-plan", {"visual_plan_schema_version": "1.0.0", "run_id": run["run_id"], "visuals": [], "omission_reason": reason}, "omitted-plan.json")
+                af.transition(directory, run, "VISUAL_RENDER", "test", "Render the amended plan")
+                call(af.command_visual_render, run_id=run["run_id"])
+                directory, run = af.load_run(run["run_id"])
+                self.assertEqual(run["state"], "CLAIM_VERIFICATION")
+                updated = af.artifact_path(directory, run, "article").read_text(encoding="utf-8")
+                self.assertNotIn("![", updated)
+                self.assertIn(self.anchor, updated)
+                self.assertTrue(updated.rstrip().endswith("A distinctive final sentence stays intact."))
+                self.assertEqual(af.json_artifact(directory, run, "visual-manifest")["assets"], [])
+                for kind in ("verified-claim-ledger", "post-edit-claim-ledger", "voice-learning"):
+                    self.record_json(directory, run, kind, {})
+                af.transition(directory, run, "EDITORIAL_QA", "test", "Recheck amended visuals")
+                with af.run_lock(directory, run):
+                    _, renewed = af.task_packet(directory, run)
+                self.assertEqual(renewed["attempt"], 4 if state == "EDITORIAL_QA" else 1)
+                af.transition(directory, run, "COMPLETE", "test", "Published articles require a revision")
+                with self.assertRaises(af.FlowError):
+                    call(af.command_amend, run_id=run["run_id"], diagrams="auto", reason=reason, title=None, description=None, article=None)
+
+    def test_editorial_qa_requires_bound_empty_manifest_for_omission(self):
+        directory, run, _, _ = self.fixture(include=False, current=True)
+        for kind in ("article", "verified-claim-ledger", "post-edit-claim-ledger", "voice-learning"):
+            self.record_json(directory, run, kind, {})
+        with self.assertRaisesRegex(af.FlowError, "visual-manifest"):
+            af.packet_inputs(directory, run, "EDITORIAL_QA")
+        af.transition(directory, run, "VISUAL_RENDER", "test", "Bind omission")
+        call(af.command_visual_render, run_id=run["run_id"])
+        directory, run = af.load_run(run["run_id"])
+        inputs = af.packet_inputs(directory, run, "EDITORIAL_QA")
+        self.assertIn("visual-manifest", {item["id"] for item in inputs})
+        self.assertFalse(any(item["id"].startswith("rendered-visual:") for item in inputs))
+
+    def test_json_ld_round_trips_text_without_html_entities_or_script_injection(self):
+        directory, run, _, _ = self.fixture(include=False, current=True)
+        self.record_text(directory, run, "article", "# A clear explanation\n\nA bounded article.\n")
+        metadata = {
+            "slug": "json-ld-round-trip", "title": 'An author\'s "quoted" title & <example>',
+            "description": 'An author\'s account: </script><script>alert("x")</script>\nC:\\notes',
+            "date": "2026-10-09", "date_iso": "2026-10-09T12:00:00-05:00",
+            "tags": ['research & review', '</script>'],
+            "drafting_models": [{"model_id": "fixture", "public_display_name": "Fixture"}],
+            "style_policy_sha256": af.style_policy_sha256(run),
+        }
+        package = self.root / "json-ld-package"
+        af.render_publication_files(directory, run, package, metadata)
+        rendered = (package / "site/docs/json-ld-round-trip.html").read_text(encoding="utf-8")
+        payload = re.search(r'<script type="application/ld\+json">(.*?)</script>', rendered, re.S).group(1)
+        parsed = json.loads(payload)
+        self.assertEqual(parsed["headline"], metadata["title"])
+        self.assertEqual(parsed["description"], metadata["description"])
+        self.assertEqual(parsed["keywords"], metadata["tags"])
+        self.assertNotIn("&#x27;", payload)
+        self.assertNotIn("</script>", payload)
+        self.assertIn(html.escape(metadata["title"]), rendered)
+
+    def test_pending_old_qa_packet_is_retired_for_resume_submit_and_fallback(self):
+        for action in ("resume", "submit", "fallback", "committed"):
+            with self.subTest(action=action):
+                directory, run, _, _ = self.fixture(current=True)
+                af.transition(directory, run, "VISUAL_RENDER", "test", "Render before QA")
+                call(af.command_visual_render, run_id=run["run_id"])
+                directory, run = af.load_run(run["run_id"])
+                self.record_text(directory, run, "article", af.artifact_path(directory, run, "draft").read_text(encoding="utf-8"))
+                for kind in ("verified-claim-ledger", "post-edit-claim-ledger", "voice-learning"):
+                    self.record_json(directory, run, kind, {})
+                af.transition(directory, run, "EDITORIAL_QA", "test", "Simulate old controller dispatch")
+                packet_inputs = af.packet_inputs
+                def old_inputs(directory, run, state):
+                    return [i for i in packet_inputs(directory, run, state)
+                            if i["id"] not in {"visual-plan", "visual-manifest"} and not i["id"].startswith("rendered-visual:")]
+                with af.run_lock(directory, run), mock.patch.object(af, "packet_inputs", side_effect=old_inputs):
+                    old_path, old = af.task_packet(directory, run)
+                original = old_path.read_bytes()
+                if action == "committed":
+                    output = Path(old["expected_outputs"][0]["path"])
+                    af.write_json(output, {})
+                    af.write_gate_receipt(directory, run, "G-EDITORIAL-QA", "PASS", [], {"type": "test"}, task_state="EDITORIAL_QA", task_attempt=old["attempt"], task_packet_sha256=af.sha256_path(old_path))
+                    with self.assertRaisesRegex(af.FlowError, "gate outcome is already recorded and cannot be replayed"):
+                        call(af.command_submit, run_id=run["run_id"], stage="EDITORIAL_QA", file=str(output))
+                    self.assertEqual(old_path.read_bytes(), original)
+                    continue
+                if action == "submit":
+                    output = Path(old["expected_outputs"][0]["path"])
+                    af.write_json(output, {})
+                    with self.assertRaisesRegex(af.FlowError, "Older editorial QA packet retired"):
+                        call(af.command_submit, run_id=run["run_id"], stage="EDITORIAL_QA", file=str(output))
+                    directory, run = af.load_run(run["run_id"])
+                with af.run_lock(directory, run):
+                    if action == "fallback":
+                        af.abandon_cached_packet(directory, run, "EDITORIAL_QA", af.latest_task_packet_item(directory, run, "EDITORIAL_QA"), {"reason": "fixture_provider_failure"})
+                        run.setdefault("route_retry_candidates", {})["EDITORIAL_QA"] = old["selected_route"]["candidates"]
+                        _, renewed = af.task_packet(directory, run)
+                    else:
+                        _, renewed = af.current_packet(directory, run)
+                self.assertGreater(renewed["attempt"], old["attempt"])
+                self.assertEqual(old_path.read_bytes(), original)
+                self.assertTrue(af.qa_packet_has_current_visuals(directory, run, renewed))
+                self.assertIn("<svg", af.model_prompt(renewed))
 
 class BackendLearningRegressionTests(TemporaryRuntime):
     voice_probe = VoiceLearningTests.voice_probe

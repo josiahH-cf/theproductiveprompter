@@ -670,6 +670,12 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "evaluation"
+    },
+    {
+      "path": "tests/test_editorial_recovery.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "evaluation"
     }
   ]
 }

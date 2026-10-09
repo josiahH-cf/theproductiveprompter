@@ -174,10 +174,174 @@ def positive_observation(finding: dict) -> bool:
     return bool(re.match(r"^no(?: article)? repair (?:is )?(?:required|needed|necessary)\b", str(finding.get("repair_instruction", "")).strip(), re.I))
 
 
+def frontmatter_value(af: Any, article: str, field: str) -> str:
+    matches = re.findall(r"(?m)^" + re.escape(field) + r":\s*(.*?)\s*$", article[:af.markdown_body_start(article)])
+    if len(matches) != 1:
+        return ""
+    value = matches[0].strip()
+    if value.startswith('"'):
+        try:
+            value = json.loads(value)
+        except ValueError:
+            return ""
+    elif len(value) >= 2 and value.startswith("'") and value.endswith("'"):
+        value = value[1:-1].replace("''", "'")
+    return value if isinstance(value, str) else ""
+
+
+def excerpt_owner(af: Any, article: str, brief: dict, manifest: dict, excerpt: str) -> dict | None:
+    """Locate a unique assessed excerpt without widening to unrelated prose."""
+    normal = lambda text: re.sub(r"\s+", " ", str(text)).strip()
+    target = normal(excerpt)
+    if len(target) < 8:
+        return None
+    frontmatter = {field: normal(frontmatter_value(af, article, field)) for field in ("title", "description")}
+    fields = [field for field in frontmatter if target in {normal(brief.get(field, "")), frontmatter[field]}]
+    if fields:
+        if len(fields) != 1:
+            return None
+        field = fields[0]
+        if target == frontmatter[field]:
+            return {"artifact": "article", "location": "frontmatter." + field, "repair_state": "EDIT"}
+        return {"artifact": "brief", "location": field, "repair_state": "DISPLAY_REVISION"}
+    matches = []
+    for visual in manifest.get("assets", []):
+        for field in ("caption", "alt_text", "title"):
+            value = normal(visual.get(field, ""))
+            if target in value:
+                matches.append((target == value, {"artifact": "visual-manifest",
+                    "location": f"visual:{visual['visual_id']}:{field}", "repair_state": "VISUAL_PLAN"}))
+    exact = [selector for equal, selector in matches if equal]
+    candidates = exact or [selector for _, selector in matches]
+    if candidates:
+        return candidates[0] if len(candidates) == 1 else None
+    # Older drafts could carry a model-written caption beside a manifest-owned
+    # image. Bind that caption by its exact asset path, not a nearby heading or
+    # a similar paragraph elsewhere. Rendering/omission owns this public block.
+    captions = []
+    for visual in manifest.get("assets", []):
+        public_path = str(visual.get("public_path") or "")
+        if not public_path:
+            continue
+        pattern = r"(?m)^!\[[^\n]*\]\(" + re.escape(public_path) + r"\)\s*\n\s*\*([^\n]+)\*\s*$"
+        for caption in re.findall(pattern, article):
+            if target in normal(caption):
+                captions.append({"artifact": "visual-manifest", "location": f"visual:{visual['visual_id']}:caption", "repair_state": "VISUAL_PLAN"})
+    if captions:
+        return captions[0] if len(captions) == 1 else None
+    paragraphs = [p.strip() for p in re.split(r"\n\s*\n", article[af.markdown_body_start(article):])
+                  if p.strip() and not p.lstrip().startswith("#")]
+    matches = [n for n, p in enumerate(paragraphs, 1) if target in normal(p)]
+    if len(matches) == 1:
+        return {"artifact": "article", "location": f"paragraph {matches[0]}", "repair_state": "EDIT"}
+    return None
+
+
+def current_excerpt_owner(af: Any, directory: Path, run: dict, excerpt: str) -> dict | None:
+    path = af.artifact_path(directory, run, "article")
+    return excerpt_owner(af, path.read_text(encoding="utf-8") if path else "",
+                         checked_json(af, directory, run, "brief") or {},
+                         checked_json(af, directory, run, "visual-manifest") or {}, excerpt)
+
+
+def normalized_obligations(af: Any, directory: Path, run: dict) -> dict:
+    """Append a source-bound recovery for older controller-created bad locators.
+
+    Keep original IDs, findings and source hashes. Recovery requires a matching
+    intact original gate receipt and its source artifacts, never the new prose.
+    """
+    previous = checked_json(af, directory, run, "editorial-repair-obligations") or {}
+    updated = json.loads(json.dumps(previous))
+    recovered = []
+    if not updated.get("pending"):
+        return updated
+    verified, error, _, events = af.verify_event_log(directory, run)
+    if not verified:
+        raise af.FlowError("Original editorial recovery event history changed", af.EXIT_INTEGRITY, error)
+    # The run index projects only the latest artifact of each type. Original
+    # review sources remain committed in the verified append-only event log.
+    history = [event["payload"]["artifact"] for event in events
+               if event.get("type") == "ARTIFACT_RECORDED"]
+
+    def historical(kind: str, sha: str | None) -> tuple[dict, Path] | None:
+        item = next((a for a in reversed(history) if a["type"] == kind and a["sha256"] == sha), None)
+        if not item:
+            return None
+        path = (directory / af.safe_relative(item["path"])).resolve()
+        if not path.is_relative_to(directory.resolve()) or not path.is_file() or af.sha256_path(path) != sha:
+            raise af.FlowError("Original editorial recovery source changed", af.EXIT_INTEGRITY)
+        return item, path
+
+    for old in updated.get("pending", []):
+        finding = old["finding"]
+        if old.get("normalization") or (finding.get("criterion") != "contextual_naturalness" and "caption" not in str(finding.get("finding", "")).lower()):
+            continue
+        excerpts = [str(finding.get("location") or "")] + re.findall(r'["“]([^"”]+)["”]', str(finding.get("finding", "")))
+        for item in reversed(history):
+            if not item["type"].startswith("gate-receipt:G-EDITORIAL-QA"):
+                continue
+            record = historical(item["type"], item["sha256"])
+            receipt = af.load_json(record[1])
+            if receipt.get("run_id") != run["run_id"] or finding not in receipt.get("findings", []):
+                continue
+            binding = receipt.get("task_binding") or {}
+            packet_source = historical(f"task-packet:EDITORIAL_QA:{binding.get('attempt')}", binding.get("task_packet_sha256")) if binding.get("state") == "EDITORIAL_QA" else None
+            if not packet_source:
+                continue
+            packet_inputs = {i["id"]: i["sha256"] for i in af.load_json(packet_source[1]).get("inputs", [])}
+            hashes = receipt.get("artifact_hashes", {})
+            sources = {kind: historical(kind, hashes.get(kind)) for kind in ("article", "brief", "visual-manifest")}
+            if not sources["article"] or not sources["brief"]:
+                continue
+            if any(packet_inputs.get(kind) != hashes.get(kind) for kind in ("article", "brief")):
+                continue
+            article = sources["article"][1].read_text(encoding="utf-8")
+            brief = af.load_json(sources["brief"][1])
+            manifest = af.load_json(sources["visual-manifest"][1]) if sources["visual-manifest"] else {}
+            candidates = [(excerpt_owner(af, article, brief, manifest, excerpt), excerpt) for excerpt in excerpts]
+            candidates = [(selector, excerpt) for selector, excerpt in candidates if selector]
+            # Prefer the explicitly quoted caption over a heading that happens
+            # to resolve as prose. Every accepted selector must be unambiguous.
+            owned = [(s, e) for s, e in candidates if s["repair_state"] in {"VISUAL_PLAN", "DISPLAY_REVISION"}]
+            candidates = owned or candidates
+            unique = {digest(s): (s, e) for s, e in candidates}
+            if len(unique) != 1:
+                continue
+            selector, excerpt = next(iter(unique.values()))
+            old["normalization"] = {
+                "original_finding_sha256": digest(finding), "selector": selector, "excerpt": excerpt,
+                "gate_receipt_sha256": item["sha256"],
+                "source_hashes": {kind: value[0]["sha256"] for kind, value in sources.items() if value},
+            }
+            recovered.append({"id": old["id"], **old["normalization"]})
+            break
+    if recovered:
+        updated["normalization_provenance"] = {"prior_obligations_sha256": af.artifact(run, "editorial-repair-obligations")["sha256"], "recoveries": recovered}
+        path = directory / "artifacts" / f"editorial-repair-obligations-{digest(updated)[:16]}.json"
+        af.write_json_immutable(path, updated)
+        af.record_artifact(directory, run, path, "editorial-repair-obligations", {"actor": "controller", "decision": "source-bound-locator-normalization", "version": af.CONTROLLER_VERSION})
+    return updated
+
+
+def obligation_finding(old: dict) -> dict:
+    normalization = old.get("normalization") or {}
+    if normalization and normalization.get("original_finding_sha256") != digest(old["finding"]):
+        raise ValueError("Editorial obligation normalization disagrees with its original finding")
+    return {**old["finding"], **normalization.get("selector", {})}
+
+
 def resolution_surface(af: Any, directory: Path, run: dict, finding: dict) -> tuple[str, str]:
     """The owner and named surface constrain where a resolution may cite evidence."""
     owner = finding.get("repair_state")
     named = " ".join(str(finding.get(k, "")) for k in ("artifact", "location", "criterion")).lower()
+    match = re.fullmatch(r"frontmatter\.(title|description)", str(finding.get("location") or ""))
+    if finding.get("artifact") == "article" and match:
+        field = match.group(1)
+        article_path = af.artifact_path(directory, run, "article")
+        current = frontmatter_value(af, article_path.read_text(encoding="utf-8") if article_path else "", field)
+        brief = checked_json(af, directory, run, "brief") or {}
+        agrees = current.strip() == str(brief.get(field, "")).strip()
+        return "article.frontmatter." + field, current if agrees else ""
     if owner == "DISPLAY_REVISION":
         brief = checked_json(af, directory, run, "brief") or {}
         if "description" in named:
@@ -188,10 +352,19 @@ def resolution_surface(af: Any, directory: Path, run: dict, finding: dict) -> tu
     if owner == "VISUAL_PLAN":
         plan = checked_json(af, directory, run, "visual-plan") or {}
         manifest = checked_json(af, directory, run, "visual-manifest") or {}
+        match = re.fullmatch(r"visual:([^:]+):(caption|alt_text|title)", str(finding.get("location") or ""))
+        if match:
+            assets = [a for a in manifest.get("assets", []) if a["visual_id"] == match.group(1)]
+            if len(assets) == 1:
+                return "visual-plan+manifest", str(assets[0].get(match.group(2), ""))
+            if not plan.get("visuals") and not manifest.get("assets") and plan.get("omission_reason") == manifest.get("omission_reason"):
+                return "visual-plan+manifest", str(manifest.get("omission_reason") or "")
+            return "visual-plan+manifest", ""
         return "visual-plan+manifest", json.dumps({"plan": plan, "manifest": manifest}, ensure_ascii=False)
     path = af.artifact_path(directory, run, "article")
     text = path.read_text(encoding="utf-8") if path else ""
     location = str(finding.get("location") or "").strip()
+    text = text[af.markdown_body_start(text):]
     paragraphs = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip() and not p.lstrip().startswith("#")]
     ordinals = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "first": 1, "second": 2, "third": 3}
     match = re.fullmatch(r"paragraph (\d+|one|two|three|four|five|six|first|second|third)(?:,\s*sentence (\d+))?", location, re.I)
@@ -221,19 +394,31 @@ def assessment_findings(af: Any, directory: Path, run: dict, value: dict) -> lis
     material = [{**f, "repair_state": af.editorial_repair_destination(f)} for f in supplied
                 if not advisory_length_finding(af, directory, run, f)
                 and not (value.get("outcome") == "PASS" and positive_observation(f))]
-    previous = checked_json(af, directory, run, "editorial-repair-obligations") or {}
+    previous = normalized_obligations(af, directory, run)
+    original = {obligation_id(old["finding"]): obligation_finding(old) for old in previous.get("pending", [])}
+    material = [original.get(obligation_id(f), f) for f in material]
+    for finding in material:
+        if finding.get("repair_state") == "VISUAL_PLAN" or "caption" not in str(finding.get("finding", "")).lower():
+            continue
+        selectors = [current_excerpt_owner(af, directory, run, excerpt)
+                     for excerpt in re.findall(r'["“]([^"”]+)["”]', str(finding.get("finding", "")))]
+        selectors = {digest(s): s for s in selectors if s and s["repair_state"] == "VISUAL_PLAN"}
+        if len(selectors) == 1:
+            finding.update(next(iter(selectors.values())))
+            finding["criterion"] = "visual_caption"
     dispositions = value.get("dimensions", {}).get("repair_resolution", {})
     for old in previous.get("pending", []):
         if positive_observation(old["finding"]):
             continue
         resolution = dispositions.get(old["id"], {})
         excerpt = str(resolution.get("excerpt", ""))
-        surface, current_text = resolution_surface(af, directory, run, old["finding"])
+        effective = obligation_finding(old)
+        surface, current_text = resolution_surface(af, directory, run, effective)
         if not (resolution.get("status") == "PASS" and resolution.get("surface") == surface
                 and resolution.get("finding_location") == old["finding"].get("location")
                 and len(excerpt) >= 8 and excerpt in current_text
                 and len(str(resolution.get("reason", ""))) >= 20):
-            material.append(old["finding"])
+            material.append(effective)
     if value.get("outcome") != "PASS" and not supplied and not material:
         material.append({"criterion": "editorial_outcome", "artifact": "assessment", "location": None,
                          "finding": "Assessment rejects without an actionable finding", "repair_instruction": "Name the material issue or return PASS", "repair_state": "EDITORIAL_QA"})
@@ -241,8 +426,8 @@ def assessment_findings(af: Any, directory: Path, run: dict, value: dict) -> lis
 
 
 def record_assessment(af: Any, directory: Path, run: dict, value: dict, findings: list[dict], outcome: str) -> None:
-    previous = checked_json(af, directory, run, "editorial-repair-obligations") or {}
-    prior = {obligation_id(o["finding"]): o for o in previous.get("pending", [])}
+    previous = normalized_obligations(af, directory, run)
+    prior = {obligation_id(obligation_finding(o)): o for o in previous.get("pending", [])}
     pending = []
     if outcome != "PASS":
         for finding in findings:
@@ -271,7 +456,7 @@ def prepare(af: Any, directory: Path, run: dict, state: str, inputs: list[dict])
     author_context = checked_json(af, directory, run, "author-context")
     if author_context:
         context["author_context"] = author_context
-    obligations = checked_json(af, directory, run, "editorial-repair-obligations")
+    obligations = normalized_obligations(af, directory, run)
     if obligations and obligations.get("pending"):
         context["repair_obligations"] = obligations["pending"]
     frozen = definitions(run)
@@ -292,7 +477,8 @@ def constraints(stage: str) -> list[str]:
     common = ["editorial-context is the sole active voice authority. Historical examples and labels are evidence only, never additional writing rules. Use one author with article-specific register; no fixed skeleton or persona.",
               "In assessments, findings contains only actionable defects. Put favorable observations in dimensions; a PASS should have no defect findings. Do not manufacture a repair from evidence that a requirement is already satisfied.",
               "Use supported body finding locations: paragraph N, paragraph N, sentence M, opening, or an exact unique heading. Paragraphs are nonempty blank-line-separated body blocks excluding headings; sentences split after terminal punctuation followed by whitespace. Use null only for a genuinely whole-article issue. Unknown, missing or ambiguous local passages cannot be resolved with evidence from elsewhere.",
-              "Retain every repair_obligation. Address findings owned by this stage. In EDITORIAL_QA, dimensions.repair_resolution must map every pending ER ID to status PASS, the exact surface (article, brief.title, brief.description, brief.title+description, or visual-plan+manifest), finding_location copied from the finding, an exact excerpt from that CURRENT affected surface/passage, and a substantive reason, or report the unresolved finding. A later clean assessment cannot silently discard earlier concerns. Whole-body evidence cannot resolve a display issue.",
+              "Retain every repair_obligation. Address findings owned by this stage. In EDITORIAL_QA, dimensions.repair_resolution must map every pending ER ID to status PASS, the exact surface (article, article.frontmatter.title, article.frontmatter.description, brief.title, brief.description, brief.title+description, or visual-plan+manifest), finding_location copied from the finding, an exact excerpt from that CURRENT affected surface/passage, and a substantive reason, or report the unresolved finding. A later clean assessment cannot silently discard earlier concerns. Whole-body evidence cannot resolve a display issue. A frontmatter finding requires the current article field to agree with the authoritative brief; an already-correct brief alone cannot clear it.",
+              "When an obligation has source-bound normalization, its selector identifies the corrected owner and current local surface. Preserve the original ER ID and copy the original finding.location into finding_location. Resolve against that specific visual field (or explicit omission), display field or paragraph; normalization does not resolve the defect by itself.",
               "Distinguish binding author requirements from guidance targets. A publication gate or mechanical phrase check is not proof of author resemblance."]
     specific = {
         "INTENT_REVIEW": "Make the supplied author angle legible. Ask only a material question whose answer changes the article. Keep suggested angles distinct from actual views; do not require an interview.",
