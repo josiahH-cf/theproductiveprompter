@@ -5,7 +5,7 @@
     <link>https://theproductiveprompter.com/docs/blog.html</link>
     <description>Practical writing on AI workflows, prompting systems, evaluation, and publication design.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 09 Oct 2026 12:56:15 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 09 Oct 2026 16:19:39 +0000</lastBuildDate>
     <atom:link href="https://theproductiveprompter.com/feed.xml" rel="self" type="application/rss+xml"/>
 
     <!-- ARTICLE_FLOW_FEED_START -->
@@ -42,7 +42,7 @@
   <link>https://theproductiveprompter.com/docs/what-ai-alignment-means-and-why-it-might-improve.html</link>
   <guid isPermaLink="true">https://theproductiveprompter.com/docs/what-ai-alignment-means-and-why-it-might-improve.html</guid>
   <pubDate>Tue, 22 Sep 2026 12:00:00 -0500</pubDate>
-  <description>A working definition of AI alignment, what benchmark progress can show, and the open question of whether explicitly refusing unsafe instructions belongs in the definition.</description>
+  <description>Why I expect AI alignment to improve, what benchmark results can establish, and whether refusing unsafe instructions belongs in the definition.</description>
 </item>
 <item>
   <title>The Two-Model Pruning Cycle: How to Simplify an AI-Assisted Codebase Safely</title>
