@@ -48,7 +48,7 @@ import editorial_learning
 import editorial_workbench
 import revision_sources
 
-CONTROLLER_VERSION = "3.2.6"
+CONTROLLER_VERSION = "3.2.7"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -7696,7 +7696,166 @@ def materialize_manifest_visuals_markdown(markdown: str, manifest: dict[str, Any
 
 
 
+PARALLEL_REVIEW_RETURN_PATHS = (
+    "M45 860 H25 V695 H40",
+    "M465 1050 H740 V85 H380 V105",
+    "M715 710 H740",
+)
+
+
+def without_parallel_review_returns(data: bytes) -> bytes:
+    """Remove only the two return loops and their dependent deferral stub."""
+    for path in PARALLEL_REVIEW_RETURN_PATHS:
+        tag = f'<path d="{path}" class="arrow return"/>'.encode("ascii")
+        if data.count(tag) != 1:
+            raise FlowError("Parallel-review return geometry changed; a fresh review is required", EXIT_INTEGRITY)
+        data = data.replace(tag, b"")
+    return data
+
+
+def visual_return_correction(directory: Path, run: dict[str, Any], visual_id: str) -> dict[str, Any] | None:
+    item = artifact(run, f"visual-return-correction:{visual_id}")
+    if not item:
+        return None
+    path = directory / safe_relative(item["path"])
+    if not path.is_file() or sha256_path(path) != item["sha256"]:
+        raise FlowError("Visual return correction receipt changed", EXIT_INTEGRITY)
+    value = load_json(path)
+    if value.get("run_id") != run["run_id"] or value.get("visual_id") != visual_id:
+        raise FlowError("Visual return correction identity differs", EXIT_INTEGRITY)
+    return value
+
+
+def scoped_visual_svg(directory: Path, run: dict[str, Any], visual: dict[str, Any], plan_hash: str) -> bytes:
+    data = render_visual_svg(visual)
+    correction = visual_return_correction(directory, run, visual["visual_id"])
+    if not correction or correction.get("visual_plan_sha256") != plan_hash:
+        return data
+    if visual["kind"] != "parallel_review" or sha256_bytes(data) != correction.get("source_sha256"):
+        raise FlowError("Approved visual correction no longer matches its renderer source", EXIT_INTEGRITY)
+    expected = without_parallel_review_returns(data)
+    path = directory / safe_relative(str(correction.get("corrected_source_path", "")))
+    if (not path.is_file() or path.read_bytes() != expected
+            or sha256_bytes(expected) != correction.get("corrected_sha256")):
+        raise FlowError("Approved visual correction bytes changed", EXIT_INTEGRITY)
+    return expected
+
+
+def finish_visual_return_correction(directory: Path, run: dict[str, Any], correction: dict[str, Any], manifest: dict[str, Any]) -> bool:
+    """Settle a partially recorded correction without replaying completed work."""
+    receipt = json_artifact(directory, run, "gate-receipt:G-VISUAL-RENDER") or {}
+    gate_done = receipt.get("outcome") == "PASS" and receipt.get("artifact_hashes", {}).get("visual-manifest") == manifest["sha256"]
+    event_done = any(event.get("type") == "VISUALS_REFRESHED"
+                     and (event.get("payload") or {}).get("correction_kind") == "parallel_review_return_arrows"
+                     and (event.get("payload") or {}).get("manifest_sha256") == manifest["sha256"]
+                     for event in _read_jsonl(directory / str(run["event_log"])))
+    if not gate_done:
+        write_gate_receipt(directory, run, "G-VISUAL-RENDER", "PASS", [], {"type": "code", "version": CONTROLLER_VERSION})
+    if not event_done:
+        append_event(directory, run, "VISUALS_REFRESHED", "operator", {"correction_kind": "parallel_review_return_arrows",
+                     "visual_id": correction["visual_id"], "authorization": correction["authorization"],
+                     "visual_plan_sha256": correction["visual_plan_sha256"], "prior_manifest_sha256": correction["prior_manifest_sha256"],
+                     "manifest_sha256": manifest["sha256"], "source_sha256": correction["source_sha256"],
+                     "corrected_sha256": correction["corrected_sha256"], "state_unchanged": run["state"], "attempt_counters_unchanged": True})
+        save_run(directory, run)
+    return gate_done and event_done
+
+
+def command_visual_return_correction(args: argparse.Namespace) -> int:
+    """Admit one exact, operator-authorized geometry repair before new claims."""
+    visual_id = str(getattr(args, "correct_return_arrows", "") or "")
+    reason = str(getattr(args, "reason", "") or "").strip()
+    expected_hash = str(getattr(args, "expected_source_sha256", "") or "")
+    replacement = getattr(args, "replacement_svg", None)
+    if (not visual_id or not reason or not replacement
+            or not re.fullmatch(r"[0-9a-f]{64}", expected_hash) or getattr(args, "refresh", False)):
+        raise FlowError("Return correction requires a visual ID, replacement SVG, exact source SHA-256 and actual authorization reason; it cannot refresh publication", EXIT_USAGE)
+    candidate_path = Path(replacement).expanduser().resolve()
+    if not candidate_path.is_file():
+        raise FlowError("Replacement SVG does not exist", EXIT_USAGE)
+    candidate = candidate_path.read_bytes()
+    directory, run = load_run(args.run_id)
+    with run_lock(directory, run):
+        if run["state"] != "CLAIM_VERIFICATION" or run["status"] != "ACTIVE" or run.get("publication"):
+            raise FlowError("Return correction requires ACTIVE CLAIM_VERIFICATION before publication; holds and stops remain in force", EXIT_WAITING)
+        packet_item = latest_task_packet_item(directory, run, "CLAIM_VERIFICATION")
+        if packet_item:
+            packet_path, packet, issue = validate_recorded_task_packet(directory, run, packet_item)
+            if issue or packet_path is None or packet is None:
+                raise FlowError("Claim task evidence must reconcile before visual correction", EXIT_INTEGRITY)
+            attempt = int(packet["attempt"])
+            sequence = task_packet_dispatch_sequence(directory, run, "CLAIM_VERIFICATION", attempt, packet_path)
+            if sequence is None or not task_packet_gate_consumed(directory, run, "CLAIM_VERIFICATION", attempt, packet_item["sha256"], sequence):
+                raise FlowError("Settle the dispatched claim task before visual correction", EXIT_WAITING)
+        plan_item = artifact(run, "visual-plan")
+        manifest_item = artifact(run, "visual-manifest")
+        if not plan_item or not manifest_item:
+            raise FlowError("Return correction requires an approved plan and rendered manifest", EXIT_INTEGRITY)
+        plan_path = directory / safe_relative(plan_item["path"])
+        manifest_path = directory / safe_relative(manifest_item["path"])
+        if sha256_path(plan_path) != plan_item["sha256"] or sha256_path(manifest_path) != manifest_item["sha256"]:
+            raise FlowError("Visual correction inputs changed", EXIT_INTEGRITY)
+        findings = validate_visual_manifest(directory, run, manifest_path)
+        if findings:
+            raise FlowError("Current visual manifest must pass before scoped correction", EXIT_INTEGRITY, findings)
+        plan = load_json(plan_path)
+        manifest = load_json(manifest_path)
+        visuals = [v for v in plan["visuals"] if v["visual_id"] == visual_id]
+        assets = [a for a in manifest["assets"] if a["visual_id"] == visual_id]
+        if len(visuals) != 1 or len(assets) != 1 or visuals[0]["kind"] != "parallel_review":
+            raise FlowError("Return correction owns exactly one existing parallel-review asset", EXIT_USAGE)
+        native = render_visual_svg(visuals[0])
+        if sha256_bytes(native) != expected_hash or candidate != without_parallel_review_returns(native):
+            raise FlowError("Replacement may remove only the reviewed return loops and dependent stub; labels, forward arrows and all other bytes must remain exact", EXIT_INTEGRITY)
+        correction = visual_return_correction(directory, run, visual_id)
+        corrected_hash = sha256_bytes(candidate)
+        if correction and (correction.get("visual_plan_sha256") != plan_item["sha256"]
+                           or correction.get("source_sha256") != expected_hash
+                           or correction.get("corrected_sha256") != corrected_hash):
+            raise FlowError("A different correction is already recorded; its authority cannot be reused", EXIT_WAITING)
+        source_path = directory / safe_relative(assets[0]["source_path"])
+        if correction and assets[0]["sha256"] == corrected_hash:
+            scoped_visual_svg(directory, run, visuals[0], plan_item["sha256"])
+            settled = finish_visual_return_correction(directory, run, correction, manifest_item)
+            emit({"ok": True, "idempotent": settled, "state": run["state"], "manifest": str(manifest_path), "next_command": ["article-flow", "advance", run["run_id"]]}, args.json)
+            return EXIT_OK
+        if sha256_path(source_path) != expected_hash:
+            raise FlowError("Current asset is not the exact reviewed renderer source", EXIT_INTEGRITY)
+        corrected_path = directory / "artifacts" / "visuals" / f"{visual_id}-{plan_item['sha256'][:8]}-{corrected_hash[:8]}.svg"
+        immutable_write(corrected_path, candidate)
+        corrected_item = record_artifact(directory, run, corrected_path, f"visual-asset:{visual_id}",
+                                         {"actor": "controller", "version": CONTROLLER_VERSION, "renderer": "scoped-return-correction-v1"},
+                                         inputs=[plan_item["artifact_id"], manifest_item["artifact_id"]], expected_bytes=candidate)
+        if not correction:
+            correction = {"run_id": run["run_id"], "visual_id": visual_id, "visual_plan_sha256": plan_item["sha256"],
+                          "source_sha256": expected_hash, "prior_manifest_sha256": manifest_item["sha256"],
+                          "corrected_source_path": corrected_path.relative_to(directory).as_posix(), "corrected_sha256": corrected_hash,
+                          "removed_paths": list(PARALLEL_REVIEW_RETURN_PATHS), "authorization": reason}
+            receipt_bytes = (json.dumps(correction, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+            receipt_path = directory / "artifacts" / f"visual-return-correction-{visual_id}-{corrected_hash[:8]}.json"
+            immutable_write(receipt_path, receipt_bytes)
+            record_artifact(directory, run, receipt_path, f"visual-return-correction:{visual_id}", {"actor": "operator", "version": CONTROLLER_VERSION},
+                            inputs=[plan_item["artifact_id"], manifest_item["artifact_id"], corrected_item["artifact_id"]], expected_bytes=receipt_bytes)
+        assets[0].update(source_path=corrected_path.relative_to(directory).as_posix(), sha256=corrected_hash, byte_size=len(candidate))
+        manifest_bytes = (json.dumps(manifest, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+        corrected_manifest = directory / "artifacts" / f"visual-manifest-{plan_item['sha256'][:8]}-{sha256_bytes(manifest_bytes)[:8]}.json"
+        immutable_write(corrected_manifest, manifest_bytes)
+        findings = validate_visual_manifest(directory, run, corrected_manifest)
+        if findings:
+            raise FlowError("Corrected visual manifest failed validation", EXIT_INTEGRITY, findings)
+        new_manifest = record_artifact(directory, run, corrected_manifest, "visual-manifest", {"actor": "controller", "version": CONTROLLER_VERSION, "renderer": "scoped-return-correction-v1"},
+                                       inputs=[manifest_item["artifact_id"], corrected_item["artifact_id"]], expected_bytes=manifest_bytes)
+        finish_visual_return_correction(directory, run, correction, new_manifest)
+    emit({"ok": True, "state": run["state"], "manifest": str(corrected_manifest), "corrected_sha256": corrected_hash,
+          "next_command": ["article-flow", "advance", run["run_id"]]}, args.json)
+    return EXIT_OK
+
+
 def command_visual_render(args: argparse.Namespace) -> int:
+    if getattr(args, "correct_return_arrows", None):
+        return command_visual_return_correction(args)
+    if any(getattr(args, key, None) for key in ("replacement_svg", "expected_source_sha256", "reason")):
+        raise FlowError("Replacement arguments require --correct-return-arrows", EXIT_USAGE)
     directory, run = load_run(args.run_id)
     refresh = bool(getattr(args, "refresh", False))
     if run["state"] != "VISUAL_RENDER" and not (refresh and run["state"] == "PUBLISH_APPROVAL"):
@@ -7727,7 +7886,7 @@ def command_visual_render(args: argparse.Namespace) -> int:
         visuals_root.mkdir(parents=True, exist_ok=True)
         for visual in plan.get("visuals", []):
             visual_id = str(visual["visual_id"])
-            data = render_visual_svg(visual)
+            data = scoped_visual_svg(directory, run, visual, plan_hash)
             data_hash = sha256_bytes(data)
             path = visuals_root / f"{visual_id}-{plan_hash[:8]}-{data_hash[:8]}.svg"
             immutable_write(path, data)
@@ -11629,6 +11788,10 @@ def build_parser() -> argparse.ArgumentParser:
     render_visuals = sub.add_parser("render-visuals", help="Render a validated visual plan into deterministic SVG assets.")
     render_visuals.add_argument("run_id")
     render_visuals.add_argument("--refresh", action="store_true", help="Re-render a held publication from its unchanged approved visual plan, then rebuild its package.")
+    render_visuals.add_argument("--correct-return-arrows", metavar="VISUAL_ID", help="Admit one explicitly authorized removal of parallel-review return arrows before new claim verification, without resetting counters.")
+    render_visuals.add_argument("--replacement-svg", help="Reviewed SVG differing only by removal of the two return loops and dependent deferral stub.")
+    render_visuals.add_argument("--expected-source-sha256", help="Exact SHA-256 of the reviewed native SVG.")
+    render_visuals.add_argument("--reason", help="Actual operator authorization for this narrow correction.")
     add_json(render_visuals)
 
     package = sub.add_parser("package", help="Create hashed public and private packages.")
