@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A fit-first guide to Research Runner 1.0.1: the host capabilities it requires, the records and review boundaries that make its process inspectable and resumable, the public fiction examples that illustrate its output form, and the documented steps for making it available in a compatible host.">
+    <meta name="author" content="Josiah Hunter">
+    <meta name="robots" content="index, follow">
+    <title>Research Runner: A Portable Workflow for Evidence-Backed Agent Research | Josiah Hunter</title>
+    <link rel="canonical" href="https://theproductiveprompter.com/docs/research-runner-portable-workflow-agent-research.html">
+    <link rel="alternate" type="application/rss+xml" title="The Productive Prompter" href="https://theproductiveprompter.com/feed.xml">
+    <link rel="stylesheet" href="../styles.css">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="The Productive Prompter">
+    <meta property="og:title" content="Research Runner: A Portable Workflow for Evidence-Backed Agent Research">
+    <meta property="og:description" content="A fit-first guide to Research Runner 1.0.1: the host capabilities it requires, the records and review boundaries that make its process inspectable and resumable, the public fiction examples that illustrate its output form, and the documented steps for making it available in a compatible host.">
+    <meta property="og:url" content="https://theproductiveprompter.com/docs/research-runner-portable-workflow-agent-research.html">
+    <meta property="article:published_time" content="2026-10-13T12:00:00-05:00">
+    <meta property="article:modified_time" content="2026-10-13T12:00:00-05:00">
+    <meta property="article:author" content="Josiah Hunter">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Research Runner: A Portable Workflow for Evidence-Backed Agent Research">
+    <meta name="twitter:description" content="A fit-first guide to Research Runner 1.0.1: the host capabilities it requires, the records and review boundaries that make its process inspectable and resumable, the public fiction examples that illustrate its output form, and the documented steps for making it available in a compatible host.">
+    <meta name="article-flow-revision" content="f32525ff34ca32994e11013f0f7e299bcb46efe4c42363d6e01748728f9f00e6">
+    <meta name="article-flow-recipe" content="{&quot;archetype&quot;:&quot;tutorial&quot;,&quot;opening&quot;:&quot;failure&quot;,&quot;ending&quot;:&quot;decision-rule&quot;,&quot;summary&quot;:&quot;always&quot;,&quot;narrative_person&quot;:&quot;second&quot;}">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        "headline": "Research Runner: A Portable Workflow for Evidence-Backed Agent Research",
+        "description": "A fit-first guide to Research Runner 1.0.1: the host capabilities it requires, the records and review boundaries that make its process inspectable and resumable, the public fiction examples that illustrate its output form, and the documented steps for making it available in a compatible host.",
+        "url": "https://theproductiveprompter.com/docs/research-runner-portable-workflow-agent-research.html",
+        "mainEntityOfPage": "https://theproductiveprompter.com/docs/research-runner-portable-workflow-agent-research.html",
+        "datePublished": "2026-10-13T12:00:00-05:00",
+        "dateModified": "2026-10-13T12:00:00-05:00",
+        "inLanguage": "en-US",
+        "wordCount": 2727,
+        "keywords": ["AI research", "agent workflows", "Research Runner", "tutorial"],
+        "author": {"@type": "Person", "name": "Josiah Hunter", "url": "https://theproductiveprompter.com/"},
+        "publisher": {"@type": "Person", "name": "Josiah Hunter", "url": "https://theproductiveprompter.com/"},
+        "isPartOf": {"@type": "Blog", "name": "The Productive Prompter", "url": "https://theproductiveprompter.com/docs/blog.html"}
+    }
+    </script>
+    <script src="../script.js" defer></script>
+<meta name="article-flow-drafting-models" content="[&quot;gpt-5.6-sol&quot;]">
+<meta name="article-flow-style-policy-sha256" content="156d7d7b21ebe31560344f56e1273b7641e6f7f130c8c2db01addc36c0dcdca8">
+</head>
+<body>
+    <nav class="nav" id="nav">
+        <div class="nav__container">
+            <a href="/" class="nav__logo" aria-label="Josiah Hunter home">JH</a>
+            <ul class="nav__menu" id="navMenu">
+                <li class="nav__item"><a href="/docs/blog.html" class="nav__link"><span class="nav__number">01.</span> Blog</a></li>
+                <li class="nav__item"><a href="/projects.html" class="nav__link"><span class="nav__number">02.</span> Projects</a></li>
+                <li class="nav__item"><a href="/reach-out.html" class="nav__link"><span class="nav__number">03.</span> Reach Out</a></li>
+                <li class="nav__item"><a href="https://josiahh-cf.github.io/agent-telemetry/" class="nav__link" target="_blank" rel="noopener noreferrer" aria-label="Agent Telemetry (opens in a new tab)"><span class="nav__number">04.</span> Agent Telemetry <span class="nav__external" aria-hidden="true">↗</span></a></li>
+            </ul>
+            <button class="nav__toggle" id="navToggle" type="button" aria-label="Toggle navigation" aria-controls="navMenu" aria-expanded="false"><span class="nav__toggle-line"></span><span class="nav__toggle-line"></span><span class="nav__toggle-line"></span></button>
+        </div>
+    </nav>
+    <main class="article-page" id="main-content">
+        <div class="container">
+            <nav class="article-navigation" aria-label="Article breadcrumb"><a href="blog.html" class="back-link">← All writing</a></nav>
+            <article class="article-content">
+                <header class="article-header">
+                    <h1>Research Runner: A Portable Workflow for Evidence-Backed Agent Research</h1>
+                    <div class="article-header__meta" role="group" aria-label="Article details"><span>By Josiah Hunter</span><span aria-hidden="true">•</span><time datetime="2026-10-13T12:00:00-05:00">October 13, 2026</time><span aria-hidden="true">•</span><span>12 min read</span></div>
+                </header>
+                <!-- GENERATED_ARTICLE_START -->
+<h2>A portable workflow still needs a capable host</h2>
+<p>An instruction folder cannot conduct research by itself. The host must <a href="https://raw.githubusercontent.com/josiahH-cf/research-runner/main/README.md">expose those instructions to the agent, permit it to write run records, and provide search and page access</a> when the work requires external sources. Research Runner cannot supply capabilities the host lacks.</p>
+<p>That boundary is the first test of whether the project fits your environment. <a href="https://github.com/josiahH-cf/research-runner">Research Runner</a> is a portable instruction workflow, not a hosted research service or executable engine. It tells a capable agent how to frame, investigate, review, record, and report a research question. The host remains responsible for making the instructions and tools available.</p>
+<p>You can move the workflow between compatible hosts without treating any one provider or application as the research system. Activation, filesystem access, web tools, and delegation still depend on the host you use.</p>
+<h2>What Research Runner is</h2>
+<p>The public repository describes <a href="https://github.com/josiahH-cf/research-runner">Research Run 1.0.1</a> as a structured workflow for evidence-backed agent research. Its instructions organize a run around an approved frame, a whole-run token allowance, iterative research stages, source-backed claims, constructive review, persistent records, and a final report generated from a frozen publication source.</p>
+<p>The workflow begins by clarifying the question and the result you need. It turns those decisions into a concise frame that you approve before outside research starts. That frame lets the agent make ordinary research decisions without repeatedly returning to you. A material change in scope still requires renewed approval.</p>
+<p>Research proceeds in revisitable rounds. The default stages are discovery, problem definition, evidence, alternatives, falsification, and synthesis. They describe the work a complete investigation may require without prescribing a fixed number of searches or rounds. Evidence can expose a weak problem definition, alternatives can reveal missing discovery work, and falsification can send the agent back for better support.</p>
+<p>Reporting is separate from the investigation. Once the evidence and review work conclude, the workflow freezes a publication source. The HTML report is generated from that snapshot during a later presentation phase. Presentation can then change without silently introducing new research claims.</p>
+<h2>Decide whether it fits your host and research job</h2>
+<p>Use this table to screen the workflow before investing in setup.</p>
+<div class="article-table-wrap" data-column-count="3"><table><thead><tr>
+<th>Question</th>
+<th>Research Runner is a plausible fit when</th>
+<th>Choose another route when</th>
+</tr></thead><tbody>
+<tr><td>Can the host expose the instructions?</td><td>The host can make the intact <code>research-run</code> folder available through a supported skill or file mechanism and let the agent read <code>SKILL.md</code>.</td><td>The agent cannot access the workflow files or must rely on instructions pasted incompletely into each session.</td></tr>
+<tr><td>Can the host preserve run records?</td><td>The agent can write and reopen a designated <code>research-runs</code> location.</td><td>The environment is stateless or does not permit the required file writes.</td></tr>
+<tr><td>Can the host reach evidence?</td><td>Search and page-opening tools are available when the question requires external research.</td><td>The task requires external evidence, but the host cannot search for or open sources.</td></tr>
+<tr><td>Do you need delegation?</td><td>The host supports it, or you accept disclosed sequential self-review. Delegation is optional and host-dependent.</td><td>Your process requires independent agents, but the host cannot provide them.</td></tr>
+<tr><td>What process do you value?</td><td>You want the question, evidence, uncertainties, review decisions, and reporting source preserved for inspection or continuation.</td><td>You need only a short, disposable answer and do not want persistent research records.</td></tr>
+<tr><td>What does it guarantee?</td><td>You accept that the workflow supplies process discipline rather than guaranteed correctness or a fixed spending ceiling.</td><td>You require the workflow itself to enforce cost, correctness, or tool access.</td></tr>
+</tbody></table></div>
+<p>Capability and discipline are different. Research Runner can require opened supporting passages for claims, but it cannot give a host a browser. It can reserve capacity for reporting, but it cannot turn an estimate into a provider-enforced limit. It can require review, but reviewer agreement still does not count as evidence.</p>
+<h2>How a Research Run moves from question to report</h2>
+<figure class="article-visual" data-visual-id="frame-review-frozen-source" data-asset-sha256="08a220d00fae9e03df613c5f684cf83d921519c64ecdcbda5c562f7ffacd8c79"><img src="/assets/articles/research-runner-portable-workflow-agent-research/frame-review-frozen-source.svg" alt="Conceptual role grouping: an approved frame forks forward to investigation and constructive review, which rejoin at reconciliation and source freezing. Four forward connector paths are shown, with no return arrow; the branches are not necessarily simultaneous." loading="lazy" decoding="async"><figcaption><strong>Frame, Review, and Frozen Source.</strong> This conceptual, not-measured overview groups investigation and constructive review as separate roles that are not necessarily parallel. Four forward fork-and-join paths lead from the approved frame to reconciliation and a frozen source; none returns to research.</figcaption></figure>
+<p>A run starts with three connected decisions: the question, the intended result, and the whole-run token allowance. <a href="https://raw.githubusercontent.com/josiahH-cf/research-runner/main/research-run/SKILL.md">The allowance covers coordination, research, reviews, and the work required to finish the report</a>. If the host exposes reliable counters, the workflow can record measured use. Otherwise, usage must be conservatively estimated and labeled as such.</p>
+<p>The reporting reserve is part of that allowance. It directs the run to stop gathering evidence before consuming the capacity needed for synthesis and reporting. The reserve is planning guidance, not a guaranteed hard token or spending ceiling. Provider accounting, tool calls, and work performed after a measurement checkpoint can all affect what a recorded figure represents.</p>
+<p>After clarification, the agent presents a concise frame for approval. The approved frame guides the investigation unless evidence calls for a material change in scope. The agent can make ordinary research decisions without asking permission for every search, but it cannot quietly replace the approved question with a more convenient one.</p>
+<p>Research rounds move through discovery, problem definition, evidence, alternatives, falsification, and synthesis. Review occurs during the process instead of waiting for a polished conclusion. A review can accept a finding, repair it, preserve a doubt, identify a contradiction, or reopen earlier work. The stages support feedback as well as forward progress.</p>
+<figure class="article-visual" data-visual-id="evidence-driven-research-loop" data-asset-sha256="53fcca111b7e073730f207be8639255bb59140cd8e0dd1adbbb2d75f45646310"><img src="/assets/articles/research-runner-portable-workflow-agent-research/evidence-driven-research-loop.svg" alt="An active research round branches when evidence exposes a gap or review exposes a gap. Both paths lead to selecting and revisiting the needed earlier work, which may be discovery, problem definition, evidence, or synthesis rather than a mandatory restart." loading="lazy" decoding="async"><figcaption><strong>Evidence and Review Can Reopen Work.</strong> Evidence or review can trigger a targeted return to needed earlier work. This conceptual view does not prescribe Discovery as the restart point or measure the number, duration, or effort of revisits.</figcaption></figure>
+<p>Throughout the run, material claims must connect to passages the agent has opened. Facts, estimates, interpretations, assumptions, unknowns, doubts, repairs, and contradictions remain distinct. A plausible explanation does not become evidence because multiple agents agree with it. Role separation can sharpen scrutiny, but source support still has to carry the claim.</p>
+<p>The workflow keeps the approved frame, current state, and claim ledger with the investigation. These records persist when review sends the work back to earlier discovery, evidence, or synthesis. They connect the active investigation to the frozen source that later determines what the report may say.</p>
+<p>When the investigation is ready to conclude, Research Runner freezes the source used for publication. The HTML report is generated separately from that fixed source. Presentation-only continuation can regenerate the report from the existing snapshot without conducting more research.</p>
+<figure class="article-visual" data-visual-id="frozen-source-html-path" data-asset-sha256="3bc58d23e56a2d778b3abe330fcb51c418c7d9880f78d7eeb210379d78d04f06"><img src="/assets/articles/research-runner-portable-workflow-agent-research/frozen-source-html-path.svg" alt="A frozen publication source branches to an initial HTML report and, on request, presentation-only HTML regenerated from the same snapshot. Both presentation paths leave the research findings unchanged and perform no new research." loading="lazy" decoding="async"><figcaption><strong>HTML From a Frozen Source.</strong> Initial generation and requested presentation-only regeneration both use the frozen source. They change presentation, not findings, and add no research.</figcaption></figure>
+<p>Continuing the investigation is a different action. A follow-up question in a completed report does not authorize the workflow to restart. You must invoke continuation and approve its direction and budget. The continued work uses the same run records while earlier publication snapshots and reports remain in place, extending the history instead of silently rewriting it.</p>
+<figure class="article-visual" data-visual-id="deliberate-research-continuation" data-asset-sha256="bca448fec12cac3bbbb3940fa7fa0cd6743b70d846d6c5a5637241610168030e"><img src="/assets/articles/research-runner-portable-workflow-agent-research/deliberate-research-continuation.svg" alt="A completed report remains in place. The user invokes continuation, then approves its direction and allowance before research resumes in the same records. The continued work freezes a new source and generates new HTML while earlier snapshots and reports remain retained." loading="lazy" decoding="async"><figcaption><strong>Deliberate Research Continuation.</strong> This conditional loop repeats only after deliberate invocation and approval. A completed report does not restart research automatically; continued work uses the same records and retains earlier snapshots and reports.</figcaption></figure>
+<p>The released workflow instructions document the stages, persistent records, feedback and revisit behavior, publication boundary, and continuation rules. The drawing groups approval, investigation and review, and reconciliation with a frozen publication source. Describing this separation as support for inspectability and resumability is an interpretation of the design, not a measured performance result.</p>
+<h2>Why the records and review boundaries matter</h2>
+<p>The final response is easier to evaluate when the investigation&#x27;s scope, evidence, and revisions do not disappear with the agent&#x27;s immediate context. Research Runner keeps each part in persistent records: the frame, the state, and the claim ledger.</p>
+<p>The frame, state records, and claim ledger preserve different parts of the run. The frame holds the approved question and intended result; state records show the current position, including unfinished or degraded work; and the claim ledger keeps support, qualifications, repairs, and contradictions alongside the conclusions they affect.</p>
+<p>The value of a persistent record is not that it proves the research correct. The record can still preserve mistakes, weak support, and unresolved gaps. Its practical value is that those limits do not have to disappear when the conclusion is written: a doubt can remain visible, and a claim changed during review can keep a record of that repair.</p>
+<p>The frozen publication source adds another boundary. Research determines what the report may say; presentation determines how that material is rendered. Keeping those phases distinct limits the opportunity for formatting work to introduce unsupported claims. If new evidence changes the conclusion, the investigation should reopen instead of introducing the change during presentation.</p>
+<p>The released record structure and continuation rules support describing the workflow as inspectable and resumable. That remains an interpretation of the design. It is not evidence that Research Runner outperforms another method, prevents hallucinations, or produces equally reliable results in every host.</p>
+<h2>Make Research Runner available in your host</h2>
+<p><a href="https://raw.githubusercontent.com/josiahH-cf/research-runner/main/README.md">The repository documents a compact setup path</a>. These steps depend on your host’s capabilities and have not been verified across every possible application.</p>
+<ol>
+<li><strong>Download or browse the complete workflow.</strong> Use the <a href="https://github.com/josiahH-cf/research-runner">public repository</a> or the <a href="https://github.com/josiahH-cf/research-runner/releases/download/v1.0.1/research-run-1.0.1.zip">Research Run 1.0.1 ZIP</a>, which is listed on the <a href="https://github.com/josiahH-cf/research-runner/releases/tag/v1.0.1">v1.0.1 release page</a>. Keep the <code>research-run</code> folder intact so its main instructions and supporting files remain together.</li>
+</ol>
+<ol>
+<li><strong>Expose the folder through the host’s supported mechanism.</strong> That may be a skill system or another file-access route. Have the agent read <code>SKILL.md</code>; placing the folder on a computer does not automatically activate a command or grant the agent access to it.</li>
+</ol>
+<ol>
+<li><strong>Choose a writable runs location and verify source access.</strong> The agent needs a place where it can create and reopen persistent run records. If the topic requires external evidence, confirm that the host can also search for sources and open the relevant pages.</li>
+</ol>
+<ol>
+<li><strong>Invoke <code>research-run</code> with a topic or an existing run.</strong> Before research begins, settle the question, the intended result, and the whole-run token allowance. Review and approve the proposed frame, then allow the investigation to proceed within it.</li>
+</ol>
+<p>A compatible host may support delegation to other agents. Without delegation, the workflow can use sequential self-review, but that limitation should be disclosed. In either case, review remains subordinate to source evidence.</p>
+<h2>What the two public test fictions show</h2>
+<p>Research Runner includes two complete public fiction copies with reader-facing qualification notes. They make the creative output available without publishing the original full Research Run reports, which remain private. Read them as examples of output form and evidence boundaries, not as controlled trials or a matched comparison.</p>
+<p><a href="https://github.com/josiahH-cf/research-runner/blob/main/examples/slack-water.md">*Slack Water*</a> is harbor-pilot fiction presented by its source report as an indirect self-portrait. The story uses invented characters, events, settings, and feelings to explore bounded work: the pilot is responsible for guiding a ship through a difficult passage without following its entire journey. That interpretation belongs to the source report. The fiction does not establish consciousness, human experience, emotion, autobiography, or access to private reasoning, and the factual claims used as scaffolding were not freshly fact-checked for the public copy.</p>
+<p>The source report attributes <em>Slack Water</em> to work produced in Claude Cowork using an environment-reported model identity. That is reported attribution, not fresh provider verification. Its accounting also needs qualification. The source reports approximately 205,660 tokens, combining about 143,959 coordinator tokens estimated from an undocumented remaining-token proxy with 61,701 delegated-review tokens reported as measured by the Agent tool. The proxy’s meaning was not verified, including whether it already included delegated use, so overlap is possible. Final commits and the closing message were excluded.</p>
+<p>The reported 250,000-token budget was managed through checkpoints rather than technically enforced. The delegated review occurred on the same account and provider, not through independent-provider validation. The example shows how a creative work can be published with its uncertainties attached. It does not support a complete audited usage total, a hard cost claim, a model ranking, or a benchmark result.</p>
+<p><a href="https://github.com/josiahH-cf/research-runner/blob/main/examples/the-house-that-answered-back.md">*The House That Answered Back*</a> uses a fictional house to portray bounded usefulness and incomplete self-knowledge. Its final room labels four kinds of material: documented facts, session observations, creative invention, and interpretation. The work makes its factual boundaries visible instead of leaving readers to infer them.</p>
+<p>The source report describes the fiction as produced in Codex Desktop, with a later local log recording the selected model. That attribution was not freshly verified for the public copy. The house, basement, furnace, cabinet, workshop, clock, and first-person experience are characterization. They are not evidence of consciousness, emotions, autobiography, human experience, or access to private reasoning. The factual claims in the source report were also not freshly fact-checked for this public copy.</p>
+<p>Its token figure has a different boundary from the estimate reported for <em>Slack Water</em>. The source records 173,736 cumulative usage tokens at its latest measured local-log checkpoint. The later final chat response was unmeasured and excluded, and provider-level input, output, cache, and reasoning breakdowns were unavailable. The 250,000-token budget was not an enforced hard token or monetary ceiling.</p>
+<p>The report also discloses self-review without an independent child reviewer. That makes <em>The House That Answered Back</em> a separate creative example, not an independently reviewed comparison or a basis for ranking models. Because the two runs used different accounting methods, review arrangements, and omissions, their figures should not be compared as though they measured the same thing.</p>
+<p>Together, the public copies show how fiction, interpretation, provenance, and accounting qualifications can coexist in a reader-facing artifact. They do not publish the original private full reports, verify every factual claim those reports used, or demonstrate that one host or model performs better than another.</p>
+<h2>Where its guarantees stop</h2>
+<p>Research Runner supplies a documented process, but it does not control the environment in which that process runs. It does not automatically install itself, grant filesystem access, add web tools, or make delegation available. The host must provide those capabilities.</p>
+<p>The workflow does not guarantee correctness. Opened passages, a claim ledger, falsification work, and constructive review create opportunities to find errors and preserve uncertainty. They cannot ensure that every relevant source was discovered or every interpretation is sound.</p>
+<p>The token allowance has a similar boundary. It gives the run a planning constraint that includes reporting, and the reserve tells the agent to stop research while enough capacity remains to finish. It does not enforce a provider-level token or spending limit. Accounting may be measured, estimated, or incomplete, and the report should identify which condition applies.</p>
+<p>The public repository documents a Research Run 1.0.1 distribution snapshot, lists source hashes for six workflow files, and states that real runs and private reports are excluded. Its README states that the project is MIT licensed and asks redistributors to retain the copyright and permission notice. This provides first-party provenance for the release, not an independent comparison with private upstream material or a legal audit.</p>
+<p>Compatibility remains conditional. The documented procedure can guide setup in hosts that provide the required skill or file access, writing, and research tools. It does not establish that installation has been tested in every host or that identical triggers will work everywhere.</p>
+<h2>A practical decision rule</h2>
+<p><a href="https://raw.githubusercontent.com/josiahH-cf/research-runner/main/README.md">Use Research Runner when your host can expose the intact instructions, preserve writable run records, and reach the sources your question requires</a>, and when you value a process that keeps framing, evidence, review, uncertainty, and presentation visibly separate.</p>
+<p>Choose another route when the host cannot provide those capabilities, persistent records are unavailable, or you need guarantees the workflow does not make. Research Runner contributes the discipline expressed by its design. Its usefulness depends on pairing that discipline with a host capable of carrying it out.</p>
+<footer class="article-model-attribution" data-style-policy-sha256="156d7d7b21ebe31560344f56e1273b7641e6f7f130c8c2db01addc36c0dcdca8"><p>Drafting model: GPT-5.6 Sol</p></footer>
+                <!-- GENERATED_ARTICLE_END -->
+            </article>
+        </div>
+    </main>
+</body>
+</html>
