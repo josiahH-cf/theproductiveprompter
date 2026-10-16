@@ -27,7 +27,7 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Refresh the marker-owned GitHub projects and activity
+      - name: Refresh pinned projects and the signed-out GitHub profile calendar
         run: python3 .github/scripts/refresh_pinned_projects.py --json
 
       - name: Commit a safe refresh when GitHub data changed

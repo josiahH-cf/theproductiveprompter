@@ -1540,8 +1540,30 @@ a:focus {
     font-size: clamp(1.8rem, 4vw, 2.75rem);
 }
 
-.projects-page .github-activity__year {
+.projects-page .github-activity__window {
     color: var(--color-accent);
+    margin: -0.5rem 0 var(--spacing-md);
+    font-family: var(--font-mono);
+    font-size: clamp(0.78rem, 1.8vw, 0.9rem);
+}
+
+.projects-page .github-activity__provenance,
+.projects-page .github-activity__visibility {
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.65;
+    max-width: 80ch;
+    margin: 1rem 0 0;
+}
+
+.projects-page .github-activity__visibility {
+    margin-top: 0.4rem;
+}
+
+.projects-page .github-activity__provenance a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
 }
 
 .projects-page .github-activity__status {
@@ -1634,6 +1656,11 @@ a:focus {
 
 .projects-page .github-activity__calendar-frame::-webkit-scrollbar {
     height: 0.55rem;
+}
+
+.projects-page .github-activity__calendar-frame:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
 }
 
 .projects-page .github-activity__calendar-frame::-webkit-scrollbar-track {

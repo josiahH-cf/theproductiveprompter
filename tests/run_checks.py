@@ -39,15 +39,12 @@ PROJECT_START = "<!-- PINNED_PROJECTS_START -->"
 PROJECT_END = "<!-- PINNED_PROJECTS_END -->"
 ACTIVITY_START = "<!-- GITHUB_ACTIVITY_START -->"
 ACTIVITY_END = "<!-- GITHUB_ACTIVITY_END -->"
-ACTIVITY_AS_OF = "2026-09-01T13:02:35Z"
-ACTIVITY_FROM = "2026-01-01T00:00:00Z"
-ACTIVITY_TO = "2026-12-31T23:59:59Z"
 DASHBOARD_URL = "https://github.com/josiahH-cf"
 EXPECTED_PROJECT_COUNT = 4
 EXPECTED_ACTIVITY = {
-    "contributions": 1485,
-    "commits": 1343,
-    "pull-requests": 125,
+    "contributions": 19,
+    "active-days": 5,
+    "longest-streak": 3,
 }
 ARTICLE_MARKERS = (
     "<!-- ARTICLE_FLOW_LATEST_START -->",
@@ -399,25 +396,35 @@ def check_arch_3() -> str:
         else:
             activity_tree = parse_html_text(marker_region(text, ACTIVITY_START, ACTIVITY_END))
             headings = elements(activity_tree, tag="h2", cls="github-activity__title")
-            years = elements(activity_tree, tag="time", cls="github-activity__year")
+            windows = elements(activity_tree, cls="github-activity__window")
+            dates = elements(windows[0], tag="time") if len(windows) == 1 else []
+            updates = elements(activity_tree, tag="time", cls="github-activity__updated")
             statuses = elements(activity_tree, cls="github-activity__status")
             stat_lists = elements(activity_tree, tag="dl", cls="github-activity__highlights")
             metrics = elements(activity_tree, cls="github-activity-highlight")
             metric_keys = [item.attrs.get("data-github-metric") for item in metrics]
-            rendered_year = years[0].attrs.get("datetime") if len(years) == 1 else ""
-            if not re.fullmatch(r"\d{4}", rendered_year or "") or len(headings) != 1 or text_content(headings[0]) != f"{rendered_year} GitHub activity":
-                issues.append("projects.html lacks a coherent generated current-year activity heading")
+            window_dates = [item.attrs.get("datetime") or "" for item in dates]
+            if len(headings) != 1 or text_content(headings[0]) != "GitHub activity":
+                issues.append("projects.html lacks its GitHub activity heading")
+            if len(window_dates) != 2 or any(not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value) for value in window_dates):
+                issues.append("projects.html lacks the exact displayed profile date range")
+            if len(statuses) != 1 or "last year" not in text_content(statuses[0]).casefold() or "public profile" not in text_content(statuses[0]).casefold():
+                issues.append("projects.html lacks the last-year public-profile scope")
+            provenance = elements(activity_tree, cls="github-activity__provenance")
+            visibility = elements(activity_tree, cls="github-activity__visibility")
+            if len(provenance) != 1 or "Refresh scheduled daily" not in text_content(provenance[0]) or not any(anchor.attrs.get("href") == DASHBOARD_URL for anchor in elements(provenance[0], tag="a")):
+                issues.append("projects.html lacks its source and refresh cadence")
+            if len(visibility) != 1 or "Signed-in totals may differ" not in text_content(visibility[0]):
+                issues.append("projects.html lacks the public/signed-in visibility distinction")
+            if len(updates) != 1:
+                issues.append("projects.html lacks one exact snapshot timestamp")
             else:
-                now = datetime.now(timezone.utc)
-                allowed_years = {now.year}
-                if now.month == 1 and now.day == 1:
-                    allowed_years.add(now.year - 1)
-                if int(rendered_year) not in allowed_years:
-                    issues.append(
-                        f"projects.html activity year {rendered_year} is outside the daily rollover window"
-                    )
-            if len(statuses) != 1 or "year-to-date public contribution totals" not in text_content(statuses[0]).casefold() or "refreshed daily" not in text_content(statuses[0]).casefold():
-                issues.append("projects.html lacks the year-to-date public scope and daily refresh cadence")
+                updated = datetime.fromisoformat((updates[0].attrs.get("datetime") or "").replace("Z", "+00:00"))
+                age = datetime.now(timezone.utc) - updated
+                if updated.utcoffset() != timedelta(0) or age < -timedelta(minutes=5) or age > timedelta(days=2):
+                    issues.append("projects.html snapshot is outside its daily freshness window")
+                if len(window_dates) == 2 and window_dates[-1] != updated.date().isoformat():
+                    issues.append("snapshot timestamp and profile window end disagree")
             if len(stat_lists) != 1 or len(metrics) != len(EXPECTED_ACTIVITY) or metric_keys != list(EXPECTED_ACTIVITY):
                 issues.append("projects.html lacks the three ordered high-signal GitHub activity metrics")
             else:
@@ -455,7 +462,6 @@ def check_arch_3() -> str:
                     or not desc_ids.issubset(set(labelledby))
                 ):
                     issues.append("GitHub rhythm figure/SVG lacks a complete accessible label contract")
-            expected_year = int(rendered_year) if re.fullmatch(r"\d{4}", rendered_year or "") else None
             seen_dates: list[str] = []
             day_total = 0
             for day in days:
@@ -472,12 +478,16 @@ def check_arch_3() -> str:
                 ):
                     issues.append("GitHub activity calendar contains a malformed contribution day")
                     continue
-                if expected_year is not None and not date_value.startswith(f"{expected_year:04d}-"):
-                    issues.append(f"GitHub activity calendar renders an out-of-year day {date_value}")
                 seen_dates.append(date_value)
                 day_total += int(count_value)
             if not days or seen_dates != sorted(seen_dates) or len(seen_dates) != len(set(seen_dates)):
                 issues.append("GitHub activity calendar days are absent, duplicated, or out of order")
+            if len(window_dates) == 2:
+                start = datetime.fromisoformat(window_dates[0]).date()
+                end = datetime.fromisoformat(window_dates[1]).date()
+                expected_dates = [(start + timedelta(days=offset)).isoformat() for offset in range((end - start).days + 1)]
+                if not 365 <= len(expected_dates) <= 372 or seen_dates != expected_dates:
+                    issues.append("calendar dates do not completely cover the displayed profile window")
             contribution_values = [
                 normalized(text_content(value)).replace(",", "")
                 for item in metrics if item.attrs.get("data-github-metric") == "contributions"
@@ -529,12 +539,10 @@ def check_arch_3() -> str:
     for token in (
         "GITHUB_TOKEN", "api.github.com/graphql", "josiahH-cf", "pinnedItems", "name",
         "description", "url", "primaryLanguage", "stargazerCount", "forkCount", "updatedAt",
-        "totalCount", "contributionsCollection", "totalContributions", "totalCommitContributions",
-        "totalIssueContributions", "totalPullRequestContributions",
-        "totalPullRequestReviewContributions", "totalRepositoriesWithContributedCommits",
-        "weeks", "firstDay", "contributionDays", "contributionCount", "contributionLevel",
+        "totalCount", "isPrivate", "PUBLIC_CALENDAR_URL", "parse_public_calendar",
+        "data-from", "data-to", "data-date", "data-level", "tool-tip",
         "github-activity__highlights", "github-activity__rhythm", "github-activity-calendar",
-        "MAX_PINNED_ITEMS = 6", "--response-file", "--target", "--as-of", "--json",
+        "MAX_PINNED_ITEMS = 6", "--response-file", "--profile-file", "--target", "--as-of", "--json",
     ):
         if token not in generator_text:
             issues.append(f"generator lacks {token!r}")
@@ -565,7 +573,7 @@ def check_arch_3() -> str:
         issues.append(f"client token reference in {', '.join(leaked)}")
     require_no_issues("marker-driven GitHub pins/activity generator and isolated scheduled workflow", issues)
     return (
-        f"project/activity markers, schema 1.2.0 four-project, three-highlight, and rhythm-graph contract, "
+        f"project/activity markers, four public pins, three same-window summaries, and profile-calendar contract, "
         "fail-closed schedule, token isolation, and verified Pages build are present"
     )
 
@@ -858,355 +866,23 @@ def check_arch_8() -> str:
     return f"valid XML; sitemap has {len(locs)} URLs including both new pages"
 
 
-def run_generator(
-    response: Path, target: Path, as_of: str = ACTIVITY_AS_OF
-) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        [sys.executable, str(ROOT / ".github/scripts/refresh_pinned_projects.py"),
-         "--response-file", str(response), "--target", str(target),
-         "--as-of", as_of, "--json"],
-        cwd=ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30,
-    )
-
-
 def check_beh_4() -> str:
-    generator = ROOT / ".github/scripts/refresh_pinned_projects.py"
-    if not generator.is_file():
-        fail("runnable pinned-project generator", "generator is missing")
-    fixture = json.loads(PROJECT_FIXTURE.read_text(encoding="utf-8"))
-    nodes = fixture["data"]["user"]["pinnedItems"]["nodes"]
-    shell = (
-        "prefix sentinel\n" + PROJECT_START + "\nold cards\n" + PROJECT_END
-        + "\nbetween sentinel\n" + ACTIVITY_START + "\nold activity\n"
-        + ACTIVITY_END + "\nsuffix sentinel\n"
+    completed = subprocess.run(
+        [sys.executable, "-m", "unittest", "discover", "-s", "tests",
+         "-p", "test_github_profile_history.py", "-v"],
+        cwd=ROOT, capture_output=True, text=True, timeout=60,
     )
-    issues = []
-    with tempfile.TemporaryDirectory(prefix="pinned-project-check-") as tmp:
-        target = Path(tmp) / "projects.html"
-        target.write_bytes(shell.encode("utf-8"))
-        completed = run_generator(PROJECT_FIXTURE, target)
-        if completed.returncode != 0:
-            fail(
-                f"generator exit 0 for fixed {EXPECTED_PROJECT_COUNT}-node fixture",
-                f"exit {completed.returncode}",
-                completed.stderr or completed.stdout,
-            )
-        output = target.read_text(encoding="utf-8")
-        if (
-            not output.startswith("prefix sentinel\n" + PROJECT_START)
-            or PROJECT_END + "\nbetween sentinel\n" + ACTIVITY_START not in output
-            or not output.endswith(ACTIVITY_END + "\nsuffix sentinel\n")
-        ):
-            issues.append("generator changed bytes outside the two marker regions")
-        region = marker_region(output, PROJECT_START, PROJECT_END)
-        tree = parse_html_text(region)
-        cards = elements(tree, cls="project-card")
-        if len(cards) != EXPECTED_PROJECT_COUNT:
-            issues.append(f"generated {len(cards)} project cards")
-        for index, card in enumerate(cards, start=1):
-            required_classes = (
-                "project-card__content", "project-card__header", "project-card__title",
-                "project-card__description", "project-card__footer", "project-stats",
-                "project-card__links",
-            )
-            missing_classes = [name for name in required_classes if not elements(card, cls=name)]
-            if missing_classes:
-                issues.append(f"generated card {index} lacks styled structure {missing_classes}")
-            stat_groups = [item for item in elements(card, cls="project-stats") if item.attrs.get("role") == "group" and item.attrs.get("aria-label")]
-            stats = [item for item in elements(card, cls="project-stat") if item.attrs.get("role") == "img" and item.attrs.get("aria-label")]
-            if len(stat_groups) != 1 or len(stats) != 2:
-                issues.append(f"generated card {index} lacks conforming named statistics")
-        names = [node["name"] for node in nodes]
-        positions = [region.find(name) for name in names]
-        if any(index < 0 for index in positions) or positions != sorted(positions):
-            issues.append("repository order differs from the GraphQL response")
-        hrefs = {item.attrs.get("href") for item in elements(tree, tag="a")}
-        missing = [node["url"] for node in nodes if node["url"] not in hrefs]
-        if missing:
-            issues.append(f"missing repository links {missing}")
-        if "<script>window.fixturePwned" in region or "&lt;script&gt;" not in region:
-            issues.append("adversarial description was not HTML-escaped")
-        if "No description provided." not in text_content(tree) or "Not specified" not in text_content(tree):
-            issues.append("null description/language fallbacks are absent")
-        activity_region = marker_region(output, ACTIVITY_START, ACTIVITY_END)
-        activity_tree = parse_html_text(activity_region)
-        activity_headings = elements(activity_tree, tag="h2", cls="github-activity__title")
-        activity_years = elements(activity_tree, tag="time", cls="github-activity__year")
-        activity_statuses = elements(activity_tree, cls="github-activity__status")
-        activity_metrics = elements(activity_tree, cls="github-activity-highlight")
-        if len(activity_headings) != 1 or text_content(activity_headings[0]) != "2026 GitHub activity":
-            issues.append("generated activity heading does not use the fixture year")
-        if len(activity_years) != 1 or activity_years[0].attrs.get("datetime") != "2026":
-            issues.append("generated activity year does not match --as-of")
-        if len(activity_statuses) != 1 or "year-to-date public contribution totals" not in text_content(activity_statuses[0]).casefold() or "refreshed daily" not in text_content(activity_statuses[0]).casefold():
-            issues.append("generated activity scope/cadence status is absent")
-        actual_activity = {}
-        for item in activity_metrics:
-            key = item.attrs.get("data-github-metric")
-            values = elements(item, tag="dd", cls="github-activity-highlight__value")
-            if key and len(values) == 1:
-                actual_activity[key] = normalized(text_content(values[0]))
-        expected_activity = {key: f"{value:,}" for key, value in EXPECTED_ACTIVITY.items()}
-        if actual_activity != expected_activity:
-            issues.append(f"generated activity values {actual_activity!r} differ from {expected_activity!r}")
-        figures = elements(activity_tree, tag="figure", cls="github-activity__rhythm")
-        calendars = elements(activity_tree, tag="svg", cls="github-activity-calendar")
-        days = elements(activity_tree, tag="rect", cls="github-activity-day")
-        if len(figures) != 1 or len(calendars) != 1 or len(days) != 365:
-            issues.append(
-                f"generated contribution rhythm is incomplete: figures={len(figures)}, "
-                f"calendars={len(calendars)}, days={len(days)}"
-            )
-        generated_dates = [item.attrs.get("data-date") for item in days]
-        generated_total = sum(
-            int(item.attrs.get("data-count") or "-1")
-            for item in days
-            if re.fullmatch(r"\d+", item.attrs.get("data-count") or "")
+    if completed.returncode:
+        fail(
+            "public profile collector, safe pins, and atomic refresh regressions pass",
+            f"exit {completed.returncode}",
+            (completed.stderr or completed.stdout)[-6000:],
         )
-        if (
-            generated_dates != sorted(generated_dates)
-            or len(generated_dates) != len(set(generated_dates))
-            or any(not (value or "").startswith("2026-") for value in generated_dates)
-            or generated_total != EXPECTED_ACTIVITY["contributions"]
-        ):
-            issues.append("generated contribution days are unordered, duplicated, out-of-year, or unreconciled")
-        legend_levels = {
-            item.attrs.get("data-level")
-            for legend in elements(activity_tree, cls="github-activity__legend")
-            for item in walk(legend)
-            if item.attrs.get("data-level") is not None
-        }
-        if legend_levels != {"0", "1", "2", "3", "4"}:
-            issues.append("generated contribution rhythm lacks the five intensity levels")
-        try:
-            result_payload = json.loads(completed.stdout)
-        except json.JSONDecodeError:
-            result_payload = {}
-        if result_payload.get("activity_year") != 2026 or result_payload.get("activity_total") != EXPECTED_ACTIVITY["contributions"]:
-            issues.append("machine-readable generator result lacks activity year/total")
-        crlf_shell = (
-            b"prefix sentinel\r\n" + PROJECT_START.encode() + b"\r\nold cards\r\n"
-            + PROJECT_END.encode() + b"\r\nbetween sentinel\r\n" + ACTIVITY_START.encode()
-            + b"\r\nold activity\r\n" + ACTIVITY_END.encode() + b"\r\nsuffix sentinel\r\n"
-        )
-        target.write_bytes(crlf_shell)
-        crlf_run = run_generator(PROJECT_FIXTURE, target)
-        crlf_output = target.read_bytes()
-        expected_prefix = b"prefix sentinel\r\n" + PROJECT_START.encode()
-        expected_middle = PROJECT_END.encode() + b"\r\nbetween sentinel\r\n" + ACTIVITY_START.encode()
-        expected_suffix = ACTIVITY_END.encode() + b"\r\nsuffix sentinel\r\n"
-        if crlf_run.returncode != 0 or not crlf_output.startswith(expected_prefix) or expected_middle not in crlf_output or not crlf_output.endswith(expected_suffix):
-            issues.append("CRLF bytes outside the marker regions were not preserved")
-        target.write_bytes(shell.encode("utf-8"))
-        completed = run_generator(PROJECT_FIXTURE, target)
-        if completed.returncode != 0:
-            issues.append("generator could not restore the LF idempotence target")
-        before = target.read_bytes()
-        rerun = run_generator(PROJECT_FIXTURE, target)
-        if rerun.returncode != 0 or target.read_bytes() != before:
-            issues.append("identical input did not produce byte-stable output")
-        same_year_rerun = run_generator(
-            PROJECT_FIXTURE, target, "2026-12-30T23:59:58Z"
-        )
-        if same_year_rerun.returncode != 0 or target.read_bytes() != before:
-            issues.append("a different --as-of time in the same year changed generated bytes")
-        rollover = copy.deepcopy(fixture)
-        rollover_activity = rollover["data"]["user"]["contributionsCollection"]
-        rollover_activity["startedAt"] = "2027-01-01T00:00:00Z"
-        rollover_activity["endedAt"] = "2027-12-31T23:59:59Z"
-        rollover_activity["contributionCalendar"]["totalContributions"] = 0
-        rollover_weeks: list[dict[str, object]] = []
-        rollover_days: list[dict[str, object]] = []
-        rollover_cursor = datetime(2027, 1, 1).date()
-        rollover_end = datetime(2027, 12, 31).date()
-        while rollover_cursor <= rollover_end:
-            if rollover_cursor.weekday() == 6 and rollover_days:
-                rollover_weeks.append(
-                    {"firstDay": rollover_days[0]["date"], "contributionDays": rollover_days}
-                )
-                rollover_days = []
-            rollover_days.append(
-                {
-                    "contributionCount": 0,
-                    "contributionLevel": "NONE",
-                    "date": rollover_cursor.isoformat(),
-                    "weekday": (rollover_cursor.weekday() + 1) % 7,
-                }
-            )
-            rollover_cursor += timedelta(days=1)
-        if rollover_days:
-            rollover_weeks.append(
-                {"firstDay": rollover_days[0]["date"], "contributionDays": rollover_days}
-            )
-        rollover_activity["contributionCalendar"]["weeks"] = rollover_weeks
-        for key in (
-            "totalCommitContributions", "totalIssueContributions",
-            "totalPullRequestContributions", "totalPullRequestReviewContributions",
-            "totalRepositoriesWithContributedCommits",
-        ):
-            rollover_activity[key] = 0
-        rollover_response = Path(tmp) / "rollover.json"
-        rollover_response.write_text(json.dumps(rollover), encoding="utf-8")
-        target.write_bytes(shell.encode("utf-8"))
-        rollover_run = run_generator(rollover_response, target, "2027-01-01T00:01:00Z")
-        rollover_output = target.read_text(encoding="utf-8")
-        rollover_region = marker_region(rollover_output, ACTIVITY_START, ACTIVITY_END)
-        rollover_headings = elements(
-            parse_html_text(rollover_region), tag="h2", cls="github-activity__title"
-        )
-        if rollover_run.returncode != 0 or len(rollover_headings) != 1 or text_content(rollover_headings[0]) != "2027 GitHub activity":
-            issues.append(
-                "January 1 rollover did not switch the activity year deterministically: "
-                + normalized(rollover_run.stderr or rollover_run.stdout)[-300:]
-            )
-        invalid_cases = []
-        variants = {
-            "GraphQL errors": {"errors": [{"message": "fixture rejection"}]},
-            "partial GraphQL errors": copy.deepcopy(fixture),
-            "null user": {"data": {"user": None}},
-            "three nodes": copy.deepcopy(fixture),
-            "five nodes": copy.deepcopy(fixture),
-            "totalCount mismatch": copy.deepcopy(fixture),
-            "non-integer totalCount": copy.deepcopy(fixture),
-            "duplicate node": copy.deepcopy(fixture),
-            "malformed URL": copy.deepcopy(fixture),
-            "name URL mismatch": copy.deepcopy(fixture),
-            "dot-segment repository": copy.deepcopy(fixture),
-            "negative count": copy.deepcopy(fixture),
-            "malformed timestamp": copy.deepcopy(fixture),
-            "missing activity collection": copy.deepcopy(fixture),
-            "missing contribution calendar": copy.deepcopy(fixture),
-            "missing calendar weeks": copy.deepcopy(fixture),
-            "empty calendar weeks": copy.deepcopy(fixture),
-            "calendar coverage gap": copy.deepcopy(fixture),
-            "duplicate calendar day": copy.deepcopy(fixture),
-            "unordered calendar weeks": copy.deepcopy(fixture),
-            "negative calendar day": copy.deepcopy(fixture),
-            "invalid calendar level": copy.deepcopy(fixture),
-            "invalid calendar weekday": copy.deepcopy(fixture),
-            "calendar total mismatch": copy.deepcopy(fixture),
-            "negative activity total": copy.deepcopy(fixture),
-            "boolean commit total": copy.deepcopy(fixture),
-            "malformed activity start": copy.deepcopy(fixture),
-            "wrong activity year start": copy.deepcopy(fixture),
-            "mismatched activity end": copy.deepcopy(fixture),
-            "non-UTC activity start": copy.deepcopy(fixture),
-            "string review total": copy.deepcopy(fixture),
-            "missing repository total": copy.deepcopy(fixture),
-        }
-        variants["partial GraphQL errors"]["errors"] = [{"message": "partial data is unsafe"}]
-        variants["three nodes"]["data"]["user"]["pinnedItems"]["totalCount"] = 3
-        variants["three nodes"]["data"]["user"]["pinnedItems"]["nodes"] = copy.deepcopy(nodes[:3])
-        fifth = copy.deepcopy(nodes[0])
-        fifth["name"] = "epsilon-overflow"
-        fifth["url"] = "https://github.com/josiahH-cf/epsilon-overflow"
-        variants["five nodes"]["data"]["user"]["pinnedItems"]["totalCount"] = 5
-        variants["five nodes"]["data"]["user"]["pinnedItems"]["nodes"].append(fifth)
-        variants["totalCount mismatch"]["data"]["user"]["pinnedItems"]["nodes"] = copy.deepcopy(nodes[:3])
-        variants["non-integer totalCount"]["data"]["user"]["pinnedItems"]["totalCount"] = "4"
-        variants["duplicate node"]["data"]["user"]["pinnedItems"]["nodes"][EXPECTED_PROJECT_COUNT - 1] = copy.deepcopy(nodes[0])
-        variants["malformed URL"]["data"]["user"]["pinnedItems"]["nodes"][0]["url"] = "javascript:alert(1)"
-        variants["name URL mismatch"]["data"]["user"]["pinnedItems"]["nodes"][0]["name"] = "different-name"
-        variants["dot-segment repository"]["data"]["user"]["pinnedItems"]["nodes"][0]["name"] = ".."
-        variants["dot-segment repository"]["data"]["user"]["pinnedItems"]["nodes"][0]["url"] = "https://github.com/josiahH-cf/.."
-        variants["negative count"]["data"]["user"]["pinnedItems"]["nodes"][0]["forkCount"] = -1
-        variants["malformed timestamp"]["data"]["user"]["pinnedItems"]["nodes"][0]["updatedAt"] = "yesterday"
-        variants["missing activity collection"]["data"]["user"].pop("contributionsCollection")
-        variants["missing contribution calendar"]["data"]["user"]["contributionsCollection"].pop("contributionCalendar")
-        variants["missing calendar weeks"]["data"]["user"]["contributionsCollection"]["contributionCalendar"].pop("weeks")
-        variants["empty calendar weeks"]["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"] = []
-        coverage_weeks = variants["calendar coverage gap"]["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"]
-        coverage_days = next(
-            week["contributionDays"]
-            for week in coverage_weeks
-            if any(day.get("date") == "2026-12-31" for day in week["contributionDays"])
-        )
-        coverage_days[:] = [day for day in coverage_days if day.get("date") != "2026-12-31"]
-        duplicate_days = variants["duplicate calendar day"]["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"][0]["contributionDays"]
-        duplicate_days[1]["date"] = duplicate_days[0]["date"]
-        variants["unordered calendar weeks"]["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"].reverse()
-        variants["negative calendar day"]["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"][0]["contributionDays"][0]["contributionCount"] = -1
-        variants["invalid calendar level"]["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"][0]["contributionDays"][0]["contributionLevel"] = "MAXIMUM"
-        variants["invalid calendar weekday"]["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"][0]["contributionDays"][0]["weekday"] = 9
-        variants["calendar total mismatch"]["data"]["user"]["contributionsCollection"]["contributionCalendar"]["totalContributions"] += 1
-        variants["negative activity total"]["data"]["user"]["contributionsCollection"]["contributionCalendar"]["totalContributions"] = -1
-        variants["boolean commit total"]["data"]["user"]["contributionsCollection"]["totalCommitContributions"] = True
-        variants["malformed activity start"]["data"]["user"]["contributionsCollection"]["startedAt"] = "this year"
-        variants["wrong activity year start"]["data"]["user"]["contributionsCollection"]["startedAt"] = "2025-01-01T00:00:00Z"
-        variants["mismatched activity end"]["data"]["user"]["contributionsCollection"]["endedAt"] = "2026-12-31T23:59:58Z"
-        variants["non-UTC activity start"]["data"]["user"]["contributionsCollection"]["startedAt"] = "2026-01-01T01:00:00+01:00"
-        variants["string review total"]["data"]["user"]["contributionsCollection"]["totalPullRequestReviewContributions"] = "0"
-        variants["missing repository total"]["data"]["user"]["contributionsCollection"].pop("totalRepositoriesWithContributedCommits")
-        for label, payload in variants.items():
-            response = Path(tmp) / f"invalid-{len(invalid_cases)}.json"
-            response.write_text(json.dumps(payload), encoding="utf-8")
-            target.write_bytes(shell.encode("utf-8"))
-            rejected = run_generator(response, target)
-            if rejected.returncode == 0 or target.read_bytes() != shell.encode("utf-8"):
-                invalid_cases.append(label)
-        if invalid_cases:
-            issues.append(f"invalid input accepted or rewrote target: {', '.join(invalid_cases)}")
-        invalid_as_of = []
-        for label, value in {
-            "malformed --as-of": "today",
-            "non-UTC --as-of": "2026-09-01T14:02:35+01:00",
-        }.items():
-            target.write_bytes(shell.encode("utf-8"))
-            rejected = run_generator(PROJECT_FIXTURE, target, value)
-            if rejected.returncode == 0 or target.read_bytes() != shell.encode("utf-8"):
-                invalid_as_of.append(label)
-        if invalid_as_of:
-            issues.append(f"invalid time controls accepted or rewrote target: {', '.join(invalid_as_of)}")
-        invalid_targets = []
-        marker_variants = {
-            "out-of-order project markers": (
-                "prefix\n" + PROJECT_END + "\nold\n" + PROJECT_START + "\n"
-                + ACTIVITY_START + "\nold\n" + ACTIVITY_END + "\nsuffix\n"
-            ),
-            "duplicate project start marker": (
-                "prefix\n" + PROJECT_START + "\n" + PROJECT_START + "\n" + PROJECT_END
-                + "\n" + ACTIVITY_START + "\nold\n" + ACTIVITY_END + "\nsuffix\n"
-            ),
-            "out-of-order activity markers": (
-                "prefix\n" + PROJECT_START + "\nold\n" + PROJECT_END + "\n"
-                + ACTIVITY_END + "\nold\n" + ACTIVITY_START + "\nsuffix\n"
-            ),
-            "duplicate activity start marker": (
-                "prefix\n" + PROJECT_START + "\nold\n" + PROJECT_END + "\n"
-                + ACTIVITY_START + "\n" + ACTIVITY_START + "\n" + ACTIVITY_END + "\nsuffix\n"
-            ),
-            "missing activity markers": (
-                "prefix\n" + PROJECT_START + "\nold\n" + PROJECT_END + "\nsuffix\n"
-            ),
-            "nested marker regions": (
-                "prefix\n" + PROJECT_START + "\n" + ACTIVITY_START + "\nold\n"
-                + PROJECT_END + "\n" + ACTIVITY_END + "\nsuffix\n"
-            ),
-            "activity region before projects": (
-                "prefix\n" + ACTIVITY_START + "\nold\n" + ACTIVITY_END + "\n"
-                + PROJECT_START + "\nold\n" + PROJECT_END + "\nsuffix\n"
-            ),
-            "duplicate activity end marker": (
-                "prefix\n" + PROJECT_START + "\nold\n" + PROJECT_END + "\n"
-                + ACTIVITY_START + "\nold\n" + ACTIVITY_END + "\n" + ACTIVITY_END + "\nsuffix\n"
-            ),
-        }
-        for label, malformed_target in marker_variants.items():
-            original = malformed_target.encode("utf-8")
-            target.write_bytes(original)
-            rejected = run_generator(PROJECT_FIXTURE, target)
-            if rejected.returncode == 0 or target.read_bytes() != original:
-                invalid_targets.append(label)
-        if invalid_targets:
-            issues.append(f"invalid marker layouts accepted or rewritten: {', '.join(invalid_targets)}")
-    require_no_issues(
-        f"{EXPECTED_PROJECT_COUNT} ordered escaped cards plus current-year activity, exact outside bytes, and atomic hostile-input rejection",
-        issues,
-    )
+    summary = re.search(r"Ran \d+ tests? in [\d.]+s", completed.stderr)
     return (
-        f"hostile fixture generated {EXPECTED_PROJECT_COUNT} styled cards, three headline metrics, "
-        "and a reconciled daily calendar; CRLF/LF bytes, idempotence, year rollover, and "
-        "invalid-input atomicity passed"
+        (summary[0] + "; " if summary else "")
+        + "rolling profile window, public visibility, reconciled counts, leap/year "
+        "boundaries, freshness, zero/error behavior, and atomic preservation passed"
     )
 
 

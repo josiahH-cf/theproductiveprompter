@@ -28,10 +28,12 @@ telemetry site in a new browser tab and leaves this site open in the original ta
 
 ### Projects shows GitHub work and activity
 **If this was built correctly:** The Projects page lists the owner's intentional
-four pinned repositories, shows the current year's public activity totals, and
-labels them "top projects." Three high-signal totals lead into a daily contribution
-rhythm graph, and the page ends with a large link to the full GitHub dashboard.
-- Model verdict: PASS - why: One GraphQL response atomically generates the intentional four pins, three headline metrics, and a 365/366-cell accessible heatmap; strict tests reconcile the graph to its total and verify the daily automation and responsive dashboard link in BEH-4 and BEH-10.
+four pinned repositories and labels them "top projects." Its activity graph follows
+the same last-year date window and daily counts as GitHub's signed-out public
+profile. Contributions, active days, and the longest streak summarize those same
+displayed days. The source, exact UTC date range, snapshot time and visibility
+limitation are visible; the page ends with a large link to the full GitHub dashboard.
+- Model verdict: Checked by BEH-4 and BEH-10. An unauthenticated profile request supplies the calendar; the token supplies only explicitly public pins. Complete dates/counts, leap/year boundaries, future/stale/error cases and atomic preservation are covered by the collector regression suite. Desktop and narrow mobile checks reconcile the rendered summaries with the calendar. The dated repair receipt records actual test outcomes and live-public comparison; a signed-in private view is not claimed to match.
 - Human verdict: PASS | FAIL - why:
 
 ### Reach Out combines a short About with contact
