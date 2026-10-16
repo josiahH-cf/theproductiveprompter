@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Refresh public pinned projects and current-year GitHub activity.
+"""Refresh public pinned projects and GitHub's public profile contribution calendar.
 
-The browser never receives a GitHub token. CI fetches both datasets in one
-GraphQL request, validates the complete response and both marker pairs, then
-atomically replaces only the configured regions in projects.html.
+The token is used only for pinned repositories. Activity comes from a separate,
+unauthenticated profile request, so a privileged CI token cannot publish activity
+that an anonymous profile visitor cannot see. Both sources are validated before
+one atomic replacement of the configured regions in projects.html.
 """
 
 from __future__ import annotations
@@ -11,6 +12,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import html
+from html.parser import HTMLParser
 import json
 import os
 from pathlib import Path
@@ -34,6 +36,8 @@ DEFAULT_END_MARKER = "<!-- PINNED_PROJECTS_END -->"
 DEFAULT_ACTIVITY_START_MARKER = "<!-- GITHUB_ACTIVITY_START -->"
 DEFAULT_ACTIVITY_END_MARKER = "<!-- GITHUB_ACTIVITY_END -->"
 DEFAULT_PROFILE_URL = "https://github.com/josiahH-cf"
+PUBLIC_CALENDAR_URL = "https://github.com/users/josiahH-cf/contributions"
+MAX_PROFILE_BYTES = 2_000_000
 DEFAULT_FALLBACKS = {
     "description": "No description provided.",
     "language": "Not specified",
@@ -46,26 +50,19 @@ MONTHS = (
 
 ACTIVITY_METRICS = (
     ("contributions", "Contributions", "total_contributions"),
-    ("commits", "Commits", "commits"),
-    ("pull-requests", "Pull requests", "pull_requests"),
+    ("active-days", "Active days", "active_days"),
+    ("longest-streak", "Longest streak (days)", "longest_streak"),
 )
 
-CONTRIBUTION_LEVELS = {
-    "NONE": 0,
-    "FIRST_QUARTILE": 1,
-    "SECOND_QUARTILE": 2,
-    "THIRD_QUARTILE": 3,
-    "FOURTH_QUARTILE": 4,
-}
-
 QUERY = """
-query ProjectsAndActivity($login: String!, $limit: Int!, $from: DateTime!, $to: DateTime!) {
+query PinnedProjects($login: String!, $limit: Int!) {
   user(login: $login) {
     pinnedItems(first: $limit, types: [REPOSITORY]) {
       totalCount
       nodes {
         ... on Repository {
           __typename
+          isPrivate
           name
           description
           url
@@ -75,27 +72,6 @@ query ProjectsAndActivity($login: String!, $limit: Int!, $from: DateTime!, $to: 
           updatedAt
         }
       }
-    }
-    contributionsCollection(from: $from, to: $to) {
-      startedAt
-      endedAt
-      contributionCalendar {
-        totalContributions
-        weeks {
-          firstDay
-          contributionDays {
-            contributionCount
-            contributionLevel
-            date
-            weekday
-          }
-        }
-      }
-      totalCommitContributions
-      totalIssueContributions
-      totalPullRequestContributions
-      totalPullRequestReviewContributions
-      totalRepositoriesWithContributedCommits
     }
   }
 }
@@ -117,9 +93,7 @@ def load_config(repository: Path) -> dict[str, Any]:
     return value
 
 
-def request_github_data(
-    owner: str, token: str, activity_start: str, activity_end: str
-) -> dict[str, Any]:
+def request_github_data(owner: str, token: str) -> dict[str, Any]:
     if not token:
         raise RefreshError("GITHUB_TOKEN is required when --response-file is not used")
     body = json.dumps(
@@ -128,8 +102,6 @@ def request_github_data(
             "variables": {
                 "login": owner,
                 "limit": MAX_PINNED_ITEMS,
-                "from": activity_start,
-                "to": activity_end,
             },
         },
         separators=(",", ":"),
@@ -235,190 +207,214 @@ def github_datetime(value: dt.datetime) -> str:
     return value.astimezone(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def activity_bounds(as_of: dt.datetime) -> tuple[dt.datetime, dt.datetime]:
-    start = dt.datetime(as_of.year, 1, 1, tzinfo=dt.timezone.utc)
-    end = dt.datetime(as_of.year, 12, 31, 23, 59, 59, tzinfo=dt.timezone.utc)
-    return start, end
-
-
-def activity_timestamp(value: object, field: str) -> dt.datetime:
-    if not isinstance(value, str) or not value:
-        raise RefreshError(f"GitHub activity has an invalid {field}")
-    try:
-        parsed = dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError as exc:
-        raise RefreshError(f"GitHub activity has an invalid {field}") from exc
-    if parsed.tzinfo is None or parsed.utcoffset() != dt.timedelta(0):
-        raise RefreshError(f"GitHub activity {field} must identify UTC")
-    return parsed.astimezone(dt.timezone.utc)
-
-
-def activity_count(value: object, field: str) -> int:
-    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
-        raise RefreshError(f"GitHub activity has an invalid {field}")
-    return value
-
-
 def calendar_date(value: object, field: str) -> dt.date:
     if not isinstance(value, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
-        raise RefreshError(f"GitHub activity has an invalid {field}")
+        raise RefreshError(f"Public profile calendar has an invalid {field}")
     try:
         return dt.date.fromisoformat(value)
     except ValueError as exc:
-        raise RefreshError(f"GitHub activity has an invalid {field}") from exc
+        raise RefreshError(f"Public profile calendar has an invalid {field}") from exc
 
 
-def validate_contribution_calendar(
-    calendar: dict[str, Any], expected_start: dt.datetime, expected_end: dt.datetime,
-    total_contributions: int,
-) -> list[dict[str, Any]]:
-    weeks = calendar.get("weeks")
-    if not isinstance(weeks, list) or not weeks:
-        raise RefreshError("GitHub contribution calendar weeks must be a non-empty list")
+class ProfileCalendarParser(HTMLParser):
+    """Read only GitHub's calendar bounds, daily cells and their count labels."""
 
-    start_date = expected_start.date()
-    end_date = expected_end.date()
-    earliest_edge = start_date - dt.timedelta(days=6)
-    latest_edge = end_date + dt.timedelta(days=6)
-    previous_week_first: dt.date | None = None
-    previous_date: dt.date | None = None
-    seen_dates: set[dt.date] = set()
-    validated_days: list[dict[str, Any]] = []
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.graphs: list[dict[str, str | None]] = []
+        self.cells: list[dict[str, str | None]] = []
+        self.tooltips: list[tuple[str, str]] = []
+        self.headings: list[str] = []
+        self.graph_depth = 0
+        self.capture_tag: str | None = None
+        self.capture_id = ""
+        self.capture_text: list[str] = []
 
-    for week_index, week in enumerate(weeks, start=1):
-        if not isinstance(week, dict):
-            raise RefreshError(f"GitHub contribution calendar week {week_index} must be an object")
-        first_day = calendar_date(
-            week.get("firstDay"), f"contributionCalendar.weeks[{week_index}].firstDay"
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        values = dict(attrs)
+        classes = (values.get("class") or "").split()
+        relevant = (
+            (tag == "div" and "data-graph-url" in values)
+            or (tag == "td" and "ContributionCalendar-day" in classes)
+            or (tag == "tool-tip" and self.graph_depth)
+            or values.get("id") == "js-contribution-activity-description"
         )
-        if previous_week_first is not None and first_day <= previous_week_first:
-            raise RefreshError("GitHub contribution calendar weeks are not strictly ordered")
-        previous_week_first = first_day
-        raw_days = week.get("contributionDays")
-        if not isinstance(raw_days, list) or not 1 <= len(raw_days) <= 7:
-            raise RefreshError(
-                f"GitHub contribution calendar week {week_index} must contain one to seven days"
-            )
+        if relevant and len(values) != len(attrs):
+            raise RefreshError("Public profile calendar contains duplicate attributes")
+        if tag == "div":
+            if "data-graph-url" in values:
+                if self.graph_depth:
+                    raise RefreshError("Public profile calendar has nested graphs")
+                self.graphs.append(values)
+                self.graph_depth = 1
+            elif self.graph_depth:
+                self.graph_depth += 1
+        if tag == "td" and self.graph_depth and "ContributionCalendar-day" in classes:
+            # GitHub uses undated placeholders for the rest of the current week.
+            if "data-date" in values:
+                self.cells.append(values)
+        if (
+            (tag == "h2" and values.get("id") == "js-contribution-activity-description")
+            or (tag == "tool-tip" and self.graph_depth)
+        ):
+            if self.capture_tag:
+                raise RefreshError("Public profile calendar has overlapping count labels")
+            self.capture_tag = tag
+            self.capture_id = values.get("for") or ""
+            self.capture_text = []
 
-        previous_in_week: dt.date | None = None
-        for day_index, raw_day in enumerate(raw_days, start=1):
-            if not isinstance(raw_day, dict):
-                raise RefreshError(
-                    f"GitHub contribution calendar week {week_index} day {day_index} must be an object"
-                )
-            field_prefix = (
-                f"contributionCalendar.weeks[{week_index}].contributionDays[{day_index}]"
-            )
-            date_value = calendar_date(raw_day.get("date"), f"{field_prefix}.date")
-            if not earliest_edge <= date_value <= latest_edge:
-                raise RefreshError("GitHub contribution calendar contains a non-edge date outside the requested year")
-            if date_value in seen_dates:
-                raise RefreshError("GitHub contribution calendar contains a duplicate date")
-            if previous_date is not None and date_value <= previous_date:
-                raise RefreshError("GitHub contribution calendar dates are not strictly ordered")
-            if previous_in_week is None:
-                if date_value != first_day:
-                    raise RefreshError(
-                        f"GitHub contribution calendar week {week_index} firstDay does not match its first day"
-                    )
-            elif date_value != previous_in_week + dt.timedelta(days=1):
-                raise RefreshError(
-                    f"GitHub contribution calendar week {week_index} days are not consecutive"
-                )
-            if date_value > first_day + dt.timedelta(days=6):
-                raise RefreshError(
-                    f"GitHub contribution calendar week {week_index} spans more than seven days"
-                )
+    def handle_data(self, data: str) -> None:
+        if self.capture_tag:
+            self.capture_text.append(data)
 
-            count = activity_count(raw_day.get("contributionCount"), f"{field_prefix}.contributionCount")
-            weekday = activity_count(raw_day.get("weekday"), f"{field_prefix}.weekday")
-            if weekday > 6 or weekday != (date_value.weekday() + 1) % 7:
-                raise RefreshError(f"GitHub contribution calendar has an invalid weekday for {date_value}")
-            level_name = raw_day.get("contributionLevel")
-            if not isinstance(level_name, str) or level_name not in CONTRIBUTION_LEVELS:
-                raise RefreshError(f"GitHub contribution calendar has an invalid level for {date_value}")
-            if (count == 0) != (level_name == "NONE"):
-                raise RefreshError(
-                    f"GitHub contribution calendar count and level disagree for {date_value}"
-                )
-
-            seen_dates.add(date_value)
-            previous_date = date_value
-            previous_in_week = date_value
-            if start_date <= date_value <= end_date:
-                validated_days.append(
-                    {
-                        "date": date_value,
-                        "date_text": date_value.isoformat(),
-                        "count": count,
-                        "level": CONTRIBUTION_LEVELS[level_name],
-                        "weekday": weekday,
-                    }
-                )
-
-    expected_day_count = (end_date - start_date).days + 1
-    expected_dates = [start_date + dt.timedelta(days=offset) for offset in range(expected_day_count)]
-    actual_dates = [day["date"] for day in validated_days]
-    if actual_dates != expected_dates:
-        missing_count = len(set(expected_dates) - set(actual_dates))
-        raise RefreshError(
-            f"GitHub contribution calendar does not cover the requested year ({missing_count} dates missing)"
-        )
-    rendered_total = sum(int(day["count"]) for day in validated_days)
-    if rendered_total != total_contributions:
-        raise RefreshError(
-            "GitHub contribution calendar daily counts do not match totalContributions"
-        )
-    return validated_days
+    def handle_endtag(self, tag: str) -> None:
+        if tag == self.capture_tag:
+            text = " ".join("".join(self.capture_text).split())
+            if tag == "h2":
+                self.headings.append(text)
+            else:
+                self.tooltips.append((self.capture_id, text))
+            self.capture_tag = None
+        if tag == "div" and self.graph_depth:
+            self.graph_depth -= 1
 
 
-def validate_activity(
-    user: dict[str, Any], expected_start: dt.datetime, expected_end: dt.datetime
+def parse_public_calendar(
+    source: str, owner: str, as_of: dt.datetime
 ) -> dict[str, Any]:
-    collection = user.get("contributionsCollection")
-    if not isinstance(collection, dict):
-        raise RefreshError("GraphQL response lacks data.user.contributionsCollection")
-    calendar = collection.get("contributionCalendar")
-    if not isinstance(calendar, dict):
-        raise RefreshError("GraphQL response lacks the GitHub contribution calendar")
-    started_at = activity_timestamp(collection.get("startedAt"), "startedAt")
-    ended_at = activity_timestamp(collection.get("endedAt"), "endedAt")
-    if started_at != expected_start or ended_at != expected_end:
-        raise RefreshError("GitHub activity boundaries do not match the requested UTC year")
-    total_contributions = activity_count(
-        calendar.get("totalContributions"), "contributionCalendar.totalContributions"
-    )
-    calendar_days = validate_contribution_calendar(
-        calendar, expected_start, expected_end, total_contributions
-    )
+    parser = ProfileCalendarParser()
+    try:
+        parser.feed(source)
+        parser.close()
+    except (ValueError, AssertionError) as exc:
+        raise RefreshError("Could not parse GitHub's public profile calendar") from exc
+    if parser.capture_tag or parser.graph_depth or len(parser.graphs) != 1:
+        raise RefreshError("Public profile response lacks one complete calendar")
+    graph = parser.graphs[0]
+    if (
+        graph.get("data-graph-url") != f"/users/{owner}/contributions"
+        or graph.get("data-url") != f"/{owner}"
+        or graph.get("data-org") != ""
+        or "ContributionCalendar" not in (graph.get("class") or "").split()
+    ):
+        raise RefreshError("Public profile calendar owner or organization scope does not match")
+    try:
+        start = dt.datetime.strptime(str(graph.get("data-from")), "%Y-%m-%d %H:%M:%S UTC")
+        end = dt.datetime.strptime(str(graph.get("data-to")), "%Y-%m-%d %H:%M:%S UTC")
+    except ValueError as exc:
+        raise RefreshError("Public profile calendar has invalid UTC bounds") from exc
+    start_date, end_date = start.date(), end.date()
+    day_count = (end_date - start_date).days + 1
+    if (
+        start.time() != dt.time(0)
+        or end.time() != dt.time(23, 59, 59)
+        or start_date.weekday() != 6
+        or not 365 <= day_count <= 372
+    ):
+        raise RefreshError("Public profile calendar is not a complete last-year window")
+    if end_date != as_of.date():
+        raise RefreshError("Public profile calendar is stale or contains future dates")
+    if len(parser.headings) != 1:
+        raise RefreshError("Public profile calendar lacks one total")
+    heading = re.fullmatch(r"([\d,]+) contributions? in the last year", parser.headings[0])
+    if not heading or not re.fullmatch(r"(?:0|[1-9]\d*|[1-9]\d{0,2}(?:,\d{3})+)", heading[1]):
+        raise RefreshError("Public profile calendar total or last-year label is invalid")
+    total = int(heading[1].replace(",", ""))
+
+    tooltips: dict[str, str] = {}
+    for cell_id, text in parser.tooltips:
+        if not cell_id or cell_id in tooltips:
+            raise RefreshError("Public profile calendar has duplicate or invalid count labels")
+        tooltips[cell_id] = text
+    seen_dates: set[dt.date] = set()
+    seen_ids: set[str] = set()
+    days = []
+    for raw in parser.cells:
+        date_value = calendar_date(raw.get("data-date"), "day date")
+        cell_id = raw.get("id")
+        level_text = raw.get("data-level")
+        if not cell_id or cell_id in seen_ids or date_value in seen_dates:
+            raise RefreshError("Public profile calendar has duplicate or invalid days")
+        if not start_date <= date_value <= end_date:
+            raise RefreshError("Public profile calendar has an out-of-window or future day")
+        if level_text not in {"0", "1", "2", "3", "4"}:
+            raise RefreshError("Public profile calendar has an invalid contribution level")
+        label = tooltips.get(cell_id, "")
+        match = re.fullmatch(
+            r"(No|[1-9]\d*|[1-9]\d{0,2}(?:,\d{3})+) contributions? on "
+            r"(" + "|".join(MONTHS) + r") (\d{1,2})(?:st|nd|rd|th)?(?:,? (\d{4}))?\.",
+            label,
+        )
+        if not match:
+            raise RefreshError("Public profile calendar has a missing or invalid daily count label")
+        if (
+            MONTHS.index(match[2]) + 1 != date_value.month
+            or int(match[3]) != date_value.day
+            or (match[4] and int(match[4]) != date_value.year)
+        ):
+            raise RefreshError("Public profile calendar label does not match its day")
+        count = 0 if match[1] == "No" else int(match[1].replace(",", ""))
+        level = int(level_text)
+        if (count == 0) != (level == 0):
+            raise RefreshError("Public profile calendar count and intensity disagree")
+        if "data-count" in raw and raw["data-count"] != str(count):
+            raise RefreshError("Public profile calendar count attributes disagree")
+        seen_dates.add(date_value)
+        seen_ids.add(cell_id)
+        days.append({
+            "date": date_value, "date_text": date_value.isoformat(),
+            "count": count, "level": level, "weekday": (date_value.weekday() + 1) % 7,
+        })
+    expected_dates = [start_date + dt.timedelta(days=offset) for offset in range(day_count)]
+    days.sort(key=lambda day: day["date"])
+    if [day["date"] for day in days] != expected_dates or set(tooltips) != seen_ids:
+        raise RefreshError("Public profile calendar is incomplete or has unmatched count labels")
+    if sum(day["count"] for day in days) != total:
+        raise RefreshError("Public profile calendar daily counts do not match its total")
+    active_days, longest_streak, streak = 0, 0, 0
+    for day in days:
+        streak = streak + 1 if day["count"] else 0
+        active_days += bool(day["count"])
+        longest_streak = max(longest_streak, streak)
     return {
-        "year": expected_start.year,
-        "total_contributions": total_contributions,
-        "calendar_days": calendar_days,
-        "commits": activity_count(
-            collection.get("totalCommitContributions"), "totalCommitContributions"
-        ),
-        "issues": activity_count(
-            collection.get("totalIssueContributions"), "totalIssueContributions"
-        ),
-        "pull_requests": activity_count(
-            collection.get("totalPullRequestContributions"), "totalPullRequestContributions"
-        ),
-        "reviews": activity_count(
-            collection.get("totalPullRequestReviewContributions"),
-            "totalPullRequestReviewContributions",
-        ),
-        "repositories": activity_count(
-            collection.get("totalRepositoriesWithContributedCommits"),
-            "totalRepositoriesWithContributedCommits",
-        ),
+        "start_date": start_date, "end_date": end_date,
+        "fetched_at": as_of, "source_url": PUBLIC_CALENDAR_URL,
+        "total_contributions": total, "calendar_days": days,
+        "active_days": active_days, "longest_streak": longest_streak,
     }
+
+
+def request_public_calendar(owner: str, as_of: dt.datetime) -> dict[str, Any]:
+    if owner != DEFAULT_OWNER:
+        raise RefreshError("Unexpected public profile owner")
+    request = urllib.request.Request(
+        PUBLIC_CALENDAR_URL,
+        headers={
+            "Accept": "text/html", "Accept-Language": "en-US",
+            "Cache-Control": "no-cache",
+            "User-Agent": "theproductiveprompter-public-calendar/1.0",
+        },
+    )
+    try:
+        # A fresh opener has no authenticated session or cookie jar. Never add
+        # the GraphQL token or reuse a signed-in browser for this public source.
+        with urllib.request.build_opener().open(request, timeout=30) as response:
+            if response.geturl() != PUBLIC_CALENDAR_URL:
+                raise RefreshError("Public profile response redirected away from its source")
+            if response.headers.get_content_type() != "text/html":
+                raise RefreshError("Public profile response is not HTML")
+            payload = response.read(MAX_PROFILE_BYTES + 1)
+        if len(payload) > MAX_PROFILE_BYTES:
+            raise RefreshError("Public profile response exceeds its size limit")
+        source = payload.decode("utf-8")
+    except (urllib.error.URLError, TimeoutError, UnicodeError) as exc:
+        raise RefreshError("Could not fetch GitHub's public profile calendar") from exc
+    return parse_public_calendar(source, owner, as_of)
 
 
 def validate_response(
     response: dict[str, Any], owner: str, count: int,
-    activity_start: dt.datetime, activity_end: dt.datetime,
-) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+) -> list[dict[str, Any]]:
     errors = response.get("errors")
     if errors:
         raise RefreshError("GitHub GraphQL returned one or more errors")
@@ -447,6 +443,8 @@ def validate_response(
     for index, node in enumerate(nodes, start=1):
         if not isinstance(node, dict) or node.get("__typename") != "Repository":
             raise RefreshError(f"Pinned item {index} is not a Repository")
+        if node.get("isPrivate") is not False:
+            raise RefreshError(f"Pinned item {index} must be explicitly public")
         name = required_text(node, "name", index)
         if not re.fullmatch(r"[A-Za-z0-9._-]+", name) or name in {".", ".."}:
             raise RefreshError(f"Pinned item {index} has an invalid repository name")
@@ -481,8 +479,7 @@ def validate_response(
                 "updated": updated,
             }
         )
-    activity = validate_activity(user, activity_start, activity_end)
-    return projects, activity
+    return projects
 
 
 def escaped(value: object) -> str:
@@ -538,12 +535,12 @@ def render_activity(activity: dict[str, Any], indent: str, newline: str) -> str:
     child = indent + "  "
     grandchild = child + "  "
     great_grandchild = grandchild + "  "
-    year = int(activity["year"])
     days: list[dict[str, Any]] = activity["calendar_days"]
-    year_start = dt.date(year, 1, 1)
-    year_end = dt.date(year, 12, 31)
-    calendar_origin = year_start - dt.timedelta(days=(year_start.weekday() + 1) % 7)
-    week_count = ((year_end - calendar_origin).days // 7) + 1
+    start_date: dt.date = activity["start_date"]
+    end_date: dt.date = activity["end_date"]
+    fetched_at: dt.datetime = activity["fetched_at"]
+    calendar_origin = start_date
+    week_count = ((end_date - calendar_origin).days // 7) + 1
     label_width = 34
     grid_top = 20
     cell_step = 14
@@ -553,10 +550,11 @@ def render_activity(activity: dict[str, Any], indent: str, newline: str) -> str:
 
     lines = [
         f'{indent}<div class="github-activity__header">',
-        f'{child}<h2 class="github-activity__title" id="github-activity-title"><time class="github-activity__year" datetime="{year}">{year}</time> GitHub activity</h2>',
-        f'{child}<p class="github-activity__status">Year-to-date public contribution totals <span aria-hidden="true">·</span> Refreshed daily</p>',
+        f'{child}<h2 class="github-activity__title" id="github-activity-title">GitHub activity</h2>',
+        f'{child}<p class="github-activity__status">Last year <span aria-hidden="true">·</span> Public profile</p>',
         f"{indent}</div>",
-        f'{indent}<dl class="github-activity__highlights" aria-label="Headline public GitHub activity statistics for {year}">',
+        f'{indent}<p class="github-activity__window"><time datetime="{start_date.isoformat()}">{MONTHS[start_date.month - 1]} {start_date.day}, {start_date.year}</time> – <time datetime="{end_date.isoformat()}">{MONTHS[end_date.month - 1]} {end_date.day}, {end_date.year}</time> (UTC)</p>',
+        f'{indent}<dl class="github-activity__highlights" aria-label="GitHub public profile summaries for the displayed date range">',
     ]
     for key, label, value_key in ACTIVITY_METRICS:
         value = int(activity[value_key])
@@ -571,24 +569,30 @@ def render_activity(activity: dict[str, Any], indent: str, newline: str) -> str:
     lines.extend(
         [
             f"{indent}</dl>",
-            f'{indent}<figure class="github-activity__rhythm" aria-labelledby="github-activity-rhythm-caption">',
+            f'{indent}<figure class="github-activity__rhythm" aria-labelledby="github-activity-rhythm-caption" data-from="{start_date.isoformat()}" data-to="{end_date.isoformat()}">',
             f'{child}<figcaption class="github-activity__rhythm-caption" id="github-activity-rhythm-caption">',
             f'{grandchild}<span class="github-activity__rhythm-title">Contribution rhythm</span>',
-            f'{grandchild}<span class="github-activity__rhythm-summary">Daily public activity across {year}</span>',
+            f'{grandchild}<span class="github-activity__rhythm-summary">Daily contributions · UTC</span>',
             f"{child}</figcaption>",
-            f'{child}<div class="github-activity__calendar-frame">',
+            f'{child}<div class="github-activity__calendar-frame" tabindex="0" role="group" aria-label="Daily GitHub contributions; scroll horizontally to explore the full date range">',
             f'{grandchild}<svg class="github-activity-calendar" viewBox="0 0 {chart_width} {chart_height}" role="img" aria-labelledby="github-activity-calendar-title github-activity-calendar-description" focusable="false" xmlns="http://www.w3.org/2000/svg">',
-            f'{great_grandchild}<title id="github-activity-calendar-title">{year} public contribution rhythm</title>',
-            f'{great_grandchild}<desc id="github-activity-calendar-description">Daily public GitHub contributions for {year}. Darker cells represent more contributions relative to other days in the year.</desc>',
+            f'{great_grandchild}<title id="github-activity-calendar-title">Public GitHub contribution rhythm, {start_date.isoformat()} to {end_date.isoformat()}</title>',
+            f'{great_grandchild}<desc id="github-activity-calendar-description">Each square is a day in the displayed GitHub profile window. Brighter cells represent more contributions. Active days and the longest streak use this same window.</desc>',
         ]
     )
 
-    for month in range(1, 13):
-        first_of_month = dt.date(year, month, 1)
-        month_week = (first_of_month - calendar_origin).days // 7
+    last_label_x = -100
+    for day in days:
+        date_value = day["date"]
+        if date_value != start_date and date_value.day != 1:
+            continue
+        month_week = (date_value - calendar_origin).days // 7
         month_x = label_width + month_week * cell_step
+        if month_x - last_label_x < 28:
+            continue
+        last_label_x = month_x
         lines.append(
-            f'{great_grandchild}<text class="github-activity-calendar__month" x="{month_x}" y="11">{MONTHS[month - 1][:3]}</text>'
+            f'{great_grandchild}<text class="github-activity-calendar__month" x="{month_x}" y="11">{MONTHS[date_value.month - 1][:3]}</text>'
         )
     for weekday, label in ((1, "Mon"), (3, "Wed"), (5, "Fri")):
         label_y = grid_top + weekday * cell_step + cell_size - 1
@@ -628,6 +632,8 @@ def render_activity(activity: dict[str, Any], indent: str, newline: str) -> str:
             f'{grandchild}<span class="github-activity__legend-label">More</span>',
             f"{child}</div>",
             f"{indent}</figure>",
+            f'{indent}<p class="github-activity__provenance">Source: <a href="{DEFAULT_PROFILE_URL}" target="_blank" rel="noopener noreferrer" aria-label="GitHub public profile (opens in a new tab)">GitHub public profile</a>. Snapshot updated <time class="github-activity__updated" datetime="{github_datetime(fetched_at)}">{MONTHS[fetched_at.month - 1]} {fetched_at.day}, {fetched_at.year} at {fetched_at:%H:%M} UTC</time>. Refresh scheduled daily.</p>',
+            f'{indent}<p class="github-activity__visibility">Only activity visible on the public profile is shown, including private contribution counts if shared publicly on GitHub. Signed-in totals may differ.</p>',
         ]
     )
     return newline.join(lines)
@@ -702,10 +708,11 @@ def repository_root() -> Path:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--response-file", type=Path, help="Read a fixed GraphQL JSON response")
+    parser.add_argument("--profile-file", type=Path, help="Read a fixed signed-out GitHub contribution calendar HTML response")
     parser.add_argument("--target", type=Path, help="Override the configured HTML target")
     parser.add_argument(
         "--as-of",
-        help="Select the UTC calendar year from a fixed ISO timestamp (defaults to now)",
+        help="Use a fixed UTC snapshot timestamp and validate calendar freshness (defaults to now)",
     )
     parser.add_argument("--json", action="store_true", help="Emit a machine-readable result")
     args = parser.parse_args()
@@ -744,19 +751,22 @@ def main() -> int:
             raise RefreshError("Every pinned-project fallback must be non-empty text")
 
         as_of = parse_as_of(args.as_of)
-        activity_start, activity_end = activity_bounds(as_of)
+        if bool(args.response_file) != bool(args.profile_file) or (args.profile_file and not args.as_of):
+            raise RefreshError("Fixture mode requires --response-file, --profile-file and --as-of together")
         if args.response_file:
             response = load_response(args.response_file.resolve())
+            profile_bytes = args.profile_file.read_bytes()
+            if len(profile_bytes) > MAX_PROFILE_BYTES:
+                raise RefreshError("Public profile fixture exceeds its size limit")
+            try:
+                profile_source = profile_bytes.decode("utf-8")
+            except UnicodeError as exc:
+                raise RefreshError("Public profile fixture is not UTF-8") from exc
+            activity = parse_public_calendar(profile_source, owner, as_of)
         else:
-            response = request_github_data(
-                owner,
-                os.environ.get("GITHUB_TOKEN", ""),
-                github_datetime(activity_start),
-                github_datetime(activity_end),
-            )
-        projects, activity = validate_response(
-            response, owner, count, activity_start, activity_end
-        )
+            response = request_github_data(owner, os.environ.get("GITHUB_TOKEN", ""))
+            activity = request_public_calendar(owner, as_of)
+        projects = validate_response(response, owner, count)
 
         configured_target = Path(str(config.get("pinned_projects_file", "projects.html")))
         target = args.target.resolve() if args.target else repository / configured_target
@@ -791,12 +801,16 @@ def main() -> int:
             "changed": changed,
             "owner": owner,
             "project_count": len(projects),
-            "activity_year": activity["year"],
+            "activity_from": activity["start_date"].isoformat(),
+            "activity_to": activity["end_date"].isoformat(),
+            "activity_source": activity["source_url"],
+            "activity_visibility": "signed-out public profile",
+            "fetched_at": github_datetime(activity["fetched_at"]),
             "activity_total": activity["total_contributions"],
             "target": str(target),
         }
         print(json.dumps(result, sort_keys=True) if args.json else (
-            f"Refreshed {len(projects)} pinned projects and {activity['year']} activity in {target}"
+            f"Refreshed {len(projects)} pinned projects and public profile activity in {target}"
             + ("" if changed else " (unchanged)")
         ))
         return 0

@@ -13,7 +13,7 @@
 
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
-import { mkdtemp, readFile, readdir, rm, stat } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,10 +22,12 @@ const EMAIL = 'josiah.hunter.it@gmail.com';
 const TIMEOUT_MS = 12_000;
 
 function parseArgs(argv) {
-  const options = { root: resolve(dirname(fileURLToPath(import.meta.url)), '..'), json: false };
+  const options = { root: resolve(dirname(fileURLToPath(import.meta.url)), '..'), json: false, check: null, screenshots: null };
   for (let index = 0; index < argv.length; index += 1) {
     if (argv[index] === '--json') options.json = true;
     else if (argv[index] === '--root' && argv[index + 1]) options.root = resolve(argv[++index]);
+    else if (argv[index] === '--check' && argv[index + 1]) options.check = argv[++index];
+    else if (argv[index] === '--screenshots-dir' && argv[index + 1]) options.screenshots = resolve(argv[++index]);
     else throw new Error(`Unknown or incomplete argument: ${argv[index]}`);
   }
   return options;
@@ -826,7 +828,7 @@ async function checkHeroFit(client, baseUrl) {
   return result('BEH-9', failures, ['natural intro hierarchy, plain interests, light home Blog, aligned columns, and enlarged social icons passed across eleven viewports']);
 }
 
-async function checkGitHubActivity(client, baseUrl) {
+async function checkGitHubActivity(client, baseUrl, screenshots = null) {
   const failures = [];
   const viewports = [
     { label: 'desktop', width: 1440, height: 900, mobile: false },
@@ -850,7 +852,10 @@ async function checkGitHubActivity(client, baseUrl) {
       const pageTitle = pageHeader?.querySelector('h1');
       const subtitle = pageHeader?.querySelector('.projects-page__subtitle');
       const heading = activity?.querySelector('h2.github-activity__title');
-      const time = activity?.querySelector('time.github-activity__year');
+      const windowDates = [...(activity?.querySelectorAll('.github-activity__window time') || [])];
+      const updated = activity?.querySelector('time.github-activity__updated');
+      const provenance = activity?.querySelector('.github-activity__provenance');
+      const visibility = activity?.querySelector('.github-activity__visibility');
       const status = activity?.querySelector('.github-activity__status');
       const list = activity?.querySelector('dl.github-activity__highlights');
       const metrics = [...(list?.querySelectorAll('.github-activity-highlight') || [])];
@@ -883,7 +888,9 @@ async function checkGitHubActivity(client, baseUrl) {
         subtitleDirectlyAfterTitle: !!pageTitle && !!subtitle && pageTitle.nextElementSibling === subtitle,
         sectionCount: document.querySelectorAll('.github-activity').length,
         heading: heading?.textContent.trim() || '', labelledBy: activity?.getAttribute('aria-labelledby') || '', headingId: heading?.id || '',
-        timeText: time?.textContent.trim() || '', datetime: time?.getAttribute('datetime') || '', statusText: status?.textContent.trim() || '',
+        windowDates: windowDates.map(item => item.getAttribute('datetime') || ''),
+        updatedAt: updated?.getAttribute('datetime') || '', provenance: provenance?.textContent.trim() || '',
+        visibility: visibility?.textContent.trim() || '', statusText: status?.textContent.trim() || '',
         listCount: activity?.querySelectorAll('dl.github-activity__highlights').length || 0,
         metrics: metrics.map(item => ({
           key: item.getAttribute('data-github-metric') || '',
@@ -918,20 +925,24 @@ async function checkGitHubActivity(client, baseUrl) {
     const prefix = `${viewport.label} ${viewport.width}x${viewport.height}`;
     if (state.subtitle !== 'top projects' || !state.subtitleDirectlyAfterTitle) failures.push(`${prefix}: exact Projects subtitle is absent or misplaced`);
     const keys = state.metrics.map(item => item.key);
-    const expectedKeys = ['contributions', 'commits', 'pull-requests'];
+    const expectedKeys = ['contributions', 'active-days', 'longest-streak'];
     if (state.sectionCount !== 1 || !state.heading || state.listCount !== 1 || state.metrics.length !== 3 || state.figureCount !== 1) failures.push(`${prefix}: activity structure is incomplete ${JSON.stringify(state)}`);
     if (state.labelledBy !== state.headingId || !state.headingId) failures.push(`${prefix}: activity section is not labelled by its heading`);
     if (JSON.stringify(keys) !== JSON.stringify(expectedKeys) || new Set(keys).size !== 3) failures.push(`${prefix}: headline metric keys/order are invalid ${JSON.stringify(keys)}`);
     if (state.metrics.some(item => !/^\d{1,3}(,\d{3})*$/.test(item.value) || !item.label)) failures.push(`${prefix}: activity values/labels are invalid ${JSON.stringify(state.metrics)}`);
-    const year = state.datetime.match(/^\d{4}$/)?.[0] || '';
-    if (!year || state.timeText !== year || !state.heading.startsWith(`${year} `) || !/year-to-date public contribution totals/i.test(state.statusText) || !/refreshed daily/i.test(state.statusText)) failures.push(`${prefix}: year/scope/cadence are inconsistent ${JSON.stringify({ heading: state.heading, datetime: state.datetime, timeText: state.timeText, statusText: state.statusText })}`);
-    const expectedDays = year && new Date(Date.UTC(Number(year), 1, 29)).getUTCDate() === 29 ? 366 : 365;
+    const validBounds = state.windowDates.length === 2 && state.windowDates.every(value => /^\d{4}-\d{2}-\d{2}$/.test(value));
+    if (!validBounds || state.heading !== 'GitHub activity' || !/last year.*public profile/i.test(state.statusText) || !/refresh scheduled daily/i.test(state.provenance) || !/github public profile/i.test(state.provenance) || !/signed-in totals may differ/i.test(state.visibility) || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(state.updatedAt) || state.updatedAt.slice(0, 10) !== state.windowDates[1]) failures.push(`${prefix}: profile window/source/freshness/visibility are inconsistent ${JSON.stringify({ windowDates: state.windowDates, updatedAt: state.updatedAt, status: state.statusText })}`);
+    const expectedDays = validBounds ? Math.round((Date.parse(state.windowDates[1]) - Date.parse(state.windowDates[0])) / 86400000) + 1 : 0;
     const dates = state.dayData.map(day => day.date);
     const dayTotal = state.dayData.reduce((sum, day) => sum + (/^\d+$/.test(day.count) ? Number(day.count) : 0), 0);
     const contributionTotal = Number((state.metrics.find(item => item.key === 'contributions')?.value || '').replace(/,/g, ''));
     if (state.figureLabelledBy !== state.captionId || !state.captionId || !/contribution rhythm/i.test(state.caption) || state.calendarRole !== 'img' || !state.calendarLabelsResolve || !state.calendarTitle || !state.calendarDescription) failures.push(`${prefix}: contribution graph accessible naming is incomplete ${JSON.stringify(state)}`);
-    if (state.monthCount !== 12 || JSON.stringify(state.weekdays) !== JSON.stringify(['Mon', 'Wed', 'Fri']) || state.dayData.length !== expectedDays) failures.push(`${prefix}: contribution graph axes/day coverage are incomplete ${JSON.stringify({ monthCount: state.monthCount, weekdays: state.weekdays, days: state.dayData.length, expectedDays })}`);
-    if (dates.some(date => !new RegExp(`^${year}-\\d{2}-\\d{2}$`).test(date)) || dates.some((date, index) => index && date <= dates[index - 1]) || new Set(dates).size !== dates.length || state.dayData.some(day => !/^\d+$/.test(day.count) || !/^[0-4]$/.test(day.level) || !day.title) || dayTotal !== contributionTotal) failures.push(`${prefix}: contribution cells are invalid or do not reconcile ${JSON.stringify({ dayTotal, contributionTotal, first: state.dayData[0], last: state.dayData.at(-1) })}`);
+    if (state.monthCount < 12 || state.monthCount > 13 || JSON.stringify(state.weekdays) !== JSON.stringify(['Mon', 'Wed', 'Fri']) || expectedDays < 365 || expectedDays > 372 || state.dayData.length !== expectedDays) failures.push(`${prefix}: contribution graph axes/day coverage are incomplete ${JSON.stringify({ monthCount: state.monthCount, weekdays: state.weekdays, days: state.dayData.length, expectedDays })}`);
+    if (dates[0] !== state.windowDates[0] || dates.at(-1) !== state.windowDates[1] || dates.some((date, index) => !/^\d{4}-\d{2}-\d{2}$/.test(date) || (index && Date.parse(date) - Date.parse(dates[index - 1]) !== 86400000)) || new Set(dates).size !== dates.length || state.dayData.some(day => !/^\d+$/.test(day.count) || !/^[0-4]$/.test(day.level) || !day.title) || dayTotal !== contributionTotal) failures.push(`${prefix}: contribution cells are invalid or do not reconcile ${JSON.stringify({ dayTotal, contributionTotal, first: state.dayData[0], last: state.dayData.at(-1) })}`);
+    let streak = 0, longest = 0, active = 0;
+    for (const day of state.dayData) { streak = Number(day.count) > 0 ? streak + 1 : 0; active += Number(day.count) > 0 ? 1 : 0; longest = Math.max(longest, streak); }
+    const valueFor = key => Number((state.metrics.find(item => item.key === key)?.value || '').replace(/,/g, ''));
+    if (valueFor('active-days') !== active || valueFor('longest-streak') !== longest) failures.push(`${prefix}: same-window summaries do not reconcile with the calendar`);
     if (JSON.stringify(state.legendLevels) !== JSON.stringify(['0', '1', '2', '3', '4']) || !/^Less\s+More$/.test(state.legendText) || new Set(state.legendFills).size !== 5) failures.push(`${prefix}: contribution intensity encoding/legend is incomplete ${JSON.stringify({ legendLevels: state.legendLevels, legendText: state.legendText, fills: state.legendFills })}`);
     if (viewport.width <= 390 && (!state.frameScrollable || !['auto', 'scroll'].includes(state.frameOverflowX))) failures.push(`${prefix}: narrow contribution graph is not locally scrollable ${JSON.stringify({ frameScrollable: state.frameScrollable, overflowX: state.frameOverflowX, frame: state.frameRect, calendar: state.calendarRect })}`);
     if (viewport.width >= 900 && (state.metrics.some((item, index) => index && Math.abs(item.rect.top - state.metrics[0].rect.top) > 1) || state.metrics.some((item, index) => index && Math.abs(item.rect.width - state.metrics[0].rect.width) > 3))) failures.push(`${prefix}: headline metrics are not aligned as three equal columns ${JSON.stringify(state.metrics)}`);
@@ -940,6 +951,17 @@ async function checkGitHubActivity(client, baseUrl) {
     if (!state.follows) failures.push(`${prefix}: dashboard CTA does not follow the activity section`);
     if (!state.ctaRect || state.ctaRect.height < 72 || !state.activityRect || state.ctaRect.width < state.activityRect.width * 0.95) failures.push(`${prefix}: dashboard CTA is not visually large/full-width ${JSON.stringify({ activity: state.activityRect, cta: state.ctaRect })}`);
     if (!state.reachable || state.overflow > 1 || state.clipped.length) failures.push(`${prefix}: activity/CTA is clipped, overflowing, or unreachable ${JSON.stringify(state)}`);
+    if (screenshots) {
+      await mkdir(screenshots, { recursive: true });
+      await evaluate(client, '(async () => { scrollTo({ top: 0, behavior: "instant" }); await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); })()');
+      const clip = await evaluate(client, `(() => {
+        const activity = document.querySelector('.github-activity').getBoundingClientRect();
+        const cta = document.querySelector('.github-dashboard-cta').getBoundingClientRect();
+        return { x: 0, y: activity.top + scrollY - 16, width: innerWidth, height: cta.bottom - activity.top + 32, scale: 1 };
+      })()`);
+      const shot = await client.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip });
+      await writeFile(join(screenshots, `activity-${viewport.width}.png`), Buffer.from(shot.data, 'base64'));
+    }
   }
   await client.send('Emulation.clearDeviceMetricsOverride');
   return result('BEH-10', failures, ['three headline metrics, reconciled activity graph, subtitle, and dashboard CTA are accessible and responsive across four viewports']);
@@ -967,13 +989,15 @@ async function main() {
       ['BEH-5', () => checkReachOut(client, server.baseUrl)],
       ['BEH-6', () => checkContactForm(client, server.baseUrl)],
       ['BEH-9', () => checkHeroFit(client, server.baseUrl)],
-      ['BEH-10', () => checkGitHubActivity(client, server.baseUrl)],
+      ['BEH-10', () => checkGitHubActivity(client, server.baseUrl, options.screenshots)],
       ['PRES-3', () => check31Days(client, server.baseUrl)],
       ['PRES-4', () => checkHamburger(client, server.baseUrl, routes)],
       ['PRES-5', () => checkReveal(client, server.baseUrl)],
       ['PRES-6', () => checkSocialAndClipboard(client, server.baseUrl)],
     ];
-    for (const [id, check] of checks) {
+    const selected = options.check ? checks.filter(([id]) => id === options.check) : checks;
+    if (!selected.length) throw new Error(`Unknown check: ${options.check}`);
+    for (const [id, check] of selected) {
       try { results.push(await check()); }
       catch (error) {
         results.push({ id, status: 'FAIL', detail: `Harness completed this check with an error: ${error.message}` });
