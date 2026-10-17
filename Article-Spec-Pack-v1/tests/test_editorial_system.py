@@ -17,6 +17,178 @@ import editorial_workbench as workbench
 from test_article_flow_v3 import TemporaryRuntime, NoPublishAutomationTests, call, namespace, af
 
 
+class OfflinePacketLifecycleTests(TemporaryRuntime):
+    route = {"provider": "fixture", "model": "exact", "eligible": True, "kind": "codex-cli"}
+    material = {"reader_job": "Explain the fixture", "facts": ["Review rejected rows before export."]}
+
+    def offline(self):
+        return workbench.workspace(af, str(self.root / "offline"))
+
+    def invoke(self, root, *, execute):
+        return workbench.assist(af, root, "summary", self.material, execute=execute, requested="fixture:exact")
+
+    def test_legacy_null_preparation_executes_without_changing_reviewed_packet(self):
+        root = self.offline()
+        prepared = self.invoke(root, execute=False)
+        prepared_path = Path(prepared["packet"])
+        original = prepared_path.read_bytes()
+        self.assertIsNone(af.load_json(prepared_path)["selected_route"]["chosen"])
+        with mock.patch.object(workbench, "select_route", return_value=self.route), \
+             mock.patch.object(af, "invoke_route", return_value=("Fixture output.\n", {"provider": "fixture"})) as invoke, \
+             mock.patch.object(af, "command_publish_execute", side_effect=AssertionError("must not publish")) as publish:
+            result = self.invoke(root, execute=True)
+        self.assertEqual(invoke.call_count, 1)
+        publish.assert_not_called()
+        self.assertEqual(prepared_path.read_bytes(), original)
+        self.assertNotEqual(result["packet"], prepared["packet"])
+        packet = af.load_json(Path(result["packet"]))
+        self.assertEqual(packet["selected_route"]["chosen"], self.route)
+        self.assertEqual(packet["side_effect_policy"], "none")
+        receipt = af.load_json(Path(result["receipt"]))
+        self.assertEqual(receipt["prepared_packet"], {"path": str(prepared_path), "sha256": af.sha256_bytes(original)})
+        self.assertEqual(receipt["packet_sha256"], af.sha256_path(Path(result["packet"])))
+        self.assertEqual(receipt["output_sha256"], af.sha256_path(Path(result["result"])))
+        self.assertEqual(af.load_json(root / "budget.json")["calls"], 1)
+
+    def test_direct_execution_then_preparation_and_replay_are_stable(self):
+        root = self.offline()
+        with mock.patch.object(workbench, "select_route", return_value=self.route), \
+             mock.patch.object(af, "invoke_route", return_value=("Fixture output.\n", {"provider": "fixture"})) as invoke:
+            result = self.invoke(root, execute=True)
+            before = {p.name: p.read_bytes() for p in Path(result["packet"]).parent.iterdir() if p.is_file()}
+            prepared = self.invoke(root, execute=False)
+            with mock.patch.object(workbench, "select_route", side_effect=AssertionError("cached route must not be reselected")):
+                replay = self.invoke(root, execute=True)
+        self.assertTrue(replay["reused"])
+        self.assertEqual(invoke.call_count, 1)
+        self.assertIsNone(af.load_json(Path(prepared["packet"]))["selected_route"]["chosen"])
+        self.assertEqual(before, {p.name: p.read_bytes() for p in Path(result["packet"]).parent.iterdir() if p.is_file()})
+
+    def test_completed_legacy_packet_and_receipt_remain_unchanged(self):
+        root = self.offline()
+        prepared = self.invoke(root, execute=False)
+        packet_path = Path(prepared["packet"])
+        packet = af.load_json(packet_path)
+        # Construct the old completed format in a private test fixture only.
+        packet["selected_route"]["chosen"] = self.route
+        af.write_json(packet_path, packet)
+        output = packet_path.parent / "result.md"
+        output.write_text("Legacy result.\n", encoding="utf-8")
+        receipt_path = packet_path.parent / "receipt.json"
+        af.write_json(receipt_path, {"packet_sha256": af.sha256_path(packet_path), "transport": {"output_sha256": af.sha256_path(output)}})
+        before = {p.name: p.read_bytes() for p in packet_path.parent.iterdir() if p.is_file()}
+        with mock.patch.object(workbench, "select_route", side_effect=AssertionError("do not reselect")), \
+             mock.patch.object(af, "invoke_route", side_effect=AssertionError("do not reinvoke")):
+            result = self.invoke(root, execute=True)
+        self.assertTrue(result["reused"])
+        self.assertEqual(result["packet"], str(packet_path))
+        self.assertEqual(before, {p.name: p.read_bytes() for p in packet_path.parent.iterdir() if p.is_file()})
+        self.assertFalse((root / "budget.json").exists())
+
+    def test_modified_preparation_is_rejected_before_invocation(self):
+        root = self.offline()
+        prepared = self.invoke(root, execute=False)
+        path = Path(prepared["packet"])
+        packet = af.load_json(path)
+        packet["objective"] = "Changed task"
+        af.write_json(path, packet)
+        with mock.patch.object(af, "invoke_route") as invoke, self.assertRaises(af.FlowError):
+            self.invoke(root, execute=True)
+        invoke.assert_not_called()
+        self.assertFalse((root / "budget.json").exists())
+
+    def test_modified_cached_execution_or_output_is_rejected(self):
+        for target in ("packet", "result"):
+            with self.subTest(target=target):
+                root = workbench.workspace(af, str(self.root / target))
+                with mock.patch.object(workbench, "select_route", return_value=self.route), \
+                     mock.patch.object(af, "invoke_route", return_value=("Fixture output.\n", {"provider": "fixture"})):
+                    result = self.invoke(root, execute=True)
+                Path(result[target]).write_text("Changed bytes", encoding="utf-8")
+                with mock.patch.object(af, "invoke_route") as invoke, self.assertRaises((af.FlowError, ValueError)):
+                    self.invoke(root, execute=True)
+                invoke.assert_not_called()
+                self.assertEqual(af.load_json(root / "budget.json")["calls"], 1)
+
+    def test_unavailable_route_keeps_preparation_and_does_not_charge_a_call(self):
+        root = self.offline()
+        with mock.patch.object(workbench, "select_route", side_effect=ValueError("No eligible executable route")), \
+             mock.patch.object(af, "invoke_route") as invoke:
+            prepared = self.invoke(root, execute=False)
+            before = Path(prepared["packet"]).read_bytes()
+            with self.assertRaisesRegex(ValueError, "No eligible"):
+                self.invoke(root, execute=True)
+        self.assertEqual(Path(prepared["packet"]).read_bytes(), before)
+        self.assertFalse((root / "budget.json").exists())
+        invoke.assert_not_called()
+
+    def test_failed_provider_call_is_counted_and_preserves_preparation(self):
+        root = self.offline()
+        prepared = self.invoke(root, execute=False)
+        before = Path(prepared["packet"]).read_bytes()
+        with mock.patch.object(workbench, "select_route", return_value=self.route), \
+             mock.patch.object(af, "invoke_route", side_effect=ValueError("Provider failed")):
+            with self.assertRaisesRegex(ValueError, "Provider failed"):
+                self.invoke(root, execute=True)
+        self.assertEqual(Path(prepared["packet"]).read_bytes(), before)
+        self.assertEqual(af.load_json(root / "budget.json")["calls"], 1)
+        self.assertFalse((Path(prepared["packet"]).parent / "receipt.json").exists())
+
+    def test_concurrent_execution_of_one_prepared_identity_invokes_once(self):
+        from concurrent.futures import ThreadPoolExecutor
+        import time
+        root = self.offline()
+        self.invoke(root, execute=False)
+
+        def respond(*args):
+            time.sleep(0.05)
+            return "Fixture output.\n", {"provider": "fixture"}
+
+        with mock.patch.object(workbench, "select_route", return_value=self.route), \
+             mock.patch.object(af, "invoke_route", side_effect=respond) as invoke, \
+             ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(lambda _: self.invoke(root, execute=True), range(2)))
+        self.assertEqual(invoke.call_count, 1)
+        self.assertEqual(sum(bool(r.get("reused")) for r in results), 1)
+        self.assertEqual(af.load_json(root / "budget.json")["calls"], 1)
+
+
+    def test_missing_cached_packet_is_not_recreated_or_reinvoked(self):
+        root = self.offline()
+        with mock.patch.object(workbench, "select_route", return_value=self.route), \
+             mock.patch.object(af, "invoke_route", return_value=("Fixture output.\n", {"provider": "fixture"})):
+            result = self.invoke(root, execute=True)
+        packet = Path(result["packet"])
+        packet.unlink()
+        with mock.patch.object(af, "invoke_route") as invoke, self.assertRaisesRegex(af.FlowError, "packet is missing"):
+            self.invoke(root, execute=True)
+        self.assertFalse(packet.exists())
+        invoke.assert_not_called()
+
+    def test_orphaned_result_requires_reconciliation_without_invocation(self):
+        root = self.offline()
+        prepared = self.invoke(root, execute=False)
+        (Path(prepared["packet"]).parent / "result.md").write_text("Unreceipted output", encoding="utf-8")
+        with mock.patch.object(af, "invoke_route") as invoke, self.assertRaisesRegex(af.FlowError, "reconcile"):
+            self.invoke(root, execute=True)
+        invoke.assert_not_called()
+        self.assertFalse((root / "budget.json").exists())
+
+    def test_cached_preparation_hash_mismatch_is_rejected(self):
+        root = self.offline()
+        with mock.patch.object(workbench, "select_route", return_value=self.route), \
+             mock.patch.object(af, "invoke_route", return_value=("Fixture output.\n", {"provider": "fixture"})):
+            result = self.invoke(root, execute=True)
+        receipt_path = Path(result["receipt"])
+        receipt = af.load_json(receipt_path)
+        receipt["prepared_packet"]["sha256"] = "0" * 64
+        af.write_json(receipt_path, receipt)
+        with mock.patch.object(af, "invoke_route") as invoke, self.assertRaisesRegex(af.FlowError, "evidence"):
+            self.invoke(root, execute=True)
+        invoke.assert_not_called()
+        self.assertEqual(af.load_json(root / "budget.json")["calls"], 1)
+
+
 class EditorialTests(TemporaryRuntime):
     def profile(self):
         return af.load_json(af.SPEC_ROOT / "profiles/voice-profile.capstone.v1.json")

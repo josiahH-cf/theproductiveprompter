@@ -2,8 +2,8 @@
   "manifest_schema_version": "2.0.0",
   "workflow_version": "3.2.0",
   "hash_algorithm": "sha256",
-  "generator_name_and_version": "article-flow 3.2.7",
-  "generated_at": "2026-10-15T10:50:46Z",
+  "generator_name_and_version": "article-flow 3.2.8",
+  "generated_at": "2026-10-17T10:19:16Z",
   "generated_from": "index",
   "files": [
     {
@@ -291,8 +291,8 @@
       "scope": "spec",
       "role": "normative",
       "rule_set": "editorial",
-      "sha256": "e156438dbea1667ebe74e738643ebe4d1ae7e803466cd66adb06870b63287265",
-      "byte_size": 24837
+      "sha256": "1d0d6d8104f267eaed164739b8ad29478ef31f87cc2669a619c14343c8e39c20",
+      "byte_size": 25367
     },
     {
       "path": "evaluations/adversarial-cases.json",
@@ -707,7 +707,7 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "fa30d38210874197283aa189dd359ec2e693c873f7f3d80e7081c2e8f9fabc1c",
+      "sha256": "9baa477c86bb0c1eee370c65ca5f5b880d3c1a10d29859ff0103420ed9682402",
       "byte_size": 665797
     },
     {
@@ -747,8 +747,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "b6ac3322c51614bd0ffa8ee146d3ae09e271fe063830f5d0c07490e1aa9f308d",
-      "byte_size": 16097
+      "sha256": "ba3acf85668ac006c0a5d56a55ec4fd61b75825c76480e2882f22ed1eed86beb",
+      "byte_size": 18875
     },
     {
       "path": "scripts/package_article.py",
@@ -811,8 +811,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "c1c6a8508f484853406d6cae74bc66dcff87ba2f852b898946e5115b8bd54b7d",
-      "byte_size": 47312
+      "sha256": "a8b1e4b2e61d1b032f877ead7c5d6fd185965dbb211bf3e7ea9e3adf5419aca0",
+      "byte_size": 57475
     },
     {
       "path": "tests/test_revision_sources.py",

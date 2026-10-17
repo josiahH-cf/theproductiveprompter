@@ -33,6 +33,8 @@ The house policy prohibits em dashes in editable public prose and summaries. Con
 
 `article-flow editorial --help` exposes a private workbench. It cannot advance, publish or activate a production run through `assist` or `evaluate`. Supply a private workspace outside the installed runtime and publication repository. By default it writes a reviewable packet; `--execute --route PROVIDER:MODEL` invokes an eligible existing provider. Arbitrary command providers are excluded from offline execution; use the isolated Codex transport or a prompt-only API provider. No subscriptions, new model ranking or scheduled task are created.
 
+Preparation freezes a route-neutral `packet.json`. Execution preserves that reviewed packet and freezes the selected route in a separate `execution-packet.json`; its receipt binds both packet hashes and the result hash. Completed legacy packets keep their original path and bytes. Repeating an intact completed invocation reuses its receipt without selecting a route or consuming another call. One packet identity is locked through invocation and receipt creation. No existing packet is overwritten to change its selected route.
+
 Modes: `interview`, `angles`, `rehearse`, `critic`, `reader`, `alternatives`, `edit-reasons`, `drift`, `freshness`, `feedback`, `summary`, `draft`, and `edit`. Use only the intervention that addresses an actual uncertainty. A lead writer owns the article and records acceptance or rejection of consequential critic findings. Reader rehearsal is explicitly simulated. Actual reader feedback must be supplied with provenance. Avoid repeated full rewrites when a bounded passage change suffices.
 
 Example, using a supplied JSON context with reader purpose, relevant evidence, protected facts and requested passage:
