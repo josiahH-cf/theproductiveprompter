@@ -869,12 +869,12 @@ def check_arch_8() -> str:
 def check_beh_4() -> str:
     completed = subprocess.run(
         [sys.executable, "-m", "unittest", "discover", "-s", "tests",
-         "-p", "test_github_profile_history.py", "-v"],
+         "-p", "test_github_*.py", "-v"],
         cwd=ROOT, capture_output=True, text=True, timeout=60,
     )
     if completed.returncode:
         fail(
-            "public profile collector, safe pins, and atomic refresh regressions pass",
+            "public/profile aggregate collectors, safe pins, and atomic refresh regressions pass",
             f"exit {completed.returncode}",
             (completed.stderr or completed.stdout)[-6000:],
         )
@@ -882,7 +882,7 @@ def check_beh_4() -> str:
     return (
         (summary[0] + "; " if summary else "")
         + "rolling profile window, public visibility, reconciled counts, leap/year "
-        "boundaries, freshness, zero/error behavior, and atomic preservation passed"
+        "boundaries, freshness, verified profile offsets, private-data guards, zero/error behavior, and atomic preservation passed"
     )
 
 

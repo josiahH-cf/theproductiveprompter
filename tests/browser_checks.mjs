@@ -868,12 +868,17 @@ async function checkGitHubActivity(client, baseUrl, screenshots = null) {
       const legendSwatches = [...(legend?.querySelectorAll('[data-level]') || [])];
       const labelledIds = (calendar?.getAttribute('aria-labelledby') || '').split(/\\s+/).filter(Boolean);
       const cta = document.querySelector('a.github-dashboard-cta');
+      const snapshot = document.querySelector('.github-profile-snapshot');
+      const snapshotValue = snapshot?.querySelector('data');
+      const snapshotData = snapshot?.querySelector('#github-profile-snapshot-data');
+      let snapshotReference = null;
+      try { snapshotReference = JSON.parse(snapshotData?.textContent || 'null'); } catch { /* fail validation below */ }
       const beforeScroll = rect(cta);
       document.documentElement.style.scrollBehavior = 'auto';
       cta?.scrollIntoView({ block: 'center' });
       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       const ctaRect = rect(cta);
-      const clipped = [...metrics, figure, frame, cta].filter(Boolean).map(element => ({
+      const clipped = [...metrics, figure, frame, snapshot, cta].filter(Boolean).map(element => ({
         className: element.className, rect: rect(element),
       })).filter(item => item.rect.left < -1 || item.rect.right > innerWidth + 1);
       const dayData = days.map(day => ({
@@ -885,6 +890,8 @@ async function checkGitHubActivity(client, baseUrl, screenshots = null) {
       }));
       return {
         subtitle: subtitle?.textContent.trim() || '',
+        snapshotCount: document.querySelectorAll('.github-profile-snapshot').length,
+        snapshot: snapshot ? { reference: snapshotReference, value: snapshotValue?.getAttribute('value'), text: snapshotValue?.textContent.trim(), heading: snapshot.querySelector('h2')?.textContent.trim(), label: snapshot.getAttribute('aria-labelledby'), headingId: snapshot.querySelector('h2')?.id, description: snapshot.textContent, dates: [...snapshot.querySelectorAll('.github-profile-snapshot__window time')].map(item => item.getAttribute('datetime')), totalRect: rect(snapshot.querySelector('.github-profile-snapshot__total')), contextRect: rect(snapshot.querySelector('.github-profile-snapshot__context')) } : null,
         subtitleDirectlyAfterTitle: !!pageTitle && !!subtitle && pageTitle.nextElementSibling === subtitle,
         sectionCount: document.querySelectorAll('.github-activity').length,
         heading: heading?.textContent.trim() || '', labelledBy: activity?.getAttribute('aria-labelledby') || '', headingId: heading?.id || '',
@@ -923,6 +930,11 @@ async function checkGitHubActivity(client, baseUrl, screenshots = null) {
       };
     })()`);
     const prefix = `${viewport.label} ${viewport.width}x${viewport.height}`;
+    const snap = state.snapshot;
+    if (state.snapshotCount !== 1 || !snap?.reference || snap.reference.source !== 'github-signed-in-profile' || snap.reference.includes_private_activity !== true || Number(snap.value) !== snap.reference.total_contributions || Number(snap.text.replace(/,/g, '')) !== snap.reference.total_contributions || snap.label !== snap.headingId || !snap.heading) failures.push(`${prefix}: verified private-inclusive snapshot is inconsistent`);
+    if (!snap || !/refreshed on demand/i.test(snap.description) || !/public calendar above refreshes daily/i.test(snap.description) || !/GitHub profile time/.test(snap.description) || snap.dates.length !== 2 || snap.dates.some(value => !/T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/.test(value))) failures.push(`${prefix}: profile snapshot date/freshness semantics are incomplete`);
+    if (snap && viewport.width >= 900 && snap.contextRect.left <= snap.totalRect.right) failures.push(`${prefix}: profile snapshot columns overlap`);
+    if (snap && viewport.width <= 390 && snap.contextRect.top < snap.totalRect.bottom) failures.push(`${prefix}: profile snapshot does not stack cleanly`);
     if (state.subtitle !== 'top projects' || !state.subtitleDirectlyAfterTitle) failures.push(`${prefix}: exact Projects subtitle is absent or misplaced`);
     const keys = state.metrics.map(item => item.key);
     const expectedKeys = ['contributions', 'active-days', 'longest-streak'];

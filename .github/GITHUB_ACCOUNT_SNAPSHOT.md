@@ -1,42 +1,61 @@
-# Internal account-aggregate prototype
+# GitHub activity sources and refresh
 
-This is an unpublished evidence helper, not a website feature or a replacement
-for the signed-out public calendar. It has no website writer or public renderer.
-An HTTP 200 response proves a successful aggregate query, not complete private
-visibility. Equal totals and an owner's `restrictedContributionsCount` must not
-be interpreted as a private total of zero.
+## Public calendar and pinned repositories
 
-Run from the repository with the existing GitHub CLI account sign-in:
+The existing public collector and daily 06:17 UTC schedule remain independent.
+Its graph uses GitHub's signed-out rolling date window, three same-window public
+summaries, explicit UTC bounds and a dated snapshot. Only public pins are accepted.
+
+## Verified signed-in aggregate
+
+The combined contribution total comes from the owner's visible signed-in GitHub
+profile, not a private-repository/event query. Read only the calendar heading,
+the exact data-from/data-to bounds (including offsets), and signed-in owner.
+GitHub's explicit year-filter URL can show a calendar year rather than the requested
+rolling year: always verify the rendered bounds. Do not toggle profile privacy
+settings, export cookies/tokens, or capture private repository names/details.
+The public-sharing checkbox alone is not an owner-view inclusion indicator. If
+the source has no explicit inclusion signal, obtain the owner's count-only
+confirmation before marking the reference as private-inclusive or publishing it.
+
+Keep the count-only reference outside this repository until validated. Its exact
+fields are schema_version (1), source (github-signed-in-profile), source_url,
+owner, from_bound, to_bound, checked_at, total_contributions, and
+includes_private_activity (true, explicitly verified by the operator). No extra
+fields are accepted. New references must be checked within 24 hours; re-rendering
+never substitutes the current time for the actual check time. Existing snapshots
+remain explicitly dated rather than silently becoming current.
 
 ```powershell
-python -B .github/scripts/refresh_github_account_snapshot.py
-python -B .github/scripts/refresh_github_account_snapshot.py --check-snapshot C:/path/outside-the-repo/internal-evidence.json
-python -B -m unittest discover -s tests -p test_github_account_snapshot.py -v
+python -B .github/scripts/refresh_github_profile_snapshot.py --reference C:/path/outside-the-repo/verified-profile-reference.json
+python -B .github/scripts/refresh_github_profile_snapshot.py --check
+python -B .github/scripts/refresh_github_profile_snapshot.py --check-live
+python -B -m unittest discover -s tests -p "test_github_*.py" -v
 ```
 
-The capture emits only allowlisted identity/date/numeric aggregate evidence to
-stdout. Keep real captured JSON outside this public repository. There is no
-credential entry, token export, auth refresh/switch, settings write, or new secret.
-The existing daily public pinned-project/calendar workflow remains untouched.
+The source is a combined public/private total, not a private-only count. Never
+subtract the UTC public calendar or a differently scoped API result from a
+profile-local snapshot. Only the verified anonymous total and provenance are
+rendered; there are no private repository names or private activity records.
 
-The source query requests only `viewer.login`, `startedAt`, `endedAt`, and
-`contributionCalendar.totalContributions`. Requests split into contiguous calendar
-years and validate every returned bound. Completed UTC days exclude today's
-mutable activity, including commits made while preparing a deployment. The
-signed-out calendar is filtered to precisely those same dates; the daily public
-calendar itself retains GitHub's entire rolling window.
+For an on-demand refresh through the existing workflow, explicitly confirm
+profile_snapshot_verified and supply profile_snapshot_total,
+profile_snapshot_from, profile_snapshot_to, and profile_snapshot_checked_at.
+Inputs enter Python through environment values, never shell interpolation. The
+same Article Flow, stale-main, single-page staging, concurrency and exact-SHA
+Pages verification guards protect publication. With no confirmed reference,
+scheduled/manual public-only runs leave this third marker region untouched.
 
-Every internal snapshot has `private_total: null`,
-`private_total_status: not_separately_verified`, and `publication_eligible: false`.
-This remains true for zero totals, equal totals, and additional account-visible
-counts. These are safety gates, not visitor-facing status messages. No private
-repository/event fields or private daily activity are requested. Unknown fields,
-duplicate JSON, invalid numeric values, identity/window mismatches and failed
-requests are rejected. Errors never echo raw API/CLI responses. Requests are
-bounded and noninteractive. Dated checks report an unavailable public-window
-comparison as unknown, never as a match.
+No unattended account credential has been added. The private-inclusive snapshot
+is refreshed on demand and says so visibly. The public calendar continues daily.
 
-Publication remains blocked until private inclusion can be substantiated using
-an authorized aggregate-only source and an independently established same-window
-reference. A scope header by itself is not an API-denial verdict. No permission
-expansion or account/profile change is performed by this helper.
+## Aggregate-only CLI diagnostic
+
+refresh_github_account_snapshot.py remains an internal-only diagnostic. It uses
+existing gh authentication, bounded noninteractive requests and only identity,
+exact bounds and numeric calendar aggregates. It writes no site or credential
+file. Its successful HTTP response is not proof of private visibility; neither
+equal totals, scope metadata nor restrictedContributionsCount establishes a
+private total of zero. Diagnostic records remain publication-ineligible and
+must stay outside this public repo. No auth refresh/switch or permission
+expansion is performed by either helper.
