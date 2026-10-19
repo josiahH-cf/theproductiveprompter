@@ -4,6 +4,23 @@ name: Refresh GitHub projects and activity
   schedule:
     - cron: "17 6 * * *"
   workflow_dispatch:
+    inputs:
+      profile_snapshot_verified:
+        description: "I checked the owner's signed-in profile total, including private activity"
+        type: boolean
+        default: false
+      profile_snapshot_total:
+        description: "Verified combined contribution total (integer, no other data)"
+        type: string
+      profile_snapshot_from:
+        description: "Exact profile data-from bound, including offset"
+        type: string
+      profile_snapshot_to:
+        description: "Exact profile data-to bound, including offset"
+        type: string
+      profile_snapshot_checked_at:
+        description: "UTC time the signed-in profile was checked (ISO 8601)"
+        type: string
 
 permissions:
   contents: write
@@ -30,7 +47,18 @@ jobs:
       - name: Refresh pinned projects and the signed-out GitHub profile calendar
         run: python3 .github/scripts/refresh_pinned_projects.py --json
 
+      - name: Render a manually verified profile aggregate when supplied
+        env:
+          PROFILE_SNAPSHOT_VERIFIED: ${{ inputs.profile_snapshot_verified }}
+          PROFILE_SNAPSHOT_TOTAL: ${{ inputs.profile_snapshot_total }}
+          PROFILE_SNAPSHOT_FROM: ${{ inputs.profile_snapshot_from }}
+          PROFILE_SNAPSHOT_TO: ${{ inputs.profile_snapshot_to }}
+          PROFILE_SNAPSHOT_CHECKED_AT: ${{ inputs.profile_snapshot_checked_at }}
+        run: python3 .github/scripts/refresh_github_profile_snapshot.py --dispatch-env
+
       - name: Commit a safe refresh when GitHub data changed
+        # All existing publication guards below remain shared by both regions.
+        # Scheduled runs never acquire private data or change profile snapshots.
         shell: bash
         run: |
           set -euo pipefail

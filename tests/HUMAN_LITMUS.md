@@ -32,8 +32,11 @@ four pinned repositories and labels them "top projects." Its activity graph foll
 the same last-year date window and daily counts as GitHub's signed-out public
 profile. Contributions, active days, and the longest streak summarize those same
 displayed days. The source, exact UTC date range, snapshot time and visibility
-limitation are visible; the page ends with a large link to the full GitHub dashboard.
-- Model verdict: Checked by BEH-4 and BEH-10. An unauthenticated profile request supplies the calendar; the token supplies only explicitly public pins. Complete dates/counts, leap/year boundaries, future/stale/error cases and atomic preservation are covered by the collector regression suite. Desktop and narrow mobile checks reconcile the rendered summaries with the calendar. The dated repair receipt records actual test outcomes and live-public comparison; a signed-in private view is not claimed to match.
+limitation are visible. A separate verified signed-in profile snapshot includes
+anonymous private activity, retains its profile-local date bounds, and explicitly
+states its check time and on-demand refresh. No private-only count is invented by
+subtracting differently timed sources. The page ends with a large GitHub link.
+- Model verdict: Checked by BEH-4, BEH-10 and the GitHub regression suites. The signed-out calendar remains independent; the combined profile snapshot uses a separately verified, count-only signed-in reference. Publication validates exact fields, bounds, offsets and freshness, while scheduled public refreshes preserve the private-inclusive snapshot. The dated terminal receipt records browser evidence, test results, exact deployment and live checks.
 - Human verdict: PASS | FAIL - why:
 
 ### Reach Out combines a short About with contact
