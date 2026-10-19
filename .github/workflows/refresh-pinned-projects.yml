@@ -128,7 +128,19 @@ jobs:
                 exit 0
               fi
               if [[ "$latest_commit" == "$commit_sha" && "$latest_status" == "errored" ]]; then
-                echo "GitHub Pages failed GitHub data commit $commit_sha: $latest_error" >&2
+                echo "Legacy Pages build reports an error; checking the exact-commit replacement workflow."
+              fi
+            fi
+
+            # A cancelled legacy build can stay errored while its replacement
+            # deploys successfully. Confirm only the same main-branch commit;
+            # this read-only fallback keeps the existing deadline and token.
+            if python3 .github/scripts/check_github_pages_deployment.py --commit "$commit_sha"; then
+              exit 0
+            else
+              deployment_status=$?
+              if [[ "$deployment_status" -eq 2 ]]; then
+                echo "GitHub Pages deployment failed GitHub data commit $commit_sha." >&2
                 exit 1
               fi
             fi
