@@ -46,6 +46,14 @@ same Article Flow, stale-main, single-page staging, concurrency and exact-SHA
 Pages verification guards protect publication. With no confirmed reference,
 scheduled/manual public-only runs leave this third marker region untouched.
 
+GitHub can cancel a legacy Pages build while a replacement Pages workflow for
+the same commit succeeds. The legacy build record may remain errored. Publication
+therefore also checks the newest `dynamic/pages/pages-build-deployment` run on
+`main` for the exact commit; only completed success counts. Cancellation waits
+within the existing 25-minute deadline, and an actual failed replacement fails.
+The probe uses the existing token for read-only public run metadata, with a
+30-second request timeout and no added permissions or new build requests.
+
 No unattended account credential has been added. The private-inclusive snapshot
 is refreshed on demand and says so visibly. The public calendar continues daily.
 
