@@ -5,7 +5,7 @@
     <link>https://theproductiveprompter.com/docs/blog.html</link>
     <description>Practical writing on AI workflows, prompting systems, evaluation, and publication design.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 20 Oct 2026 12:00:00 -0500</lastBuildDate>
+    <lastBuildDate>Tue, 20 Oct 2026 07:35:35 +0000</lastBuildDate>
     <atom:link href="https://theproductiveprompter.com/feed.xml" rel="self" type="application/rss+xml"/>
 
     <!-- ARTICLE_FLOW_FEED_START -->
@@ -14,7 +14,7 @@
   <link>https://theproductiveprompter.com/docs/dot-as-her-or-what-siri-was-supposed-to-become.html</link>
   <guid isPermaLink="true">https://theproductiveprompter.com/docs/dot-as-her-or-what-siri-was-supposed-to-become.html</guid>
   <pubDate>Tue, 20 Oct 2026 12:00:00 -0500</pubDate>
-  <description>A first-person reflection on how Dot&#x27;s selected continuity made day planning, flight research, and coding coordination useful across conversations and tools, and why a failed phone-call handoff keeps that promise incomplete.</description>
+  <description>A personal account of moving much of my assistant&#x27;s conversation and coordination from Obsidian Agent to my dot, with useful continuity and frustrating gaps.</description>
 </item>
 <item>
   <title>Research Runner: A Portable Workflow for Evidence-Backed Agent Research</title>
