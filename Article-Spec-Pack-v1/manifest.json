@@ -3,7 +3,7 @@
   "workflow_version": "3.2.0",
   "hash_algorithm": "sha256",
   "generator_name_and_version": "article-flow 3.2.8",
-  "generated_at": "2026-10-20T01:51:25Z",
+  "generated_at": "2026-10-20T01:52:03Z",
   "generated_from": "index",
   "files": [
     {
@@ -11,8 +11,8 @@
       "scope": "repository",
       "role": "template",
       "rule_set": "publication",
-      "sha256": "647b03b1df27315bad1a1ee588daa04225f39516a3587d2b99053effec43feab",
-      "byte_size": 58680
+      "sha256": "2ca0e37068c7cda7efc810eb32dd11ee5567e30a9fe87950556cdb5d054bf36f",
+      "byte_size": 61021
     },
     {
       "path": ".agents/skills/article-flow/references/editorial.md",

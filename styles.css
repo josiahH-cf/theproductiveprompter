@@ -1540,8 +1540,30 @@ a:focus {
     font-size: clamp(1.8rem, 4vw, 2.75rem);
 }
 
-.projects-page .github-activity__year {
+.projects-page .github-activity__window {
     color: var(--color-accent);
+    margin: -0.5rem 0 var(--spacing-md);
+    font-family: var(--font-mono);
+    font-size: clamp(0.78rem, 1.8vw, 0.9rem);
+}
+
+.projects-page .github-activity__provenance,
+.projects-page .github-activity__visibility {
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.65;
+    max-width: 80ch;
+    margin: 1rem 0 0;
+}
+
+.projects-page .github-activity__visibility {
+    margin-top: 0.4rem;
+}
+
+.projects-page .github-activity__provenance a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
 }
 
 .projects-page .github-activity__status {
@@ -1636,6 +1658,11 @@ a:focus {
     height: 0.55rem;
 }
 
+.projects-page .github-activity__calendar-frame:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+}
+
 .projects-page .github-activity__calendar-frame::-webkit-scrollbar-track {
     background: rgba(10, 25, 47, 0.45);
     border-radius: 999px;
@@ -1710,6 +1737,67 @@ a:focus {
     background-color: var(--activity-level);
     border: 1px solid rgba(230, 241, 255, 0.06);
     border-radius: 2px;
+}
+
+.projects-page .github-profile-snapshot {
+    margin-top: var(--spacing-md);
+    padding: clamp(1.25rem, 3vw, 2rem);
+    display: grid;
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+    align-items: center;
+    gap: 1.5rem 2.5rem;
+    border: 1px solid rgba(100, 255, 218, 0.22);
+    border-radius: var(--border-radius-lg);
+    background: linear-gradient(135deg, rgba(100, 255, 218, 0.08), rgba(23, 42, 69, 0.6));
+    overflow-wrap: anywhere;
+}
+
+.projects-page .github-profile-snapshot__total {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+}
+
+.projects-page .github-profile-snapshot__number {
+    color: var(--color-accent);
+    font-size: clamp(2.6rem, 6vw, 4rem);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+}
+
+.projects-page .github-profile-snapshot h2 {
+    margin: 0 0 0.65rem;
+    font-size: clamp(1.25rem, 2.5vw, 1.6rem);
+}
+
+.projects-page .github-profile-snapshot p {
+    margin: 0.5rem 0 0;
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.65;
+}
+
+.projects-page .github-profile-snapshot .github-profile-snapshot__window {
+    color: var(--color-heading);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+}
+
+.projects-page .github-profile-snapshot__freshness a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+}
+
+@media (max-width: 700px) {
+    .projects-page .github-profile-snapshot {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 1.25rem;
+    }
 }
 
 .projects-page .github-dashboard-cta {
