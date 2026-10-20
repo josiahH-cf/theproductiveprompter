@@ -682,6 +682,12 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "conformance"
+    },
+    {
+      "path": "tests/test_delegated_voice.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "evaluation"
     }
   ]
 }

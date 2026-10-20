@@ -3,7 +3,7 @@
   "workflow_version": "3.2.0",
   "hash_algorithm": "sha256",
   "generator_name_and_version": "article-flow 3.2.8",
-  "generated_at": "2026-10-17T10:19:16Z",
+  "generated_at": "2026-10-20T01:02:37Z",
   "generated_from": "index",
   "files": [
     {
@@ -291,8 +291,8 @@
       "scope": "spec",
       "role": "normative",
       "rule_set": "editorial",
-      "sha256": "1d0d6d8104f267eaed164739b8ad29478ef31f87cc2669a619c14343c8e39c20",
-      "byte_size": 25367
+      "sha256": "a8aa84ab0d27269c7274c7cbbb5a7ccbdb6c1aa13bca0c9ec461f0a9700deb24",
+      "byte_size": 25972
     },
     {
       "path": "evaluations/adversarial-cases.json",
@@ -707,8 +707,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "9baa477c86bb0c1eee370c65ca5f5b880d3c1a10d29859ff0103420ed9682402",
-      "byte_size": 665797
+      "sha256": "1ee622394f886584260f5429a4f46fa1b2e73faa9828676eabd97baef95944d8",
+      "byte_size": 667534
     },
     {
       "path": "scripts/article_maintenance.py",
@@ -739,8 +739,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "5fd80279c5f44c9a4c3c4c4733e4ae4c5bfdff8f9166991a2d80269b683ae481",
-      "byte_size": 12804
+      "sha256": "fb85c6006d3bb2ca5b525f741d72e327238d248cdb4d53bc3d513cf659afed6c",
+      "byte_size": 13248
     },
     {
       "path": "scripts/editorial_workbench.py",
@@ -797,6 +797,14 @@
       "rule_set": "conformance",
       "sha256": "6c24ee909663fa9441988416b4498dd32db8799d5dd49d503183e80861acafc5",
       "byte_size": 18229
+    },
+    {
+      "path": "tests/test_delegated_voice.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "evaluation",
+      "sha256": "6496d214b2f760ddd87e78f7c17d39bb596cfa8169004c64606d9617cabf1c3b",
+      "byte_size": 3948
     },
     {
       "path": "tests/test_editorial_recovery.py",
@@ -859,8 +867,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "integrity",
-      "sha256": "23dc1f9a78773730584f1a3cb26028912a248143f822c521f7b8923fbad4f74b",
-      "byte_size": 16448
+      "sha256": "2f8bdc2a136d1b6092607babb658250765493d612659869d46ee62bc00d43ff0",
+      "byte_size": 16587
     },
     {
       "path": "workflow/workflow.json",

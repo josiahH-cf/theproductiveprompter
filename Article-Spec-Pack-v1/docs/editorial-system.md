@@ -1,5 +1,7 @@
 # Editorial system, workflow 3.2.0
 
+For an explicitly delegated local voice choice, use `choose-voice RUN_ID B --decision-maker assistant --authorization "EXACT AUTHOR AUTHORIZATION"`. The default remains a human choice. Delegation records the assistant and exact authorization in immutable artifact provenance and the gate evaluator without changing the run's frozen voice schema. Local learning retains the actual decision maker and creates only a pending, inactive proposal. A delegated choice is not evidence of the author's personal preference. `--no-auto` separates selection from continuation when resource coordination requires it.
+
 Article Flow keeps one author voice while adapting to reader, purpose and subject. It supplies that voice during intent, recipe and briefing, before the draft's reasoning and structure settle. After the ordinary A/B/C passage choice it still edits, verifies, builds, pushes and verifies the live revision automatically. Explicit pauses, publication holds, missing capability, material ambiguity and exhausted repairs still stop it.
 
 ## Authority and evidence

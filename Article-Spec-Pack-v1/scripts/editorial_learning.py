@@ -29,7 +29,12 @@ def apply_local_selection(af: Any, directory: Path, run: dict) -> dict:
     if not selected:
         raise af.FlowError("Voice learning requires an explicit recorded candidate choice", af.EXIT_WAITING)
     profile = af.json_artifact(directory, run, "voice-profile")
-    actor = selection.get("decision_maker", "human")
+    # Provenance lives in the hash-chained artifact record, keeping old frozen
+    # selection schemas and already recorded human decisions unchanged.
+    producer = (af.artifact(run, "voice-probe") or {}).get("producer", {})
+    actor = producer.get("decision_maker", selection.get("decision_maker", "human"))
+    if actor == "assistant" and not str(producer.get("authorization") or "").strip():
+        raise af.FlowError("Delegated voice evidence lacks author authorization", af.EXIT_APPROVAL)
     proposal = store_proposal(af, {"run_id": run["run_id"], "decision_maker": actor, "scope": "passage",
                                  "before": probe.get("source_passage", ""), "after": selected["passage"],
                                  "reason": selection.get("feedback"), "reason_status": "recorded" if selection.get("feedback") else "pending",

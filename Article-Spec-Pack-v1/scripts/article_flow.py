@@ -5736,6 +5736,7 @@ def committed_voice_selection(
         if kind == "VOICE_SELECTION_RECORDED":
             pending = {
                 "candidate_id": str(payload.get("candidate_id") or ""),
+                "decision_maker": str(payload.get("decision_maker") or "human"),
                 "voice_probe_sha256": str(payload.get("voice_probe_sha256") or ""),
                 "selection_sequence": int(event.get("sequence", 0)),
                 "gate_sequence": None,
@@ -5797,6 +5798,8 @@ def reconcile_committed_voice_selection(
                 "requested_candidate_id": getattr(args, "selection", None),
             },
         )
+    if getattr(args, "decision_maker", "human") != committed.get("decision_maker", "human"):
+        raise FlowError("A committed voice decision cannot change its decision maker", EXIT_APPROVAL)
     finish_committed_voice_selection(directory, run, committed)
     next_command = ["article-flow", "advance", run["run_id"]] if automation_enabled(run) else ["article-flow", "next", run["run_id"]]
     return {
@@ -7042,6 +7045,14 @@ def create_publish_approval(
 
 def command_gate(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
+    decision_maker = getattr(args, "decision_maker", "human")
+    authorization = str(getattr(args, "authorization", None) or "").strip()
+    delegated = decision_maker == "assistant"
+    if decision_maker not in {"human", "assistant"}:
+        raise FlowError("Unknown voice decision maker", EXIT_USAGE)
+    if delegated and (run["state"] != "VOICE_PROBE" or args.outcome != "PASS" or not authorization):
+        raise FlowError("Delegated selection requires a voice PASS and explicit author authorization", EXIT_APPROVAL)
+    decision_actor = "assistant" if delegated else "operator"
     loaded_state = run["state"]
     definition = state_definition(run["state"], run)
     expected_gate = definition.get("gate")
@@ -7156,16 +7167,23 @@ def command_gate(args: argparse.Namespace) -> int:
                         same_file = False
                 if not same_file:
                     shutil.copy2(candidate_path, approved_path)
-            record_artifact(directory, run, approved_path, approved_type, {"actor": "operator", "decision": "confirmed"})
+            provenance = {"actor": decision_actor, "decision": "delegated" if delegated else "confirmed"}
+            if delegated:
+                provenance.update({"decision_maker": "assistant", "authorization": authorization})
+            record_artifact(directory, run, approved_path, approved_type, provenance)
             if run["state"] == "VOICE_PROBE" and is_v3_run(run):
-                append_event(directory, run, "VOICE_SELECTION_RECORDED", "operator", {
+                append_event(directory, run, "VOICE_SELECTION_RECORDED", decision_actor, {
                     "candidate_id": args.selection,
+                    "decision_maker": decision_maker,
                     "feedback_present": bool(args.feedback),
                     "voice_probe_sha256": sha256_path(approved_path),
                 })
-        write_gate_receipt(directory, run, args.gate_id, args.outcome, findings, {"type": "human", "identity": "operator"}, definition.get("repair_state"))
+        evaluator = {"type": "assistant" if delegated else "human", "identity": decision_actor}
+        if delegated:
+            evaluator["authorization"] = authorization
+        write_gate_receipt(directory, run, args.gate_id, args.outcome, findings, evaluator, definition.get("repair_state"))
         if args.outcome == "PASS":
-            transition(directory, run, definition["next_on_pass"], "operator", f"Operator confirmed {args.gate_id}")
+            transition(directory, run, definition["next_on_pass"], decision_actor, f"{'Delegated assistant selected' if delegated else 'Operator confirmed'} {args.gate_id}")
         elif args.outcome == "REPAIR":
             repair_state = definition["repair_state"]
             source_state = run["state"]
@@ -10576,6 +10594,8 @@ def command_choose_voice(args: argparse.Namespace) -> int:
         artifact=None,
         selection=args.candidate_id,
         feedback=args.feedback,
+        decision_maker=getattr(args, "decision_maker", "human"),
+        authorization=getattr(args, "authorization", None),
         json=True,
     )
     code, result = _silent_command(command_gate, gate_args)
@@ -11715,6 +11735,8 @@ def build_parser() -> argparse.ArgumentParser:
     choose_voice.add_argument("run_id")
     choose_voice.add_argument("candidate_id")
     choose_voice.add_argument("--feedback")
+    choose_voice.add_argument("--decision-maker", choices=["human", "assistant"], default="human", help="Record the actual selector; assistant requires explicit author delegation.")
+    choose_voice.add_argument("--authorization", help="Exact author authorization for an assistant-selected voice.")
     choose_voice.add_argument("--auto", action=argparse.BooleanOptionalAction, default=True, help="Continue through publication by default; --no-auto records the choice and explicitly pauses.")
     add_json(choose_voice)
 
