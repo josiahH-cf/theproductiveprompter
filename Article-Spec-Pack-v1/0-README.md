@@ -104,6 +104,10 @@ The active guide remains provisional: it is grounded in the author's confirmed s
 
 Every material factual claim must be traceable and fresh enough for its use. Model memory is not a citation source. The final naturalization pass is conservative and fact-locked; a changed number, date, name, citation, URL, code token, quotation, or qualified claim reopens verification.
 
+### A scoped correction to rendered return arrows
+
+Before a new claim task is dispatched, an explicitly authorized correction can remove the two built-in `parallel_review` return loops and their dependent deferral stub. Use `render-visuals RUN_ID --correct-return-arrows VISUAL_ID --replacement-svg REVIEWED.svg --expected-source-sha256 ORIGINAL_SHA256 --reason "ACTUAL AUTHOR AUTHORIZATION"`. The replacement must equal the exact native SVG with only those three paths removed. Labels, forward paths, approved plan, captions, prose, other assets, history, approval policy and attempt counters remain unchanged. The command requires ACTIVE CLAIM_VERIFICATION, refuses pending claim tasks and Stop gates, records an immutable correction and matching manifest, and leaves normal claim and editorial checks pending. An identical retry makes no new changes. Later rendering of that same plan retains the recorded correction; changed renderer bytes require fresh review. This command does not authorize a new visual planning attempt or waive a publication check.
+
 ## Capability boundary
 
 A model can participate when its host can execute the local `article-flow` command, call the optional local MCP tool, or when the controller can invoke it through a configured provider adapter. A remote chat page with no access to this machine cannot invoke the global local command; that is an explicit capability boundary, not a reason to copy the workflow into the remote product.

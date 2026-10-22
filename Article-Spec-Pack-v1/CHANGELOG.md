@@ -9,6 +9,12 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## October 15, 2026: Admit an exact reviewed return-arrow correction (3.2.7)
+
+- Permit one explicitly authorized, hash-bound removal of the built-in parallel-review return loops and their dependent stub before a new claim task. Reject arbitrary SVG changes, pending tasks, Stop gates and mismatched source bytes.
+- Retain all other asset and prose bytes, immutable history, approval policy and attempt counters. Record the corrected asset and manifest, keep normal verification pending, and preserve the correction during subsequent rendering of the same plan.
+- Add regression coverage for preservation, idempotent retries, held refresh, tampering and authority boundaries.
+
 ## October 9, 2026: One checked recovery after deployment settles (3.2.6)
 
 - Keep exhausted deployment propagation in LIVE_VERIFICATION. An explicit repair first binds historical failures and the original pushed package/approval to a clean exact remote descendant, then observes exact live bytes for every packaged site file.

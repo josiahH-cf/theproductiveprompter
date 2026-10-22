@@ -65,6 +65,30 @@ def select_route(af: Any, stage: str, requested: str | None) -> dict:
     return eligible[0]
 
 
+def _offline_packet(af: Any, path: Path, expected: dict) -> dict:
+    """Check the frozen body, retaining a legacy packet's original route."""
+    packet = expected
+    if path.is_file():
+        frozen = af.load_json(path)
+        packet = {**expected, "selected_route": {"chosen": frozen.get("selected_route", {}).get("chosen")}}
+    af.write_json_immutable(path, packet)
+    return packet
+
+
+def _offline_replay(af: Any, receipt_path: Path, packet_path: Path, prepared_path: Path, output_path: Path) -> None:
+    """A completed invocation is reusable only with its intact local evidence."""
+    receipt = af.load_json(receipt_path)
+    valid = receipt.get("packet_sha256") == af.sha256_path(packet_path) and output_path.is_file()
+    preparation = receipt.get("prepared_packet")
+    if preparation is not None:
+        valid = valid and preparation == {"path": str(prepared_path), "sha256": af.sha256_path(prepared_path)}
+    expected_output = receipt.get("output_sha256") or receipt.get("transport", {}).get("output_sha256")
+    if expected_output:
+        valid = valid and output_path.is_file() and expected_output == af.sha256_path(output_path)
+    if not valid:
+        raise af.FlowError("Offline execution evidence no longer matches its receipt", af.EXIT_INTEGRITY)
+
+
 def assist(af: Any, root: Path, mode: str, context: dict, *, execute: bool, requested: str | None, name: str = "") -> dict:
     stage = "DRAFT" if mode in {"draft", "edit", "summary", "alternatives"} else "EDITORIAL_QA"
     identifier = (name or mode) + "-" + editorial_context.digest({"context": context, "mode": mode, "route": requested})[:12]
@@ -72,7 +96,6 @@ def assist(af: Any, root: Path, mode: str, context: dict, *, execute: bool, requ
     directory.mkdir(exist_ok=True)
     source = directory / "context.json"
     af.write_json_immutable(source, context)
-    route = select_route(af, stage, requested) if execute else None
     packet = {"task_packet_schema_version": "1.0.0", "workflow_version": af.workflow()["workflow_version"],
               "run_id": "OFFLINE-" + identifier, "stage": stage, "attempt": 1,
               "objective": MODES[mode], "inputs": [{"id": "editorial-material", "path": str(source), "sha256": af.sha256_path(source)}],
@@ -81,29 +104,49 @@ def assist(af: Any, root: Path, mode: str, context: dict, *, execute: bool, requ
                               "Distinguish author resemblance, readability, factual preservation and structural repetition. No detector score or phrase scan proves authentic voice."] + editorial_context.constraints(stage),
               "allowed_tools": ["read_supplied_material", "write_requested_output"], "side_effect_policy": "none",
               "expected_outputs": [{"artifact_type": "offline-editorial-result", "path": str(directory / "result.md"), "format": "md", "schema": None}],
-              "selected_route": {"chosen": route}, "evaluation": {"mode": mode, "human_judgment": "pending"}}
-    packet_path = directory / "packet.json"
-    af.write_json_immutable(packet_path, packet)
-    result = {"packet": str(packet_path), "executed": False, "human_judgment": "pending"}
+              "selected_route": {"chosen": None}, "evaluation": {"mode": mode, "human_judgment": "pending"}}
+    prepared_path = directory / "packet.json"
+    prepared = _offline_packet(af, prepared_path, packet)
+    result = {"packet": str(prepared_path), "executed": False, "human_judgment": "pending"}
     if not execute:
         return result
-    receipt_path = directory / "receipt.json"
-    if receipt_path.exists():
-        return {**result, "executed": True, "reused": True, "receipt": str(receipt_path)}
-    # Count attempts BEFORE invocation, including failures; a fresh process cannot reset the budget.
-    with af.shared_lock(root / ".budget.lock"):
-        budget_path = root / "budget.json"
-        budget = af.load_json(budget_path) if budget_path.exists() else {"calls": 0, "writer": 0, "review": 0, "limit": 24}
-        kind = "writer" if mode in {"draft", "edit", "summary", "alternatives"} else "review"
-        if budget["calls"] >= 24 or budget[kind] >= (16 if kind == "writer" else 8):
-            raise ValueError("Offline experiment budget exhausted (16 writing, 8 review, 24 total)")
-        budget["calls"] += 1
-        budget[kind] += 1
-        af.write_json(budget_path, budget)
-    output, receipt = af.invoke_route(route, packet_path, packet)
-    af.immutable_write(directory / "result.md", output.encode("utf-8"))
-    af.write_json_immutable(receipt_path, {**receipt, "packet_sha256": af.sha256_path(packet_path), "human_judgment": "pending", "production_side_effects": False})
-    return {**result, "executed": True, "receipt": str(receipt_path), "result": str(directory / "result.md")}
+    # Serialize one identity through invocation and receipt creation. The workspace
+    # budget lock below still accounts for all identities, including failed calls.
+    with af.shared_lock(directory / ".execution.lock"):
+        # Existing completed packets retain their original path and bytes. A
+        # route-neutral preparation instead gets a separately frozen execution.
+        legacy = prepared["selected_route"]["chosen"] is not None
+        packet_path = prepared_path if legacy else directory / "execution-packet.json"
+        output_path = directory / "result.md"
+        receipt_path = directory / "receipt.json"
+        result.update({"packet": str(packet_path), "prepared_packet": str(prepared_path)})
+        if receipt_path.exists():
+            if not packet_path.is_file():
+                raise af.FlowError("Offline execution packet is missing for its receipt", af.EXIT_INTEGRITY)
+            _offline_packet(af, packet_path, packet)
+            _offline_replay(af, receipt_path, packet_path, prepared_path, output_path)
+            return {**result, "executed": True, "reused": True, "receipt": str(receipt_path), "result": str(output_path)}
+        if output_path.exists():
+            raise af.FlowError("Offline result exists without its receipt; reconcile before another invocation", af.EXIT_INTEGRITY)
+        route = select_route(af, stage, requested)
+        execution_packet = {**packet, "selected_route": {"chosen": route}}
+        af.write_json_immutable(packet_path, execution_packet)
+        # Count attempts BEFORE invocation, including failures; a fresh process cannot reset the budget.
+        with af.shared_lock(root / ".budget.lock"):
+            budget_path = root / "budget.json"
+            budget = af.load_json(budget_path) if budget_path.exists() else {"calls": 0, "writer": 0, "review": 0, "limit": 24}
+            kind = "writer" if mode in {"draft", "edit", "summary", "alternatives"} else "review"
+            if budget["calls"] >= 24 or budget[kind] >= (16 if kind == "writer" else 8):
+                raise ValueError("Offline experiment budget exhausted (16 writing, 8 review, 24 total)")
+            budget["calls"] += 1
+            budget[kind] += 1
+            af.write_json(budget_path, budget)
+        output, receipt = af.invoke_route(route, packet_path, execution_packet)
+        af.immutable_write(output_path, output.encode("utf-8"))
+        af.write_json_immutable(receipt_path, {**receipt, "packet_sha256": af.sha256_path(packet_path),
+            "prepared_packet": {"path": str(prepared_path), "sha256": af.sha256_path(prepared_path)},
+            "output_sha256": af.sha256_path(output_path), "human_judgment": "pending", "production_side_effects": False})
+        return {**result, "executed": True, "receipt": str(receipt_path), "result": str(output_path)}
 
 
 def contained(root: Path, path: Path) -> Path:
