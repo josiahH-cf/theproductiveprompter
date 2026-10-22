@@ -16,7 +16,11 @@
     "assumptions": {"type": "array", "items": {"type": "string"}},
     "remaining_unknowns": {"type": "array", "items": {"type": "string"}},
     "material_questions": {"type": "array", "items": {"type": "string", "minLength": 1}, "description": "Only questions whose actual author answer is required to choose position, audience or scope; otherwise empty."},
-    "research_that_shaped_candidate": {"type": "array", "items": {"type": "string"}}
+    "research_that_shaped_candidate": {"type": "array", "items": {"type": "string"}},
+    "core_idea": {"type": ["string", "null"], "description": "The author's actual idea or open question in plain words, interpreted from exact author input. Not a manufactured thesis; null only when the author supplied a topic without an idea or question."},
+    "intended_understanding": {"type": "string", "minLength": 1, "description": "What the intended reader should be able to understand or accurately restate after reading. Comprehension, not agreement, persuasion or a fixed emotional response."},
+    "firsthand_evidence": {"type": "array", "description": "Author-reported experiences or observations, each bound to an exact excerpt from the seed, current revision request or recorded author clarification. Author-reported, not independently inspected.", "items": {"type": "object", "required": ["source", "exact_excerpt", "supported_use"], "properties": {"source": {"enum": ["seed", "revision-request", "author-context"]}, "exact_excerpt": {"type": "string", "minLength": 8}, "supported_use": {"type": "string", "minLength": 1}, "limits": {"type": "string"}}, "additionalProperties": false}},
+    "author_tone": {"type": ["object", "null"], "description": "Article-specific attitude the author actually supplied, with its exact source excerpt. Null imposes no attitude; never a house style.", "required": ["attitude", "source", "exact_excerpt"], "properties": {"attitude": {"type": "string", "minLength": 1}, "source": {"enum": ["seed", "revision-request", "author-context"]}, "exact_excerpt": {"type": "string", "minLength": 8}}, "additionalProperties": false}
   },
   "additionalProperties": false
 }

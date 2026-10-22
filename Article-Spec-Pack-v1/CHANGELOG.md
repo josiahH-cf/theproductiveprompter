@@ -9,6 +9,19 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## October 22, 2026: Faithful expression and reader comprehension (3.2.9)
+
+- Record the author's core idea or question, intended reader understanding, exact-excerpt firsthand evidence and supplied tone at intent review, and reject firsthand or tone excerpts that are not exact author text. Position, tone and anecdotes remain optional; explanatory, exploratory and reference articles need no thesis.
+- Project these fields with comprehension, evidence, qualification and tone policies to recipe, brief, draft, development review, edit and QA packets. Research supports facts without replacing the author's subject.
+- Add an evidence-based reader takeaway to development review and a reader-paraphrase comprehension review to editorial QA. Missing meaning routes to DRAFT, obscuring prose to EDIT; comprehension stays separate from facts, resemblance and fluency, and a model PASS stays advisory.
+- Runs frozen earlier keep their exact contract, guidance and gates; offline material receives the guidance only when it names a target. No new stage, interview, approval gate or phrase list.
+
+## October 15, 2026: Admit an exact reviewed return-arrow correction (3.2.7)
+
+- Permit one explicitly authorized, hash-bound removal of the built-in parallel-review return loops and their dependent stub before a new claim task. Reject arbitrary SVG changes, pending tasks, Stop gates and mismatched source bytes.
+- Retain all other asset and prose bytes, immutable history, approval policy and attempt counters. Record the corrected asset and manifest, keep normal verification pending, and preserve the correction during subsequent rendering of the same plan.
+- Add regression coverage for preservation, idempotent retries, held refresh, tampering and authority boundaries.
+
 ## October 9, 2026: One checked recovery after deployment settles (3.2.6)
 
 - Keep exhausted deployment propagation in LIVE_VERIFICATION. An explicit repair first binds historical failures and the original pushed package/approval to a clean exact remote descendant, then observes exact live bytes for every packaged site file.

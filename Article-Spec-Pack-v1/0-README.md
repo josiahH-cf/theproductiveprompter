@@ -102,7 +102,13 @@ Visual planning compares the proposed layout with an alternative and omission. A
 
 The active guide remains provisional: it is grounded in the author's confirmed self-written capstone, with exact evidence, scopes and limitations. [Editorial system](docs/editorial-system.md) describes compact context, development review, description ownership, bounded AI collaboration, learning, maintenance and testing. Ordinary passage choices apply locally and produce pending learning proposals; published-article feedback never automatically clears other guidance or activates a global rule. Human resemblance judgments remain pending until actually supplied. House character and phrase checks are separate mechanical safeguards, not voice scores. See [outside-model handoff](docs/editorial-handoff.md) for drafting and editing.
 
+An article succeeds when its reader understands what the author is trying to express; agreement, persuasion, a thesis and a fixed emotional response are not required. New runs carry the author's core idea, intended understanding, exact-excerpt firsthand evidence and supplied tone from intent review through development review and QA, which compare an evidence-based reader paraphrase with that target. See [faithful expression](docs/editorial-system.md#faithful-expression-and-reader-comprehension-controller-329).
+
 Every material factual claim must be traceable and fresh enough for its use. Model memory is not a citation source. The final naturalization pass is conservative and fact-locked; a changed number, date, name, citation, URL, code token, quotation, or qualified claim reopens verification.
+
+### A scoped correction to rendered return arrows
+
+Before a new claim task is dispatched, an explicitly authorized correction can remove the two built-in `parallel_review` return loops and their dependent deferral stub. Use `render-visuals RUN_ID --correct-return-arrows VISUAL_ID --replacement-svg REVIEWED.svg --expected-source-sha256 ORIGINAL_SHA256 --reason "ACTUAL AUTHOR AUTHORIZATION"`. The replacement must equal the exact native SVG with only those three paths removed. Labels, forward paths, approved plan, captions, prose, other assets, history, approval policy and attempt counters remain unchanged. The command requires ACTIVE CLAIM_VERIFICATION, refuses pending claim tasks and Stop gates, records an immutable correction and matching manifest, and leaves normal claim and editorial checks pending. An identical retry makes no new changes. Later rendering of that same plan retains the recorded correction; changed renderer bytes require fresh review. This command does not authorize a new visual planning attempt or waive a publication check.
 
 ## Capability boundary
 

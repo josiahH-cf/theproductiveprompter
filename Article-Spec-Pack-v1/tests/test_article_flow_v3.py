@@ -22,6 +22,27 @@ from unittest import mock
 SPEC_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SPEC_ROOT / "scripts"))
 import article_flow as af  # noqa: E402
+import editorial_context  # noqa: E402
+
+# Current definitions record what the reader should understand; older frozen runs do not.
+FIXTURE_UNDERSTANDING = {
+    "core_idea": None,
+    "intended_understanding": "The reader can explain what the local check proves and where its proof stops.",
+    "firsthand_evidence": [],
+    "author_tone": None,
+}
+
+
+def fixture_comprehension(article: str, *, excerpt: str | None = None) -> dict:
+    body = article[af.markdown_body_start(article):].strip()
+    return {
+        "reader_paraphrase": "The article explains what the local check proves and where that proof stops.",
+        "intended_understanding": FIXTURE_UNDERSTANDING["intended_understanding"],
+        "status": "PASS",
+        "evidence": [{"excerpt": excerpt or body[:40], "role": "explains"}],
+        "omissions_or_misreadings": [],
+        "reason": "The fixture names the proof boundary in its own supported words.",
+    }
 
 
 MODEL_POOL = [
@@ -3575,7 +3596,7 @@ class NoPublishAutomationTests(TemporaryRuntime):
         if state in {"RESEARCH", "CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION"}:
             return ledger
         if state == "INTENT_REVIEW":
-            return {
+            intent = {
                 "intent_schema_version": "1.0.0",
                 "run_id": run_id,
                 "reader": "A person evaluating a repeatable article workflow",
@@ -3588,6 +3609,9 @@ class NoPublishAutomationTests(TemporaryRuntime):
                 "remaining_unknowns": [],
                 "research_that_shaped_candidate": [],
             }
+            if editorial_context.understanding_enabled(run):
+                intent.update(FIXTURE_UNDERSTANDING)
+            return intent
         if state == "ARTICLE_RECIPE":
             return {
                 "recipe_version": "1.0.0",
@@ -3701,6 +3725,8 @@ class NoPublishAutomationTests(TemporaryRuntime):
                 },
                 "findings": [],
                 "calibration_status": "uncalibrated-advisory",
+                **({"comprehension_review": fixture_comprehension(af.artifact_path(directory, run, "article").read_text(encoding="utf-8"))}
+                   if editorial_context.understanding_enabled(run) else {}),
             }
         raise AssertionError(f"No fixture output for {state}")
 
