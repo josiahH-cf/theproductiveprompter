@@ -42,6 +42,128 @@ def definitions(run: dict) -> dict | None:
     return snapshot["value"]
 
 
+def understanding_enabled(run: dict) -> bool:
+    """Runs frozen with explicit author meaning. Older frozen runs keep their exact contract."""
+    frozen = definitions(run) if enabled(run) else None
+    return bool(frozen) and "intended_understanding" in frozen["schemas"].get("intent.schema.json", {}).get("properties", {})
+
+
+UNDERSTANDING_OUTPUTS = {
+    "INTENT_REVIEW": ["core_idea", "intended_understanding", "firsthand_evidence", "author_tone"],
+    "DEVELOPMENT_REVIEW": ["reader_takeaway"],
+    "EDITORIAL_QA": ["comprehension_review"],
+}
+
+
+def normal(text: Any) -> str:
+    return re.sub(r"\s+", " ", str(text or "")).strip()
+
+
+def author_sources(af: Any, directory: Path, run: dict) -> dict[str, str]:
+    """Exact author text only: the seed, current revision request and recorded clarification answers."""
+    sources = {}
+    for kind in ("seed", "revision-request"):
+        path = af.artifact_path(directory, run, kind)
+        if path:
+            if af.sha256_path(path) != af.artifact(run, kind)["sha256"]:
+                raise af.FlowError(f"Author meaning source changed: {kind}", af.EXIT_INTEGRITY)
+            sources[kind] = path.read_text(encoding="utf-8")
+    author = checked_json(af, directory, run, "author-context") or {}
+    responses = [str(r.get("exact_author_response", "")) for r in author.get("responses", [])]
+    if any(responses):
+        sources["author-context"] = "\n".join(responses)
+    return sources
+
+
+def intent_meaning_findings(af: Any, directory: Path, run: dict, value: dict, artifact: str) -> list[dict]:
+    """Author meaning must be present and every firsthand or tone claim must quote the author exactly."""
+    def finding(location: str, text: str, repair: str) -> dict:
+        return {"criterion": "author_meaning_source", "artifact": artifact, "location": location,
+                "finding": text, "repair_instruction": repair, "repair_state": "INTENT_REVIEW"}
+    findings = []
+    for field in UNDERSTANDING_OUTPUTS["INTENT_REVIEW"]:
+        if field not in value:
+            findings.append(finding(field, f"Intent omits {field}.", "Record it from the exact author input; use null or an empty list when the author supplied none."))
+    if "intended_understanding" in value and not normal(value.get("intended_understanding")):
+        findings.append(finding("intended_understanding", "Intent has no reader comprehension target.", "State what the reader should be able to understand or restate, not agree with or feel."))
+    sources = {kind: normal(text) for kind, text in author_sources(af, directory, run).items()}
+    tone = value.get("author_tone")
+    bound = [(f"firsthand_evidence[{n}]", item) for n, item in enumerate(value.get("firsthand_evidence") or []) if isinstance(item, dict)]
+    bound += [("author_tone", tone)] if isinstance(tone, dict) else []
+    for location, item in bound:
+        excerpt = normal(item.get("exact_excerpt"))
+        if len(excerpt) < 8 or excerpt not in sources.get(str(item.get("source")), ""):
+            findings.append(finding(location, "The excerpt is not exact author text from its declared source.",
+                                    "Quote the author's own words exactly from seed, revision-request or author-context, or remove the item. Never supply experience or attitude the author did not express."))
+    return findings
+
+
+def _excerpt_findings(review: dict, text: str, artifact: str, field: str, state: str) -> list[dict]:
+    corpus = normal(text)
+    return [{"criterion": f"{field}_evidence", "artifact": artifact, "location": f"{field}.{key}[{n}]",
+             "finding": "The quoted passage is not exact text from the assessed article.",
+             "repair_instruction": "Quote an exact passage from the current assessed text.", "repair_state": state}
+            for key in ("passages", "evidence") for n, item in enumerate(review.get(key) or [])
+            if not isinstance(item, dict) or len(normal(item.get("excerpt"))) < 8 or normal(item.get("excerpt")) not in corpus]
+
+
+def _target_findings(af: Any, directory: Path, run: dict, review: dict, artifact: str, field: str, state: str) -> list[dict]:
+    target = normal(contract(af, directory, run).get("intended_understanding"))
+    if target and normal(review.get("intended_understanding")) != target:
+        return [{"criterion": f"{field}_evidence", "artifact": artifact, "location": f"{field}.intended_understanding",
+                 "finding": "The review compares the article with a different target than the approved intent.",
+                 "repair_instruction": "Copy intended_understanding exactly from editorial-context contract.", "repair_state": state}]
+    return []
+
+
+def takeaway_findings(af: Any, directory: Path, run: dict, value: dict, text: str, artifact: str) -> list[dict]:
+    review = value.get("reader_takeaway")
+    if not isinstance(review, dict):
+        return [{"criterion": "reader_takeaway_evidence", "artifact": artifact, "location": "reader_takeaway",
+                 "finding": "Development review omits what a reader would take away.",
+                 "repair_instruction": "Paraphrase the whole draft's takeaway and compare it with intended_understanding.", "repair_state": "DEVELOPMENT_REVIEW"}]
+    findings = _excerpt_findings(review, text, artifact, "reader_takeaway", "DEVELOPMENT_REVIEW")
+    findings += _target_findings(af, directory, run, review, artifact, "reader_takeaway", "DEVELOPMENT_REVIEW")
+    if review.get("status") == "REPAIR" and value.get("outcome") == "PASS":
+        findings.append({"criterion": "development", "artifact": artifact, "location": "reader_takeaway",
+                         "finding": "The reader takeaway differs from the intended understanding: " + "; ".join(str(g.get("issue")) for g in review.get("gaps") or [] if isinstance(g, dict)),
+                         "repair_instruction": "Develop the intended meaning from supplied evidence; narrow the claim rather than invent missing evidence.", "repair_state": "DRAFT"})
+    return findings
+
+
+def comprehension_findings(af: Any, directory: Path, run: dict, value: dict, artifact: str) -> list[dict]:
+    """Comprehension stays separate from facts, resemblance and fluency; a REPAIR routes to its owner."""
+    review = value.get("comprehension_review")
+    own = {"artifact": artifact, "repair_state": "EDITORIAL_QA"}
+    if not isinstance(review, dict):
+        return [{"criterion": "comprehension_review_evidence", "location": "comprehension_review", **own,
+                 "finding": "Editorial QA omits the reader paraphrase.",
+                 "repair_instruction": "Paraphrase what the current article communicates and compare it with intended_understanding."}]
+    path = af.artifact_path(directory, run, "article")
+    article = path.read_text(encoding="utf-8") if path else ""
+    findings = _excerpt_findings(review, article, artifact, "comprehension_review", "EDITORIAL_QA")
+    findings += _target_findings(af, directory, run, review, artifact, "comprehension_review", "EDITORIAL_QA")
+    if review.get("status") != "REPAIR" or findings:
+        return findings
+    owner = review.get("repair_owner")
+    if owner not in {"DRAFT", "EDIT"}:
+        return [{"criterion": "comprehension_review_evidence", "location": "comprehension_review.repair_owner", **own,
+                 "finding": "A comprehension repair has no owner.",
+                 "repair_instruction": "Use DRAFT when meaning or supplied evidence is missing, EDIT when existing prose obscures it."}]
+    problem = [i for i in review.get("evidence") or [] if i.get("role") in {"obscures", "displaces", "misleads"}]
+    selector = current_excerpt_owner(af, directory, run, problem[0]["excerpt"]) if problem else None
+    location = selector["location"] if selector and str(selector["location"]).startswith("paragraph ") else None
+    if owner == "EDIT" and location is None:
+        return [{"criterion": "comprehension_review_evidence", "location": "comprehension_review.evidence", **own,
+                 "finding": "A prose comprehension repair does not locate one unambiguous article paragraph.",
+                 "repair_instruction": "Quote a unique excerpt from the paragraph that obscures the intended meaning."}]
+    detail = "; ".join(str(i) for i in review.get("omissions_or_misreadings") or []) or str(review.get("reason"))
+    return [{"criterion": "comprehension_development" if owner == "DRAFT" else "comprehension_clarity",
+             "artifact": "article", "location": location, "repair_state": owner,
+             "finding": f"Reader paraphrase: {review.get('reader_paraphrase')} Intended: {review.get('intended_understanding')} Gap: {detail}",
+             "repair_instruction": "Make the intended meaning understandable from supplied evidence. Do not invent experience, add generic caveats or impose agreement, a thesis or an emotional response."}]
+
+
 def checked_json(af: Any, directory: Path, run: dict, kind: str) -> dict | None:
     path = af.artifact_path(directory, run, kind)
     item = af.artifact(run, kind)
@@ -88,7 +210,7 @@ def contract(af: Any, directory: Path, run: dict) -> dict:
     for kind, path in (("seed", seed), ("revision-request", request)):
         if path and af.sha256_path(path) != af.artifact(run, kind)["sha256"]:
             raise af.FlowError(f"Author constraint source changed: {kind}", af.EXIT_INTEGRITY)
-    return {"schema_version": "1.0.0", "run_id": run["run_id"],
+    result = {"schema_version": "1.0.0", "run_id": run["run_id"],
             "precedence": "current explicit author request > approved article decisions > workflow/house constraints > illustrative examples",
             "author_constraints": [{"origin": role, "sha256": af.sha256_path(path),
                                      "exact_text": path.read_text(encoding="utf-8"), "binding": True}
@@ -105,6 +227,21 @@ def contract(af: Any, directory: Path, run: dict) -> dict:
             "perspective_policy": "Use only the supplied author position or confirmed observations. AI angle suggestions are hypotheses until adopted; absence permits an evidence-led article.",
             "summary_ownership": "Public description belongs to DISPLAY_REVISION; final article controls its substance. TLDR and standalone summaries have separate reader jobs.",
             "conflict_policy": "Report a genuine binding conflict before writing. Preserve protected quotations/code; reopen verification rather than silently changing them."}
+    if not understanding_enabled(run):
+        return result
+    understanding = intent.get("intended_understanding") or brief.get("intended_understanding")
+    result.update({
+        "core_idea": intent.get("core_idea"),
+        "intended_understanding": understanding,
+        "firsthand_evidence": intent.get("firsthand_evidence", []),
+        "author_tone": intent.get("author_tone"),
+        "stopping_condition": "Reader can accurately understand and restate intended_understanding (or perform the requested task); remove redundant development.",
+        "comprehension_policy": "Success is reader understanding of what the author is trying to express. Agreement, persuasion, enthusiasm, a thesis or a fixed emotional response are not required or scored. A null position permits explanatory, exploratory or reference work.",
+        "evidence_policy": "firsthand_evidence is author-reported, not independently inspected. Use it at the level of detail supplied and keep it distinct from interpretation and researched product claims. Never invent dialogue, transcripts, dates, names, causes, outcomes or demonstrated capability.",
+        "qualification_policy": "Attach each limitation to the specific claim or experience it qualifies. Do not add generic caveats, and do not let caution neutralize a reported success or the supplied attitude.",
+        "tone_policy": "Preserve author_tone only as supplied for this article; null imposes no attitude. It is never a house style or a global voice rule.",
+    })
+    return result
 
 
 def binding_length_limits(af: Any, directory: Path, run: dict) -> dict:
@@ -509,7 +646,7 @@ def prepare(af: Any, directory: Path, run: dict, state: str, inputs: list[dict])
     return projected
 
 
-def constraints(stage: str) -> list[str]:
+def constraints(stage: str, understanding: bool = False) -> list[str]:
     common = ["editorial-context is the sole active voice authority. Historical examples and labels are evidence only, never additional writing rules. Use one author with article-specific register; no fixed skeleton or persona.",
               "In assessments, findings contains only actionable defects. Put favorable observations in dimensions; a PASS should have no defect findings. Do not manufacture a repair from evidence that a requirement is already satisfied.",
               "Use supported body finding locations: paragraph N, paragraph N, sentence M, opening, or an exact unique heading. Paragraphs are nonempty blank-line-separated body blocks excluding headings; sentences split after terminal punctuation followed by whitespace. Use null only for a genuinely whole-article issue. Unknown, missing or ambiguous local passages cannot be resolved with evidence from elsewhere.",
@@ -527,7 +664,22 @@ def constraints(stage: str) -> list[str]:
         "DISPLAY_REVISION": "Revise only title and description in this copy of the brief using the finished article. Preserve every other brief field exactly. Description must be supported by the final article and preserve scope. Do not change article body, slug or first publication date.",
         "EDITORIAL_QA": "Assess author resemblance (pending human judgment), clarity, facts and repetition separately. Preserve useful specificity. Identify exact passages. Classify findings as development, facts, display, visual or prose using criterion; do not fail a guidance-only word band. Do not call AI self-assessment human approval.",
     }
-    return common + ([specific[stage]] if stage in specific else [])
+    result = common + ([specific[stage]] if stage in specific else [])
+    return result + ([UNDERSTANDING[stage]] if understanding and stage in UNDERSTANDING else [])
+
+
+# Faithful expression: the reader should understand what the author means; nothing here requires agreement.
+UNDERSTANDING = {
+    "RESEARCH_PLAN": "Research supports factual claims about the author's subject. It must not replace the author's idea, question or firsthand account with a different center of gravity; public product claims cannot stand in for the author's reported experience.",
+    "RESEARCH": "Research supports factual claims about the author's subject. It must not replace the author's idea, question or firsthand account with a different center of gravity; public product claims cannot stand in for the author's reported experience.",
+    "INTENT_REVIEW": "Record core_idea (the author's idea or open question in plain words), intended_understanding (what the reader should be able to understand or restate, not agree with or feel), firsthand_evidence (each author-reported experience with an exact excerpt from seed, revision-request or author-context, its supported use and limits; never details the author did not supply) and author_tone (only an attitude the author actually expressed, with its exact excerpt; otherwise null). position may be null: explanatory, exploratory and reference articles need no thesis. A newer explicit author clarification governs older framing.",
+    "ARTICLE_RECIPE": "Justify opening and ending by what the reader should understand (contract intended_understanding), not by a preferred formula; a null strategy is valid. Do not impose first person, enthusiasm, an argument arc, a diagram or a word band the author did not ask for.",
+    "BRIEF": "Carry core_idea and intended_understanding into the reader outcome and acceptance criteria phrased as comprehension, not agreement. Keep the author's factual experience separate from interpretation and from researched product claims.",
+    "DRAFT": "Make the contract's intended_understanding the center of gravity and connect each firsthand_evidence item to the meaning it supports, at the detail the author supplied. Treat supplied speech as evidence of how the thought progresses: clean filler for readability without transcribing it or replacing it with generic polished prose. Keep supplied author_tone; when null, impose none. Attach each limitation to the claim or experience it qualifies; caution must not neutralize a reported success or the supplied attitude.",
+    "DEVELOPMENT_REVIEW": "Return reader_takeaway: paraphrase what a reader would actually take away from the whole draft, copy the contract's intended_understanding exactly, and quote exact passages that show, explain, obscure or displace it. Use REPAIR when the takeaway differs materially; in gaps distinguish insufficient supplied evidence (never invent it; narrow the claim or surface a material question) from prose that does not use the evidence or a displaced center of gravity. No mandatory thesis sentence, provocation or argument arc.",
+    "EDIT": "Keep the author's thought connections. Do not add generic caveats; keep claim-level qualifications attached to their claims and do not soften supplied attitude into neutrality.",
+    "EDITORIAL_QA": "Return comprehension_review: a plain reader_paraphrase of what the current article communicates, intended_understanding copied exactly from the contract, and exact current excerpts with roles (shows, explains, obscures, displaces, misleads). List concrete omissions or misreadings. Use REPAIR with repair_owner DRAFT when meaning or supplied evidence is missing, EDIT when existing prose obscures it. Judge comprehension only; agreement, enthusiasm, factual fidelity, author resemblance and fluency are separate. A model PASS is advisory, not human approval.",
+}
 
 
 def input_sections(packet: dict) -> list[str]:

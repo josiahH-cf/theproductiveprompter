@@ -102,6 +102,8 @@ Visual planning compares the proposed layout with an alternative and omission. A
 
 The active guide remains provisional: it is grounded in the author's confirmed self-written capstone, with exact evidence, scopes and limitations. [Editorial system](docs/editorial-system.md) describes compact context, development review, description ownership, bounded AI collaboration, learning, maintenance and testing. Ordinary passage choices apply locally and produce pending learning proposals; published-article feedback never automatically clears other guidance or activates a global rule. Human resemblance judgments remain pending until actually supplied. House character and phrase checks are separate mechanical safeguards, not voice scores. See [outside-model handoff](docs/editorial-handoff.md) for drafting and editing.
 
+An article succeeds when its reader understands what the author is trying to express; agreement, persuasion, a thesis and a fixed emotional response are not required. New runs carry the author's core idea, intended understanding, exact-excerpt firsthand evidence and supplied tone from intent review through development review and QA, which compare an evidence-based reader paraphrase with that target. See [faithful expression](docs/editorial-system.md#faithful-expression-and-reader-comprehension-controller-329).
+
 Every material factual claim must be traceable and fresh enough for its use. Model memory is not a citation source. The final naturalization pass is conservative and fact-locked; a changed number, date, name, citation, URL, code token, quotation, or qualified claim reopens verification.
 
 ### A scoped correction to rendered return arrows

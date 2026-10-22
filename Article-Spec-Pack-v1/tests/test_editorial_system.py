@@ -14,7 +14,7 @@ import article_maintenance as maintenance
 import editorial_context as context
 import editorial_learning as learning
 import editorial_workbench as workbench
-from test_article_flow_v3 import TemporaryRuntime, NoPublishAutomationTests, call, namespace, af
+from test_article_flow_v3 import TemporaryRuntime, NoPublishAutomationTests, call, namespace, af, FIXTURE_UNDERSTANDING, fixture_comprehension
 
 
 class OfflinePacketLifecycleTests(TemporaryRuntime):
@@ -583,7 +583,11 @@ class CurrentAutomationTests(NoPublishAutomationTests):
 
     def stage_value(self, state, directory, run):
         if state == "DEVELOPMENT_REVIEW":
-            return {"run_id": run["run_id"], "outcome": "PASS", "reverse_outline": [{"section": "What the check proves", "job": "Explain the proof boundary", "supported_connection": "A revision binds the result to evidence"}], "findings": []}
+            draft = af.artifact_path(directory, run, "draft").read_text(encoding="utf-8")
+            body = draft[af.markdown_body_start(draft):].strip()
+            return {"run_id": run["run_id"], "outcome": "PASS", "reverse_outline": [{"section": "What the check proves", "job": "Explain the proof boundary", "supported_connection": "A revision binds the result to evidence"}], "findings": [],
+                    "reader_takeaway": {"paraphrase": "The draft explains what the local check proves and where it stops.", "intended_understanding": FIXTURE_UNDERSTANDING["intended_understanding"],
+                                        "status": "PASS", "passages": [{"excerpt": body[:40], "role": "explains"}], "gaps": []}}
         if state == "DISPLAY_REVISION":
             return af.json_artifact(directory, run, "brief")
         return super().stage_value(state, directory, run)
@@ -834,3 +838,20 @@ class CurrentAutomationTests(NoPublishAutomationTests):
         self.record_json(directory, run, "editorial-repair-obligations", {"pending": [{"id": context.obligation_id(finding), "finding": finding}]})
         result = context.assessment_findings(af, directory, run, {"outcome": "PASS", "findings": [], "dimensions": {}})
         self.assertEqual(result, [finding])
+
+    def test_current_packets_carry_author_meaning_into_writing_and_review(self):
+        self.test_no_publish_advance_has_one_human_gate_then_completes()
+        directory = next((self.runtime / "runs").glob("AF-*"))
+        intent_packet = af.load_json(sorted((directory / "tasks").glob("intent_review-*.json"))[0])
+        required = intent_packet["expected_outputs"][0]["schema"]["required"]
+        self.assertTrue({"core_idea", "intended_understanding", "firsthand_evidence", "author_tone"} <= set(required))
+        for stage, field in (("DEVELOPMENT_REVIEW", "reader_takeaway"), ("EDITORIAL_QA", "comprehension_review")):
+            packet = af.load_json(sorted((directory / "tasks").glob(stage.lower() + "-*.json"))[0])
+            self.assertIn(field, packet["expected_outputs"][0]["schema"]["required"])
+            self.assertIn(context.UNDERSTANDING[stage], packet["constraints"])
+        draft = af.load_json(sorted((directory / "tasks").glob("draft-*.json"))[0])
+        self.assertIn(context.UNDERSTANDING["DRAFT"], draft["constraints"])
+        projected = af.load_json(Path(next(i["path"] for i in draft["inputs"] if i["id"] == "editorial-context")))
+        self.assertEqual(projected["contract"]["intended_understanding"], FIXTURE_UNDERSTANDING["intended_understanding"])
+        self.assertIsNone(projected["contract"]["author_tone"])
+        self.assertIn("not required or scored", projected["contract"]["comprehension_policy"])

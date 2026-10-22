@@ -48,7 +48,7 @@ import editorial_learning
 import editorial_workbench
 import revision_sources
 
-CONTROLLER_VERSION = "3.2.8"
+CONTROLLER_VERSION = "3.2.9"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -3529,6 +3529,8 @@ def task_packet(
         output_schema["required"].append("naturalization_review")
     if is_v31_run(run) and state == "VISUAL_PLAN" and output_schema:
         output_schema["properties"]["visuals"]["items"]["required"].append("design_rationale")
+    if editorial_context.understanding_enabled(run) and state in editorial_context.UNDERSTANDING_OUTPUTS and output_schema:
+        output_schema["required"].extend(editorial_context.UNDERSTANDING_OUTPUTS[state])
     if is_v3_run(run) and output_schema_name == "voice-probe.schema.json" and isinstance(output_schema, dict):
         output_schema = next(
             (
@@ -3607,7 +3609,7 @@ def task_packet(
             constraints.append("Inspect visual-plan, visual-manifest and each rendered-visual SVG, including its paths/arrows and label positions. Compare the actual direction, branches, joins and loops with the article's explanation, not merely the caption or alt text. A capacity/hash PASS does not prove truthful topology. Report mismatches as visual findings owned by VISUAL_PLAN. An empty manifest is valid when the omission reason fits the article. Source inspection cannot establish browser appearance; state that limit.")
     if editorial_context.enabled(run):
         constraints = [c.replace("full voice-profile, including selected-versus-unselected examples", "compact editorial-context and the selected local preference") for c in constraints]
-        constraints.extend(editorial_context.constraints(state))
+        constraints.extend(editorial_context.constraints(state, editorial_context.understanding_enabled(run)))
     if revision_input:
         constraints.append("This is a correction run. The separate revision-request is the current operator instruction and overrides conflicting assumptions from the historical seed; preserve the seed as evidence rather than silently rewriting it.")
         if editorial_context.enabled(run):
@@ -5035,6 +5037,8 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
                 findings.append({"criterion": "schema", "artifact": str(submission), "location": None, "finding": error, "repair_instruction": f"Conform to {schema}."})
         if "run_id" in value and value.get("run_id") != run["run_id"]:
             findings.append({"criterion": "run_identity", "artifact": str(submission), "location": "run_id", "finding": "Artifact belongs to a different run.", "repair_instruction": "Use the run_id in the current task packet."})
+        if state == "INTENT_REVIEW" and editorial_context.understanding_enabled(run):
+            findings.extend(editorial_context.intent_meaning_findings(sys.modules[__name__], directory, run, value, str(submission)))
         if state == "INTENT_REVIEW" and editorial_context.enabled(run) and value.get("material_questions"):
             return "ESCALATE", [{"criterion": "material_author_decision", "artifact": str(submission), "location": "material_questions", "finding": q, "repair_instruction": "Ask the author; record the exact response with clarify before continuing."} for q in value["material_questions"]]
         if state in {"RESEARCH", "CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION"}:
@@ -5156,6 +5160,10 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
                     findings.append({"criterion": "shared_verified_meaning", "artifact": str(submission), "location": "candidates.preserved_claim_ids", "finding": "Candidates do not preserve the same verified claim set.", "repair_instruction": "Hold meaning and claims constant; vary only the declared voice dimensions."})
                 if len(orders) != 2 or any(set(order) != set(candidate_ids) for order in orders if isinstance(order, list)) or (len(orders) == 2 and list(orders[1]) != list(reversed(orders[0]))):
                     findings.append({"criterion": "balanced_comparison_orders", "artifact": str(submission), "location": "comparison_orders", "finding": "Comparison orders must contain the same three IDs in forward and reverse order.", "repair_instruction": "Provide one order and its exact reverse."})
+        if state == "DEVELOPMENT_REVIEW" and editorial_context.understanding_enabled(run):
+            reviewed = [artifact_path(directory, run, kind) for kind in ("draft", "article")]
+            findings.extend(editorial_context.takeaway_findings(sys.modules[__name__], directory, run, value,
+                "\n".join(path.read_text(encoding="utf-8") for path in reviewed if path), str(submission)))
         if state == "DEVELOPMENT_REVIEW" and (value.get("outcome") != "PASS" or value.get("findings")):
             findings.extend({**item, "repair_state": "DRAFT"} for item in value.get("findings", []))
             if not value.get("findings"):
@@ -5198,6 +5206,8 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
             findings.extend(naturalization_review_findings(directory, run, value, str(submission)))
         if state == "EDITORIAL_QA" and editorial_context.enabled(run):
             findings.extend(editorial_context.assessment_findings(sys.modules[__name__], directory, run, value))
+            if editorial_context.understanding_enabled(run):
+                findings.extend(editorial_context.comprehension_findings(sys.modules[__name__], directory, run, value, str(submission)))
             article = artifact_path(directory, run, "article")
             if article:
                 findings.extend(editorial_context.length_violations(sys.modules[__name__], directory, run, article.read_text(encoding="utf-8")))
@@ -5322,7 +5332,7 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
         if article:
             findings.extend(unplanned_visual_reference_findings(directory, run, article.read_text(encoding="utf-8"), str(article)))
         for finding in findings:
-            if finding.get("criterion") in {"schema", "run_identity", "valid_json", "naturalization_review_evidence", "editorial_dimension", "editorial_outcome"}:
+            if finding.get("criterion") in {"schema", "run_identity", "valid_json", "naturalization_review_evidence", "comprehension_review_evidence", "editorial_dimension", "editorial_outcome"}:
                 finding["repair_state"] = "EDITORIAL_QA"
     if state == "EDIT":
         findings.extend(unplanned_visual_reference_findings(directory, run, submission.read_text(encoding="utf-8"), str(submission)))
