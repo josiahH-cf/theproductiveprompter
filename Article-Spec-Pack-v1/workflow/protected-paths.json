@@ -694,6 +694,12 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "evaluation"
+    },
+    {
+      "path": "tests/test_explicit_writing_model.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "evaluation"
     }
   ]
 }

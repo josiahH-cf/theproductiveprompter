@@ -9,6 +9,18 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## October 27, 2026: Exact configured writing-model compatibility (3.2.10)
+
+- Accept an explicit configured writing model outside the unchanged experiment
+  rotation only when its current provider route qualifies for draft, voice probe
+  and edit, including the existing provider/version canary requirement.
+- Hold new explicit models outside the pool when their exact model becomes unavailable.
+  Existing frozen runs retain their recorded assignment and fallback policy.
+  Existing experiment-pool fallback rules remain. Model identifiers and effort
+  remain configured values; an explicit model outside the pool is not substituted.
+- Refuse an unsupported explicit choice before creating a new article directory.
+  Compatibility checks generate no article or publication.
+
 ## October 22, 2026: Faithful expression and reader comprehension (3.2.9)
 
 - Record the author's core idea or question, intended reader understanding, exact-excerpt firsthand evidence and supplied tone at intent review, and reject firsthand or tone excerpts that are not exact author text. Position, tone and anecdotes remain optional; explanatory, exploratory and reference articles need no thesis.

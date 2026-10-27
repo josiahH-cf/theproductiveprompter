@@ -48,7 +48,7 @@ import editorial_learning
 import editorial_workbench
 import revision_sources
 
-CONTROLLER_VERSION = "3.2.9"
+CONTROLLER_VERSION = "3.2.10"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -925,12 +925,26 @@ def _append_jsonl(path: Path, value: dict[str, Any]) -> None:
         os.fsync(handle.fileno())
 
 
+def validate_draft_model(override: str | None) -> None:
+    """An explicit configured model may sit outside the unchanged experiment pool."""
+    if override is None or override in writing_model_policy()['ordered_models']:
+        return
+    if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,127}', override):
+        raise FlowError('Invalid explicit draft model identifier', EXIT_USAGE)
+    provider = writing_model_policy()['provider_id']
+    for stage in sorted(V3_WRITING_STATES):
+        selected = next((route for route in route_candidates(stage)['candidates']
+                         if route.get('provider') == provider and route.get('model') == override), None)
+        if not selected or not selected.get('eligible'):
+            raise FlowError(f'Explicit draft model {provider}:{override} is not qualified for {stage}',
+                            EXIT_USAGE, selected or {'model': override, 'stage': stage})
+
+
 def reserve_draft_model(run_id: str, override: str | None = None) -> dict[str, Any]:
     """Reserve one stable writing model without races across local hosts."""
     config = writing_model_policy()
     models = config["ordered_models"]
-    if override and override not in models:
-        raise FlowError(f"Draft model is not in the configured experiment pool: {override}", EXIT_USAGE, {"allowed": models})
+    validate_draft_model(override)
     root = model_state_root()
     ledger = root / "assignments.jsonl"
     with shared_lock(root / ".lock"):
@@ -2458,6 +2472,10 @@ def pin_writing_route(run: dict[str, Any], stage: str, routes: dict[str, Any]) -
         reason = f"assigned writing route {provider_id}:{active_model} is unavailable"
         if unavailable and unavailable.get("exclusion_reason"):
             reason += f": {unavailable['exclusion_reason']}"
+        if experiment.get('operator_model_override'):
+            return {**routes, 'chosen': None, 'fallbacks': [],
+                    'reason': reason + '; the explicit model choice is held without substitution',
+                    'assigned_route': unavailable}
         if is_v31_run(run) and stage == "EDIT" and artifact(run, "voice-learning"):
             return {
                 **routes,
@@ -2487,7 +2505,7 @@ def pin_writing_route(run: dict[str, Any], stage: str, routes: dict[str, Any]) -
             "assigned_route": unavailable,
             "assignment_fallback": True,
         }
-    ordered_models = writing_model_policy()["ordered_models"]
+    ordered_models = [] if experiment.get('operator_model_override') else writing_model_policy()["ordered_models"]
     fallbacks: list[dict[str, Any]] = []
     for model_id in ordered_models:
         if model_id == active_model:
@@ -6128,6 +6146,7 @@ def command_start(args: argparse.Namespace) -> int:
         return EXIT_WAITING
     if not seed.strip():
         raise FlowError("Seed cannot be empty", EXIT_USAGE)
+    validate_draft_model(getattr(args, 'draft_model', None))
     now = dt.datetime.now(dt.timezone.utc)
     stamp = now.strftime("%Y%m%dT%H%M%SZ")
     run_id = f"AF-{stamp}-{slugify(args.slug or seed)}-{secrets.token_hex(4)}"
@@ -6181,6 +6200,8 @@ def command_start(args: argparse.Namespace) -> int:
             "provider_id": assignment["provider_id"],
             "assigned_model_id": assignment["assigned_model_id"],
             "active_model_id": assignment["assigned_model_id"],
+            "operator_model_override": bool(assignment['override'] and
+                assignment['assigned_model_id'] not in writing_model_policy()['ordered_models']),
             "public_display_name": assignment["public_display_name"],
             "actual_models": [],
             "stage_routes": {},
@@ -11687,7 +11708,7 @@ def build_parser() -> argparse.ArgumentParser:
     seed_group.add_argument("--seed-file")
     start.add_argument("--slug")
     start.add_argument("--auto", action="store_true", help="Continue synchronously until the voice choice, a blocker, or completion.")
-    start.add_argument("--draft-model", choices=DEFAULT_DRAFT_MODEL_POOL, help="Override the next round-robin writing-model assignment without consuming a rotation slot.")
+    start.add_argument("--draft-model", help="Choose an exact qualified configured writing model without consuming a rotation slot.")
     start.add_argument("--hold-before-publish", action="store_true", help="Stop after publication planning instead of issuing policy approval.")
     start.add_argument("--model-release", action="store_true", help="Attach the fixed model-release experiment context.")
     start.add_argument("--approved-voice", action="store_true", help="Reuse the approved voice for an explicitly authorized model-release article.")
@@ -11699,7 +11720,7 @@ def build_parser() -> argparse.ArgumentParser:
     capture_group.add_argument("--seed-file")
     capture.add_argument("--slug")
     capture.add_argument("--auto", action="store_true", help="Continue synchronously until the voice choice, a blocker, or completion.")
-    capture.add_argument("--draft-model", choices=DEFAULT_DRAFT_MODEL_POOL, help="Override the next round-robin writing-model assignment without consuming a rotation slot.")
+    capture.add_argument("--draft-model", help="Choose an exact qualified configured writing model without consuming a rotation slot.")
     capture.add_argument("--hold-before-publish", action="store_true", help="Stop after publication planning instead of issuing policy approval.")
     capture.add_argument("--model-release", action="store_true")
     capture.add_argument("--approved-voice", action="store_true")
@@ -11730,7 +11751,7 @@ def build_parser() -> argparse.ArgumentParser:
     revise.add_argument("--expected-source-sha256", help="Require the approved current HTML hash; mandatory with --published-slug.")
     revise.add_argument("--request-file", required=True)
     revise.add_argument("--auto", action="store_true", help="Continue synchronously until the voice choice, a blocker, or completion.")
-    revise.add_argument("--draft-model", choices=DEFAULT_DRAFT_MODEL_POOL)
+    revise.add_argument("--draft-model", help="Choose an exact qualified configured writing model.")
     revise.add_argument("--hold-before-publish", action="store_true")
     revise.add_argument("--unattended-editorial", action="store_true", help="Reuse the pinned guide for an explicitly delegated revision; records no human preference.")
     revise.add_argument("--authorization", help="Exact author authorization for unattended editorial revision.")

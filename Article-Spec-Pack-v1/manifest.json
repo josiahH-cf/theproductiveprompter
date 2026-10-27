@@ -2,8 +2,8 @@
   "manifest_schema_version": "2.0.0",
   "workflow_version": "3.2.0",
   "hash_algorithm": "sha256",
-  "generator_name_and_version": "article-flow 3.2.9",
-  "generated_at": "2026-10-22T17:10:12Z",
+  "generator_name_and_version": "article-flow 3.2.10",
+  "generated_at": "2026-10-27T13:12:37Z",
   "generated_from": "index",
   "files": [
     {
@@ -107,8 +107,8 @@
       "scope": "spec",
       "role": "documentation",
       "rule_set": "overview",
-      "sha256": "85bbf3207cca5571d28d97b77eeccb8eace9ad291ceda0f612537c4abb49c41b",
-      "byte_size": 21656
+      "sha256": "f53aeafb585ba1265006e51fb7d04c4b01ac75a097b669fbf0df37dab066b1c4",
+      "byte_size": 22258
     },
     {
       "path": "1-Master/Article-Master-Spec.md",
@@ -707,8 +707,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "b7e16eedf4cda06c9bc30ddeae0e9b1d3c9bc6a9fb9b1bca500b851d70e1f8f6",
-      "byte_size": 668647
+      "sha256": "4248acc4c73dc11426ed5fbc21338711b284ff04c73211f864aeac789b7075f0",
+      "byte_size": 669938
     },
     {
       "path": "scripts/article_maintenance.py",
@@ -823,6 +823,14 @@
       "byte_size": 59456
     },
     {
+      "path": "tests/test_explicit_writing_model.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "evaluation",
+      "sha256": "ceb43db668d1d2ea247bec57f42ca885675b630c16e3dcb930c464918ff6fa61",
+      "byte_size": 4083
+    },
+    {
       "path": "tests/test_faithful_expression.py",
       "scope": "spec",
       "role": "runtime",
@@ -875,8 +883,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "integrity",
-      "sha256": "e4b303530a581242840633f7c510279f78cab282951d76a954b9a19c77f77218",
-      "byte_size": 16730
+      "sha256": "8a60686e033c04057c7dcc9e3bcc2e22f903fcc446afd22de7c19ee29a146384",
+      "byte_size": 16876
     },
     {
       "path": "workflow/workflow.json",

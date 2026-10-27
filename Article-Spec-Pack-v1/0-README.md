@@ -37,6 +37,15 @@ Run `article-flow model-release update --json` to discover current Codex models 
 
 The author authorized automatic reuse of the approved voice for this campaign. This exception pins the approved profile and records its authorization without inventing a new voice preference. Ordinary articles retain their voice choice. `model-release check`, `preview`, and `status` do not generate responses or publish. A saved publication failure resumes the same revision before new discovery or generation.
 
+An explicit `--draft-model MODEL` may select a configured writing model outside
+the experiment rotation. Its existing provider must qualify for draft, voice
+probe and edit, with current provider/version canary evidence. This leaves the
+rotation unchanged and consumes no rotation slot. Explicit models outside the pool
+are held if their exact model becomes unavailable; a replacement requires an actual
+operator decision. Existing experiment-pool assignments and earlier frozen runs
+retain their recorded fallback policy. The
+configured provider still owns reasoning effort and execution constraints.
+
 ## Authority
 
 The machine-readable authority is [`workflow/workflow.json`](workflow/workflow.json). Conflicts resolve in this order:
