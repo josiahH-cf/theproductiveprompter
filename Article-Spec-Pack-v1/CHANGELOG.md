@@ -9,6 +9,13 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## October 28, 2026: Same-run source and scope reconciliation (3.2.13)
+
+- Add explicit `amend --reopen-research --reason` for actual author/source corrections in unpublished editorial runs, including a failed development checkpoint.
+- Rebuild research, intent, recipe and brief in the same run; bind the immutable correction and article baseline into every model stage so downstream reviewers see the authorized scope.
+- Preserve seed, selected writer/effort, original article, frozen definitions, human answers and rejected review evidence. Renew bounded attempt windows with new ordinals and normal fact, voice, editorial and publication gates.
+- Reconcile identical and interrupted amendments without duplicate cycles; block dispatch/package/publication on an incomplete or changed amendment. No article executes, publishes or acquires an approval through the amendment itself.
+
 ## October 28, 2026: Exact configured writing-provider pin (3.2.12)
 
 - Add `--draft-provider` with an exact model for already configured, qualified
