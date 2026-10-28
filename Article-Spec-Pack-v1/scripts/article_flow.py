@@ -48,7 +48,7 @@ import editorial_learning
 import editorial_workbench
 import revision_sources
 
-CONTROLLER_VERSION = "3.2.12"
+CONTROLLER_VERSION = "3.2.13"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -130,6 +130,7 @@ V3_WRITING_STATES = {"DRAFT", "VOICE_PROBE", "EDIT"}
 # brief's public display text has no owning stage after BRIEF, so it stays
 # correctable for as long as the article is under review.
 ARTICLE_AMENDABLE_STATES = {"EDITORIAL_QA", "PACKAGE", "PUBLISH_APPROVAL"}
+RESEARCH_AMENDABLE_STATES = ARTICLE_AMENDABLE_STATES | {"DRAFT", "DEVELOPMENT_REVIEW"}
 DISPLAY_TEXT_AMENDABLE_STATES = {
     "EDIT",
     "POST_EDIT_CLAIM_VERIFICATION",
@@ -2602,7 +2603,26 @@ def automated_route_health() -> dict[str, Any]:
     }
 
 
+def require_complete_research_amendment(directory: Path, run: dict[str, Any]) -> None:
+    amendment = artifact(run, "research-amendment")
+    if not amendment:
+        return
+    for item in (amendment, artifact(run, "research-amendment-source")):
+        path = directory / item["path"] if item else None
+        if not item or not path.is_file() or sha256_path(path) != item["sha256"]:
+            raise FlowError("Research amendment evidence is missing or changed", EXIT_INTEGRITY)
+    events = _read_jsonl(directory / str(run["event_log"]))
+    if not any(event.get("type") == "STATE_TRANSITION" and
+               (event.get("payload") or {}).get("research_amendment_sha256") == amendment["sha256"] for event in events):
+        value = load_json(directory / amendment["path"])
+        raise FlowError("Research amendment is incomplete; reconcile and repeat its original command", EXIT_WAITING, {
+            "amendment": amendment["path"],
+            "retry_command": ["article-flow", "amend", run["run_id"], "--reopen-research", "--reason", value["reason"]],
+        })
+
+
 def packet_inputs(directory: Path, run: dict[str, Any], state: str) -> list[dict[str, str]]:
+    require_complete_research_amendment(directory, run)
     required = set(str(item) for item in state_definition(state, run).get("required_inputs", []))
     # Existing 3.2 runs retain their frozen graph, but QA must see what the
     # renderer actually produced, including relationships encoded by arrows.
@@ -2612,6 +2632,8 @@ def packet_inputs(directory: Path, run: dict[str, Any], state: str) -> list[dict
         required.add("visual-policy-amendment")
     if state == "DRAFT" and artifact(run, "development-amendment"):
         required.add("development-amendment")
+    if state in MODEL_STATES and artifact(run, "research-amendment"):
+        required.update({"research-amendment", "research-amendment-source"})
     if editorial_context.enabled(run) and run.get("revision") and state in {"RESEARCH_PLAN", "RESEARCH", "INTENT_REVIEW", "BRIEF", "DRAFT"}:
         required.add("previous-article")
         required.update(name for name in ("previous-brief", "previous-claims") if artifact(run, name))
@@ -3384,6 +3406,7 @@ def task_packet(
     requested_route: str | None = None,
     allow_canary: bool = False,
 ) -> tuple[Path, dict[str, Any]]:
+    require_complete_research_amendment(directory, run)
     state = run["state"]
     if run.get("repair_recovery_error"):
         run["status"] = "BLOCKED"
@@ -3642,8 +3665,11 @@ def task_packet(
         constraints.append("When current-article is supplied, repair that latest accepted version rather than restarting from draft. Preserve the selected voice passage and all unaffected edits; change only what the bound findings require. Use draft as historical context only.")
     if editorial_context.enabled(run) and state in {"DRAFT", "CLAIM_VERIFICATION", "VISUAL_PLAN"}:
         constraints.append("If current-article is supplied, it is the canonical repair source. Preserve its unaffected edits and distinctive phrasing. DRAFT develops or corrects only the bound issue using the latest verified ledger; CLAIM_VERIFICATION verifies this current article rather than the older rough draft; VISUAL_PLAN selects placements in this article. Historical draft and previous-article are context only.")
-    if state == "DRAFT" and artifact(run, "development-amendment"):
+    if state == "DRAFT" and artifact(run, "development-amendment") and not artifact(run, "research-amendment"):
         constraints.append("Apply the explicit development-amendment reason to current-article. This reopens content development before new claim locks; it does not authorize new author views, experience, facts or global voice learning. Preserve protected source evidence and unaffected edits. Normal development, visual, claim and editorial verification must run again.")
+    if state in MODEL_STATES and artifact(run, "research-amendment"):
+        constraints.append("research-amendment records the operator's explicit scoped source or author-context correction. Apply that reason throughout the renewed research, intent, recipe, brief, development and verification cycle. Earlier briefs, ledgers and development findings predate this correction: rebuild the normal scope and evidence records before drafting instead of deleting the approved addition solely because it is absent from those older records. Verify every new factual claim normally; this is not a factual, editorial or publication PASS and does not authorize invented author views, experiences, facts or global voice learning.")
+        constraints.append("research-amendment-source is the hash-bound article at reopening, not human-original prose or independently verified evidence. Preserve its unaffected edits and the actual selected local voice passage while reconciling the explicit correction with fresh research and the renewed brief. Keep the raw seed unchanged. A changed draft requires the ordinary source-bound voice question; never transfer an old A/B/C label to new candidates or bypass a human-answer boundary.")
     if state == "EDITORIAL_QA" and is_v31_run(run):
         constraints.append("Return naturalization_review for language, rhetoric, structure, and preservation. Each needs status PASS or REPAIR, an exact excerpt from the assessed article/title/description, and a specific reason. Inspect inflated verbs; repeated negative-positive contrasts and staged questions; one-line stanzas, repeated openings and conclusions, headings and symmetrical lists; then locked facts, code, quotations and uncertainty. A phrase blacklist or generic 'reads naturally' statement is not a contextual review. Keep deliberate useful contrasts and technical phrasing. Any unresolved finding makes outcome REPAIR. Use the naturalization-directive and full voice-profile, including selected-versus-unselected examples; candidate C is not a universal register preference.")
         if editorial_context.enabled(run):
@@ -4266,6 +4292,7 @@ def current_packet(
     requested_route: str | None = None,
     allow_canary: bool = False,
 ) -> tuple[Path, dict[str, Any]]:
+    require_complete_research_amendment(directory, run)
     if run.get("status") == "BLOCKED":
         # load_run deliberately recovers in memory only.  current_packet is a
         # mutation boundary, so make a recovered BLOCKED decision durable
@@ -9181,6 +9208,89 @@ def command_amend_diagrams(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def command_reopen_research(args: argparse.Namespace) -> int:
+    """Rebuild scope and evidence in the same unpublished run after new context."""
+    directory, run = load_run(args.run_id)
+    reason = str(getattr(args, "reason", None) or "").strip()
+    if not reason:
+        raise FlowError("Reopening research requires --reason with the actual scoped author or source correction", EXIT_USAGE)
+    if getattr(args, "reopen_development", False) or any(
+        getattr(args, key, None) is not None for key in ("title", "description", "article", "diagrams")
+    ):
+        raise FlowError("Reopen research separately from development, display, article or visual amendments", EXIT_USAGE)
+    with run_lock(directory, run):
+        if not editorial_context.enabled(run) or run["state"] not in MODEL_STATES | ARTICLE_AMENDABLE_STATES:
+            raise FlowError("Reopening research requires an unpublished editorial article held at development or editorial review", EXIT_USAGE)
+        prior = artifact(run, "research-amendment")
+        amendment = None
+        events = _read_jsonl(directory / str(run["event_log"]))
+        if prior:
+            prior_path = directory / prior["path"]
+            if not prior_path.is_file() or sha256_path(prior_path) != prior["sha256"]:
+                raise FlowError("Recorded research amendment changed", EXIT_INTEGRITY)
+            if load_json(prior_path).get("reason") == reason:
+                baseline = artifact(run, "research-amendment-source")
+                baseline_path = directory / baseline["path"] if baseline else None
+                if not baseline or not baseline_path.is_file() or sha256_path(baseline_path) != baseline["sha256"]:
+                    raise FlowError("Research amendment source changed", EXIT_INTEGRITY)
+                if any(event.get("type") == "STATE_TRANSITION" and
+                       (event.get("payload") or {}).get("research_amendment_sha256") == prior["sha256"] for event in events):
+                    emit({"ok": True, "already_applied": True, "state": run["state"], "amendment": str(prior_path),
+                          "next_command": ["article-flow", "next", run["run_id"]]}, args.json)
+                    return EXIT_OK
+                amendment, path = prior, prior_path
+            else:
+                require_complete_research_amendment(directory, run)
+        if run["state"] not in RESEARCH_AMENDABLE_STATES:
+            raise FlowError("Continue the current research amendment before recording another scope correction", EXIT_USAGE)
+        item = artifact(run, "article") or artifact(run, "draft")
+        source = directory / item["path"] if item else None
+        if not item or not source or not source.is_file() or sha256_path(source) != item["sha256"]:
+            raise FlowError("Reopening research requires an unchanged hash-bound current article or draft", EXIT_INTEGRITY)
+        source_state = run["state"]
+        if amendment:
+            recorded = load_json(path)
+            if recorded["source_state"] != source_state or recorded["article_sha256"] != item["sha256"]:
+                raise FlowError("Article or stage changed before the research amendment completed", EXIT_INTEGRITY)
+        else:
+            nonce = secrets.token_hex(4)
+            baseline_path = directory / "artifacts" / f"research-amendment-source-{nonce}.md"
+            immutable_write(baseline_path, source.read_bytes())
+            baseline = record_artifact(directory, run, baseline_path, "research-amendment-source", {"actor": "operator"}, inputs=[item["artifact_id"]])
+            path = directory / "artifacts" / f"research-amendment-{nonce}.json"
+            write_json_immutable(path, {"actor": "operator", "reason": reason, "source_state": source_state,
+                                        "article_sha256": item["sha256"], "source_artifact_id": baseline["artifact_id"],
+                                        "reverify_from": "RESEARCH_PLAN"})
+            amendment = record_artifact(directory, run, path, "research-amendment", {"actor": "operator"}, inputs=[baseline["artifact_id"]])
+        # New scope gets fresh bounded stage windows without deleting attempts,
+        # rejected findings, packets, model assignments or prior human answers.
+        reset_states = {(event.get("payload") or {}).get("repair_state") for event in events
+                        if event.get("type") == "REPAIR" and
+                        (event.get("payload") or {}).get("research_amendment_sha256") == amendment["sha256"]}
+        for state in sorted(MODEL_STATES - reset_states):
+            baseline_ordinal = reset_attempt_window(directory, run, state)
+            append_event(directory, run, "REPAIR", "operator", {
+                "gate_id": state_definition(state, run)["gate"], "finding": reason,
+                "source_state": state, "repair_state": state, "amendment_source_state": source_state,
+                "attempt_ordinal_baseline": baseline_ordinal,
+                "execution_count_baseline": run["attempt_baselines"][state],
+                "repair_context_required": False, "clear_route_failures": True,
+                "research_amendment_sha256": amendment["sha256"],
+            })
+            run.setdefault("route_failures", {}).pop(state, None)
+            run.setdefault("route_retry_candidates", {}).pop(state, None)
+        append_event(directory, run, "STATE_TRANSITION", "operator", {
+            "from": source_state, "to": "RESEARCH_PLAN",
+            "reason": "Explicit source or author-context correction; rebuild scope, research and every downstream check",
+            "research_amendment_sha256": amendment["sha256"],
+        })
+        run["state"], run["status"] = "RESEARCH_PLAN", "ACTIVE"
+        save_run(directory, run)
+    emit({"ok": True, "state": run["state"], "amendment": str(path),
+          "next_command": ["article-flow", "next", run["run_id"]]}, args.json)
+    return EXIT_OK
+
+
 def command_reopen_development(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
     reason = str(getattr(args, "reason", None) or "").strip()
@@ -9224,6 +9334,8 @@ def command_reopen_development(args: argparse.Namespace) -> int:
 
 
 def command_amend(args: argparse.Namespace) -> int:
+    if getattr(args, "reopen_research", False):
+        return command_reopen_research(args)
     if getattr(args, "reopen_development", False):
         return command_reopen_development(args)
     if getattr(args, "diagrams", None) is not None:
@@ -9323,6 +9435,7 @@ def command_amend(args: argparse.Namespace) -> int:
 
 def command_package(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
+    require_complete_research_amendment(directory, run)
     if run["state"] != "PACKAGE":
         raise FlowError(f"Package requires state PACKAGE, current state is {run['state']}")
     article_path = artifact_path(directory, run, "article")
@@ -9454,6 +9567,7 @@ def publication_plan_is_current(directory: Path, run: dict[str, Any], plan: dict
 
 def command_publish_plan(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
+    require_complete_research_amendment(directory, run)
     if run["state"] != "PUBLISH_APPROVAL":
         raise FlowError(f"Publication planning requires PUBLISH_APPROVAL, current state is {run['state']}")
     revision_sources.assert_unchanged_source(sys.modules[__name__], run)
@@ -9741,6 +9855,7 @@ def _command_publish_execute_locked(
     target: dict[str, Any],
 ) -> int:
     directory, run = load_run(args.run_id)
+    require_complete_research_amendment(directory, run)
     if run["state"] != "PUBLISH":
         raise FlowError(f"Publication execution requires PUBLISH, current state is {run['state']}")
     approval_path = directory / "approvals" / f"{args.approval}.json"
@@ -10525,6 +10640,7 @@ def command_advance(args: argparse.Namespace) -> int:
     maximum = int(getattr(args, "max_steps", 100))
     for _ in range(maximum):
         directory, run = load_run(args.run_id)
+        require_complete_research_amendment(directory, run)
         state = run["state"]
         if state in {"COMPLETE", "TERMINAL"}:
             payload = {"ok": state == "COMPLETE", "action": state.lower(), "run_id": run["run_id"], "state": state, "progress": progress}
@@ -12007,7 +12123,8 @@ def build_parser() -> argparse.ArgumentParser:
     amend.add_argument("--description")
     amend.add_argument("--diagrams", choices=["auto", "optional", "required", "off"], help="Amend diagram policy; held editorial articles reopen visual planning and downstream verification.")
     amend.add_argument("--reopen-development", action="store_true", help="Reopen held editorial content development before new claim locks; requires a concrete reason and renewed downstream verification.")
-    amend.add_argument("--reason", help="Operator instruction supporting a visual or development amendment.")
+    amend.add_argument("--reopen-research", action="store_true", help="Rebuild research, intent and brief in the same unpublished run after an explicit author/source correction; requires --reason.")
+    amend.add_argument("--reason", help="Actual operator instruction supporting a visual, development or research amendment.")
     amend.add_argument("--article", help="Revised Markdown article; deterministic naturalization checks run before downstream reverification.")
     add_json(amend)
 
