@@ -48,7 +48,7 @@ import editorial_learning
 import editorial_workbench
 import revision_sources
 
-CONTROLLER_VERSION = "3.2.10"
+CONTROLLER_VERSION = "3.2.11"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -81,6 +81,7 @@ def bootstrap_payload() -> dict[str, Any]:
             "For the normal human_decision, use the host's native selectable-question control (for example request_user_input_async) to present A, B, and C as single-select options. Include all three exact passages in the question. Follow presentation; use a plain-text letter prompt only when the host has no selection control. Allow regeneration with concrete free-text feedback. Never treat a preselected option, elapsed time, or a model preference as the operator's answer.",
             "After the operator selects a voice, run the matching exact command in selection_commands immediately and continue through editing, verification, build, automatic push, and exact live verification. Do not add a routine publication confirmation; honor explicit holds and capability blockers.",
             "For author_clarification, present the exact material questions, wait for the actual answer, save it verbatim to the response file, and run response_command. Never supply an answer on the author's behalf.",
+            "Preserve question_id, question_record and every --question-id argument when carrying a question or answer between clients. A/B/C alone is not a cross-client answer identity. For requested Dot delivery, use only the actual supported receiving owner, retain its receipt and native question/version alongside this controller identity, and return the actual author's answer to the same run. A pending question file or returned JSON is not proof of delivery; report a missing transport instead of inventing one.",
             "For human_action, show the controller's single handoff and wait for the operator or a credentialed host to complete it.",
             "For run_command, run the exact command array returned by the controller. Use advance for active-session automation and safe resumption.",
             "Stop on complete, terminal, or an unresolved capability or decision.",
@@ -5933,14 +5934,110 @@ def voice_probe_awaits_human(
     return awaiting
 
 
+def question_source(directory: Path, run: dict[str, Any], kind: str) -> tuple[dict[str, Any], Path]:
+    if kind == "voice":
+        item, path = voice_candidate_probe(directory, run)
+    else:
+        item = artifact(run, "intent-candidate")
+        path = artifact_path(directory, run, "intent-candidate")
+    if not item or not path or not path.is_file() or sha256_path(path) != item.get("sha256"):
+        raise FlowError("Question source is missing or changed after validation", EXIT_INTEGRITY)
+    return item, path
+
+
+def owns_run_lock(directory: Path) -> bool:
+    path = directory / ".lock"
+    if not path.is_file():
+        return False
+    value = load_json(path)
+    return value.get("pid") == os.getpid() and value.get("namespace") == lock_namespace()
+
+
+def pending_human_question(
+    directory: Path, run: dict[str, Any], kind: str, question: str,
+    candidates: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Persist a source-bound question; transport delivery remains unobserved.
+
+    Both next and advance use this helper. Some callers already own the run
+    lock; the others must refresh under it before recording the question.
+    """
+    with contextlib.nullcontext() if owns_run_lock(directory) else run_lock(directory, run):
+        expected_state = "VOICE_PROBE" if kind == "voice" else "INTENT_REVIEW"
+        if run["state"] != expected_state:
+            raise FlowError("Question state changed; reload the existing run", EXIT_WAITING)
+        item, _ = question_source(directory, run, kind)
+        body = {
+            "question_schema_version": "1.0.0", "run_id": run["run_id"],
+            "state": expected_state, "kind": kind, "question": question,
+            "candidates": candidates or [],
+            "source": {"artifact_id": item["artifact_id"], "path": item["path"], "sha256": item["sha256"]},
+        }
+        revision = sha256_bytes(canonical_json(body))
+        question_id = f"Q-{revision}"
+        record = {**body, "question_id": question_id, "question_revision": revision}
+        path = directory / "artifacts" / f"question-{revision}.json"
+        existing = artifact(run, f"human-question:{question_id}")
+        if existing:
+            if not path.is_file() or sha256_path(path) != existing["sha256"] or load_json(path) != record:
+                raise FlowError("Recorded question changed; reconcile its original evidence", EXIT_INTEGRITY)
+        else:
+            write_json_immutable(path, record)
+            record_artifact(directory, run, path, f"human-question:{question_id}",
+                            {"actor": "controller", "source_artifact_id": item["artifact_id"]})
+            save_run(directory, run)
+        return {"question_id": question_id, "question_revision": revision,
+                "question_record": str(path), "question_record_sha256": sha256_path(path),
+                "question_source": body["source"], "delivery_status": "unverified"}
+
+
+def require_current_question(directory: Path, run: dict[str, Any], question_id: str | None, kind: str) -> None:
+    """Validate returned question commands under the existing mutation lock.
+
+    Unbound legacy local commands remain supported. Connected callers must
+    use the controller's returned bound arrays, never reconstruct a bare choice.
+    """
+    if question_id is None:
+        return
+    if kind == "voice" and not voice_probe_awaits_human(directory, run) and committed_voice_selection(directory, run) is None:
+        raise FlowError("This voice question is no longer pending", EXIT_APPROVAL)
+    if kind == "clarification" and run.get("status") != "BLOCKED":
+        raise FlowError("This clarification question is no longer pending", EXIT_APPROVAL)
+    item = artifact(run, f"human-question:{question_id}")
+    path = artifact_path(directory, run, f"human-question:{question_id}")
+    if not item or not path or not path.is_file() or sha256_path(path) != item.get("sha256"):
+        raise FlowError("Unknown or changed question; reload the same run before answering", EXIT_APPROVAL)
+    value = load_json(path)
+    source, _ = question_source(directory, run, kind)
+    bound = value.get("source") or {}
+    same_source_identity = (bound.get("artifact_id") == source["artifact_id"]
+                            or (kind == "voice" and source.get("type") == VOICE_CANDIDATE_ARTIFACT_TYPE
+                                and bound.get("artifact_id") in source.get("inputs", [])))
+    if (value.get("question_id") != question_id or value.get("run_id") != run["run_id"]
+            or value.get("kind") != kind or value.get("state") != run["state"]
+            or not same_source_identity or bound.get("path") != source["path"]
+            or bound.get("sha256") != source["sha256"]):
+        raise FlowError("Answer is stale or belongs to another question; reload the existing run", EXIT_APPROVAL)
+
+
 def next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
+    # Refresh question projections before showing passages so a concurrent
+    # regeneration cannot bind old text to a newer source. Other projections,
+    # including frozen v2 soft approvals, keep their existing behavior.
+    binds_question = ((run["state"] == "VOICE_PROBE" and is_v3_run(run))
+                      or (run["state"] == "INTENT_REVIEW" and run.get("status") == "BLOCKED"))
+    if binds_question and not owns_run_lock(directory):
+        with run_lock(directory, run):
+            return next_state_payload(directory, run)
     state = run["state"]
     if state == "INTENT_REVIEW" and run.get("status") == "BLOCKED":
         candidate = json_artifact(directory, run, "intent-candidate") or {}
         if candidate.get("material_questions"):
+            question = "\n".join(candidate["material_questions"])
+            binding = pending_human_question(directory, run, "clarification", question)
             return {"action": "author_clarification", "run_id": run["run_id"], "state": state,
-                    "questions": candidate["material_questions"], "question": "\n".join(candidate["material_questions"]),
-                    "response_command": ["article-flow", "clarify", run["run_id"], "--response-file", "<verbatim-author-response-file>", "--auto", "--json"]}
+                    "questions": candidate["material_questions"], "question": question, **binding,
+                    "response_command": ["article-flow", "clarify", run["run_id"], "--response-file", "<verbatim-author-response-file>", "--question-id", binding["question_id"], "--auto", "--json"]}
     if state in {"COMPLETE", "TERMINAL"}:
         return {"action": state.lower(), "run_id": run["run_id"], "state": state}
     if state == "VOICE_PROBE" and run.get("run_overrides", {}).get("reuse_approved_voice"):
@@ -5986,11 +6083,14 @@ def next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
             ]
             run["status"] = "WAITING_HUMAN"
             save_run(directory, run)
+            question = "Which one of these three paragraphs sounds most like you, or should all three be regenerated? A short reason is optional for a selection and required for regeneration."
+            binding = pending_human_question(directory, run, "voice", question, candidates)
             return {
                 "action": "human_decision",
                 "run_id": run["run_id"],
                 "state": state,
-                "question": "Which one of these three paragraphs sounds most like you, or should all three be regenerated? A short reason is optional for a selection and required for regeneration.",
+                "question": question,
+                **binding,
                 "candidates": candidates,
                 "presentation": {
                     "type": "single_select",
@@ -6005,10 +6105,10 @@ def next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
                     "after_selection": "Continue automatically through editing, verification, build, push, and exact live verification, subject to explicit holds and capability blockers.",
                 },
                 "selection_commands": {
-                    str(item["candidate_id"]): ["article-flow", "choose-voice", run["run_id"], str(item["candidate_id"]), "--auto"]
+                    str(item["candidate_id"]): ["article-flow", "choose-voice", run["run_id"], str(item["candidate_id"]), "--question-id", binding["question_id"], "--auto"]
                     for item in candidates
                 },
-                "rejection_command": ["article-flow", "regenerate-voice", run["run_id"], "--feedback", "WHAT_MISSED", "--auto"],
+                "rejection_command": ["article-flow", "regenerate-voice", run["run_id"], "--feedback", "WHAT_MISSED", "--question-id", binding["question_id"], "--auto"],
             }
         question = {
             "INTENT_REVIEW": "Does this candidate intent match what you want the article to accomplish? Confirm it or give the smallest correction.",
@@ -6107,12 +6207,17 @@ def command_clarify(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
     if run["state"] != "INTENT_REVIEW" or run.get("status") != "BLOCKED":
         raise FlowError("Clarification requires a blocked intent review", EXIT_USAGE)
-    response = Path(args.response_file).read_text(encoding="utf-8").strip()
-    if not response:
+    response = Path(args.response_file).read_text(encoding="utf-8")
+    if not response.strip():
         raise FlowError("Record the actual author's response before continuing", EXIT_USAGE)
     with run_lock(directory, run):
+        if run["state"] != "INTENT_REVIEW" or run.get("status") != "BLOCKED":
+            raise FlowError("Clarification question is no longer pending", EXIT_APPROVAL)
+        question_id = getattr(args, "question_id", None)
+        require_current_question(directory, run, question_id, "clarification")
         prior = json_artifact(directory, run, "author-context") or {"responses": []}
         context = {"responses": [*prior["responses"], {"decision_maker": "human", "exact_author_response": response,
+                    **({"question_id": question_id} if question_id else {}),
                     "questions": (json_artifact(directory, run, "intent-candidate") or {}).get("material_questions", []), "recorded_at": utc_now()}]}
         path = directory / "artifacts" / f"author-context-{editorial_context.digest(context)[:16]}.json"
         write_json_immutable(path, context)
@@ -7104,6 +7209,7 @@ def command_gate(args: argparse.Namespace) -> int:
                 EXIT_WAITING,
             )
         run = current_run
+        require_current_question(directory, run, getattr(args, "question_id", None), "voice")
         definition = state_definition(run["state"], run)
         if args.gate_id != definition.get("gate"):
             raise FlowError(f"Gate {args.gate_id} no longer controls current state {run['state']}", EXIT_WAITING)
@@ -7208,6 +7314,7 @@ def command_gate(args: argparse.Namespace) -> int:
                     "decision_maker": decision_maker,
                     "feedback_present": bool(args.feedback),
                     "voice_probe_sha256": sha256_path(approved_path),
+                    **({"question_id": args.question_id} if getattr(args, "question_id", None) else {}),
                 })
         evaluator = {"type": "assistant" if delegated else "human", "identity": decision_actor}
         if delegated:
@@ -10627,6 +10734,7 @@ def command_choose_voice(args: argparse.Namespace) -> int:
         feedback=args.feedback,
         decision_maker=getattr(args, "decision_maker", "human"),
         authorization=getattr(args, "authorization", None),
+        question_id=getattr(args, "question_id", None),
         json=True,
     )
     code, result = _silent_command(command_gate, gate_args)
@@ -10660,6 +10768,7 @@ def command_regenerate_voice(args: argparse.Namespace) -> int:
         "learning_applied": False,
     }
     with run_lock(directory, run):
+        require_current_question(directory, run, getattr(args, "question_id", None), "voice")
         path = directory / "artifacts" / f"voice-set-rejection-{ordinal:02d}.json"
         write_json(path, rejection)
         errors = validate_json_schema(path, "voice-set-rejection.schema.json", run)
@@ -10671,6 +10780,7 @@ def command_regenerate_voice(args: argparse.Namespace) -> int:
     gate_args = argparse.Namespace(
         run_id=run["run_id"], gate_id="G-VOICE-PROBE", outcome="REPAIR", finding=feedback,
         artifact=str(probe_path), selection=None, feedback=None, json=True,
+        question_id=getattr(args, "question_id", None),
     )
     code, result = _silent_command(command_gate, gate_args)
     if code != EXIT_OK:
@@ -11594,7 +11704,8 @@ def mcp_tools() -> list[dict[str, Any]]:
                     "finding": {"type": "string"},
                     "artifact": {"type": "string"},
                     "selection": {"type": "string"},
-                    "feedback": {"type": "string"}
+                    "feedback": {"type": "string"},
+                    "question_id": {"type": "string"},
                 },
                 "required": ["run_id", "gate_id", "outcome"],
                 "additionalProperties": False
@@ -11641,6 +11752,7 @@ def command_mcp(_: argparse.Namespace) -> int:
                         artifact=arguments.get("artifact"),
                         selection=arguments.get("selection"),
                         feedback=arguments.get("feedback"),
+                        question_id=arguments.get("question_id"),
                         json=True,
                     )
                     buffer = io.StringIO()
@@ -11730,6 +11842,7 @@ def build_parser() -> argparse.ArgumentParser:
     clarify = sub.add_parser("clarify", help="Record an actual author answer to a material intent question and continue.")
     clarify.add_argument("run_id")
     clarify.add_argument("--response-file", required=True)
+    clarify.add_argument("--question-id", help="Exact controller question identity returned with the pending clarification.")
     clarify.add_argument("--auto", action=argparse.BooleanOptionalAction, default=True)
     add_json(clarify)
 
@@ -11766,6 +11879,7 @@ def build_parser() -> argparse.ArgumentParser:
     choose_voice.add_argument("run_id")
     choose_voice.add_argument("candidate_id")
     choose_voice.add_argument("--feedback")
+    choose_voice.add_argument("--question-id", help="Exact controller question identity returned with these candidates.")
     choose_voice.add_argument("--decision-maker", choices=["human", "assistant"], default="human", help="Record the actual selector; assistant requires explicit author delegation.")
     choose_voice.add_argument("--authorization", help="Exact author authorization for an assistant-selected voice.")
     choose_voice.add_argument("--auto", action=argparse.BooleanOptionalAction, default=True, help="Continue through publication by default; --no-auto records the choice and explicitly pauses.")
@@ -11774,6 +11888,7 @@ def build_parser() -> argparse.ArgumentParser:
     regenerate_voice = sub.add_parser("regenerate-voice", help="Reject all three voice candidates without learning and create a new bounded set.")
     regenerate_voice.add_argument("run_id")
     regenerate_voice.add_argument("--feedback", required=True)
+    regenerate_voice.add_argument("--question-id", help="Exact controller question identity of the rejected candidate set.")
     regenerate_voice.add_argument("--auto", action="store_true")
     add_json(regenerate_voice)
 
@@ -11830,6 +11945,7 @@ def build_parser() -> argparse.ArgumentParser:
     gate.add_argument("--artifact")
     gate.add_argument("--selection")
     gate.add_argument("--feedback")
+    gate.add_argument("--question-id", help="Source-bound question identity for a returned voice gate command.")
     add_json(gate)
 
     repair = sub.add_parser("repair", help="Repair a failed gate; settled deployment recovery permits one authorized live check without republishing.")
