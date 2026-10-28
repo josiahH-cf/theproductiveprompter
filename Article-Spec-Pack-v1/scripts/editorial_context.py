@@ -417,6 +417,45 @@ def current_excerpt_owner(af: Any, directory: Path, run: dict, excerpt: str) -> 
                          checked_json(af, directory, run, "visual-manifest") or {}, excerpt)
 
 
+def legacy_quoted_sentence_owner(af: Any, article: str, finding: dict, source_sha256: str | None = None) -> tuple[dict, str] | None:
+    """Recover only a provable quote-closing sentence-count discrepancy.
+
+    Older reviewers counted a sentence ending in a quotation mark while the
+    controller did not. A unique original link label, explicitly named by the
+    original finding, must identify both the intended sentence and its actual
+    controller ordinal. The corrected prose is never a recovery authority.
+    """
+    if (finding.get("criterion") != "facts" or finding.get("artifact") != "article"
+            or finding.get("repair_state") != "CLAIM_VERIFICATION"):
+        return None
+    match = re.fullmatch(r"paragraph (\d+),\s*sentence (\d+)", str(finding.get("location") or ""), re.I)
+    if not match:
+        return None
+    paragraph, sentence = map(int, match.groups())
+    paragraphs = [p.strip() for p in re.split(r"\n\s*\n", article[af.markdown_body_start(article):])
+                  if p.strip() and not p.lstrip().startswith("#")]
+    if not 0 < paragraph <= len(paragraphs):
+        return None
+    text = paragraphs[paragraph - 1]
+    original = re.split(r"(?<=[.!?])\s+", text)
+    quoted = re.split(r'''(?<=[.!?])\s+|(?<=[.!?]["'”’])\s+''', text)
+    if len(original) == len(quoted) or not 0 < sentence <= len(quoted):
+        return None
+    old_text = original[sentence - 1] if sentence <= len(original) else ""
+    if source_sha256 != digest({"surface": "article", "text": old_text}):
+        return None
+    candidates = []
+    for label in re.findall(r"(?<!!)\[([^\]\n]{8,})\]\([^\n)]+\)", text):
+        if label not in str(finding.get("finding", "")) or article.count(label) != 1:
+            continue
+        actual = [i for i, part in enumerate(original, 1) if label in part]
+        if (label in quoted[sentence - 1] and len(actual) == 1 and actual[0] != sentence
+                and (sentence > len(original) or label not in original[sentence - 1])):
+            candidates.append(({"artifact": "article", "location": f"paragraph {paragraph}, sentence {actual[0]}",
+                                "repair_state": "CLAIM_VERIFICATION"}, label))
+    return candidates[0] if len(candidates) == 1 else None
+
+
 def normalized_obligations(af: Any, directory: Path, run: dict) -> dict:
     """Append a source-bound recovery for older controller-created bad locators.
 
@@ -447,7 +486,8 @@ def normalized_obligations(af: Any, directory: Path, run: dict) -> dict:
 
     for old in updated.get("pending", []):
         finding = old["finding"]
-        if old.get("normalization") or (finding.get("criterion") != "contextual_naturalness" and "caption" not in str(finding.get("finding", "")).lower()):
+        factual = finding.get("criterion") == "facts"
+        if old.get("normalization") or (not factual and finding.get("criterion") != "contextual_naturalness" and "caption" not in str(finding.get("finding", "")).lower()):
             continue
         excerpts = [str(finding.get("location") or "")] + re.findall(r'["“]([^"”]+)["”]', str(finding.get("finding", "")))
         for item in reversed(history):
@@ -461,7 +501,11 @@ def normalized_obligations(af: Any, directory: Path, run: dict) -> dict:
             packet_source = historical(f"task-packet:EDITORIAL_QA:{binding.get('attempt')}", binding.get("task_packet_sha256")) if binding.get("state") == "EDITORIAL_QA" else None
             if not packet_source:
                 continue
-            packet_inputs = {i["id"]: i["sha256"] for i in af.load_json(packet_source[1]).get("inputs", [])}
+            packet = af.load_json(packet_source[1])
+            if (packet.get("run_id") != run["run_id"] or packet.get("stage") != "EDITORIAL_QA"
+                    or packet.get("attempt") != binding.get("attempt")):
+                continue
+            packet_inputs = {i["id"]: i["sha256"] for i in packet.get("inputs", [])}
             hashes = receipt.get("artifact_hashes", {})
             sources = {kind: historical(kind, hashes.get(kind)) for kind in ("article", "brief", "visual-manifest")}
             if not sources["article"] or not sources["brief"]:
@@ -471,7 +515,8 @@ def normalized_obligations(af: Any, directory: Path, run: dict) -> dict:
             article = sources["article"][1].read_text(encoding="utf-8")
             brief = af.load_json(sources["brief"][1])
             manifest = af.load_json(sources["visual-manifest"][1]) if sources["visual-manifest"] else {}
-            candidates = [(excerpt_owner(af, article, brief, manifest, excerpt), excerpt) for excerpt in excerpts]
+            recovered_sentence = legacy_quoted_sentence_owner(af, article, finding, old.get("source_sha256")) if factual else None
+            candidates = [recovered_sentence] if recovered_sentence else ([] if factual else [(excerpt_owner(af, article, brief, manifest, excerpt), excerpt) for excerpt in excerpts])
             candidates = [(selector, excerpt) for selector, excerpt in candidates if selector]
             # Prefer the explicitly quoted caption over a heading that happens
             # to resolve as prose. Every accepted selector must be unambiguous.
@@ -632,6 +677,14 @@ def prepare(af: Any, directory: Path, run: dict, state: str, inputs: list[dict])
     obligations = normalized_obligations(af, directory, run)
     if obligations and obligations.get("pending"):
         context["repair_obligations"] = obligations["pending"]
+        if state == "EDITORIAL_QA":
+            # Supply the precise raw surface the gate will check. Reviewers
+            # must still assess the defect; this only removes Markdown/JSON
+            # rendering and sentence-count guesses from their evidence copy.
+            context["repair_resolution_surfaces"] = {}
+            for old in obligations["pending"]:
+                surface, text = resolution_surface(af, directory, run, obligation_finding(old))
+                context["repair_resolution_surfaces"][old["id"]] = {"surface": surface, "text": text}
     frozen = definitions(run)
     if frozen:
         context["house_constraints"] = {"style_gate": frozen["house_policy"].get("style_gate", {}),
@@ -652,6 +705,7 @@ def constraints(stage: str, understanding: bool = False) -> list[str]:
               "Use supported body finding locations: paragraph N, paragraph N, sentence M, opening, or an exact unique heading. Paragraphs are nonempty blank-line-separated body blocks excluding headings; sentences split after terminal punctuation followed by whitespace. Use null only for a genuinely whole-article issue. Unknown, missing or ambiguous local passages cannot be resolved with evidence from elsewhere.",
               "Retain every repair_obligation. Address findings owned by this stage. In EDITORIAL_QA, dimensions.repair_resolution must map every pending ER ID to status PASS, the exact surface (article, article.frontmatter.title, article.frontmatter.description, brief.title, brief.description, brief.title+description, or visual-plan+manifest), finding_location copied from the finding, an exact excerpt from that CURRENT affected surface/passage, and a substantive reason, or report the unresolved finding. A later clean assessment cannot silently discard earlier concerns. Whole-body evidence cannot resolve a display issue. A frontmatter finding requires the current article field to agree with the authoritative brief; an already-correct brief alone cannot clear it.",
               "When an obligation has source-bound normalization, its selector identifies the corrected owner and current local surface. Preserve the original ER ID and copy the original finding.location into finding_location. Resolve against that specific visual field (or explicit omission), display field or paragraph; normalization does not resolve the defect by itself.",
+              "In EDITORIAL_QA, repair_resolution_surfaces supplies the exact raw current text checked for each ER ID. First determine whether the actual defect is resolved, then copy an exact substring from that text, preserving case, Markdown link syntax and JSON whitespace. Do not quote rendered link text or pretty-print a compact JSON excerpt. Comprehension and naturalization excerpts likewise must match the raw article exactly.",
               "Distinguish binding author requirements from guidance targets. A publication gate or mechanical phrase check is not proof of author resemblance."]
     specific = {
         "INTENT_REVIEW": "Make the supplied author angle legible. Ask only a material question whose answer changes the article. Keep suggested angles distinct from actual views; do not require an interview.",

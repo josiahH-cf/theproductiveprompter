@@ -2,8 +2,8 @@
   "manifest_schema_version": "2.0.0",
   "workflow_version": "3.2.0",
   "hash_algorithm": "sha256",
-  "generator_name_and_version": "article-flow 3.2.13",
-  "generated_at": "2026-10-28T17:24:26Z",
+  "generator_name_and_version": "article-flow 3.2.14",
+  "generated_at": "2026-10-28T22:22:06Z",
   "generated_from": "index",
   "files": [
     {
@@ -19,16 +19,16 @@
       "scope": "source",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "109d705dbd1080e3cae7ede4a94f40dc3af4c796e3e381c018ec70e400b09d7e",
-      "byte_size": 12211
+      "sha256": "6272af4d104197ca77dfe473ec99371494719ad5aace2f1e006ce055af966dd2",
+      "byte_size": 13364
     },
     {
       "path": ".claude/skills/article-flow/references/editorial.md",
       "scope": "source",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "109d705dbd1080e3cae7ede4a94f40dc3af4c796e3e381c018ec70e400b09d7e",
-      "byte_size": 12211
+      "sha256": "6272af4d104197ca77dfe473ec99371494719ad5aace2f1e006ce055af966dd2",
+      "byte_size": 13364
     },
     {
       "path": ".gitattributes",
@@ -291,8 +291,8 @@
       "scope": "spec",
       "role": "normative",
       "rule_set": "editorial",
-      "sha256": "6c7a70fa67ced8c38a98b3c4a9fa0a2a0ee6b8e284777b6e0bb9a9df70185421",
-      "byte_size": 30013
+      "sha256": "81b60dd5b33db213a69aac9bdb57c4645c366744c45dfb60fa38bc8ca6fe33c7",
+      "byte_size": 31781
     },
     {
       "path": "evaluations/adversarial-cases.json",
@@ -707,8 +707,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "507bc2cf92db3be6ff150d9da83abe0ccf594bcd867f5aaec27f03f6d605d428",
-      "byte_size": 689931
+      "sha256": "b18f0e1b5054c14e399161945d458a6cb98a25bb89abf01db6e56bfb7f797d26",
+      "byte_size": 700598
     },
     {
       "path": "scripts/article_maintenance.py",
@@ -731,8 +731,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "14985d00341b28bfb2fd8e3a69ea2c4987da3b9e6f5b55c6c9a6f4932cd4b69d",
-      "byte_size": 53110
+      "sha256": "b79074d8b0d88cff430233c33ea068bafcea6c9badaef6b30e882551354d46df",
+      "byte_size": 56856
     },
     {
       "path": "scripts/editorial_learning.py",
@@ -811,16 +811,16 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "evaluation",
-      "sha256": "70726dde29455bc371778b85e8f51e22f0160ee99bdc0ce20b1294873527ce36",
-      "byte_size": 69538
+      "sha256": "db9e5dacb9f8e8fc68f8621fe7cec7e06eac4d8e8bb8dcc6b6064edf88819016",
+      "byte_size": 83094
     },
     {
       "path": "tests/test_editorial_system.py",
       "scope": "spec",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "6074cc5e6a15c017a612ca0842529c59bb81f8b955acce0fa485019cb0803ed4",
-      "byte_size": 59456
+      "sha256": "7a320346ab78e8f6fa7d26ec140a773e72e54a0bcfeeb0ad5e331528bae5d3e5",
+      "byte_size": 60262
     },
     {
       "path": "tests/test_explicit_writing_model.py",
