@@ -53,6 +53,9 @@
       "type": "string",
       "minLength": 1
     },
+    "configured_reasoning_effort": {
+      "enum": ["low", "medium", "high", "xhigh", "max", "ultra"]
+    },
     "public_display_name": {
       "type": "string",
       "minLength": 1

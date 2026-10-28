@@ -18,6 +18,9 @@ Complete record of all changes made during migration from chapter-oriented docum
   Preserve default assignments, existing providers and frozen historical runs.
 - Distinguish actual parent-supervised question receipts from automatic native
   attachment; retain same-session/run correlation without inventing grants.
+- Freeze configured writing effort in new explicit-provider assignment receipts, expose it in
+  route/stage provenance and hold changed or missing effort on resumption.
+  Preserve earlier assignments and use packet effort for Codex CLI execution.
 
 ## October 28, 2026: Source-bound cross-client questions (3.2.11)
 

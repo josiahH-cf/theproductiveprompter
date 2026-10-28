@@ -3,7 +3,7 @@
   "workflow_version": "3.2.0",
   "hash_algorithm": "sha256",
   "generator_name_and_version": "article-flow 3.2.12",
-  "generated_at": "2026-10-28T10:44:46Z",
+  "generated_at": "2026-10-28T11:10:42Z",
   "generated_from": "index",
   "files": [
     {
@@ -107,8 +107,8 @@
       "scope": "spec",
       "role": "documentation",
       "rule_set": "overview",
-      "sha256": "d6d1497ac93fd5b85b2aa2fe5bb8c0e36a1eba8b7d614d44760f1ac464ae1422",
-      "byte_size": 25195
+      "sha256": "6798de04feac4cdb75d36aefdb874802c4528533775749bd726d959a170988a4",
+      "byte_size": 25945
     },
     {
       "path": "1-Master/Article-Master-Spec.md",
@@ -563,8 +563,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "schemas",
-      "sha256": "5122292f4252daf95e04131b0ea04f429cd00d74c373fddbdb0107b3454a5c76",
-      "byte_size": 4320
+      "sha256": "769872ba08246872684e18da0fa83fbba1741b7c5fb5a475f2fcda11668c4191",
+      "byte_size": 4429
     },
     {
       "path": "schemas/package.schema.json",
@@ -587,8 +587,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "schemas",
-      "sha256": "c137dbdb63b4671f8f0f481abb86767a3102cec4280c3e7feda454c0fbddf2a0",
-      "byte_size": 5214
+      "sha256": "87901e3d71c6b20409ce6e85dd801336e5b634c02310de6e5d8eafc089515391",
+      "byte_size": 5348
     },
     {
       "path": "schemas/publication-receipt.schema.json",
@@ -707,8 +707,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "55728616828dec915d6827bece17cd42d5846c999e9e59aab34aa10fcc095650",
-      "byte_size": 679184
+      "sha256": "d0c21069a5e1257bff4379c160fbc232bffc81349901df19c2bb0f95370635ab",
+      "byte_size": 680709
     },
     {
       "path": "scripts/article_maintenance.py",
@@ -827,8 +827,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "evaluation",
-      "sha256": "a4ef44abf8a306f3829af03049b6fed6cd128aa1f706fd21d59b1e7d2f3c64e0",
-      "byte_size": 9312
+      "sha256": "82e5591dea0d86a7f18efe396c659a082e75a7c20c8eb970044424fe5062056c",
+      "byte_size": 12688
     },
     {
       "path": "tests/test_faithful_expression.py",

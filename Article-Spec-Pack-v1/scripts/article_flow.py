@@ -967,13 +967,19 @@ def reserve_draft_model(
         consumed = sum(1 for item in history if item.get("consumes_rotation"))
         rotation_index = consumed % len(models) if consumes else None
         model_id = override or models[int(rotation_index)]
+        provider_id = provider_override or config['provider_id']
+        configured_provider = next((item for item in capability_registry()['providers']
+                                    if item.get('provider_id') == provider_id), {})
+        configured_model = next((item for item in configured_provider.get('models', [])
+                                 if item.get('model_id') == model_id), {})
+        configured_effort = configured_model.get('reasoning_effort', configured_provider.get('reasoning_effort'))
         assignment = {
             "model_assignment_schema_version": "1.0.0",
             "run_id": run_id,
             "pool_id": config["pool_id"],
             "pool_version": config["pool_version"],
             "rotation_index": rotation_index,
-            "provider_id": provider_override or config["provider_id"],
+            "provider_id": provider_id,
             "assigned_model_id": model_id,
             "public_display_name": config["display_names"].get(model_id, public_model_name(model_id)),
             "selection_reason": "operator_override" if override else "round_robin",
@@ -984,6 +990,8 @@ def reserve_draft_model(
             "contaminated": False,
             "created_at": utc_now(),
         }
+        if provider_override is not None and configured_effort is not None:
+            assignment['configured_reasoning_effort'] = configured_effort
         errors = validate_instance_schema(assignment, "model-assignment.schema.json")
         if errors:
             raise FlowError("Controller generated an invalid model assignment", EXIT_INTEGRITY, errors)
@@ -1085,6 +1093,7 @@ def summarize_model_experiment(directory: Path, run: dict[str, Any], assignment:
     editorial = json_artifact(directory, run, "editorial-qa") or {}
     return {
         "requested_model_id": assignment.get("assigned_model_id"),
+        "configured_reasoning_effort": assignment.get('configured_reasoning_effort'),
         "actual_model_id": experiment.get("active_model_id") or assignment.get("assigned_model_id"),
         "provider_id": experiment.get("provider_id") or assignment.get("provider_id"),
         "cli_version": cli_versions[-1] if cli_versions else "unknown",
@@ -2416,6 +2425,7 @@ def route_candidates(stage: str, excluded_routes: set[str] | None = None) -> dic
                 "provider": provider_id,
                 "model": model_id,
                 "model_version": model.get("version"),
+                "reasoning_effort": model.get('reasoning_effort', provider.get('reasoning_effort')),
                 "eligible": eligible,
                 "exclusion_reason": "; ".join(exclusions) if exclusions else None,
                 "capability_assumptions": assumptions,
@@ -2468,7 +2478,9 @@ def pin_writing_route(run: dict[str, Any], stage: str, routes: dict[str, Any]) -
     active_model = str(experiment.get("active_model_id") or experiment.get("assigned_model_id") or "")
     if not provider_id or not active_model:
         return {**routes, "chosen": None, "fallbacks": [], "reason": "the run has no immutable writing-model assignment"}
-    eligible = [item for item in routes.get("candidates", []) if item.get("eligible")]
+    pinned_effort = experiment.get('configured_reasoning_effort')
+    eligible = [item for item in routes.get("candidates", []) if item.get("eligible")
+                and (pinned_effort is None or item.get('reasoning_effort') == pinned_effort)]
     chosen = next(
         (item for item in eligible if item.get("provider") == provider_id and item.get("model") == active_model),
         None,
@@ -2479,6 +2491,8 @@ def pin_writing_route(run: dict[str, Any], stage: str, routes: dict[str, Any]) -
             None,
         )
         reason = f"assigned writing route {provider_id}:{active_model} is unavailable"
+        if unavailable and pinned_effort is not None and unavailable.get('reasoning_effort') != pinned_effort:
+            reason += f"; writing effort changed from pinned {pinned_effort} to {unavailable.get('reasoning_effort')}"
         if unavailable and unavailable.get("exclusion_reason"):
             reason += f": {unavailable['exclusion_reason']}"
         if experiment.get('operator_model_override'):
@@ -3853,7 +3867,7 @@ def invoke_route(route: dict[str, Any], packet_path: Path, packet: dict[str, Any
                 model=str(route["model"]),
                 timeout_seconds=timeout,
                 executable=str(provider.get("executable", "codex")),
-                reasoning_effort=str(provider.get("reasoning_effort", "high")),
+                reasoning_effort=str(route.get('reasoning_effort') or provider.get("reasoning_effort", "high")),
             )
         except CodexExecError as exc:
             raise FlowError(f"Codex CLI provider failed: {exc}", EXIT_FAILED, exc.details) from exc
@@ -3914,7 +3928,7 @@ def invoke_route(route: dict[str, Any], packet_path: Path, packet: dict[str, Any
         # that recovery preserves and abandons under a fresh ordinal.
         atomic_write(output_path, cleaned.encode("utf-8"))
     elapsed_ms = round((time.monotonic() - started) * 1000)
-    return cleaned, {"provider": route["provider"], "model": route["model"], "model_version": route.get("model_version"), "elapsed_ms": elapsed_ms, "transport": transport}
+    return cleaned, {"provider": route["provider"], "model": route["model"], "model_version": route.get("model_version"), "reasoning_effort": route.get('reasoning_effort'), "elapsed_ms": elapsed_ms, "transport": transport}
 
 
 def latest_recorded_artifact(
@@ -4452,6 +4466,7 @@ def update_writing_provenance(
         "provider_id": actual_provider,
         "assigned_model_id": assigned,
         "actual_model_id": actual_model,
+        "configured_reasoning_effort": route.get('reasoning_effort'),
         "public_display_name": writing_model_policy()["display_names"].get(actual_model, public_model_name(actual_model)),
         "fallback": bool(assigned and actual_model != assigned),
         "accepted_at": utc_now(),
@@ -6315,6 +6330,8 @@ def command_start(args: argparse.Namespace) -> int:
             "provider_id": assignment["provider_id"],
             "assigned_model_id": assignment["assigned_model_id"],
             "active_model_id": assignment["assigned_model_id"],
+            **({'configured_reasoning_effort': assignment['configured_reasoning_effort']}
+               if 'configured_reasoning_effort' in assignment else {}),
             "operator_model_override": bool(assignment['override'] and
                 (assignment['assigned_model_id'] not in writing_model_policy()['ordered_models'] or
                  assignment['provider_id'] != writing_model_policy()['provider_id'] or

@@ -2,6 +2,7 @@
 from unittest import mock
 import copy
 import os
+from types import SimpleNamespace
 
 from test_article_flow_v3 import TemporaryRuntime, af, call
 
@@ -101,6 +102,8 @@ class ExplicitWritingModelTests(TemporaryRuntime):
             assignment = af.json_artifact(af.run_dir(ident), run, 'model-assignment')
             self.assertFalse(assignment['consumes_rotation'])
             self.assertEqual(assignment['provider_id'], 'active-host')
+            self.assertEqual(assignment['configured_reasoning_effort'], 'xhigh')
+            self.assertEqual(run['model_experiment']['configured_reasoning_effort'], 'xhigh')
         self.assertEqual(af.writing_model_policy(), original)
         following = af.reserve_draft_model('AF-following-host-pin')
         self.assertEqual(following['provider_id'], original['provider_id'])
@@ -152,3 +155,55 @@ class ExplicitWritingModelTests(TemporaryRuntime):
             self.assertEqual(selected['fallbacks'], [])
             self.assertIn('explicit', selected['reason'])
         self.assertEqual(run['model_experiment'], before)
+
+    def test_changed_effort_blocks_same_model_without_mutating_assignment(self):
+        with self.host_config():
+            ident = self.start(draft_model='claude-opus-5-5', draft_provider='active-host')
+            directory, run = af.load_run(ident)
+            assignment_path = directory / af.artifact(run, 'model-assignment')['path']
+            before = assignment_path.read_bytes()
+            path = af.provider_config_path()
+            value = af.load_json(path)
+            value['providers'][0]['reasoning_effort'] = 'high'
+            af.write_json(path, value)
+            for stage in ('DRAFT', 'VOICE_PROBE', 'EDIT'):
+                result = af.pin_writing_route(run, stage, af.route_candidates(stage))
+                self.assertIsNone(result['chosen'])
+                self.assertEqual(result['fallbacks'], [])
+                self.assertIn('pinned xhigh', result['reason'])
+            self.assertEqual(assignment_path.read_bytes(), before)
+
+    def test_model_effort_can_differ_from_provider_default(self):
+        with self.host_config():
+            path = af.provider_config_path()
+            value = af.load_json(path)
+            value['providers'][0]['models'][0]['reasoning_effort'] = 'high'
+            af.write_json(path, value)
+            chosen = af.reserve_draft_model('AF-model-effort', override='claude-opus-5-5',
+                                           provider_override='active-host')
+            self.assertEqual(chosen['configured_reasoning_effort'], 'high')
+            route = next(item for item in af.route_candidates('DRAFT')['candidates']
+                         if item['model'] == 'claude-opus-5-5')
+            self.assertEqual(route['reasoning_effort'], 'high')
+
+    def test_legacy_pin_without_effort_retains_its_recorded_policy(self):
+        run = {'workflow_version': '3.2.0', 'model_experiment': {
+            'provider_id': 'codex-cli', 'assigned_model_id': 'gpt-6.1-sol',
+            'operator_model_override': True}}
+        routes = self.routes('DRAFT')
+        routes['candidates'][0]['reasoning_effort'] = 'high'
+        result = af.pin_writing_route(run, 'DRAFT', routes)
+        self.assertEqual(result['chosen']['model'], 'gpt-6.1-sol')
+
+    def test_codex_invocation_uses_packet_effort_instead_of_mutable_configuration(self):
+        route = {'provider': 'codex-cli', 'model': 'gpt-6.1-sol', 'kind': 'codex-cli',
+                 'reasoning_effort': 'xhigh'}
+        packet = {'workflow_version': '3.2.0', 'stage': 'DRAFT',
+                  'expected_outputs': [{'path': str(self.root / 'output.md'), 'format': 'markdown'}]}
+        result = SimpleNamespace(output_text='A neutral fixture paragraph.\n',
+                                 receipt={'reasoning_effort': 'xhigh'})
+        with mock.patch.object(af, 'provider_for_route', return_value={'reasoning_effort': 'high'}), \
+             mock.patch.object(af, 'execute_task_packet', return_value=result) as invoke:
+            _, receipt = af.invoke_route(route, self.root / 'packet.json', packet)
+        self.assertEqual(invoke.call_args.kwargs['reasoning_effort'], 'xhigh')
+        self.assertEqual(receipt['reasoning_effort'], 'xhigh')

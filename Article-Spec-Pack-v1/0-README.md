@@ -72,6 +72,16 @@ routes, including when the model also appears in the experiment pool. A provider
 choice consumes no rotation slot and does not change any other run or provider.
 For an `agent-hosted` route, the calling client must actually use that exact model
 and requested effort; configuration alone is not evidence of host execution.
+Use this explicit pin for a required model/effort pair on the existing Codex
+provider too; a host's name alone does not select its downstream writing model.
+
+New explicit-provider assignments also retain configured reasoning effort, with a model setting
+taking precedence over its provider default. Writing route projection exposes
+that setting and holds a run if it changes or disappears; the Codex CLI adapter
+uses the prepared packet setting rather than rereading mutable effort configuration.
+Assignments without this explicit selection keep their recorded behavior. This receipt
+records configuration and invocation settings, not an independent server attestation
+of reasoning or proof that the calling host actually wrote an accepted artifact.
 
 An explicitly authorized parent-supervised relay may carry the exact question
 payload and return the author's actual answer through the same saved client
