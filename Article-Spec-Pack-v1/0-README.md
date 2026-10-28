@@ -27,6 +27,24 @@ The controller preserves that seed verbatim, creates a resumable run, and return
 
 Ambiguity, exhausted repair windows, missing capability, a publication hold, a merge conflict, or failed live verification still stops explicitly. These are exceptional safety stops, not additional editorial approvals.
 
+Material clarifications and ordinary voice choices return a durable `question_id`,
+`question_revision`, source artifact binding and `question_record`. Repeated reads
+of the same pending question return the same identity. Preserve the returned
+`--question-id` in answer and regeneration commands: a delayed A/B/C must not
+select a different candidate revision. The controller rejects unknown, changed,
+cross-run and no-longer-pending bound questions before recording an answer.
+Legacy unbound local commands remain compatible; cross-client callers must use
+the exact returned bound arrays. Actual clarification text is retained verbatim.
+
+For requested Dot delivery, use the actual supported native receiving owner and
+retain its receiving receipt, account/host/workspace/session and native question
+identity/version alongside the Article Flow question. `delivery_status:
+unverified` and a pending question file do not prove transport or voice delivery.
+Only the author's real answer can continue that run; no fixture, elapsed time or
+model selection is a human answer. If that client cannot deliver or return an
+answer through a supported route, report the exact boundary and keep the run
+waiting. This controller does not add an HTTP bridge or grant client access.
+
 Later editorial repairs receive the latest accepted article and preserve its selected voice passage. Visual preparation preserves literal code whitespace and source evidence before facts are locked. An older blocked edit with a proven source/lock conflict can explicitly reopen development; see [editorial recovery](docs/editorial-system.md). Live citation connection failures remain failed checks and receive bounded retries. Once connectivity recovers, `repair RUN_ID G-LIVE-REVISION` can reopen a live-check window when all public revision checks passed and only transient external-link failures remain; it rechecks every public byte and link without republishing or deleting earlier receipts. An exhausted deployment-propagation stop may receive one explicitly authorized check only after the controller observes the exact published bytes. Use `repair RUN_ID G-LIVE-REVISION --finding "ACTUAL AUTHORIZATION AND FINDING"`; the durable allowance cannot be reset by repeating repair. See [settled-deployment recovery](docs/editorial-system.md).
 
 `article-flow list` is the small operational index. It shows the original idea, current state, run directory, and returned live link for every run. The same response identifies the canonical process directory, private captured-material directory, and public `docs/` directory. Windows and WSL keep separate installation and health records but use one private captured-material directory, so either command sees and resumes the same runs. A stopped session is resumed with `article-flow resume RUN_ID`; the idea does not need to be entered again.
@@ -122,6 +140,14 @@ Before a new claim task is dispatched, an explicitly authorized correction can r
 ## Capability boundary
 
 A model can participate when its host can execute the local `article-flow` command, call the optional local MCP tool, or when the controller can invoke it through a configured provider adapter. A remote chat page with no access to this machine cannot invoke the global local command; that is an explicit capability boundary, not a reason to copy the workflow into the remote product.
+
+The optional stdio MCP adapter exposes `start`, `status`, `next`, `resume` and
+`gate`; `next` and `resume` return actions rather than executing the complete
+journey. Its voice `gate` accepts the returned `question_id`. A receiving client
+still needs the local command and required file capabilities to follow all task,
+clarification, regeneration, publication and live-verification arrays. This MCP
+inventory alone is not proof of an end-to-end Claude run. Claude Code as the
+orchestrator does not change the workflow's configured downstream writing model.
 
 See `article-flow --help` for the complete command surface.
 

@@ -9,6 +9,20 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## October 28, 2026: Source-bound cross-client questions (3.2.11)
+
+- Persist immutable pending clarification and voice questions with stable run,
+  source and candidate revision identity. Reconnects return the same question;
+  regenerated candidates cannot receive an older bound answer.
+- Carry the identity in returned clarification, selection and regeneration
+  commands and the optional MCP voice gate. Reject unknown, changed, cross-run
+  and no-longer-pending questions under the run lock; retain exact clarification
+  text and existing committed-selection recovery and automatic continuation.
+- Preserve legacy local commands, frozen definitions and publication controls.
+  A pending file is explicitly unverified delivery. Document the actual native
+  receiving receipt/answer boundary and limited MCP surface without inventing a
+  Dot transport, granting access or claiming an end-to-end run.
+
 ## October 27, 2026: Exact configured writing-model compatibility (3.2.10)
 
 - Accept an explicit configured writing model outside the unchanged experiment
