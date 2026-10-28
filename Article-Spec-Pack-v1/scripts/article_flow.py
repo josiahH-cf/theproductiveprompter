@@ -48,7 +48,7 @@ import editorial_learning
 import editorial_workbench
 import revision_sources
 
-CONTROLLER_VERSION = "3.2.14"
+CONTROLLER_VERSION = "3.2.15"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -1099,7 +1099,7 @@ def summarize_model_experiment(directory: Path, run: dict[str, Any], assignment:
         "provider_id": experiment.get("provider_id") or assignment.get("provider_id"),
         "cli_version": cli_versions[-1] if cli_versions else "unknown",
         "writing_stages": sorted(stage_routes),
-        "elapsed_milliseconds": elapsed,
+        "elapsed_milliseconds": elapsed if receipts else None,
         "token_usage": usage,
         "cost": {"status": "unknown_not_claimed", "currency": None, "amount": None},
         "retries": retries,
@@ -9575,6 +9575,128 @@ def command_amend(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def package_writing_provenance(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
+    """Keep API-call receipts distinct from accepted in-session host output.
+
+    Agent-hosted submissions never invoke a provider in this controller. Their
+    existing task/output/gate commit is the evidence; it is not an API receipt
+    or independent proof of the calling client's model, effort or usage.
+    """
+    ok, error, _, events = verify_event_log(directory, run)
+    if not ok:
+        raise FlowError("Writing provenance event log failed validation", EXIT_INTEGRITY, error)
+    call_hashes = {
+        str(item["sha256"])
+        for item in run.get("artifact_index", [])
+        if any(str(item.get("type", "")).startswith(f"model-call:{stage}:") for stage in V3_WRITING_STATES)
+        and item.get("sha256")
+    }
+    artifacts: dict[tuple[str, str], dict[str, Any]] = {}
+    latest: dict[str, dict[str, Any]] = {}
+    gates: dict[str, dict[str, Any]] = {}
+    dispatches: set[tuple[str, int, str, str]] = set()
+    dispatched_tasks: dict[str, dict[str, Any]] = {}
+    accepted: list[dict[str, Any]] = []
+
+    def checked_path(item: dict[str, Any]) -> Path:
+        path = (directory / safe_relative(str(item.get("path", "")))).resolve()
+        if not path.is_relative_to(directory.resolve()) or not path.is_file() or sha256_path(path) != item.get("sha256"):
+            raise FlowError("Agent-hosted writing evidence changed or escaped its run", EXIT_INTEGRITY, item)
+        return path
+
+    assignment = load_json(checked_path(artifact(run, "model-assignment") or {}))
+    for event in events:
+        payload = event.get("payload") or {}
+        if event.get("type") == "ARTIFACT_RECORDED":
+            item = payload["artifact"]
+            artifacts[(item["type"], item["sha256"])] = item
+            latest[item["type"]] = item
+        elif event.get("type") == "TASK_DISPATCHED":
+            dispatches.add((str(payload.get("state")), int(payload.get("attempt", 0)),
+                            str(payload.get("packet")), str(payload.get("task_packet_sha256"))))
+            dispatched_tasks[str(payload.get("state"))] = artifacts.get(
+                (f"task-packet:{payload.get('state')}:{payload.get('attempt')}",
+                 str(payload.get("task_packet_sha256")))) or {}
+        elif event.get("type") == "GATE_RECORDED":
+            gates[str(event.get("state"))] = payload
+        elif event.get("type") == "WRITING_MODEL_ACCEPTED" and payload.get("stage") in V3_WRITING_STATES:
+            stage = str(payload["stage"])
+            output_type, filename = stage_output(stage, run)
+            output = latest.get(output_type) or {}
+            route = (output.get("producer") or {}).get("route") or {}
+            dispatched = dispatched_tasks.get(stage) or {}
+            _, dispatched_packet, dispatched_issue = validate_recorded_task_packet(directory, run, dispatched)
+            selected = ((dispatched_packet or {}).get("selected_route") or {}).get("chosen") or {}
+            if route.get("kind") != "agent-hosted" and selected.get("kind") != "agent-hosted":
+                continue
+            if dispatched_issue:
+                raise FlowError("Agent-hosted dispatched task failed validation", EXIT_INTEGRITY, dispatched_issue)
+            gate_id = str(state_definition(stage, run)["gate"])
+            gate_item = latest.get(f"gate-receipt:{gate_id}") or {}
+            receipt = load_json(checked_path(gate_item))
+            receipt_errors = validate_instance_schema(receipt, "gate-receipt.schema.json", run)
+            if receipt_errors:
+                raise FlowError("Agent-hosted writing gate failed validation", EXIT_INTEGRITY, receipt_errors)
+            binding = receipt.get("task_binding") or {}
+            gate = gates.get(stage) or {}
+            attempt = binding.get("attempt")
+            packet_hash = binding.get("task_packet_sha256")
+            task_item = artifacts.get((f"task-packet:{stage}:{attempt}", str(packet_hash))) or {}
+            task_path, packet, issue = validate_recorded_task_packet(directory, run, task_item)
+            if issue or task_path is None or packet is None:
+                raise FlowError("Agent-hosted writing task failed validation", EXIT_INTEGRITY, issue)
+            chosen = (packet.get("selected_route") or {}).get("chosen") or {}
+            valid_outcomes = {"PASS", "ESCALATE"} if stage == "VOICE_PROBE" else {"PASS"}
+            identity = (chosen.get("provider"), chosen.get("model"), chosen.get("reasoning_effort"))
+            if (
+                event.get("actor") != "controller" or event.get("state") != stage or event.get("run_id") != run["run_id"]
+                or receipt.get("run_id") != run["run_id"] or receipt.get("gate_id") != gate_id
+                or receipt.get("outcome") not in valid_outcomes
+                or binding.get("state") != stage
+                or gate.get("gate_id") != gate_id or gate.get("outcome") != receipt.get("outcome")
+                or any(gate.get(key) != binding.get(key) for key in ("state", "attempt", "task_packet_sha256"))
+                or (stage, attempt, task_item["path"], packet_hash) not in dispatches
+                or task_item != dispatched
+                or (receipt.get("artifact_hashes") or {}).get(task_item["type"]) != packet_hash
+                or chosen.get("kind") != "agent-hosted"
+                or route.get("kind") != "agent-hosted" or (output.get("producer") or {}).get("actor") != "model_or_host"
+                or identity != (route.get("provider"), route.get("model"), route.get("reasoning_effort"))
+                or payload.get("provider_id") != chosen.get("provider")
+                or payload.get("actual_model_id") != chosen.get("model")
+                or payload.get("assigned_model_id") != assignment.get("assigned_model_id")
+                or (assignment.get("configured_reasoning_effort") is not None
+                    and chosen.get("reasoning_effort") != assignment["configured_reasoning_effort"])
+                or output.get("path") != f"artifacts/{attempt:02d}-{filename}"
+                or (receipt.get("artifact_hashes") or {}).get(output_type) != output.get("sha256")
+                or task_item.get("artifact_id") not in output.get("inputs", [])
+            ):
+                raise FlowError("Agent-hosted writing acceptance is not bound to its task/output/gate", EXIT_INTEGRITY,
+                                {"stage": stage, "acceptance_event_hash": event["event_hash"]})
+            checked_path(output)
+            accepted.append({
+                "stage": stage, "attempt": attempt,
+                "provider_id": chosen["provider"], "model_id": chosen["model"],
+                "configured_reasoning_effort": chosen.get("reasoning_effort"),
+                "acceptance_event_hash": event["event_hash"],
+                "task": {key: task_item[key] for key in ("path", "sha256")},
+                "output": {key: output[key] for key in ("path", "sha256")},
+                "gate_receipt": {key: gate_item[key] for key in ("path", "sha256")},
+            })
+    accepted_models = {event["payload"].get("actual_model_id") for event in events
+                       if event.get("type") == "WRITING_MODEL_ACCEPTED" and event["payload"].get("stage") in V3_WRITING_STATES}
+    if accepted and set(run.get("model_experiment", {}).get("actual_models", [])) != accepted_models:
+        raise FlowError("Agent-hosted package attribution disagrees with accepted writing models", EXIT_INTEGRITY)
+    receipt_hashes = sorted(call_hashes | {item["gate_receipt"]["sha256"] for item in accepted})
+    if not receipt_hashes:
+        raise FlowError("Workflow 3 package lacks writing-model call receipts or validated agent-hosted acceptances", EXIT_INTEGRITY)
+    return {
+        "run_id": run["run_id"], "source_receipt_hashes": receipt_hashes,
+        "agent_hosted_acceptances": accepted,
+        "evidence_kind": "controller_acceptance_of_agent_hosted_output",
+        "limits": "Task-selected model/effort and accepted output are controller evidence. Independent client/server model, effort, API usage, latency and cost are not established by these records.",
+    }
+
+
 def command_package(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
     require_complete_research_amendment(directory, run)
@@ -9587,6 +9709,7 @@ def command_package(args: argparse.Namespace) -> int:
     if not integrity["ok"]:
         raise FlowError("Protected workflow bytes changed; packaging is blocked until the reviewed manifest matches", EXIT_INTEGRITY, integrity)
     with run_lock(directory, run):
+        writing_provenance = package_writing_provenance(directory, run) if is_v3_run(run) else None
         package_root = directory / "package"
         if package_root.exists():
             for child in package_root.iterdir():
@@ -9630,6 +9753,12 @@ def command_package(args: argparse.Namespace) -> int:
             write_json(public_root / "assets.json", {"assets": []})
         site_files = render_publication_files(directory, run, package_root, metadata)
         private_index = copy_private_run_archive(directory, private_root)
+        if writing_provenance and writing_provenance["agent_hosted_acceptances"]:
+            provenance_path = private_root / "writing-provenance.json"
+            write_json(provenance_path, writing_provenance)
+            private_index["files"].append({"path": provenance_path.name, "sha256": sha256_path(provenance_path),
+                                           "byte_size": provenance_path.stat().st_size})
+            private_index["artifact_count"] = len(private_index["files"])
         write_json(private_root / "archive-index.json", private_index)
         findings = validate_public_package(package_root, metadata, run)
         if findings:
@@ -9651,15 +9780,8 @@ def command_package(args: argparse.Namespace) -> int:
             assignment_value = json_artifact(directory, run, "model-assignment")
             if not assignment_value:
                 raise FlowError("Workflow 3 package is missing its model assignment", EXIT_INTEGRITY)
-            receipt_hashes = sorted({
-                str(item.get("sha256"))
-                for item in run.get("artifact_index", [])
-                if str(item.get("type", "")).startswith("model-call:")
-                and any(f"model-call:{stage}:" in str(item.get("type")) for stage in V3_WRITING_STATES)
-                and item.get("sha256")
-            })
-            if not receipt_hashes:
-                raise FlowError("Workflow 3 package lacks writing-model call receipts", EXIT_INTEGRITY)
+            assert writing_provenance is not None
+            receipt_hashes = writing_provenance["source_receipt_hashes"]
             model_names = [str(item["public_display_name"]) for item in metadata["drafting_models"]]
             experiment = run.get("model_experiment", {})
             package.update({

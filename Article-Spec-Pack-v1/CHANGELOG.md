@@ -9,6 +9,13 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## October 28, 2026: Agent-hosted writing provenance at packaging (3.2.15)
+
+- Accept an in-session writing submission's existing controller evidence instead of requiring a provider API-call receipt that this route never creates. Validate its hash-chained acceptance, original dispatched task, exact provider/model/configured effort, accepted output and task-bound gate before packaging.
+- Keep the evidence private and use its real gate-receipt hashes for package attribution. Preserve ordinary provider call receipts, frozen run definitions, human choices, downstream checks and publication authority. Missing, changed or mismatched host evidence still blocks packaging.
+- Describe controller acceptance separately from independent client/server model or effort proof. Do not create API/usage receipts; record unavailable writing-call latency as null instead of measured zero. Retain existing integer-valued history.
+- Exercise the current synthetic controller flow through host submission, voice selection and packaging without external publication, plus evidence tampering, identity mismatch, missing evidence and existing command-provider regression.
+
 ## October 28, 2026: Exact editorial evidence and repair-origin recovery (3.2.14)
 
 - Preserve the verified QA origin through a verifier's own rejected-output retry, so supported factual changes still return to DRAFT before new locks.
