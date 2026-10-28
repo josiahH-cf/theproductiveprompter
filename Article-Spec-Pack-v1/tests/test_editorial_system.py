@@ -737,7 +737,7 @@ class CurrentAutomationTests(NoPublishAutomationTests):
         af.write_json(path, value)
         self.assertEqual(af.automatic_gate(directory, run, "EDITORIAL_QA", path), ("PASS", []))
 
-    def repair_round_trip(self, criteria, factual_change=False):
+    def repair_round_trip(self, criteria, factual_change=False, fail_reverification=False):
         run_id = self.start()
         counts = {}
         original = self.stage_value
@@ -766,12 +766,17 @@ class CurrentAutomationTests(NoPublishAutomationTests):
                 return result
             if state == "CLAIM_VERIFICATION":
                 result["generated_at"] = f"2026-10-09T12:00:{counts[state]:02d}Z"
+                verification = counts[state] - int(fail_reverification and counts[state] > 2)
                 if factual_change:
-                    result["claims"] = [{"claim_id": "C1", "exact_claim": "The fixture has 16 records." if counts[state] == 2 else ("The fixture has 17 records." if counts[state] > 2 else "The fixture has 16 records."),
+                    result["claims"] = [{"claim_id": "C1", "exact_claim": "The fixture has 16 records." if verification == 2 else ("The fixture has 17 records." if verification > 2 else "The fixture has 16 records."),
                         "class": "fact", "risk": "low", "source_tier": "primary", "source_url_or_local_id": "fixture:independent-count",
                         "source_title_and_publisher": "Independent fixture count", "exact_locator_or_supporting_excerpt": "The updated count is 17 records." if counts[state] > 1 else "Initial count: 16 records.",
                         "checked_at": af.utc_now(), "freshness_horizon": "fixture", "contradiction_status": "none_found",
-                        "allowed_wording": "The fixture has 17 records." if counts[state] > 1 else "The fixture has 16 records.", "confidence": 1.0, "disposition": "qualify" if counts[state] == 2 else "use"}]
+                        "allowed_wording": "The fixture has 17 records." if counts[state] > 1 else "The fixture has 16 records.", "confidence": 1.0, "disposition": "qualify" if verification == 2 else "use"}]
+                    if fail_reverification and counts[state] == 2:
+                        result["claims"][0]["confidence"] = "invalid-schema-fixture"
+                    if fail_reverification and counts[state] == 3:
+                        self.assertEqual((run.get("pending_repair") or {}).get("source_stage"), "CLAIM_VERIFICATION")
             if state == "EDITORIAL_QA":
                 if counts[state] == 1:
                     result["outcome"] = "REPAIR"
@@ -826,6 +831,12 @@ class CurrentAutomationTests(NoPublishAutomationTests):
         counts, choices = self.repair_round_trip(["fact", "naturalness"])
         self.assertEqual(counts["CLAIM_VERIFICATION"], 3)
         self.assertEqual(counts["EDIT"], 2)
+        self.assertEqual(choices, 2)
+
+    def test_nested_verifier_rejection_keeps_qa_origin_until_factual_draft_repair(self):
+        counts, choices = self.repair_round_trip(["fact", "naturalness"], factual_change=True, fail_reverification=True)
+        self.assertEqual(counts["CLAIM_VERIFICATION"], 4)
+        self.assertEqual(counts["DRAFT"], 2)
         self.assertEqual(choices, 2)
 
     def test_factual_content_can_change_before_new_locks_are_applied(self):

@@ -731,12 +731,12 @@ class EditorialRecoveryTests(fixtures.TemporaryRuntime):
                     call(af.command_amend, run_id=run["run_id"], **options)
                 self.assertIsNone(af.artifact(af.load_run(run["run_id"])[1], "development-amendment"))
 
-    def prepared(self):
+    def prepared(self, article=None):
         directory, run, _, _ = self.fixture(current=True)
         af.transition(directory, run, "VISUAL_RENDER", "test", "Render reviewed caption")
         call(af.command_visual_render, run_id=run["run_id"])
         directory, run = af.load_run(run["run_id"])
-        self.record_text(directory, run, "article", '---\ndescription: "An imprecise old description needs revision."\n---\n\n' + af.artifact_path(directory, run, "draft").read_text(encoding="utf-8"))
+        self.record_text(directory, run, "article", article if article is not None else '---\ndescription: "An imprecise old description needs revision."\n---\n\n' + af.artifact_path(directory, run, "draft").read_text(encoding="utf-8"))
         self.record_json(directory, run, "brief", {"slug": "competing-effects", "title": "Two competing effects", "description": "The supported competing effects remain uncertain."}, "review-brief.json")
         for kind in ("verified-claim-ledger", "post-edit-claim-ledger", "voice-learning"):
             self.record_json(directory, run, kind, {})
@@ -756,6 +756,182 @@ class EditorialRecoveryTests(fixtures.TemporaryRuntime):
         context.record_assessment(af, directory, run, assessment, [finding], "REPAIR")
         old_path = af.artifact_path(directory, run, "editorial-repair-obligations")
         return finding, old_path, old_path.read_bytes(), af.load_json(old_path)["pending"][0]
+
+    quoted_article = ('# Example\n\nThe provider says "Answers are independent." '
+                      'It also says "Ads use a separate system." Those are provider claims. '
+                      'An [independent 2026 study](https://example.com/preprint) used 91 accounts. '
+                      'An earlier announcement described a plan. That was a plan at the time.\n')
+
+    def factual_qa_boundary(self, article=None, model_outcome="PASS", code_rejection=False):
+        directory, run, packet_path, packet = self.prepared(article or self.quoted_article)
+        finding = {"criterion": "facts", "artifact": "article", "location": "paragraph 1, sentence 4",
+                   "finding": "The linked independent 2026 study omits its preprint status.",
+                   "repair_instruction": "Call the source a preprint and preserve its sample and scope.",
+                   "repair_state": "CLAIM_VERIFICATION"}
+        assessment = {"outcome": model_outcome, "findings": [] if model_outcome == "PASS" else [finding], "dimensions": {}}
+        gate_findings = [finding]
+        if code_rejection:
+            gate_findings.append({"criterion": "schema", "artifact": "assessment", "location": "dimensions",
+                                  "finding": "A required dimension is missing.", "repair_instruction": "Return a complete schema.",
+                                  "repair_state": "EDITORIAL_QA"})
+        self.record_json(directory, run, "editorial-qa", assessment)
+        af.write_gate_receipt(directory, run, "G-EDITORIAL-QA", "REPAIR", gate_findings, {"type": "test"}, "CLAIM_VERIFICATION",
+                              task_state="EDITORIAL_QA", task_attempt=packet["attempt"], task_packet_sha256=af.sha256_path(packet_path))
+        context.record_assessment(af, directory, run, assessment, gate_findings, "REPAIR")
+        call(af.command_repair, run_id=run["run_id"], gate_id="G-EDITORIAL-QA", finding="Repair the verified factual concern using its owning stage.")
+        directory, run = af.load_run(run["run_id"])
+        self.assertEqual(run["state"], "CLAIM_VERIFICATION")
+        return directory, run, packet_path, packet, finding
+
+    def test_quoted_sentence_recovery_binds_original_link_label_and_keeps_factual_owner(self):
+        directory, run, packet_path, _, finding = self.factual_qa_boundary()
+        old_path = af.artifact_path(directory, run, "editorial-repair-obligations")
+        old_bytes = old_path.read_bytes()
+        old = af.load_json(old_path)["pending"][0]
+        corrected = self.quoted_article.replace("independent 2026 study", "independent 2026 preprint")
+        self.record_text(directory, run, "article", corrected, "corrected-preprint.md")
+        recovered = context.normalized_obligations(af, directory, run)["pending"][0]
+        self.assertEqual(recovered["id"], old["id"])
+        self.assertEqual(recovered["finding"], finding)
+        self.assertEqual(recovered["source_sha256"], old["source_sha256"])
+        self.assertEqual(recovered["normalization"]["selector"], {
+            "artifact": "article", "location": "paragraph 1, sentence 2", "repair_state": "CLAIM_VERIFICATION"})
+        self.assertEqual(old_path.read_bytes(), old_bytes)
+        self.assertEqual(af.sha256_path(packet_path), run["pending_repair"]["task_binding"]["task_packet_sha256"])
+        surface, passage = context.resolution_surface(af, directory, run, context.obligation_finding(recovered))
+        resolution = {"status": "PASS", "surface": surface, "finding_location": finding["location"],
+                      "excerpt": passage, "reason": "The exact linked source is now identified as a preprint with its original sample and limited scope."}
+        review = {"outcome": "PASS", "findings": [], "dimensions": {"repair_resolution": {old["id"]: resolution}}}
+        self.assertIn("[independent 2026 preprint](", passage)
+        self.assertEqual(context.assessment_findings(af, directory, run, review), [])
+        resolution["excerpt"] = passage.replace("[independent 2026 preprint](https://example.com/preprint)", "independent 2026 preprint")
+        self.assertTrue(context.assessment_findings(af, directory, run, review), "Rendered prose must not pass as exact raw evidence")
+
+    def test_quoted_sentence_recovery_rejects_ambiguous_unproven_and_tampered_sources(self):
+        for case in ("duplicate", "unquoted", "other_finding", "changed_source", "changed_packet"):
+            with self.subTest(case=case):
+                text = self.quoted_article
+                if case == "duplicate":
+                    text += "\nThe independent 2026 study is mentioned again.\n"
+                if case == "unquoted":
+                    text = text.replace('"', '')
+                directory, run, packet_path, _, finding = self.factual_qa_boundary(text)
+                if case == "other_finding":
+                    self.assertIsNone(context.legacy_quoted_sentence_owner(af, text, {**finding, "finding": "The sample is too small."}))
+                    continue
+                target = packet_path if case == "changed_packet" else af.artifact_path(directory, run, "article")
+                if case.startswith("changed_"):
+                    target.write_bytes(target.read_bytes() + b" ")
+                    with self.assertRaisesRegex(af.FlowError, "recovery source changed"):
+                        context.normalized_obligations(af, directory, run)
+                else:
+                    self.assertNotIn("normalization", context.normalized_obligations(af, directory, run)["pending"][0])
+
+    def test_evidence_reassessment_is_bounded_idempotent_and_keeps_rejected_receipts(self):
+        directory, run, _, packet, _ = self.factual_qa_boundary()
+        old_gate = af.artifact_path(directory, run, "gate-receipt:G-EDITORIAL-QA")
+        old_output = af.artifact_path(directory, run, "editorial-qa")
+        old_bytes = old_gate.read_bytes(), old_output.read_bytes()
+        args = {"run_id": run["run_id"], "gate_id": "G-EDITORIAL-QA", "reassess_editorial_evidence": True,
+                "finding": "Reassess exact raw evidence after a proven legacy sentence-locator mismatch; retain all substantive checks."}
+        self.assertEqual(call(af.command_repair, **args)[0], 0)
+        directory, run = af.load_run(run["run_id"])
+        self.assertEqual(run["state"], "EDITORIAL_QA")
+        self.assertNotIn("pending_repair", run)
+        self.assertEqual((old_gate.read_bytes(), old_output.read_bytes()), old_bytes)
+        count = len(af._read_jsonl(directory / "events.jsonl"))
+        self.assertTrue(call(af.command_repair, **args)[1]["idempotent"])
+        self.assertEqual(len(af._read_jsonl(directory / "events.jsonl")), count)
+        with af.run_lock(directory, run):
+            _, fresh = af.task_packet(directory, run)
+        self.assertGreater(fresh["attempt"], packet["attempt"])
+        supplied = af.load_json(Path(next(i for i in fresh["inputs"] if i["id"] == "editorial-context")["path"]))
+        self.assertIn("repair_resolution_surfaces", supplied)
+        with self.assertRaises(af.FlowError):
+            call(af.command_repair, **args)
+        self.assertEqual((old_gate.read_bytes(), old_output.read_bytes()), old_bytes)
+
+    def test_evidence_reassessment_rejects_changed_material_defects_and_started_work(self):
+        for case in ("article", "brief", "visual-plan", "voice-learning", "gate", "task", "model_defects", "code_rejection", "started"):
+            with self.subTest(case=case):
+                directory, run, packet_path, _, _ = self.factual_qa_boundary(model_outcome="REPAIR" if case == "model_defects" else "PASS", code_rejection=case == "code_rejection")
+                if case in {"article", "brief", "visual-plan", "voice-learning"}:
+                    old = af.artifact_path(directory, run, case)
+                    if case == "article":
+                        self.record_text(directory, run, case, old.read_text(encoding="utf-8") + "\nNew substantive material.\n", "later-material.md")
+                    else:
+                        value = af.load_json(old)
+                        value["changed"] = True
+                        self.record_json(directory, run, case, value, "later-" + case + ".json")
+                elif case in {"gate", "task"}:
+                    path = packet_path if case == "task" else af.artifact_path(directory, run, "gate-receipt:G-EDITORIAL-QA")
+                    path.write_bytes(path.read_bytes() + b" ")
+                elif case == "started":
+                    af.append_event(directory, run, "MODEL_EXECUTION_STARTED", "test", {"state": "CLAIM_VERIFICATION"})
+                    af.save_run(directory, run)
+                before = (directory / "events.jsonl").read_bytes()
+                with self.assertRaises(af.FlowError):
+                    call(af.command_repair, run_id=run["run_id"], gate_id="G-EDITORIAL-QA", reassess_editorial_evidence=True,
+                         finding="Do not change inputs or bypass defects while recovering review evidence.")
+                self.assertEqual((directory / "events.jsonl").read_bytes(), before)
+
+    def test_evidence_reassessment_reconstructs_cache_from_committed_run_identity(self):
+        directory, run, _, _, _ = self.factual_qa_boundary()
+        run["pending_repair"]["rejected_output"]["path"] = "../other-run/article.json"
+        af.save_run(directory, run)
+        call(af.command_repair, run_id=run["run_id"], gate_id="G-EDITORIAL-QA", reassess_editorial_evidence=True,
+             finding="Recover the committed same-run review identity rather than trusting a damaged projection cache.")
+        directory, run = af.load_run(run["run_id"])
+        recovery = next(e for e in reversed(af._read_jsonl(directory / "events.jsonl"))
+                        if e.get("payload", {}).get("recovery_kind") == "editorial_evidence_reassessment")
+        self.assertNotIn("..", recovery["payload"]["source_context"]["rejected_output"]["path"])
+        self.assertEqual(run["state"], "EDITORIAL_QA")
+
+    def test_evidence_reassessment_recovers_a_crash_after_its_committed_repair(self):
+        directory, run, _, _, _ = self.factual_qa_boundary()
+        args = {"run_id": run["run_id"], "gate_id": "G-EDITORIAL-QA", "reassess_editorial_evidence": True,
+                "finding": "Request exact evidence reassessment while preserving every substantive requirement."}
+        with mock.patch.object(af, "transition", side_effect=RuntimeError("interrupted after WAL commit")):
+            with self.assertRaisesRegex(RuntimeError, "WAL commit"):
+                call(af.command_repair, **args)
+        directory, run = af.load_run(run["run_id"])
+        self.assertEqual(run["state"], "CLAIM_VERIFICATION")
+        self.assertTrue(call(af.command_repair, **args)[1]["idempotent"])
+        directory, run = af.load_run(run["run_id"])
+        recoveries = [e for e in af._read_jsonl(directory / "events.jsonl")
+                      if e.get("payload", {}).get("recovery_kind") == "editorial_evidence_reassessment"]
+        self.assertEqual(len(recoveries), 1)
+        self.assertEqual(run["state"], "EDITORIAL_QA")
+        self.assertNotIn("repair_recovery_error", run)
+
+    def test_qa_origin_requires_original_receipt_and_ends_at_a_new_draft_or_qa_decision(self):
+        for case in ("nested", "legacy", "tampered", "new_draft", "new_qa"):
+            with self.subTest(case=case):
+                directory, run, _, _, _ = self.factual_qa_boundary()
+                self.assertTrue(af.qa_reverification_origin(directory, run))
+                run["pending_repair"] = {"source_stage": "CLAIM_VERIFICATION", "repair_state": "CLAIM_VERIFICATION"}
+                if case == "tampered":
+                    path = af.artifact_path(directory, run, "gate-receipt:G-EDITORIAL-QA")
+                    path.write_bytes(path.read_bytes() + b" ")
+                    with self.assertRaises(af.FlowError):
+                        af.qa_reverification_origin(directory, run)
+                    continue
+                if case == "legacy":
+                    # The archived 1.0 receipt stores its task binding in the
+                    # artifact hash map rather than an explicit task_binding.
+                    original = next(e["payload"]["repair_context"] for e in af._read_jsonl(directory / "events.jsonl")
+                                    if e.get("type") == "REPAIR" and isinstance(e.get("payload", {}).get("repair_context"), dict))
+                    source = af.load_json(directory / original["gate_receipt"]["path"])
+                    source.pop("task_binding", None)
+                    source["gate_receipt_schema_version"] = "1.0.0"
+                    legacy_path = self.record_json(directory, run, "gate-receipt:G-EDITORIAL-QA", source, "legacy-origin-gate.json")
+                    original.pop("task_binding", None)
+                    original["gate_receipt"].update(path=legacy_path.relative_to(directory).as_posix(), sha256=af.sha256_path(legacy_path))
+                    af.append_event(directory, run, "REPAIR", "test", {"source_state": "EDITORIAL_QA", "repair_state": "CLAIM_VERIFICATION", "repair_context": original})
+                if case.startswith("new_"):
+                    af.append_event(directory, run, "GATE_RECORDED", "test", {
+                        "state": "DRAFT" if case == "new_draft" else "EDITORIAL_QA", "outcome": "PASS"})
+                self.assertEqual(af.qa_reverification_origin(directory, run), case in {"nested", "legacy"})
 
     def test_new_naturalization_findings_use_visual_display_and_body_owners(self):
         directory, run, _, _ = self.prepared()

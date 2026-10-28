@@ -9,6 +9,14 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## October 28, 2026: Exact editorial evidence and repair-origin recovery (3.2.14)
+
+- Preserve the verified QA origin through a verifier's own rejected-output retry, so supported factual changes still return to DRAFT before new locks.
+- Recover a legacy quoted-sentence locator only from the intact original review, task, article and affected-surface hash plus a unique link label named by that finding. Preserve its original finding, ER identity and factual owner; never widen evidence to unrelated prose.
+- Supply exact current resolution surfaces to QA, including raw Markdown and compact visual JSON. Keep exact excerpts and substantive resolution checks mandatory.
+- Add explicit `repair RUN_ID G-EDITORIAL-QA --reassess-editorial-evidence --finding "SPECIFIC REASON"` at an untouched QA-to-verification boundary when the model reported no defects but code rejected its evidence. Verify unchanged material and author/voice authority, open one fresh normal QA window, and preserve rejected receipts. Repeats before task creation and an interrupted recovery reconcile once; changed inputs or already-started work refuse recovery. No gate, author answer or publication approval is created.
+- Require claim ledgers to retain every exact current citation locator instead of silently substituting a different URL.
+
 ## October 28, 2026: Same-run source and scope reconciliation (3.2.13)
 
 - Add explicit `amend --reopen-research --reason` for actual author/source corrections in unpublished editorial runs, including a failed development checkpoint.

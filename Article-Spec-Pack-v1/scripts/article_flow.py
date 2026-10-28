@@ -48,7 +48,7 @@ import editorial_learning
 import editorial_workbench
 import revision_sources
 
-CONTROLLER_VERSION = "3.2.13"
+CONTROLLER_VERSION = "3.2.14"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -3309,6 +3309,45 @@ def repair_context_for_packet(
     return context, inputs
 
 
+def qa_reverification_origin(directory: Path, run: dict[str, Any]) -> bool:
+    """Keep the verified QA repair origin across a verifier's own retries.
+
+    Do not infer authority from a mutable source_stage tag. A later draft or
+    another QA decision ends the old origin; its original receipt and task
+    packet must still validate against the append-only history.
+    """
+    pending = run.get("pending_repair") or {}
+    if pending.get("repair_state") != "CLAIM_VERIFICATION":
+        return False
+    verified, error, _, events = verify_event_log(directory, run)
+    if not verified:
+        raise FlowError("QA repair origin event history changed", EXIT_INTEGRITY, error)
+    for event in reversed(events):
+        payload = event.get("payload") or {}
+        if event.get("type") == "GATE_RECORDED" and payload.get("state") in {"DRAFT", "EDITORIAL_QA"}:
+            return False
+        if event.get("type") != "REPAIR" or payload.get("source_state") != "EDITORIAL_QA":
+            continue
+        context = payload.get("repair_context")
+        if not isinstance(context, dict):
+            continue  # An assessment-window reset is not a new origin.
+        if payload.get("repair_state") != "CLAIM_VERIFICATION":
+            return False
+        if context.get("source_stage") != "EDITORIAL_QA" or context.get("repair_state") != "CLAIM_VERIFICATION":
+            raise FlowError("QA repair origin has conflicting state bindings", EXIT_INTEGRITY)
+        checked, _ = repair_context_for_packet(directory, {**run, "pending_repair": context}, "CLAIM_VERIFICATION")
+        binding = context.get("task_binding") or {}
+        attempt = binding.get("attempt", context.get("failed_attempt"))
+        item = latest_recorded_artifact(directory, run, lambda value: value.get("type") ==
+                                        f"task-packet:EDITORIAL_QA:{attempt}")
+        receipt = load_json(Path(checked["gate_receipt"]["path"]))
+        if (not item or validate_recorded_task_packet(directory, run, item)[2]
+                or receipt.get("artifact_hashes", {}).get(item["type"]) != item["sha256"]):
+            raise FlowError("QA repair origin task packet changed", EXIT_INTEGRITY)
+        return True
+    return False
+
+
 def blocked_only_by_attempt_window(directory: Path, run: dict[str, Any], state: str) -> bool:
     """True when the run's durable block is this stage's exhausted window.
 
@@ -3645,7 +3684,9 @@ def task_packet(
     if state in {"CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION"}:
         constraints.append(
             "Each source_url_or_local_id must contain exactly one direct HTTP(S) URL or one local input locator. "
-            "Never concatenate sources in that field; split materially different evidence into separate claims."
+            "Never concatenate sources in that field; split materially different evidence into separate claims. "
+            "Cover every citation in the current article using its exact source locator, including a cited URL that redirects. "
+            "Do not silently replace that locator with an equivalent DOI or another page."
         )
     if state == "POST_EDIT_CLAIM_VERIFICATION":
         constraints.append(
@@ -6959,7 +7000,7 @@ def command_submit(args: argparse.Namespace) -> int:
         if args.stage == "VOICE_PROBE" and is_v31_run(run) and outcome == "PASS":
             materialize_voice_probe(directory, run, destination, attempt)
         verified_qa_repair = bool(args.stage == "CLAIM_VERIFICATION" and editorial_context.enabled(run)
-                                  and run.get("pending_repair", {}).get("source_stage") == "EDITORIAL_QA"
+                                  and qa_reverification_origin(directory, run)
                                   and state_definition(args.stage, run).get("next_on_qa_reverification"))
         if args.stage == "DRAFT" and outcome == "PASS" and editorial_context.enabled(run) and artifact(run, "article"):
             record_artifact(directory, run, destination, "article", {"actor": "controller", "source": "upstream-development-repair", "version": CONTROLLER_VERSION},
@@ -7434,8 +7475,109 @@ def command_gate(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def repair_editorial_evidence(directory: Path, run: dict[str, Any], args: argparse.Namespace) -> int:
+    """Reassess rejected evidence without rewriting unchanged reviewed material.
+
+    This is neither a gate override nor a replay of rejected model output. The
+    fresh QA task must satisfy every normal check and every retained obligation.
+    """
+    if not editorial_context.enabled(run) or args.gate_id not in {None, "G-EDITORIAL-QA"}:
+        raise FlowError("Evidence reassessment requires the editorial QA gate", EXIT_USAGE)
+    if len(str(args.finding or "").strip()) < 20:
+        raise FlowError("Evidence reassessment requires a substantive recorded reason", EXIT_USAGE)
+    with run_lock(directory, run):
+        verified, error, _, events = verify_event_log(directory, run)
+        if not verified:
+            raise FlowError("Editorial reassessment event history changed", EXIT_INTEGRITY, error)
+        prior = next((event for event in reversed(events) if event.get("type") == "REPAIR"
+                      and (event.get("payload") or {}).get("recovery_kind") == "editorial_evidence_reassessment"), None)
+        continuing = bool(prior and run["state"] == "EDITORIAL_QA")
+        stored = (prior["payload"].get("source_context") if continuing else run.get("pending_repair")) or {}
+        if (run["status"] != "ACTIVE" or run["state"] not in {"CLAIM_VERIFICATION", "EDITORIAL_QA"}
+                or stored.get("source_stage") != "EDITORIAL_QA" or stored.get("repair_state") != "CLAIM_VERIFICATION"):
+            raise FlowError("Evidence reassessment requires an untouched QA-to-verification repair boundary", EXIT_WAITING)
+        checked, _ = repair_context_for_packet(directory, {**run, "pending_repair": stored}, "CLAIM_VERIFICATION")
+        if checked is None:
+            raise FlowError("Editorial reassessment lacks its rejected QA evidence", EXIT_INTEGRITY)
+        rejected = load_json(Path(checked["rejected_output"]["path"]))
+        if rejected.get("outcome") != "PASS" or rejected.get("findings") != []:
+            raise FlowError("The source reviewer reported defects; use the normal targeted repair", EXIT_USAGE)
+        obligations = editorial_context.checked_json(sys.modules[__name__], directory, run, "editorial-repair-obligations") or {}
+        pending_findings = [old["finding"] for old in obligations.get("pending", [])]
+        pending_findings.extend(editorial_context.obligation_finding(old) for old in obligations.get("pending", []))
+        if (obligations.get("assessment_sha256") != stored["rejected_output"]["sha256"]
+                or not pending_findings or any(finding not in pending_findings
+                    and finding.get("criterion") not in {"naturalization_review_evidence", "comprehension_review_evidence"}
+                    for finding in stored.get("findings", []))):
+            raise FlowError("QA rejected more than retained obligations or exact evidence; use normal repair", EXIT_USAGE)
+        binding = stored.get("task_binding") or {}
+        item = latest_recorded_artifact(directory, run, lambda value: value.get("type") == f"task-packet:EDITORIAL_QA:{binding.get('attempt')}")
+        _, packet, issue = validate_recorded_task_packet(directory, run, item or {})
+        if issue or not packet or item["sha256"] != binding.get("task_packet_sha256"):
+            raise FlowError("Editorial reassessment task packet changed", EXIT_INTEGRITY, issue)
+        source_inputs = {value["id"]: value for value in packet["inputs"]}
+        for value in source_inputs.values():
+            path = Path(value["path"]).resolve()
+            if not path.is_file() or sha256_path(path) != value["sha256"]:
+                raise FlowError("Editorial reassessment source input changed", EXIT_INTEGRITY, value["id"])
+        current_inputs = [value for value in packet_inputs(directory, run, "EDITORIAL_QA")
+                          if value["id"] not in {"voice-profile", "voice-learning"}]
+        for value in current_inputs:
+            if source_inputs.get(value["id"], {}).get("sha256") != value["sha256"]:
+                raise FlowError("Editorial material changed; use the normal targeted repair", EXIT_INTEGRITY, value["id"])
+        source_context = source_inputs.get("editorial-context") or {}
+        if not source_context or (artifact(run, "editorial-context") or {}).get("sha256") != source_context["sha256"]:
+            raise FlowError("Editorial reassessment authority changed", EXIT_INTEGRITY)
+        context = load_json(Path(source_context["path"]))
+        authority = editorial_context.contract(sys.modules[__name__], directory, run)
+        voice = editorial_context.compact_voice(editorial_context.checked_json(sys.modules[__name__], directory, run, "voice-profile") or {},
+                    run_id=run["run_id"], register=str(authority["register"]), form=str(authority["form"]))
+        if (context.get("contract") != authority or context.get("voice") != voice
+                or context.get("local_selection") != (json_artifact(directory, run, "voice-learning") or None)
+                or context.get("author_context") != json_artifact(directory, run, "author-context")):
+            raise FlowError("Editorial author or voice authority changed", EXIT_INTEGRITY)
+        matching = [event for event in events if event.get("type") == "REPAIR"
+                    and (event.get("payload") or {}).get("repair_context") == stored]
+        if not matching:
+            raise FlowError("Editorial reassessment lacks its committed repair event", EXIT_INTEGRITY)
+        source_sequence = matching[-1]["sequence"]
+        # Starting any newer task consumes this recovery opportunity. A retry
+        # before task creation is idempotent, including a crash after REPAIR.
+        for event in events:
+            if event["sequence"] <= source_sequence:
+                continue
+            value = (event.get("payload") or {}).get("artifact") or {}
+            if (event.get("type") == "MODEL_EXECUTION_STARTED"
+                    or (event.get("type") == "ARTIFACT_RECORDED" and str(value.get("type", "")).startswith("task-packet:"))):
+                raise FlowError("A newer task already consumed the QA repair boundary", EXIT_WAITING)
+        same_prior = bool(prior and prior["payload"].get("source_context") == stored)
+        if continuing and not same_prior:
+            raise FlowError("Editorial reassessment no longer matches its recovery receipt", EXIT_INTEGRITY)
+        if not same_prior:
+            baseline = reset_attempt_window(directory, run, "EDITORIAL_QA")
+            append_event(directory, run, "REPAIR", "operator_or_controller", {
+                "gate_id": "G-EDITORIAL-QA", "source_state": run["state"], "repair_state": "EDITORIAL_QA",
+                "recovery_kind": "editorial_evidence_reassessment", "finding": args.finding,
+                "source_context": stored, "source_repair_sequence": source_sequence,
+                "source_task_packet_sha256": item["sha256"],
+                "material_inputs": {value["id"]: value["sha256"] for value in current_inputs},
+                "attempt_ordinal_baseline": baseline, "execution_count_baseline": run["attempt_baselines"]["EDITORIAL_QA"],
+                "repair_context_required": False, "clear_route_failures": True,
+            })
+            run.setdefault("route_failures", {}).pop("EDITORIAL_QA", None)
+            run.setdefault("route_retry_candidates", {}).pop("EDITORIAL_QA", None)
+        if run["state"] != "EDITORIAL_QA":
+            transition(directory, run, "EDITORIAL_QA", "controller", "Reassess exact evidence over unchanged editorial inputs; retain every gate and obligation")
+        payload = {"ok": True, "state": run["state"], "idempotent": same_prior,
+                   "recovery_kind": "editorial_evidence_reassessment", "next_command": ["article-flow", "next", run["run_id"]]}
+    emit(payload, args.json)
+    return EXIT_OK
+
+
 def command_repair(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
+    if getattr(args, "reassess_editorial_evidence", False):
+        return repair_editorial_evidence(directory, run, args)
     if run["state"] == "LIVE_VERIFICATION" and args.gate_id in {None, "G-LIVE-REVISION"}:
         events = _read_jsonl(directory / str(run["event_log"]))
         if any((event.get("payload") or {}).get("recovery_kind") == "settled_deployment_propagation" for event in events if event.get("type") == "REPAIR"):
@@ -12102,6 +12244,7 @@ def build_parser() -> argparse.ArgumentParser:
     repair.add_argument("run_id")
     repair.add_argument("gate_id", nargs="?")
     repair.add_argument("--finding")
+    repair.add_argument("--reassess-editorial-evidence", action="store_true", help="Open one fresh normal QA window for rejected evidence over unchanged reviewed inputs; never waive a gate.")
     add_json(repair)
 
     render_visuals = sub.add_parser("render-visuals", help="Render a validated visual plan into deterministic SVG assets.")
