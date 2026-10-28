@@ -48,7 +48,7 @@ import editorial_learning
 import editorial_workbench
 import revision_sources
 
-CONTROLLER_VERSION = "3.2.11"
+CONTROLLER_VERSION = "3.2.12"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -926,13 +926,17 @@ def _append_jsonl(path: Path, value: dict[str, Any]) -> None:
         os.fsync(handle.fileno())
 
 
-def validate_draft_model(override: str | None) -> None:
+def validate_draft_model(override: str | None, provider_override: str | None = None) -> None:
     """An explicit configured model may sit outside the unchanged experiment pool."""
-    if override is None or override in writing_model_policy()['ordered_models']:
+    if provider_override is not None and not override:
+        raise FlowError('--draft-provider requires an exact --draft-model', EXIT_USAGE)
+    if provider_override is not None and not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,127}', provider_override):
+        raise FlowError('Invalid explicit draft provider identifier', EXIT_USAGE)
+    if override is None or (provider_override is None and override in writing_model_policy()['ordered_models']):
         return
     if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,127}', override):
         raise FlowError('Invalid explicit draft model identifier', EXIT_USAGE)
-    provider = writing_model_policy()['provider_id']
+    provider = provider_override or writing_model_policy()['provider_id']
     for stage in sorted(V3_WRITING_STATES):
         selected = next((route for route in route_candidates(stage)['candidates']
                          if route.get('provider') == provider and route.get('model') == override), None)
@@ -941,11 +945,13 @@ def validate_draft_model(override: str | None) -> None:
                             EXIT_USAGE, selected or {'model': override, 'stage': stage})
 
 
-def reserve_draft_model(run_id: str, override: str | None = None) -> dict[str, Any]:
+def reserve_draft_model(
+    run_id: str, override: str | None = None, provider_override: str | None = None,
+) -> dict[str, Any]:
     """Reserve one stable writing model without races across local hosts."""
     config = writing_model_policy()
     models = config["ordered_models"]
-    validate_draft_model(override)
+    validate_draft_model(override, provider_override)
     root = model_state_root()
     ledger = root / "assignments.jsonl"
     with shared_lock(root / ".lock"):
@@ -954,6 +960,8 @@ def reserve_draft_model(run_id: str, override: str | None = None) -> dict[str, A
         if existing:
             if override and existing.get("assigned_model_id") != override:
                 raise FlowError("Run already has a different immutable draft-model assignment", EXIT_INTEGRITY, existing)
+            if provider_override and existing.get("provider_id") != provider_override:
+                raise FlowError("Run already has a different immutable draft-provider assignment", EXIT_INTEGRITY, existing)
             return existing
         consumes = override is None
         consumed = sum(1 for item in history if item.get("consumes_rotation"))
@@ -965,7 +973,7 @@ def reserve_draft_model(run_id: str, override: str | None = None) -> dict[str, A
             "pool_id": config["pool_id"],
             "pool_version": config["pool_version"],
             "rotation_index": rotation_index,
-            "provider_id": config["provider_id"],
+            "provider_id": provider_override or config["provider_id"],
             "assigned_model_id": model_id,
             "public_display_name": config["display_names"].get(model_id, public_model_name(model_id)),
             "selection_reason": "operator_override" if override else "round_robin",
@@ -6251,7 +6259,7 @@ def command_start(args: argparse.Namespace) -> int:
         return EXIT_WAITING
     if not seed.strip():
         raise FlowError("Seed cannot be empty", EXIT_USAGE)
-    validate_draft_model(getattr(args, 'draft_model', None))
+    validate_draft_model(getattr(args, 'draft_model', None), getattr(args, 'draft_provider', None))
     now = dt.datetime.now(dt.timezone.utc)
     stamp = now.strftime("%Y%m%dT%H%M%SZ")
     run_id = f"AF-{stamp}-{slugify(args.slug or seed)}-{secrets.token_hex(4)}"
@@ -6288,7 +6296,9 @@ def command_start(args: argparse.Namespace) -> int:
     }
     save_run(directory, run)
     append_event(directory, run, "RUN_CREATED", "controller", {"workflow_version": run["workflow_version"], "controller_version": CONTROLLER_VERSION})
-    assignment = reserve_draft_model(run_id, getattr(args, "draft_model", None)) if is_v3_run(run) else None
+    assignment = reserve_draft_model(
+        run_id, getattr(args, "draft_model", None), getattr(args, "draft_provider", None),
+    ) if is_v3_run(run) else None
     if assignment:
         assignment_path = directory / "artifacts" / "model-assignment.json"
         write_json(assignment_path, assignment)
@@ -6306,7 +6316,9 @@ def command_start(args: argparse.Namespace) -> int:
             "assigned_model_id": assignment["assigned_model_id"],
             "active_model_id": assignment["assigned_model_id"],
             "operator_model_override": bool(assignment['override'] and
-                assignment['assigned_model_id'] not in writing_model_policy()['ordered_models']),
+                (assignment['assigned_model_id'] not in writing_model_policy()['ordered_models'] or
+                 assignment['provider_id'] != writing_model_policy()['provider_id'] or
+                 getattr(args, 'draft_provider', None) is not None)),
             "public_display_name": assignment["public_display_name"],
             "actual_models": [],
             "stage_routes": {},
@@ -6349,6 +6361,7 @@ def command_start(args: argparse.Namespace) -> int:
         "state": run["state"],
         "run_directory": str(directory),
         "draft_model": assignment["assigned_model_id"] if assignment else None,
+        "draft_provider": assignment["provider_id"] if assignment else None,
         "next_command": next_command,
     }
     if bool(getattr(args, "auto", False)):
@@ -6371,6 +6384,7 @@ def command_revise(args: argparse.Namespace) -> int:
         seed_file=None,
         slug=str(source_metadata.get("slug") or ""),
         draft_model=getattr(args, "draft_model", None),
+        draft_provider=getattr(args, "draft_provider", None),
         auto=False,
         hold_before_publish=bool(getattr(args, "hold_before_publish", False)),
         model_release=source_run.get("run_overrides", {}).get("model_release") == "model-release-v1",
@@ -11821,6 +11835,7 @@ def build_parser() -> argparse.ArgumentParser:
     start.add_argument("--slug")
     start.add_argument("--auto", action="store_true", help="Continue synchronously until the voice choice, a blocker, or completion.")
     start.add_argument("--draft-model", help="Choose an exact qualified configured writing model without consuming a rotation slot.")
+    start.add_argument("--draft-provider", help="Pin the configured writing provider with --draft-model; no substitute route is used.")
     start.add_argument("--hold-before-publish", action="store_true", help="Stop after publication planning instead of issuing policy approval.")
     start.add_argument("--model-release", action="store_true", help="Attach the fixed model-release experiment context.")
     start.add_argument("--approved-voice", action="store_true", help="Reuse the approved voice for an explicitly authorized model-release article.")
@@ -11833,6 +11848,7 @@ def build_parser() -> argparse.ArgumentParser:
     capture.add_argument("--slug")
     capture.add_argument("--auto", action="store_true", help="Continue synchronously until the voice choice, a blocker, or completion.")
     capture.add_argument("--draft-model", help="Choose an exact qualified configured writing model without consuming a rotation slot.")
+    capture.add_argument("--draft-provider", help="Pin the configured writing provider with --draft-model; no substitute route is used.")
     capture.add_argument("--hold-before-publish", action="store_true", help="Stop after publication planning instead of issuing policy approval.")
     capture.add_argument("--model-release", action="store_true")
     capture.add_argument("--approved-voice", action="store_true")
@@ -11865,6 +11881,7 @@ def build_parser() -> argparse.ArgumentParser:
     revise.add_argument("--request-file", required=True)
     revise.add_argument("--auto", action="store_true", help="Continue synchronously until the voice choice, a blocker, or completion.")
     revise.add_argument("--draft-model", help="Choose an exact qualified configured writing model.")
+    revise.add_argument("--draft-provider", help="Pin the configured writing provider with --draft-model; no substitute route is used.")
     revise.add_argument("--hold-before-publish", action="store_true")
     revise.add_argument("--unattended-editorial", action="store_true", help="Reuse the pinned guide for an explicitly delegated revision; records no human preference.")
     revise.add_argument("--authorization", help="Exact author authorization for unattended editorial revision.")

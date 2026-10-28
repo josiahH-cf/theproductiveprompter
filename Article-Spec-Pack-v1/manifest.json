@@ -2,8 +2,8 @@
   "manifest_schema_version": "2.0.0",
   "workflow_version": "3.2.0",
   "hash_algorithm": "sha256",
-  "generator_name_and_version": "article-flow 3.2.11",
-  "generated_at": "2026-10-28T09:16:30Z",
+  "generator_name_and_version": "article-flow 3.2.12",
+  "generated_at": "2026-10-28T10:44:46Z",
   "generated_from": "index",
   "files": [
     {
@@ -107,8 +107,8 @@
       "scope": "spec",
       "role": "documentation",
       "rule_set": "overview",
-      "sha256": "16b028181bd5e67f83c7e352076d74e31af47fc00b5a786da47a9ee2f211b176",
-      "byte_size": 24083
+      "sha256": "d6d1497ac93fd5b85b2aa2fe5bb8c0e36a1eba8b7d614d44760f1ac464ae1422",
+      "byte_size": 25195
     },
     {
       "path": "1-Master/Article-Master-Spec.md",
@@ -707,8 +707,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "a95fd351c10b75e31baa53663303f585fba05edd1e3d36fcfe9818fcbcda6430",
-      "byte_size": 677654
+      "sha256": "55728616828dec915d6827bece17cd42d5846c999e9e59aab34aa10fcc095650",
+      "byte_size": 679184
     },
     {
       "path": "scripts/article_maintenance.py",
@@ -827,8 +827,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "evaluation",
-      "sha256": "ceb43db668d1d2ea247bec57f42ca885675b630c16e3dcb930c464918ff6fa61",
-      "byte_size": 4083
+      "sha256": "a4ef44abf8a306f3829af03049b6fed6cd128aa1f706fd21d59b1e7d2f3c64e0",
+      "byte_size": 9312
     },
     {
       "path": "tests/test_faithful_expression.py",
