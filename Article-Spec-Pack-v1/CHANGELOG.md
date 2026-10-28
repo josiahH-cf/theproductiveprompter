@@ -9,6 +9,19 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## October 28, 2026: Exact configured writing-provider pin (3.2.12)
+
+- Add `--draft-provider` with an exact model for already configured, qualified
+  providers, including a genuinely observed Claude agent-hosted session.
+- Validate draft, probe and edit eligibility before creating a run; freeze the
+  provider/model pair without consuming rotation or offering fallback routes.
+  Preserve default assignments, existing providers and frozen historical runs.
+- Distinguish actual parent-supervised question receipts from automatic native
+  attachment; retain same-session/run correlation without inventing grants.
+- Freeze configured writing effort in new explicit-provider assignment receipts, expose it in
+  route/stage provenance and hold changed or missing effort on resumption.
+  Preserve earlier assignments and use packet effort for Codex CLI execution.
+
 ## October 28, 2026: Source-bound cross-client questions (3.2.11)
 
 - Persist immutable pending clarification and voice questions with stable run,

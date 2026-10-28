@@ -64,6 +64,32 @@ operator decision. Existing experiment-pool assignments and earlier frozen runs
 retain their recorded fallback policy. The
 configured provider still owns reasoning effort and execution constraints.
 
+When the requested model belongs to another already configured provider, add
+`--draft-provider PROVIDER` with the exact `--draft-model MODEL` on start, capture
+or revision. The provider/model pair must qualify for every writing stage before
+any run or assignment is created. The pair is immutable and has no substitution
+routes, including when the model also appears in the experiment pool. A provider
+choice consumes no rotation slot and does not change any other run or provider.
+For an `agent-hosted` route, the calling client must actually use that exact model
+and requested effort; configuration alone is not evidence of host execution.
+Use this explicit pin for a required model/effort pair on the existing Codex
+provider too; a host's name alone does not select its downstream writing model.
+
+New explicit-provider assignments also retain configured reasoning effort, with a model setting
+taking precedence over its provider default. Writing route projection exposes
+that setting and holds a run if it changes or disappears; the Codex CLI adapter
+uses the prepared packet setting rather than rereading mutable effort configuration.
+Assignments without this explicit selection keep their recorded behavior. This receipt
+records configuration and invocation settings, not an independent server attestation
+of reasoning or proof that the calling host actually wrote an accepted artifact.
+
+An explicitly authorized parent-supervised relay may carry the exact question
+payload and return the author's actual answer through the same saved client
+session. Preserve controller run/question/revision/hash, the actual client
+session, parent receipt and eventual delivery/answer acknowledgment. Do not fill
+in native question IDs or claim automatic bridge attachment for this relay.
+The waiting file remains unverified delivery until an actual receipt is returned.
+
 ## Authority
 
 The machine-readable authority is [`workflow/workflow.json`](workflow/workflow.json). Conflicts resolve in this order:
