@@ -48,7 +48,7 @@ import editorial_learning
 import editorial_workbench
 import revision_sources
 
-CONTROLLER_VERSION = "3.2.15"
+CONTROLLER_VERSION = "3.2.16"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -3703,7 +3703,12 @@ def task_packet(
         constraints.append("Record design_rationale comparing the chosen layout with at least one concrete alternative and omission. Match topology to the explanation: independent work must branch and rejoin, conditional deferral must leave the implementation path, and a loop must identify what repeats. Use parallel_review for eight ordered labels: shared revision, reviewer A, reviewer B, reconciliation, supported implementation batch, actual-diff audit, deferred candidates, retained validated result. The sixth label is the main-path audit; the seventh is the side-branch deferral. delivery_loop is for a genuinely sequential loop, never a one-way goal-to-result sequence. Keep titles within 52 characters and labels within three lines; never delete a necessary step to fit a template. Prefer short source-supported labels. Explain what a reader learns from the picture beyond the adjacent prose. If visual-policy-amendment is supplied, apply its explicit operator reason to this plan while preserving unaffected prose.")
     if state == "EDIT":
         constraints.append("Preserve visual references, captions, and the exact heading or paragraph placement anchors in the CURRENT visual-manifest; edit surrounding prose without invalidating the approved visual plan. Never restore diagrams or captions from historical articles when they are absent from that manifest, including when it is empty.")
-        constraints.append("When current-article is supplied, repair that latest accepted version rather than restarting from draft. Preserve the selected voice passage and all unaffected edits; change only what the bound findings require. Use draft as historical context only.")
+        if {"AF-EDIT-001", "AF-EDIT-002"} <= rule_map.keys():
+            constraints.append(rule_map["AF-EDIT-002" if repair_context else "AF-EDIT-001"])
+        else:
+            # Earlier snapshots did not freeze separate editing scopes. Keep
+            # their exact instruction for future dispatches as well as replay.
+            constraints.append("When current-article is supplied, repair that latest accepted version rather than restarting from draft. Preserve the selected voice passage and all unaffected edits; change only what the bound findings require. Use draft as historical context only.")
     if editorial_context.enabled(run) and state in {"DRAFT", "CLAIM_VERIFICATION", "VISUAL_PLAN"}:
         constraints.append("If current-article is supplied, it is the canonical repair source. Preserve its unaffected edits and distinctive phrasing. DRAFT develops or corrects only the bound issue using the latest verified ledger; CLAIM_VERIFICATION verifies this current article rather than the older rough draft; VISUAL_PLAN selects placements in this article. Historical draft and previous-article are context only.")
     if state == "DRAFT" and artifact(run, "development-amendment") and not artifact(run, "research-amendment"):
@@ -11696,6 +11701,7 @@ def normative_lint() -> dict[str, Any]:
         "AF-PERSON-001", "AF-LENGTH-001", "AF-SHAPE-001", "AF-CITATION-001", "AF-PACKAGE-001",
         "AF-REPAIR-001", "AF-END-001", "AF-MATURITY-001", "AF-EVIDENCE-001", "AF-NATURALIZE-001",
         "AF-VOICE-001", "AF-ROUTING-001", "AF-PUBLISH-001", "AF-INDEXING-001", "AF-EVAL-001", "AF-LIFECYCLE-001",
+        "AF-EDIT-001", "AF-EDIT-002",
     }
     missing_rules = sorted(required_rules - set(rule_ids))
     if missing_rules:

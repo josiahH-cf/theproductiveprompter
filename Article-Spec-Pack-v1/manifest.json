@@ -2,8 +2,8 @@
   "manifest_schema_version": "2.0.0",
   "workflow_version": "3.2.0",
   "hash_algorithm": "sha256",
-  "generator_name_and_version": "article-flow 3.2.15",
-  "generated_at": "2026-10-28T23:46:35Z",
+  "generator_name_and_version": "article-flow 3.2.16",
+  "generated_at": "2026-10-29T19:34:25Z",
   "generated_from": "index",
   "files": [
     {
@@ -139,8 +139,8 @@
       "scope": "spec",
       "role": "documentation",
       "rule_set": "generated-workflow",
-      "sha256": "1aefbffea213ef15d61d983ab0eca1d3787fa80a965ac698aa44c03ca6709063",
-      "byte_size": 18884
+      "sha256": "77c5f653c50d04979e14493f42591df5601f0992c65c7b4790a9d01de6eb4fd6",
+      "byte_size": 19678
     },
     {
       "path": "1-Master/Critic-Loop-(Single-Pass-Self-Check).md",
@@ -291,8 +291,8 @@
       "scope": "spec",
       "role": "normative",
       "rule_set": "editorial",
-      "sha256": "81b60dd5b33db213a69aac9bdb57c4645c366744c45dfb60fa38bc8ca6fe33c7",
-      "byte_size": 31781
+      "sha256": "51a77abde32b2fd6cc21db607987bfc4fedac364dc10b805a641490809a55bf2",
+      "byte_size": 33418
     },
     {
       "path": "evaluations/adversarial-cases.json",
@@ -707,8 +707,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "d5086b6c4b563744eea5fde17ba35e288aade0bbc430a36f3fef1090471134bc",
-      "byte_size": 709012
+      "sha256": "0451761f0c25039be9c4f7c75e715a99da2f912ed9376cff8d8e9ca1c507ce2f",
+      "byte_size": 709379
     },
     {
       "path": "scripts/article_maintenance.py",
@@ -827,8 +827,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "7a320346ab78e8f6fa7d26ec140a773e72e54a0bcfeeb0ad5e331528bae5d3e5",
-      "byte_size": 60262
+      "sha256": "33a3ffaa4dfca4ea32c1cc8b3394cc7fd67ed1ff640047b2931216d2793b5037",
+      "byte_size": 71982
     },
     {
       "path": "tests/test_explicit_writing_model.py",
@@ -907,8 +907,8 @@
       "scope": "spec",
       "role": "normative",
       "rule_set": "workflow",
-      "sha256": "e494106886ddd285010f879a933078941ebb859bb851c43587a87458d240a1fb",
-      "byte_size": 31862
+      "sha256": "45879aca996338ee7dbbc6753c163b94883fca06db8b9391608481ed47857f10",
+      "byte_size": 32762
     },
     {
       "path": "workflow/workflow.v2.0.0.json",

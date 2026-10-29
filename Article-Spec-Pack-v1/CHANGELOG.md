@@ -9,6 +9,12 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## October 29, 2026: Ordinary editing scope and confirmed voice learning (3.2.16)
+
+- Distinguish an ordinary whole-article conservative EDIT from a targeted repair limited to bound findings. The current article remains canonical in both cases; source evidence, selected passages, effective phrasing and unaffected accepted edits stay protected. An ordinary edit can retain the article unchanged when no supported improvement exists.
+- Freeze this distinction in new workflow rules `AF-EDIT-001` and `AF-EDIT-002`, retaining workflow 3.2.0 and all older run snapshots and receipts. A controller upgrade does not revise a historical run's editing contract.
+- Clarify the same procedure in the mirrored host skills and editorial documentation. Keep author-confirmed reusable learning in the versioned runtime guide, with actual before/after and kept passages, scope, exceptions and retained-example/different-form checks; do not duplicate it as another voice manual or claim independent cross-genre validation.
+
 ## October 28, 2026: Agent-hosted writing provenance at packaging (3.2.15)
 
 - Accept an in-session writing submission's existing controller evidence instead of requiring a provider API-call receipt that this route never creates. Validate its hash-chained acceptance, original dispatched task, exact provider/model/configured effort, accepted output and task-bound gate before packaging.

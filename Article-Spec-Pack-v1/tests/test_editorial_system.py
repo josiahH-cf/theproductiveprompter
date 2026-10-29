@@ -573,6 +573,170 @@ class EditorialTests(TemporaryRuntime):
             context.contract(af, directory, run)
 
 
+class EditInstructionDeliveryTests(TemporaryRuntime):
+    """Packet-level checks use synthetic prose and never invoke a writing route."""
+
+    legacy_edit = ("When current-article is supplied, repair that latest accepted version rather than restarting from draft. "
+                   "Preserve the selected voice passage and all unaffected edits; change only what the bound findings require. "
+                   "Use draft as historical context only.")
+    selected_passage = "The receiving record lets the team see which return still needs attention."
+
+    def prepared(self, *, legacy=False, current_article=True):
+        workflow = copy.deepcopy(af.workflow())
+        if legacy:
+            missing = {legacy} if isinstance(legacy, str) else {"AF-EDIT-001", "AF-EDIT-002"}
+            workflow["rules"] = [r for r in workflow["rules"] if r["id"] not in missing]
+        with mock.patch.object(af, "workflow", return_value=workflow):
+            code, started = call(af.command_start, seed="Explain a library's shared receiving record.", seed_file=None, slug=None)
+        self.assertEqual(code, af.EXIT_OK, started)
+        directory, run = af.load_run(started["run_id"])
+        recipe = af.load_json(af.SPEC_ROOT / "workflow/article-recipe.defaults.json")
+        recipe.update(reader_job="Understand which return needs attention.", register="accessible", archetype="explanation")
+        self.record_json(directory, run, "article-recipe", recipe)
+        self.record_json(directory, run, "brief", {"slug": "receiving-record", "title": "The receiving record"})
+        self.record_text(directory, run, "draft", "# Receiving record\n\n" + self.selected_passage + "\n\nThe current draft explains the next check.\n")
+        if current_article:
+            self.record_text(directory, run, "article", "# Receiving record\n\n" + self.selected_passage + "\n\nThe accepted edit retains a useful explanation.\n")
+        for kind in ("claim-ledger", "verified-claim-ledger", "post-edit-claim-ledger"):
+            self.record_json(directory, run, kind, {"claims": []})
+        self.record_json(directory, run, "locked-fields", {"tokens": {}})
+        self.record_json(directory, run, "voice-learning", {
+            "evidence_kind": "generated_passage_preference", "human_original": False,
+            "selected_candidate": {"passage": self.selected_passage}, "reason": None,
+        })
+        omission = "The short explanation already makes this record's single dependency clear."
+        plan = self.record_json(directory, run, "visual-plan", {
+            "visual_plan_schema_version": "1.0.0", "run_id": run["run_id"], "visuals": [], "omission_reason": omission,
+        })
+        self.record_json(directory, run, "visual-manifest", {
+            "visual_manifest_schema_version": "1.0.0", "run_id": run["run_id"],
+            "visual_plan_sha256": af.sha256_path(plan), "assets": [], "omission_reason": omission,
+        })
+        af.save_run(directory, run)
+        return directory, run
+
+    def dispatch(self, directory, run, stage="EDIT"):
+        af.transition(directory, run, stage, "test", "Inspect the synthetic packet without execution")
+        candidate = {"provider": "fixture", "model": "packet-only", "kind": "agent-hosted", "eligible": True}
+        route = {"stage": stage, "candidates": [candidate], "chosen": candidate, "fallbacks": [], "reason": "fixture"}
+        with mock.patch.object(af, "route_candidates", return_value=route), \
+             mock.patch.object(af, "pin_writing_route", side_effect=lambda run, state, route: route), \
+             mock.patch.object(af, "invoke_route", side_effect=AssertionError("packet checks must not invoke a model")), \
+             af.run_lock(directory, run):
+            return af.task_packet(directory, run)
+
+    def pending_repair(self, directory, run):
+        finding = {"criterion": "naturalness", "artifact": "article", "location": "paragraph 2",
+                   "finding": "The explanation repeats one transition.", "repair_instruction": "Remove only that repetition.",
+                   "repair_state": "EDIT"}
+        rejected = self.record_json(directory, run, "editorial-qa", {"outcome": "REPAIR", "findings": [finding]})
+        receipt = af.write_gate_receipt(directory, run, "G-EDITORIAL-QA", "REPAIR", [finding], {"type": "human"}, "EDIT")
+        run["pending_repair"] = {
+            "context_type": "targeted_gate_repair", "source_stage": "EDITORIAL_QA", "repair_state": "EDIT",
+            "failed_attempt": 1, "maximum_attempts": 3, "findings": [finding],
+            "rejected_output": {"input_id": "rejected-review", "artifact_type": "editorial-qa",
+                                "path": rejected.relative_to(directory).as_posix(), "sha256": af.sha256_path(rejected)},
+            "gate_receipt": {"input_id": "rejected-gate", "gate_id": "G-EDITORIAL-QA",
+                             "path": receipt.relative_to(directory).as_posix(), "sha256": af.sha256_path(receipt)},
+        }
+        return receipt
+
+    def test_normal_edit_reaches_model_prompt_without_targeted_scope(self):
+        for current_article in (False, True):
+            with self.subTest(current_article=current_article):
+                directory, run = self.prepared(current_article=current_article)
+                protected = {kind: af.artifact_path(directory, run, kind).read_bytes()
+                             for kind in ("draft", "visual-manifest", "voice-learning")}
+                _, packet = self.dispatch(directory, run)
+                rules = {r["id"]: r["text"] for r in af.workflow_for_run(run)["rules"]}
+                self.assertIn(rules["AF-EDIT-001"], packet["constraints"])
+                self.assertNotIn(rules["AF-EDIT-002"], packet["constraints"])
+                prompt = af.model_prompt(packet)
+                self.assertIn(rules["AF-EDIT-001"], prompt)
+                self.assertNotIn("change only what the bound findings require", prompt)
+                self.assertIn("Never restore diagrams or captions", prompt)
+                self.assertIn(self.selected_passage, prompt)
+                inputs = {i["id"]: i for i in packet["inputs"]}
+                self.assertEqual("current-article" in inputs, current_article)
+                owner = "current-article" if current_article else "draft"
+                self.assertEqual(inputs[owner]["sha256"], af.artifact(run, "article" if current_article else "draft")["sha256"])
+                for kind, before in protected.items():
+                    self.assertEqual(af.artifact_path(directory, run, kind).read_bytes(), before)
+
+    def test_targeted_edit_requires_intact_bound_findings_and_reaches_model_prompt(self):
+        directory, run = self.prepared()
+        receipt = self.pending_repair(directory, run)
+        _, packet = self.dispatch(directory, run)
+        rules = {r["id"]: r["text"] for r in af.workflow_for_run(run)["rules"]}
+        self.assertIn(rules["AF-EDIT-002"], packet["constraints"])
+        self.assertNotIn(rules["AF-EDIT-001"], packet["constraints"])
+        self.assertEqual(packet["repair_context"]["findings"], run["pending_repair"]["findings"])
+        prompt = af.model_prompt(packet)
+        self.assertIn(rules["AF-EDIT-002"], prompt)
+        self.assertIn("Remove only that repetition.", prompt)
+        original_packet = af.artifact_path(directory, run, "task-packet:EDIT:1").read_bytes()
+        receipt.write_bytes(receipt.read_bytes() + b" ")
+        with self.assertRaisesRegex(af.FlowError, "gate_receipt changed"):
+            self.dispatch(directory, run)
+        self.assertEqual(af.artifact_path(directory, run, "task-packet:EDIT:1").read_bytes(), original_packet)
+
+    def test_live_rule_changes_preserve_frozen_legacy_and_current_packets(self):
+        for legacy in (True, "AF-EDIT-001", "AF-EDIT-002", False):
+            with self.subTest(legacy=legacy):
+                directory, run = self.prepared(legacy=legacy)
+                frozen = copy.deepcopy(run["definition_snapshot"])
+                definitions_path = af.artifact_path(directory, run, "effective-definitions")
+                definitions_bytes = definitions_path.read_bytes()
+                path, packet = self.dispatch(directory, run)
+                before = path.read_bytes()
+                rules = {r["id"]: r["text"] for r in af.workflow_for_run(run)["rules"]}
+                expected = self.legacy_edit if legacy else rules["AF-EDIT-001"]
+                self.assertIn(expected, packet["constraints"])
+                changed = copy.deepcopy(af.workflow())
+                for rule in changed["rules"]:
+                    if rule["id"] in {"AF-EDIT-001", "AF-EDIT-002"}:
+                        rule["text"] = "A later installation must not rewrite this frozen instruction."
+                with mock.patch.object(af, "workflow", return_value=changed):
+                    _, later = self.dispatch(directory, run)
+                self.assertIn(expected, later["constraints"])
+                self.assertNotIn("A later installation must not rewrite this frozen instruction.", af.model_prompt(later))
+                self.assertEqual(path.read_bytes(), before)
+                self.assertEqual(af.artifact(run, "task-packet:EDIT:1")["sha256"], af.sha256_path(path))
+                self.assertEqual(run["definition_snapshot"], frozen)
+                self.assertEqual(definitions_path.read_bytes(), definitions_bytes)
+
+    def test_accepted_preference_reaches_draft_edit_and_qa_without_authorship_upgrade(self):
+        profile = af.load_json(af.SPEC_ROOT / "profiles/voice-profile.capstone.v1.json")
+        profile["version"] = "synthetic-delivery-fixture"
+        generated = "Generated fixture prose must never become an original author excerpt."
+        profile["positive_examples"].insert(0, {"evidence_kind": "generated", "authorship_confirmed": True, "excerpt": generated})
+        learning.activate_guide(af, profile, "Synthetic test authorization")
+        proposed = learning.store_proposal(af, {"run_id": "synthetic-source", "decision_maker": "human", "scope": "core"})
+        rule = "Use the concrete receiving action instead of an abstract transition."
+        accepted = learning.accept_proposal(af, proposed["record_id"], {
+            "decision_maker": "human", "exact_human_response": "Synthetic fixture confirmation.",
+            "rule": rule, "reason": "The action makes the fixture dependency clear.", "scope": "core",
+            "exceptions": "Keep necessary technical distinctions.", "retained_example_check": "The retained fixture explanation remains intact.",
+            "different_form_check": "A short fixture reference answer remains brief.",
+        })
+        directory, run = self.prepared()
+        profile_hash = af.artifact(run, "voice-profile")["sha256"]
+        for stage in ("DRAFT", "EDIT", "EDITORIAL_QA"):
+            _, packet = self.dispatch(directory, run, stage)
+            inputs = {i["id"]: i for i in packet["inputs"]}
+            self.assertNotIn("voice-profile", inputs)
+            projected = af.load_json(Path(inputs["editorial-context"]["path"]))
+            self.assertEqual(projected["voice"]["version"], accepted["version"])
+            self.assertEqual(projected["voice"]["scoped_preferences"][0]["text"], rule)
+            self.assertTrue(projected["voice"]["authentic_excerpts"])
+            self.assertNotIn(generated, json.dumps(projected["voice"]["authentic_excerpts"]))
+            self.assertFalse(projected["local_selection"]["human_original"])
+            prompt = af.model_prompt(packet)
+            self.assertIn(rule, prompt)
+            self.assertNotIn(generated, prompt)
+            self.assertEqual(af.artifact(run, "voice-profile")["sha256"], profile_hash)
+
+
 class CurrentAutomationTests(NoPublishAutomationTests):
     """Re-exercise the real controller state machine with the new stages and local learning."""
     def start(self, seed="A current no-publish editorial path.", **overrides):

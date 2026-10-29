@@ -19,6 +19,8 @@ For a model-release campaign's routine source, citation, or formatting repair th
 
 For editorial improvement, use `article-flow editorial --help` and read [the editorial reference](references/editorial.md). The run-pinned compact profile owns voice; the article contract owns audience, register, person, form and author angle. Do not import archived prompt bodies, full profile history or candidate labels into prose instructions. Treat generated articles and selected AI paragraphs as generated evidence, not human-original writing. The goal is reader understanding of what the author means, not agreement or a manufactured thesis or attitude; current runs carry the author's core idea, intended understanding, exact-excerpt firsthand evidence and supplied tone through review.
 
+Follow the EDIT scope in the run's task packet. An ordinary edit considers the whole current article conservatively under its pinned guide and contract; effective passages can stay unchanged. A targeted repair changes only what its bound findings require. Both preserve protected evidence, selected passages and unaffected accepted edits. Older frozen runs retain their original scope; see the installed editorial-system reference for the release boundary.
+
 For ordinary articles, show the actual A/B/C choices and wait for the author's answer. A choice applies locally and creates a pending reusable-learning proposal. Never supply human reasons or confirmation on the author's behalf. Once the answer arrives, continue automatically through publication; do not introduce another routine approval.
 
 
