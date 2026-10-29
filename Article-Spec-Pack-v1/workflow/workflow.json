@@ -634,6 +634,11 @@
       "text": "Preserve the protected baseline. Supply one compact evidence-backed guide and scoped article preferences. A voice selection applies locally and creates a pending learning proposal; it never activates a global rule automatically. AI choices and publication are not human-original evidence. Retain versioned rollback."
     },
     {
+      "id": "AF-VOICE-002",
+      "level": "MUST",
+      "text": "Project applicable human-confirmed scoped preferences into the compact guide as one instruction with its scope, exceptions and scoped locator. Keep approval messages, candidate labels, reasons and regression examples in private evidence records; they are not writing instructions. Preserve the historical projection for runs without this rule."
+    },
+    {
       "id": "AF-ROUTING-001",
       "level": "MUST",
       "text": "Reserve writing models atomically from the canary-approved ordered experiment pool; bind one route to rough draft, voice probe, and rewrite, and pin and disclose any fallback as a contaminated experiment."

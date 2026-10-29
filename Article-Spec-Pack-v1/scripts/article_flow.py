@@ -11701,7 +11701,7 @@ def normative_lint() -> dict[str, Any]:
         "AF-PERSON-001", "AF-LENGTH-001", "AF-SHAPE-001", "AF-CITATION-001", "AF-PACKAGE-001",
         "AF-REPAIR-001", "AF-END-001", "AF-MATURITY-001", "AF-EVIDENCE-001", "AF-NATURALIZE-001",
         "AF-VOICE-001", "AF-ROUTING-001", "AF-PUBLISH-001", "AF-INDEXING-001", "AF-EVAL-001", "AF-LIFECYCLE-001",
-        "AF-EDIT-001", "AF-EDIT-002",
+        "AF-EDIT-001", "AF-EDIT-002", "AF-VOICE-002",
     }
     missing_rules = sorted(required_rules - set(rule_ids))
     if missing_rules:

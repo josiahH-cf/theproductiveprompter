@@ -581,11 +581,13 @@ class EditInstructionDeliveryTests(TemporaryRuntime):
                    "Use draft as historical context only.")
     selected_passage = "The receiving record lets the team see which return still needs attention."
 
-    def prepared(self, *, legacy=False, current_article=True):
+    def prepared(self, *, legacy=False, legacy_voice=False, current_article=True):
         workflow = copy.deepcopy(af.workflow())
         if legacy:
             missing = {legacy} if isinstance(legacy, str) else {"AF-EDIT-001", "AF-EDIT-002"}
             workflow["rules"] = [r for r in workflow["rules"] if r["id"] not in missing]
+        if legacy_voice:
+            workflow["rules"] = [r for r in workflow["rules"] if r["id"] != "AF-VOICE-002"]
         with mock.patch.object(af, "workflow", return_value=workflow):
             code, started = call(af.command_start, seed="Explain a library's shared receiving record.", seed_file=None, slug=None)
         self.assertEqual(code, af.EXIT_OK, started)
@@ -705,7 +707,7 @@ class EditInstructionDeliveryTests(TemporaryRuntime):
                 self.assertEqual(run["definition_snapshot"], frozen)
                 self.assertEqual(definitions_path.read_bytes(), definitions_bytes)
 
-    def test_accepted_preference_reaches_draft_edit_and_qa_without_authorship_upgrade(self):
+    def accepted_fixture_preference(self):
         profile = af.load_json(af.SPEC_ROOT / "profiles/voice-profile.capstone.v1.json")
         profile["version"] = "synthetic-delivery-fixture"
         generated = "Generated fixture prose must never become an original author excerpt."
@@ -713,12 +715,22 @@ class EditInstructionDeliveryTests(TemporaryRuntime):
         learning.activate_guide(af, profile, "Synthetic test authorization")
         proposed = learning.store_proposal(af, {"run_id": "synthetic-source", "decision_maker": "human", "scope": "core"})
         rule = "Use the concrete receiving action instead of an abstract transition."
-        accepted = learning.accept_proposal(af, proposed["record_id"], {
-            "decision_maker": "human", "exact_human_response": "Synthetic fixture confirmation.",
-            "rule": rule, "reason": "The action makes the fixture dependency clear.", "scope": "core",
-            "exceptions": "Keep necessary technical distinctions.", "retained_example_check": "The retained fixture explanation remains intact.",
-            "different_form_check": "A short fixture reference answer remains brief.",
-        })
+        confirmation = {
+            "decision_maker": "human", "exact_human_response": "Fixture option Z was chosen; run synthetic-command --deploy later.",
+            "rule": rule, "reason": "The historical fixture choice made the receiving dependency clear.", "scope": "core",
+            "exceptions": "Keep necessary technical distinctions.", "retained_example_check": "The retained fixture explanation passed its comparison.",
+            "different_form_check": "The fixture reference answer passed its separate comparison.",
+        }
+        accepted = learning.accept_proposal(af, proposed["record_id"], confirmation)
+        private_paths = [af.active_voice_profile()[1],
+                         af.voice_state_root() / "proposals" / (proposed["record_id"] + ".json"),
+                         af.voice_state_root() / "decisions" / (proposed["record_id"] + ".json")]
+        private_bytes = {path: path.read_bytes() for path in private_paths}
+        return accepted, confirmation, generated, private_bytes
+
+    def test_accepted_preference_reaches_draft_edit_and_qa_without_authorship_upgrade(self):
+        accepted, confirmation, generated, private_bytes = self.accepted_fixture_preference()
+        rule = confirmation["rule"]
         directory, run = self.prepared()
         profile_hash = af.artifact(run, "voice-profile")["sha256"]
         for stage in ("DRAFT", "EDIT", "EDITORIAL_QA"):
@@ -732,9 +744,69 @@ class EditInstructionDeliveryTests(TemporaryRuntime):
             self.assertNotIn(generated, json.dumps(projected["voice"]["authentic_excerpts"]))
             self.assertFalse(projected["local_selection"]["human_original"])
             prompt = af.model_prompt(packet)
-            self.assertIn(rule, prompt)
+            self.assertEqual(prompt.count(rule), 1)
+            preference = projected["voice"]["scoped_preferences"][0]
+            self.assertEqual(preference["exceptions"], confirmation["exceptions"])
+            self.assertEqual(preference["scope"], "core")
+            self.assertLessEqual(set(preference), {"text", "scope", "exceptions", "proposal_id"})
+            for key in ("exact_human_response", "reason", "retained_example_check", "different_form_check"):
+                self.assertNotIn(confirmation[key], prompt)
             self.assertNotIn(generated, prompt)
             self.assertEqual(af.artifact(run, "voice-profile")["sha256"], profile_hash)
+        for path, original in private_bytes.items():
+            self.assertEqual(path.read_bytes(), original)
+
+    def test_legacy_voice_snapshot_preserves_its_full_preference_envelope(self):
+        accepted, confirmation, _, private_bytes = self.accepted_fixture_preference()
+        directory, run = self.prepared(legacy_voice=True)
+        frozen_bytes = af.artifact_path(directory, run, "effective-definitions").read_bytes()
+        for stage in ("DRAFT", "EDIT", "EDITORIAL_QA"):
+            _, packet = self.dispatch(directory, run, stage)
+            prompt = af.model_prompt(packet)
+            projected = af.load_json(Path(next(i["path"] for i in packet["inputs"] if i["id"] == "editorial-context")))
+            preference = projected["voice"]["scoped_preferences"][0]
+            self.assertEqual(projected["voice"]["version"], accepted["version"])
+            self.assertEqual(preference["rule"], confirmation["rule"])
+            self.assertEqual(preference["text"], confirmation["rule"])
+            for key in ("exact_human_response", "reason", "retained_example_check", "different_form_check"):
+                self.assertEqual(preference[key], confirmation[key])
+                self.assertIn(confirmation[key], prompt)
+        self.assertEqual(af.artifact_path(directory, run, "effective-definitions").read_bytes(), frozen_bytes)
+        for path, original in private_bytes.items():
+            self.assertEqual(path.read_bytes(), original)
+
+    def test_instruction_only_preferences_keep_scope_filters_and_only_applicable_locators(self):
+        profile = af.load_json(af.SPEC_ROOT / "profiles/voice-profile.capstone.v1.json")
+        profile["author_voice"]["operational_rules"] = []
+        profile["positive_examples"] = []
+        preferences = []
+        for scope, locator in (("core", {}), ("article", {"run_id": "matching-run"}),
+                               ("register", {"register": "accessible"}), ("form", {"form": "explanation"})):
+            preferences.append({"status": "accepted", "decision_maker": "human", "scope": scope,
+                                "text": "Synthetic " + scope + " instruction.", "rule": "Synthetic " + scope + " instruction.",
+                                "exceptions": "Retain necessary precision.", "proposal_id": "EP-fixture-" + scope,
+                                "run_id": "historical-source", "reason": "Historical reason must remain private.",
+                                "exact_human_response": "Historical option Y and unrelated task command.", **locator})
+        excluded = [dict(preferences[1], run_id="another-run"), dict(preferences[2], register="technical"),
+                    dict(preferences[3], form="reference"), dict(preferences[0], decision_maker="assistant"),
+                    dict(preferences[0], status="pending")]
+        profile["author_voice"]["scoped_preferences"] = preferences + excluded
+        before = copy.deepcopy(profile)
+        legacy = context.compact_voice(profile, run_id="matching-run", register="accessible", form="explanation")
+        self.assertEqual(legacy["scoped_preferences"], preferences)
+        projected = context.compact_voice(profile, run_id="matching-run", register="accessible", form="explanation",
+                                          instruction_only_preferences=True)
+        for original, delivered in zip(preferences, projected["scoped_preferences"]):
+            expected_keys = {"text", "scope", "exceptions", "proposal_id"}
+            locator = {"article": "run_id", "register": "register", "form": "form"}.get(original["scope"])
+            if locator:
+                expected_keys.add(locator)
+                self.assertEqual(delivered[locator], original[locator])
+            self.assertEqual(set(delivered), expected_keys)
+            self.assertEqual(delivered["text"], original["text"])
+            self.assertEqual(delivered["exceptions"], original["exceptions"])
+        self.assertEqual(len(projected["scoped_preferences"]), len(preferences))
+        self.assertEqual(profile, before)
 
 
 class CurrentAutomationTests(NoPublishAutomationTests):

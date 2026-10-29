@@ -3,7 +3,7 @@
   "workflow_version": "3.2.0",
   "hash_algorithm": "sha256",
   "generator_name_and_version": "article-flow 3.2.16",
-  "generated_at": "2026-10-29T19:34:25Z",
+  "generated_at": "2026-10-29T19:48:12Z",
   "generated_from": "index",
   "files": [
     {
@@ -139,8 +139,8 @@
       "scope": "spec",
       "role": "documentation",
       "rule_set": "generated-workflow",
-      "sha256": "77c5f653c50d04979e14493f42591df5601f0992c65c7b4790a9d01de6eb4fd6",
-      "byte_size": 19678
+      "sha256": "3fd2fb46d31a36c1f598080ba0bf0fb48431970cd4b2acd8e261f2e2eb115e7c",
+      "byte_size": 20049
     },
     {
       "path": "1-Master/Critic-Loop-(Single-Pass-Self-Check).md",
@@ -291,8 +291,8 @@
       "scope": "spec",
       "role": "normative",
       "rule_set": "editorial",
-      "sha256": "51a77abde32b2fd6cc21db607987bfc4fedac364dc10b805a641490809a55bf2",
-      "byte_size": 33418
+      "sha256": "ae662c3ab406dbd50272f1e04b9591d979caae68202d4b35265265b4741f952e",
+      "byte_size": 33881
     },
     {
       "path": "evaluations/adversarial-cases.json",
@@ -707,8 +707,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "0451761f0c25039be9c4f7c75e715a99da2f912ed9376cff8d8e9ca1c507ce2f",
-      "byte_size": 709379
+      "sha256": "dbd092d810d0f7da5a338a83ed973d35d1371208affe284e98a86574dc8b4196",
+      "byte_size": 709395
     },
     {
       "path": "scripts/article_maintenance.py",
@@ -731,8 +731,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "b79074d8b0d88cff430233c33ea068bafcea6c9badaef6b30e882551354d46df",
-      "byte_size": 56856
+      "sha256": "d10a0c82c1f9adba2ca3750a68903fc1f77e7267df5f5fc81ae0e82b620610a5",
+      "byte_size": 57871
     },
     {
       "path": "scripts/editorial_learning.py",
@@ -827,8 +827,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "33a3ffaa4dfca4ea32c1cc8b3394cc7fd67ed1ff640047b2931216d2793b5037",
-      "byte_size": 71982
+      "sha256": "604b456b51bb2fdaa430fbc96a0d5b8b06954a9a3d83d5d2dd53fd831c5779c8",
+      "byte_size": 77334
     },
     {
       "path": "tests/test_explicit_writing_model.py",
@@ -907,8 +907,8 @@
       "scope": "spec",
       "role": "normative",
       "rule_set": "workflow",
-      "sha256": "45879aca996338ee7dbbc6753c163b94883fca06db8b9391608481ed47857f10",
-      "byte_size": 32762
+      "sha256": "b466e07cc5814ce1cf375266067478762def5e0ed3c7e3378e0828d7bfa377b6",
+      "byte_size": 33186
     },
     {
       "path": "workflow/workflow.v2.0.0.json",

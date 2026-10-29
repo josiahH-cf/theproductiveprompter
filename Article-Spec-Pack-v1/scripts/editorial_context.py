@@ -174,7 +174,8 @@ def checked_json(af: Any, directory: Path, run: dict, kind: str) -> dict | None:
     return af.load_json(path)
 
 
-def compact_voice(profile: dict, *, run_id: str, register: str = "", form: str = "") -> dict:
+def compact_voice(profile: dict, *, run_id: str, register: str = "", form: str = "",
+                  instruction_only_preferences: bool = False) -> dict:
     """Only typed rules and confirmed original excerpts can enter the new writer path."""
     voice = profile.get("author_voice", {})
     rules = voice.get("operational_rules", [])
@@ -188,6 +189,19 @@ def compact_voice(profile: dict, *, run_id: str, register: str = "", form: str =
                         or (p.get("scope") == "form" and p.get("form") == form and form))]
     if len(rules) > 10 or len(preferences) > 6:
         raise ValueError("Active guidance exceeds its budget; consolidate the guide before writing")
+    if instruction_only_preferences:
+        projected = []
+        for preference in preferences:
+            instruction = preference.get("text") or preference.get("rule")
+            if not isinstance(instruction, str) or not instruction.strip():
+                raise ValueError("An accepted preference needs a writing instruction")
+            item = {"text": instruction, "scope": preference["scope"]}
+            locator = {"article": "run_id", "register": "register", "form": "form"}.get(preference["scope"])
+            for key in ("exceptions", "proposal_id", locator):
+                if key and key in preference:
+                    item[key] = preference[key]
+            projected.append(item)
+        preferences = projected
     result = {"profile_id": profile["profile_id"], "version": profile["version"],
               "status": profile["status"], "calibration": "human cross-genre judgment pending",
               "core_rules": rules, "scoped_preferences": preferences,
@@ -668,8 +682,10 @@ def prepare(af: Any, directory: Path, run: dict, state: str, inputs: list[dict])
         return inputs
     profile = checked_json(af, directory, run, "voice-profile") or {}
     local_contract = contract(af, directory, run)
+    instruction_only_preferences = any(rule["id"] == "AF-VOICE-002" for rule in af.workflow_for_run(run)["rules"])
     context = {"contract": local_contract,
-               "voice": compact_voice(profile, run_id=run["run_id"], register=str(local_contract["register"]), form=str(local_contract["form"])),
+               "voice": compact_voice(profile, run_id=run["run_id"], register=str(local_contract["register"]), form=str(local_contract["form"]),
+                                      instruction_only_preferences=instruction_only_preferences),
                "local_selection": checked_json(af, directory, run, "voice-learning") or None}
     author_context = checked_json(af, directory, run, "author-context")
     if author_context:
