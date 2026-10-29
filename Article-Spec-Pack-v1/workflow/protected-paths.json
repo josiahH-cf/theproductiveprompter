@@ -702,6 +702,12 @@
       "rule_set": "evaluation"
     },
     {
+      "path": "tests/test_agent_hosted_provenance.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "evaluation"
+    },
+    {
       "path": "tests/test_research_amendment.py",
       "scope": "spec",
       "role": "runtime",

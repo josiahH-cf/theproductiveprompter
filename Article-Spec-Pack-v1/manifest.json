@@ -2,8 +2,8 @@
   "manifest_schema_version": "2.0.0",
   "workflow_version": "3.2.0",
   "hash_algorithm": "sha256",
-  "generator_name_and_version": "article-flow 3.2.14",
-  "generated_at": "2026-10-28T22:22:06Z",
+  "generator_name_and_version": "article-flow 3.2.15",
+  "generated_at": "2026-10-28T23:46:35Z",
   "generated_from": "index",
   "files": [
     {
@@ -107,8 +107,8 @@
       "scope": "spec",
       "role": "documentation",
       "rule_set": "overview",
-      "sha256": "6e1caeb7a5f5fdf445dc27e33f20a937f4a5a7c8b4357bf694d61f8e2de83db9",
-      "byte_size": 26564
+      "sha256": "9b1b9ba2604a75e0ed2922e53768ff58b86a9a68fb0502239ba83c6706c1d37d",
+      "byte_size": 27190
     },
     {
       "path": "1-Master/Article-Master-Spec.md",
@@ -515,8 +515,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "schemas",
-      "sha256": "44a2360a9ce81de471d61f5e204dce92b5df281c50466b52b945bf741673e15e",
-      "byte_size": 2388
+      "sha256": "c07e488896de8f42c197b43e1af0948898cd639adbb9e64d7dd4819d32cf8153",
+      "byte_size": 2398
     },
     {
       "path": "schemas/gate-receipt.schema.json",
@@ -707,8 +707,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "b18f0e1b5054c14e399161945d458a6cb98a25bb89abf01db6e56bfb7f797d26",
-      "byte_size": 700598
+      "sha256": "d5086b6c4b563744eea5fde17ba35e288aade0bbc430a36f3fef1090471134bc",
+      "byte_size": 709012
     },
     {
       "path": "scripts/article_maintenance.py",
@@ -773,6 +773,14 @@
       "rule_set": "editorial",
       "sha256": "7761cbc861a86a782fc5fcb8a78f38743459d77bf4fc47aacdacfa4218a2c808",
       "byte_size": 20972
+    },
+    {
+      "path": "tests/test_agent_hosted_provenance.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "evaluation",
+      "sha256": "0b6b21417a091d7aaba69550b13ecfa032f301d8e05a8d515ca9793cbc09ac65",
+      "byte_size": 7794
     },
     {
       "path": "tests/test_article_flow.py",
@@ -891,8 +899,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "integrity",
-      "sha256": "59b63890a0e72e26d4f047234a100e1a7c361d8c455b4016ed28597599ced24c",
-      "byte_size": 17018
+      "sha256": "a9875d1adecd12921b5788e95bb7d927b2a1c24411cfe7b7c903accb55ceb146",
+      "byte_size": 17165
     },
     {
       "path": "workflow/workflow.json",

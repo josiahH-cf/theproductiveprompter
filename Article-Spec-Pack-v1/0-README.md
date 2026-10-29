@@ -51,6 +51,15 @@ Later editorial repairs receive the latest accepted article and preserve its sel
 
 Actual author clarification that changes scope can use `amend RUN_ID --reopen-research --reason "ACTUAL SCOPED CORRECTION AND SOURCES"` in a held unpublished editorial run or at DRAFT/DEVELOPMENT_REVIEW. The same run rebuilds research, intent, recipe and brief, then every downstream check. Its immutable correction and article snapshot reach all model stages; raw seed, writer assignment and prior evidence remain preserved. New factual claims and any new voice question must be checked normally. An identical retry resumes or returns the original amendment instead of creating another article or resetting progress.
 
+Agent-hosted writing is submitted by the calling client and does not create a
+controller API-call receipt. Packaging validates its existing dispatched task,
+accepted output, gate receipt and hash-chained acceptance, then archives an
+explicit private `writing-provenance.json`. Package attribution references those
+real gate-receipt hashes alongside any ordinary provider-call receipts. These
+records establish controller acceptance of the selected route; independent client
+or server model/effort proof and API usage, latency and cost remain separate.
+Unavailable writing-call latency is recorded as null, not measured zero.
+
 ## Automatic model-release articles
 
 Run `article-flow model-release update --json` to discover current Codex models and the documented Claude CLI catalog, publish and verify a researched article, then append missing frozen-challenge trials and republish the model cards and linked run pages. Existing responses and evidence are immutable. Repeat the same command after a release; completed trials are skipped. Native thinking levels and Codex verbosity are varied one factor at a time by default; `--matrix factorial` requests their full cross-product where supported.
