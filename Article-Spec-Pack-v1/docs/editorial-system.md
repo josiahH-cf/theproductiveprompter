@@ -6,7 +6,9 @@ Article Flow keeps one author voice while adapting to reader, purpose and subjec
 
 ## Authority and evidence
 
-The protected `profiles/voice-profile.v1.json` is unchanged historical trial evidence. It is not an authentic writing sample. The candidate `profiles/voice-profile.capstone.v1.json` owns the compact operational guide; `profiles/voice-evidence.capstone.v1.json` holds exact quotations, locations, scope, exceptions and classifications from the author's confirmed self-written capstone. The current runtime pointer chooses a version, each run freezes its profile, and the writer receives a compact projection. There is one active guide, not an additional competing style manual.
+The protected `profiles/voice-profile.v1.json` is unchanged historical trial evidence. It is not an authentic writing sample. `profiles/voice-profile.capstone.v1.json` supplies the provisional baseline; `profiles/voice-evidence.capstone.v1.json` holds exact quotations, locations, scope, exceptions and classifications from the author's confirmed self-written capstone. Accepted preferences version the runtime guide through `editorial accept`. The current runtime pointer chooses a version, each run freezes its profile, and the writer receives a compact projection. There is one active guide, not an additional competing style manual.
+
+For new snapshots containing `AF-VOICE-002`, an accepted scoped preference reaches the writer as its active instruction after scope filtering. Full confirmation responses, before/after and kept examples, candidate labels, reasons and regression checks remain private immutable learning evidence; they do not become prose instructions. This projection changes no accepted preference or approval. Older frozen snapshots retain their original preference envelopes.
 
 The capstone supports connected practical reasoning, ordinary explanations of technical terms, visible consequences, and scoped recommendations. It does not establish universal academic openings, recaps, first person, humor, paragraph sizes or article shapes. Full source passages were inspected before derivation, so there is no independent holdout. Cross-genre resemblance remains a pending human judgment even when use of the guide is authorized.
 
@@ -28,6 +30,14 @@ Every new run snapshots the workflow, house policy, recipe defaults and schemas 
 | Public description | DISPLAY_REVISION aligns title/description with the finished article and must preserve every other brief field. TLDR and standalone summaries have distinct purposes. |
 | QA and repairs | QA separates development, facts, display, visual and prose concerns. The controller classifies destinations and repairs the earliest dependency first. It retains every material obligation for surface-specific resolution; no model can select an arbitrary state. New runs cannot accept unresolved soft QA findings merely because repairs are exhausted. |
 | Publication | Existing scoped approval, allowlisted target, exact blob checks, URL/date continuity and live checks remain. Model-release experiments and recorded original responses remain immutable. |
+
+### Ordinary editing and targeted repair (controller 3.2.16)
+
+New definition snapshots include `AF-EDIT-001` and `AF-EDIT-002`. An ordinary EDIT considers the whole current article for a conservative prose pass under the pinned compact guide and article contract. It may improve wording, cadence and paragraph connections without a pre-existing defect finding; it may also retain an effective passage or return the article unchanged when no supported improvement exists. This is not a requirement to rewrite every paragraph. Missing meaning, evidence or author perspective still returns to DRAFT.
+
+A targeted EDIT repair addresses its hash-bound `repair_context` and preserves unaffected accepted edits. The presence of `current-article` alone does not make an ordinary edit a targeted repair: it identifies the canonical source. Both scopes retain facts, qualifications, citations, exact source-bound quotations and code, selected local passages, approved visual relationships and authorized viewpoint. Neither scope grants permission to invent author experience or weaken preservation locks.
+
+The distinction is owned by the run's frozen workflow rules, not the installed controller version alone. Runs whose snapshots predate these rules retain their original EDIT instructions and historical artifacts. A new revision receives the then-current definitions and guide. The skill and editorial documentation explain this procedure; reusable voice preferences belong only in the versioned compact guide, with actual human confirmation and their recorded scope and exceptions.
 
 The house policy prohibits em dashes in editable public prose and summaries. Controller release 3.2.1 adds an author-approved exception for exact verbatim block quotations, explicitly attributed inline quotations and code payloads bound to a verified published revision source. The controller derives their hashes and source locations from the immutable source snapshot in `revision-evidence.json`; a quote/code label alone creates no exemption. Modified or unregistered evidence fails, missing original evidence fails, and titles/descriptions retain the ban. Historical runs retain their frozen policy. Phrase checks catch a narrow mechanical problem and do not establish voice fidelity.
 
@@ -130,3 +140,34 @@ When live verification resumes after a later collection publication, the control
 Same-URL publication recognizes older unmarked article cards by one canonical title link, using the actual page URL, document base and canonical origin. Inert markup cannot establish ownership. It rejects missing, duplicated or conflicting ownership. The controller updates only the title, summary, date and reading time on populated cards, adds the missing identifier, and preserves thumbnails, categories, card classes, featured state and position. Later revisions retain those details. This compatibility path creates no new article or author preference.
 
 After an exhausted deployment-propagation window, retain the stop until the operator explicitly authorizes one further check. Use `repair RUN_ID G-LIVE-REVISION --finding "ACTUAL AUTHORIZATION AND FINDING"`. The controller verifies the historical receipts, original pushed publication/package/approval, clean exact remote descendant and unchanged article-owned scope, then requires fresh HTTP 200 and exact bytes for every packaged site file, including styles and assets. It records a separate observation and one durable verification allowance; `verify-live` or `advance` consumes that allowance without republishing. Failure stops again, repeated recovery cannot reset it, and earlier receipts and approvals remain unchanged. A hosting build label alone does not establish settled bytes. This exceptional recovery does not create a human voice judgment.
+
+
+### Optional GPT revision after publication (controller 3.2.17)
+
+Publication still closes at COMPLETE. Its response offers `:article-flow-revision`
+without opening a question, waiting, or starting another Run. Espansr is only the
+reusable GPT prompt entry point; GPT reads and confirms the latest article from
+the blog (or the older article Jo names) before applying his stream-of-consciousness
+feedback. See [the prompt and exact handoff contract](article-flow-revision-prompt.md).
+
+New public packages include a linked `.revision.json` with the already-public
+body Markdown and a controller-computed source identity. Hidden frontmatter, private feedback, run path,
+credentials and author evidence are excluded. For an older page, `revision-export`
+reads exact Git/worktree/live source bytes and exports a private `source.json` and
+`article.md`; it starts no Run or publication.
+
+`revise --source-file SOURCE --candidate-file CANDIDATE --request-file FEEDBACK
+--unattended-editorial --authorization ACTUAL_AUTHOR_REQUEST --auto` accepts the
+complete revised Markdown separately from exact author feedback. Strict identity,
+source hash, links, source-bound quotations/code and images are checked before
+Run creation. The controller carries supplied prose through DRAFT and EDIT under
+honest external-assistant provenance; no selected writer task, exact GPT model or
+human voice judgment is invented. Normal research, development, fact, editorial,
+rendering, package and live checks remain. Failed checks that require prose changes
+hold the candidate for correction, without a replacement rewrite. Preserved image
+bytes are verified and packaged explicitly; no new diagram is requested by this
+prose import. HTML and assets are fenced again before publication. Exact retries
+return their existing Run and never resume a blocked owner. Same URL and original
+publication timestamp remain source-bound. An explicit revision request authorizes
+automatic continuation through validation and republishing within existing holds,
+capability and effect-reconciliation boundaries.

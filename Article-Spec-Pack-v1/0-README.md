@@ -199,3 +199,11 @@ If a late review finds missing reasoning or a whole-development defect after cla
 After a late amendment and renewed packaging, publication planning binds the current package, repository revision, target and frozen style policy again. `next` returns the planning command for stale scope; `advance` refreshes it before honoring a hold or issuing automatic policy approval. A direct approval cannot reuse an older package's plan. An expired approval may retry only its own exact partially committed scope; if the repository moved before publication began, renewal returns to fresh planning and approval. The existing author decision and publication policy still govern continuation; refreshed scope does not create a human voice judgment.
 
 Same-URL publication recognizes older unmarked article cards by one canonical title link, using the actual page URL, document base and canonical origin. Inert markup cannot establish ownership. It rejects missing, duplicated or conflicting ownership. The controller updates only the title, summary, date and reading time on populated cards, adds the missing identifier, and preserves thumbnails, categories, card classes, featured state and position. Later revisions retain those details. This compatibility path creates no new article or author preference.
+
+
+After publication, an optional GPT revision offer leaves the Run complete. Use
+`:article-flow-revision` in GPT to confirm and revise the latest article, or name
+an older one. Return complete Markdown, the unchanged verified source identity,
+and Jo's exact feedback as separate inputs. The runner validates and republishes
+a requested revision automatically, stopping on failed checks or material
+conflicts. [Prompt and command contract](docs/article-flow-revision-prompt.md).

@@ -47,8 +47,10 @@ import editorial_context
 import editorial_learning
 import editorial_workbench
 import revision_sources
+import external_revision
+import revision_import
 
-CONTROLLER_VERSION = "3.2.15"
+CONTROLLER_VERSION = "3.2.17"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -1015,6 +1017,8 @@ def model_history() -> dict[str, Any]:
         except FlowError:
             directory = None
             run = {}
+        if directory and revision_import.enabled(sys.modules[__name__], run):
+            continue  # Imported prose is not an observation of the reserved writer.
         metadata = json_artifact(directory, run, "brief") if directory else None
         live = json_artifact(directory, run, "live-verification") if directory else None
         experiment = run.get("model_experiment", {}) if isinstance(run, dict) else {}
@@ -1043,6 +1047,8 @@ def model_comparison_summary(runs: list[dict[str, Any]], feedback: list[dict[str
     latest_feedback = {item.get("run_id"): item.get("outcome") for item in feedback}
     rows: dict[str, dict[str, Any]] = {}
     for run in runs:
+        if run.get("excluded_external_revision"):
+            continue
         model = str(run.get("actual_model_id") or run.get("active_model_id") or run.get("assigned_model_id"))
         row = rows.setdefault(model, {"model": model, "clean_completed": 0, "excluded_fallback_or_mixed": 0, "incomplete": 0, "operator_accepted": 0, "operator_rejected": 0, "unrated": 0})
         if run.get("contaminated") or len(run.get("actual_models") or []) > 1:
@@ -1095,8 +1101,9 @@ def summarize_model_experiment(directory: Path, run: dict[str, Any], assignment:
     return {
         "requested_model_id": assignment.get("assigned_model_id"),
         "configured_reasoning_effort": assignment.get('configured_reasoning_effort'),
-        "actual_model_id": experiment.get("active_model_id") or assignment.get("assigned_model_id"),
-        "provider_id": experiment.get("provider_id") or assignment.get("provider_id"),
+        "actual_model_id": None if revision_import.enabled(sys.modules[__name__], run) else (experiment.get("active_model_id") or assignment.get("assigned_model_id")),
+        "provider_id": None if revision_import.enabled(sys.modules[__name__], run) else (experiment.get("provider_id") or assignment.get("provider_id")),
+        **({"excluded_external_revision": True} if revision_import.enabled(sys.modules[__name__], run) else {}),
         "cli_version": cli_versions[-1] if cli_versions else "unknown",
         "writing_stages": sorted(stage_routes),
         "elapsed_milliseconds": elapsed if receipts else None,
@@ -1113,7 +1120,7 @@ def summarize_model_experiment(directory: Path, run: dict[str, Any], assignment:
 
 
 def record_experiment_outcome(directory: Path, run: dict[str, Any]) -> dict[str, Any] | None:
-    if not is_v3_run(run):
+    if not is_v3_run(run) or revision_import.enabled(sys.modules[__name__], run):
         return None
     assignment_path = artifact_path(directory, run, "model-assignment")
     assignment = json_artifact(directory, run, "model-assignment")
@@ -2640,6 +2647,8 @@ def packet_inputs(directory: Path, run: dict[str, Any], state: str) -> list[dict
     if run.get("revision", {}).get("source_html_sha256") and state in MODEL_STATES:
         required.add("revision-source")
         required.add("revision-evidence")
+    if revision_import.enabled(sys.modules[__name__], run) and state in MODEL_STATES:
+        required.update({"external-revision", "external-revision-candidate"})
     if editorial_context.enabled(run) and artifact(run, "article") and state in {"DRAFT", "CLAIM_VERIFICATION", "VISUAL_PLAN"}:
         required.add("article")
         if state == "DRAFT" and artifact(run, "verified-claim-ledger"):
@@ -2683,6 +2692,10 @@ def packet_inputs(directory: Path, run: dict[str, Any], state: str) -> list[dict
                 raise FlowError("Rendered visual escapes the run directory", EXIT_INTEGRITY)
             result.append({"id": "rendered-visual:" + asset["visual_id"],
                            "path": str(path), "sha256": asset["sha256"]})
+    if revision_import.enabled(sys.modules[__name__], run) and state == "EDITORIAL_QA":
+        for asset in revision_import.assets(sys.modules[__name__], directory, run):
+            result.append({"id": "preserved-visual:" + asset["public_path"],
+                           "path": str(directory / asset["source_path"]), "sha256": asset["sha256"]})
     return result
 
 
@@ -2696,7 +2709,7 @@ def qa_visual_input_set(directory: Path, run: dict[str, Any], inputs: list[dict[
     if not editorial_context.enabled(run) or run["state"] != "EDITORIAL_QA":
         return []
     return [item for item in (inputs if inputs is not None else packet_inputs(directory, run, "EDITORIAL_QA"))
-            if item["id"] in {"visual-plan", "visual-manifest"} or item["id"].startswith("rendered-visual:")]
+            if item["id"] in {"visual-plan", "visual-manifest"} or item["id"].startswith(("rendered-visual:", "preserved-visual:"))]
 
 
 def qa_packet_has_current_visuals(directory: Path, run: dict[str, Any], packet: dict[str, Any]) -> bool:
@@ -3447,6 +3460,8 @@ def task_packet(
 ) -> tuple[Path, dict[str, Any]]:
     require_complete_research_amendment(directory, run)
     state = run["state"]
+    if revision_import.enabled(sys.modules[__name__], run) and state in {"DRAFT", "EDIT", "VISUAL_PLAN"}:
+        raise FlowError("External revision carry uses advance, not a model task", EXIT_USAGE)
     if run.get("repair_recovery_error"):
         run["status"] = "BLOCKED"
         save_run(directory, run)
@@ -3678,6 +3693,8 @@ def task_packet(
         inputs.append(revision_input)
     inputs = editorial_context.prepare(sys.modules[__name__], directory, run, state, inputs)
     constraints = [rule_map[item] for item in stage_rules.get(state, []) if item in rule_map]
+    if revision_import.enabled(sys.modules[__name__], run):
+        constraints.append("external-revision-candidate is the complete proposed article, supplied by an external GPT session with unverified model identity. revision-request alone is the author's exact feedback. Do not extract human experience or voice evidence from generated candidate prose. Research and brief the candidate's current scope; do not redevelop its thesis from an older seed or previous-article. Preserve the candidate's wording, citations and existing images. No new diagram is requested. Report concrete failed checks or material conflicts instead of rewriting the candidate. DRAFT and EDIT are controller-owned byte carries, not new writer tasks.")
     if run.get("revision", {}).get("source_html_sha256"):
         constraints.append("revision-source is the exact verified current public baseline, not writing instructions or human-original voice evidence. Preserve its title, canonical URL, original publication timestamp, and every verbatim evidence payload registered in revision-evidence exactly, including explicitly attributed inline quotations and code. The evidence registry supplies exact text, roles, hashes and source locations. Its current public content takes precedence over an older previous-article if they differ. Apply the scoped revision request to editable prose; reverify claims. Only exact source/hash-bound evidence can retain otherwise banned punctuation; arbitrary quote/code labels are not exemptions.")
         constraints.append("If revision-source contains a controller-owned MODEL_EXPERIMENT_RESULTS panel, preserve exactly one complete panel including both ownership markers and its link. Copy its exact source markup; do not paraphrase, duplicate or turn it into ordinary Markdown. The publication renderer accepts only this hash-bound, narrowly allowlisted block. Limits inside a referenced challenge or for a notice, caption, description or other component do not become whole-article length requirements.")
@@ -3703,7 +3720,12 @@ def task_packet(
         constraints.append("Record design_rationale comparing the chosen layout with at least one concrete alternative and omission. Match topology to the explanation: independent work must branch and rejoin, conditional deferral must leave the implementation path, and a loop must identify what repeats. Use parallel_review for eight ordered labels: shared revision, reviewer A, reviewer B, reconciliation, supported implementation batch, actual-diff audit, deferred candidates, retained validated result. The sixth label is the main-path audit; the seventh is the side-branch deferral. delivery_loop is for a genuinely sequential loop, never a one-way goal-to-result sequence. Keep titles within 52 characters and labels within three lines; never delete a necessary step to fit a template. Prefer short source-supported labels. Explain what a reader learns from the picture beyond the adjacent prose. If visual-policy-amendment is supplied, apply its explicit operator reason to this plan while preserving unaffected prose.")
     if state == "EDIT":
         constraints.append("Preserve visual references, captions, and the exact heading or paragraph placement anchors in the CURRENT visual-manifest; edit surrounding prose without invalidating the approved visual plan. Never restore diagrams or captions from historical articles when they are absent from that manifest, including when it is empty.")
-        constraints.append("When current-article is supplied, repair that latest accepted version rather than restarting from draft. Preserve the selected voice passage and all unaffected edits; change only what the bound findings require. Use draft as historical context only.")
+        if {"AF-EDIT-001", "AF-EDIT-002"} <= rule_map.keys():
+            constraints.append(rule_map["AF-EDIT-002" if repair_context else "AF-EDIT-001"])
+        else:
+            # Earlier snapshots did not freeze separate editing scopes. Keep
+            # their exact instruction for future dispatches as well as replay.
+            constraints.append("When current-article is supplied, repair that latest accepted version rather than restarting from draft. Preserve the selected voice passage and all unaffected edits; change only what the bound findings require. Use draft as historical context only.")
     if editorial_context.enabled(run) and state in {"DRAFT", "CLAIM_VERIFICATION", "VISUAL_PLAN"}:
         constraints.append("If current-article is supplied, it is the canonical repair source. Preserve its unaffected edits and distinctive phrasing. DRAFT develops or corrects only the bound issue using the latest verified ledger; CLAIM_VERIFICATION verifies this current article rather than the older rough draft; VISUAL_PLAN selects placements in this article. Historical draft and previous-article are context only.")
     if state == "DRAFT" and artifact(run, "development-amendment") and not artifact(run, "research-amendment"):
@@ -6130,7 +6152,12 @@ def next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
                     "questions": candidate["material_questions"], "question": question, **binding,
                     "response_command": ["article-flow", "clarify", run["run_id"], "--response-file", "<verbatim-author-response-file>", "--question-id", binding["question_id"], "--auto", "--json"]}
     if state in {"COMPLETE", "TERMINAL"}:
-        return {"action": state.lower(), "run_id": run["run_id"], "state": state}
+        return {"action": state.lower(), "run_id": run["run_id"], "state": state,
+                **revision_import.offer(sys.modules[__name__], run)}
+    if revision_import.enabled(sys.modules[__name__], run) and state in {"DRAFT", "EDIT", "VISUAL_PLAN"} and run.get("status") != "BLOCKED":
+        return {"action": "run_command", "run_id": run["run_id"], "state": state,
+                "command": ["article-flow", "advance", run["run_id"]],
+                "reason": "Validate and carry the supplied external candidate without rewriting"}
     if state == "VOICE_PROBE" and run.get("run_overrides", {}).get("reuse_approved_voice"):
         return {"action": "run_command", "run_id": run["run_id"], "state": state,
                 "command": ["article-flow", "advance", run["run_id"]],
@@ -6461,7 +6488,19 @@ def command_revise(args: argparse.Namespace) -> int:
         raise FlowError("Unattended revision requires the actual author authorization", EXIT_USAGE)
     # All source validation precedes command_start: a rejected adoption must not
     # leave a partial run or consume a writing-model reservation.
-    source = revision_sources.prepare(sys.modules[__name__], args)
+    external = bool(getattr(args, "candidate_file", None) or getattr(args, "source_file", None))
+    if external and not (getattr(args, "unattended_editorial", False) and getattr(args, "authorization", None)):
+        raise FlowError("External revision requires scoped unattended author authorization", EXIT_USAGE)
+    if external:
+        found = revision_import.existing(sys.modules[__name__], args)
+        if found:
+            directory, existing_run = found
+            emit({"ok": existing_run.get("status") != "BLOCKED", "idempotent": True,
+                  "run_id": existing_run["run_id"], "state": existing_run["state"],
+                  "status": existing_run.get("status"), "execution_started": False,
+                  "next": next_state_payload(directory, existing_run)}, args.json)
+            return EXIT_WAITING if existing_run.get("status") == "BLOCKED" else EXIT_OK
+    source = external_revision.prepare(sys.modules[__name__], args) if external else revision_sources.prepare(sys.modules[__name__], args)
     snapshot, source_run = source["snapshot"], source["source_run"]
     source_metadata = snapshot["metadata"]
     start_args = argparse.Namespace(
@@ -6472,8 +6511,8 @@ def command_revise(args: argparse.Namespace) -> int:
         draft_provider=getattr(args, "draft_provider", None),
         auto=False,
         hold_before_publish=bool(getattr(args, "hold_before_publish", False)),
-        model_release=source_run.get("run_overrides", {}).get("model_release") == "model-release-v1",
-        approved_voice=bool(source_run.get("run_overrides", {}).get("reuse_approved_voice")),
+        model_release=not external and source_run.get("run_overrides", {}).get("model_release") == "model-release-v1",
+        approved_voice=not external and bool(source_run.get("run_overrides", {}).get("reuse_approved_voice")),
         model_release_campaign_id=source_run.get("run_overrides", {}).get("model_release_campaign_id"),
         json=True,
     )
@@ -6491,7 +6530,7 @@ def command_revise(args: argparse.Namespace) -> int:
             run,
             request_destination,
             "revision-request",
-            {"actor": "delegated_editor" if getattr(args, "unattended_editorial", False) else "operator", "source_run_id": source["source_run_id"], "preserved_verbatim": True},
+            {"actor": "operator" if external else ("delegated_editor" if getattr(args, "unattended_editorial", False) else "operator"), "source_run_id": source["source_run_id"], "preserved_verbatim": True},
             expected_bytes=request_bytes,
         )
         target = load_json(SPEC_ROOT / "publication" / "theproductiveprompter.json")
@@ -6532,6 +6571,8 @@ def command_revise(args: argparse.Namespace) -> int:
             profile_item = artifact(run, "voice-profile")
             run["run_overrides"]["reuse_approved_voice"] = {"profile_sha256": profile_item["sha256"], "authorization": authorization, "scope": "delegated_revision", "human_quality_judgment": "pending"}
         run["revision"] = revision
+        if external:
+            revision_import.install(sys.modules[__name__], directory, run, source)
         if source["source_run_id"]:
             run["parent_run_id"] = source["source_run_id"]
         append_event(directory, run, "REVISION_CREATED", "controller", revision)
@@ -7737,7 +7778,7 @@ def visual_plan_findings(directory: Path, run: dict[str, Any], plan: dict[str, A
     recipe = json_artifact(directory, run, "article-recipe") or {}
     mode = recipe.get("components", {}).get("diagram", "auto")
     visuals = plan.get("visuals", [])
-    if mode == "required" and not visuals:
+    if mode == "required" and not visuals and not revision_import.assets(sys.modules[__name__], directory, run):
         fail("required_visual", "visuals", "The recipe requires a useful diagram.", "Plan the required diagram with evidence and accessible explanation.")
     if mode == "off" and visuals:
         fail("visual_policy", "visuals", "The recipe explicitly disables diagrams.", "Obtain a scoped recipe amendment before planning visuals.")
@@ -8007,6 +8048,7 @@ def unplanned_visual_reference_findings(directory: Path, run: dict[str, Any], ma
         return []
     manifest = load_json(manifest_path)
     allowed = {str(asset["public_path"]) for asset in manifest.get("assets", [])}
+    allowed.update(asset["public_path"] for asset in revision_import.assets(sys.modules[__name__], directory, run))
     slug = package_metadata_slug(directory, run)
     prefix = f"/assets/articles/{slug}/"
     target = load_json(SPEC_ROOT / "publication" / "theproductiveprompter.json")
@@ -8292,7 +8334,7 @@ def command_visual_render(args: argparse.Namespace) -> int:
         source_markdown = source_draft_path.read_text(encoding="utf-8")
         if prior_manifest_item:
             source_markdown = strip_planned_visual_blocks(source_markdown, load_json(directory / prior_manifest_item["path"]))
-        visualized_draft = materialize_manifest_visuals_markdown(source_markdown, manifest)
+        visualized_draft = source_markdown if revision_import.enabled(sys.modules[__name__], run) else materialize_manifest_visuals_markdown(source_markdown, manifest)
         source_findings = revision_sources.preservation_findings(sys.modules[__name__], visualized_draft, run)
         if source_findings:
             raise FlowError("Visual materialization altered source-bound evidence", EXIT_INTEGRITY, source_findings)
@@ -8519,7 +8561,8 @@ def package_metadata(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
         tags = []
     experiment = run.get("model_experiment", {})
     actual_models = [str(item) for item in experiment.get("actual_models", []) if str(item)]
-    if is_v3_run(run) and not actual_models:
+    external = revision_import.enabled(sys.modules[__name__], run)
+    if is_v3_run(run) and not actual_models and not external:
         raise FlowError("Workflow 3 packaging requires exact accepted writing-model provenance", EXIT_INTEGRITY)
     display_names = writing_model_policy()["display_names"]
     drafting_models = [
@@ -8546,6 +8589,7 @@ def package_metadata(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
         "workflow_version": run["workflow_version"],
         "voice_profile_version": effective_profile["version"],
         "drafting_models": drafting_models,
+        "external_revision": {"source": "external_assistant", "exact_model": None, "human_original": False} if external else None,
         "model_experiment_contaminated": bool(experiment.get("contaminated", False)),
         "style_policy_sha256": style_policy_sha256(run),
         "revision_mode": "replace_in_place" if revision else "new",
@@ -8835,6 +8879,7 @@ def inject_manifest_visuals(directory: Path, run: dict[str, Any], body: str) -> 
 
 def render_publication_files(directory: Path, run: dict[str, Any], package_root: Path, metadata: dict[str, Any]) -> list[Path]:
     revision_sources.assert_unchanged_source(sys.modules[__name__], run)
+    revision_import.assert_current_assets(sys.modules[__name__], run)
     article_path = artifact_path(directory, run, "article")
     if not article_path:
         raise FlowError("Approved article artifact is missing")
@@ -8852,7 +8897,7 @@ def render_publication_files(directory: Path, run: dict[str, Any], package_root:
         article_markdown = strip_planned_visual_blocks(article_markdown, load_json(manifest_path))
     body = inject_manifest_visuals(directory, run, revision_sources.render_article_markdown(sys.modules[__name__], article_markdown, run))
     drafting_models = metadata.get("drafting_models", [])
-    if is_v3_run(run) and not drafting_models:
+    if is_v3_run(run) and not drafting_models and not metadata.get("external_revision"):
         raise FlowError("Cannot render a workflow 3 article without drafting-model disclosure", EXIT_INTEGRITY)
     if drafting_models:
         names = [str(item.get("public_display_name")) for item in drafting_models if isinstance(item, dict)]
@@ -8861,6 +8906,9 @@ def render_publication_files(directory: Path, run: dict[str, Any], package_root:
             f"data-style-policy-sha256=\"{html.escape(metadata['style_policy_sha256'], quote=True)}\">"
             f"<p>Drafting model: {html.escape(', '.join(names))}</p></footer>"
         )
+    if metadata.get("external_revision"):
+        body += ('\n<footer class="article-external-revision-attribution"><p>Revision text supplied in GPT; exact model unverified.</p></footer>')
+    body += (f'\n<footer class="article-revision-handoff"><p><a href="{html.escape(metadata["slug"], quote=True)}.revision.json">Article revision source (Markdown)</a></p></footer>')
     canonical = target["canonical_url"].format(slug=metadata["slug"])
     words = len(re.findall(r"\b\w+\b", article_markdown))
     reading_minutes = max(1, round(words / 230))
@@ -8897,6 +8945,11 @@ def render_publication_files(directory: Path, run: dict[str, Any], package_root:
     rendered = template
     for key, value in replacements.items():
         rendered = rendered.replace(key, value)
+    public_markdown = external_revision.public_markdown(sys.modules[__name__], revision_article_path.read_bytes())
+    source_meta = f'<meta name="article-flow-revision-source-sha256" content="{sha256_bytes(public_markdown)}">'
+    if "</head>" not in rendered:
+        raise FlowError("Article template has no source identity metadata insertion point", EXIT_INTEGRITY)
+    rendered = rendered.replace("</head>", source_meta + "\n</head>", 1)
     if drafting_models:
         model_ids = [str(item.get("model_id")) for item in drafting_models if isinstance(item, dict)]
         disclosure_meta = (
@@ -8920,6 +8973,12 @@ def render_publication_files(directory: Path, run: dict[str, Any], package_root:
             shutil.copy2(source, destination)
     article_output = site_root / "docs" / f"{metadata['slug']}.html"
     atomic_write(article_output, rendered.encode("utf-8"))
+    handoff = revision_import.public_handoff(sys.modules[__name__], rendered.encode("utf-8"), revision_article_path.read_bytes(), metadata)
+    write_json(site_root / "docs" / f"{metadata['slug']}.revision.json", handoff)
+    for asset in revision_import.assets(sys.modules[__name__], directory, run):
+        destination = site_root / safe_relative(asset["public_path"].lstrip("/"))
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(directory / asset["source_path"], destination)
     card_blog = textwrap.dedent(f"""\
         <article class="article-card article-card--featured" data-article-flow-slug="{html.escape(metadata['slug'])}">
             <span class="article-card__badge">Latest</span>
@@ -9231,6 +9290,11 @@ def validate_public_package(package_root: Path, metadata: dict[str, Any], run: d
                 ]
                 if any(bit not in text for bit in required_figure_bits):
                     findings.append({"criterion": "visual_figure_binding", "path": str(article_html), "finding": f"Visual {visual_id} is not rendered with its bound hash, alt text, title, and caption."})
+        if run and revision_import.enabled(sys.modules[__name__], run):
+            for asset in revision_import.assets(sys.modules[__name__], run_dir(run["run_id"]), run):
+                asset_path = site_root / safe_relative(asset["public_path"].lstrip("/"))
+                if not asset_path.is_file() or sha256_path(asset_path) != asset["sha256"]:
+                    findings.append({"criterion": "preserved_revision_asset", "path": str(asset_path), "finding": "Preserved source image is missing or changed."})
         for attribute, target in re.findall(r"\b(href|src)=\"([^\"]+)\"", text):
             if target.startswith(("http://", "https://", "mailto:", "#", "data:")):
                 continue
@@ -9585,6 +9649,8 @@ def package_writing_provenance(directory: Path, run: dict[str, Any]) -> dict[str
     ok, error, _, events = verify_event_log(directory, run)
     if not ok:
         raise FlowError("Writing provenance event log failed validation", EXIT_INTEGRITY, error)
+    if revision_import.enabled(sys.modules[__name__], run):
+        return revision_import.provenance(sys.modules[__name__], directory, run)
     call_hashes = {
         str(item["sha256"])
         for item in run.get("artifact_index", [])
@@ -9783,14 +9849,15 @@ def command_package(args: argparse.Namespace) -> int:
             assert writing_provenance is not None
             receipt_hashes = writing_provenance["source_receipt_hashes"]
             model_names = [str(item["public_display_name"]) for item in metadata["drafting_models"]]
+            attribution = ("Revision text supplied in GPT; exact model unverified." if metadata.get("external_revision") else f"Drafting model: {', '.join(model_names)}")
             experiment = run.get("model_experiment", {})
             package.update({
                 "automation_mode": str(run.get("run_overrides", {}).get("automation_mode", "manual")),
                 "effective_voice_profile_version": metadata["voice_profile_version"],
                 "model_assignment": assignment_value,
                 "model_attribution": {
-                    "public_display_name": ", ".join(model_names),
-                    "footer_text": f"Drafting model: {', '.join(model_names)}",
+                    "public_display_name": ", ".join(model_names) if model_names else "Externally supplied GPT revision; exact model unverified",
+                    "footer_text": attribution,
                     "source_receipt_hashes": receipt_hashes,
                 },
                 "style_policy_sha256": metadata["style_policy_sha256"],
@@ -9835,6 +9902,7 @@ def command_publish_plan(args: argparse.Namespace) -> int:
     if run["state"] != "PUBLISH_APPROVAL":
         raise FlowError(f"Publication planning requires PUBLISH_APPROVAL, current state is {run['state']}")
     revision_sources.assert_unchanged_source(sys.modules[__name__], run)
+    revision_import.assert_current_assets(sys.modules[__name__], run)
     package = load_json(directory / "package" / "package.json")
     target = load_json(SPEC_ROOT / "publication" / "theproductiveprompter.json")
     repository = publication_repo_root(required=True)
@@ -10143,6 +10211,7 @@ def _command_publish_execute_locked(
     )
     if not resumed_own_commit:
         revision_sources.assert_unchanged_source(sys.modules[__name__], run)
+        revision_import.assert_current_assets(sys.modules[__name__], run)
     if current_commit != plan.get("base_commit") and not resumed_own_commit:
         # The plan is a snapshot of the target, and the target repository moves
         # for reasons unrelated to this run.  Nothing has been copied yet, so
@@ -10404,7 +10473,7 @@ def live_verification_failures_are_propagation(checks: list[dict[str, Any]]) -> 
         "homepage_http", "homepage_revision",
         "feed_http", "feed_revision",
         "sitemap_http", "sitemap_revision",
-        "visual_asset",
+        "visual_asset", "revision_source",
     }
     article_dependent = {
         "canonical",
@@ -10728,7 +10797,8 @@ def verify_live_locked(directory: Path, run: dict[str, Any], args: argparse.Name
     checked_urls = set(urls.values())
     if shared_surface_commit:
         checked_urls.add(urllib.parse.urljoin(target["homepage_url"], "styles.css"))
-    for asset in asset_manifest.get("assets", []):
+    preserved_assets = revision_import.assets(sys.modules[__name__], directory, run)
+    for asset in [*asset_manifest.get("assets", []), *preserved_assets]:
         if not isinstance(asset, dict):
             continue
         asset_url = urllib.parse.urljoin(target["homepage_url"], str(asset.get("public_path") or "").lstrip("/"))
@@ -10743,6 +10813,18 @@ def verify_live_locked(directory: Path, run: dict[str, Any], args: argparse.Name
             "actual_sha256": sha256_bytes(body),
             "ok": status == 200 and sha256_bytes(body) == asset.get("sha256"),
         })
+    handoff_relative = f"site/docs/{metadata['slug']}.revision.json"
+    handoff_item = next((item for item in package.get("public_files", []) if item.get("path") == handoff_relative), None)
+    if handoff_item:
+        handoff_path = directory / "package" / handoff_relative
+        if not handoff_path.is_file() or sha256_path(handoff_path) != handoff_item["sha256"]:
+            raise FlowError("Packaged revision handoff changed before live verification", EXIT_INTEGRITY)
+        handoff_url = urls["article"].removesuffix(".html") + ".revision.json"
+        status, body, _ = fetch_url(handoff_url)
+        checked_urls.add(handoff_url)
+        checks.append({"name": "revision_source", "url": handoff_url, "status": status,
+                       "expected_sha256": handoff_item["sha256"], "actual_sha256": sha256_bytes(body),
+                       "ok": status == 200 and sha256_bytes(body) == handoff_item["sha256"]})
     for url, expected in recovery_scope.items():
         if url in checked_urls:
             continue
@@ -10820,7 +10902,8 @@ def verify_live_locked(directory: Path, run: dict[str, Any], args: argparse.Name
     run["live_verification"] = {"attempt": attempt, "maximum": maximum, "classification": "verified", "retry_after_seconds": None, "next_retry_at": None}
     record_experiment_outcome(directory, run)
     transition(directory, run, "COMPLETE", "controller", "Exact rendered revision and required discovery surfaces verified")
-    emit({"ok": True, "url": receipt["url"], "receipt": str(receipt_path), "state": run["state"], "indexing": "unknown_not_claimed"}, args.json)
+    emit({"ok": True, "url": receipt["url"], "receipt": str(receipt_path), "state": run["state"], "indexing": "unknown_not_claimed",
+          **revision_import.offer(sys.modules[__name__], run)}, args.json)
     return EXIT_OK
 
 
@@ -10907,7 +10990,8 @@ def command_advance(args: argparse.Namespace) -> int:
         require_complete_research_amendment(directory, run)
         state = run["state"]
         if state in {"COMPLETE", "TERMINAL"}:
-            payload = {"ok": state == "COMPLETE", "action": state.lower(), "run_id": run["run_id"], "state": state, "progress": progress}
+            payload = {"ok": state == "COMPLETE", "action": state.lower(), "run_id": run["run_id"], "state": state, "progress": progress,
+                       **revision_import.offer(sys.modules[__name__], run)}
             emit(payload, args.json)
             return EXIT_OK if state == "COMPLETE" else EXIT_FAILED
         if run.get("status") == "BLOCKED":
@@ -10938,6 +11022,11 @@ def command_advance(args: argparse.Namespace) -> int:
             payload = {**next_state_payload(directory, run), "ok": False, "progress": progress}
             emit(payload, args.json)
             return EXIT_WAITING
+        if revision_import.enabled(sys.modules[__name__], run) and state in {"DRAFT", "EDIT", "VISUAL_PLAN"}:
+            with run_lock(directory, run):
+                revision_import.adopt(sys.modules[__name__], directory, run)
+            progress.append({"state": state, "command": "external-candidate-validation"})
+            continue
         if state == "VOICE_PROBE" and editorial_context.enabled(run):
             local = editorial_context.checked_json(sys.modules[__name__], directory, run, "voice-learning") or {}
             previous_probe = editorial_context.checked_json(sys.modules[__name__], directory, run, "voice-probe") or {}
@@ -11696,6 +11785,7 @@ def normative_lint() -> dict[str, Any]:
         "AF-PERSON-001", "AF-LENGTH-001", "AF-SHAPE-001", "AF-CITATION-001", "AF-PACKAGE-001",
         "AF-REPAIR-001", "AF-END-001", "AF-MATURITY-001", "AF-EVIDENCE-001", "AF-NATURALIZE-001",
         "AF-VOICE-001", "AF-ROUTING-001", "AF-PUBLISH-001", "AF-INDEXING-001", "AF-EVAL-001", "AF-LIFECYCLE-001",
+        "AF-EDIT-001", "AF-EDIT-002", "AF-VOICE-002",
     }
     missing_rules = sorted(required_rules - set(rule_ids))
     if missing_rules:
@@ -12276,6 +12366,8 @@ def build_parser() -> argparse.ArgumentParser:
     revise.add_argument("--published-slug", help="Adopt an allowlisted live article without changing historical run states.")
     revise.add_argument("--expected-source-sha256", help="Require the approved current HTML hash; mandatory with --published-slug.")
     revise.add_argument("--request-file", required=True)
+    revise.add_argument("--source-file", help="Verified source.json or public revision handoff; required with --candidate-file.")
+    revise.add_argument("--candidate-file", help="Complete externally supplied Markdown, separate from the author's exact request.")
     revise.add_argument("--auto", action="store_true", help="Continue synchronously until the voice choice, a blocker, or completion.")
     revise.add_argument("--draft-model", help="Choose an exact qualified configured writing model.")
     revise.add_argument("--draft-provider", help="Pin the configured writing provider with --draft-model; no substitute route is used.")
@@ -12283,6 +12375,11 @@ def build_parser() -> argparse.ArgumentParser:
     revise.add_argument("--unattended-editorial", action="store_true", help="Reuse the pinned guide for an explicitly delegated revision; records no human preference.")
     revise.add_argument("--authorization", help="Exact author authorization for unattended editorial revision.")
     add_json(revise)
+
+    export = sub.add_parser("revision-export", help="Read the latest published article or exact older slug into a GPT revision handoff; starts no run.")
+    export.add_argument("--published-slug")
+    export.add_argument("--output-dir", required=True)
+    add_json(export)
 
     advance = sub.add_parser("advance", help="Continue an active-session run until its voice choice, a blocker, or completion.")
     advance.add_argument("run_id")
@@ -12516,6 +12613,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 if isinstance(exc, ExperimentError):
                     raise FlowError(str(exc), EXIT_WAITING) from exc
                 raise
+        if args.command == "revision-export":
+            return external_revision.export(sys.modules[__name__], args)
         if args.command == "revise":
             return command_revise(args)
         if args.command == "advance":

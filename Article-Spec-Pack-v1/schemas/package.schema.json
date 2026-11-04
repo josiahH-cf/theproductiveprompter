@@ -87,7 +87,14 @@
         },
         "footer_text": {
           "type": "string",
-          "pattern": "^Drafting model: .+"
+          "anyOf": [
+            {
+              "pattern": "^Drafting model: .+"
+            },
+            {
+              "const": "Revision text supplied in GPT; exact model unverified."
+            }
+          ]
         },
         "source_receipt_hashes": {
           "type": "array",

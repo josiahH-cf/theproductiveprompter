@@ -9,6 +9,13 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## October 29, 2026: Ordinary editing scope and confirmed voice learning (3.2.16)
+
+- Distinguish an ordinary whole-article conservative EDIT from a targeted repair limited to bound findings. The current article remains canonical in both cases; source evidence, selected passages, effective phrasing and unaffected accepted edits stay protected. An ordinary edit can retain the article unchanged when no supported improvement exists.
+- Freeze this distinction in new workflow rules `AF-EDIT-001` and `AF-EDIT-002`, retaining workflow 3.2.0 and all older run snapshots and receipts. A controller upgrade does not revise a historical run's editing contract.
+- Add frozen rule `AF-VOICE-002` for instruction-only delivery of accepted scoped preferences to new writers. Keep full human confirmation, candidate labels, reasons, examples and regression checks in private immutable learning records; preserve legacy projection envelopes for older snapshots.
+- Clarify the same procedure in the mirrored host skills and editorial documentation. Keep author-confirmed reusable learning in the versioned runtime guide, with actual before/after and kept passages, scope, exceptions and retained-example/different-form checks; do not duplicate it as another voice manual or claim independent cross-genre validation.
+
 ## October 28, 2026: Agent-hosted writing provenance at packaging (3.2.15)
 
 - Accept an in-session writing submission's existing controller evidence instead of requiring a provider API-call receipt that this route never creates. Validate its hash-chained acceptance, original dispatched task, exact provider/model/configured effort, accepted output and task-bound gate before packaging.
@@ -874,3 +881,17 @@ Sets the end-state as a finalized, CMS-ready blog folder and provides a repeatab
 ### Notes
 - Public article kept the consolidated spec constraints: developer-facing voice, no internal scaffolding terms, practical workflow guidance, and link-based references.
 - Article generated from vault intake source AI first principles and deciding when AI is the right tool.md and packaged into the completed-articles structure.
+
+
+## Controller 3.2.17 — 2026-11-04
+
+- Offer an optional GPT revision after COMPLETE without a mandatory wait.
+- Export verified public Markdown/source identity and accept separately typed
+  external Markdown and exact author feedback for same-page revision.
+- Carry external prose without invented writer attribution; preserve citations,
+  evidence, image bytes, URL and original date through normal checks.
+- Recheck stale HTML/assets before publishing; exact retries keep their original
+  owner. Requested revisions continue automatically and hold on material conflicts.
+- Public source handoffs expose body Markdown only; hidden frontmatter and exact
+  author feedback remain private. External revisions create no writer-experiment
+  result or clean-completion credit for a reserved model.

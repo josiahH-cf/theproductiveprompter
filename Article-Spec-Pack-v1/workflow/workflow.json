@@ -609,6 +609,16 @@
       "text": "Naturalization may not alter locked claims, numbers, dates, names, citations, URLs, uncertainty, commitments, code, or quotations without reopening evidence verification."
     },
     {
+      "id": "AF-EDIT-001",
+      "level": "MUST",
+      "text": "Use the latest accepted current-article when supplied; otherwise use the current draft. Perform a complete, conservative prose edit under the pinned compact guide and article contract, including supported improvements in concision, directness and phrasing beyond gate findings. Preserve selected passages, protected evidence, meaning, qualifications and effective distinctive wording. Retain prose that already works; there is no rewrite quota. Missing content or reasoning belongs upstream."
+    },
+    {
+      "id": "AF-EDIT-002",
+      "level": "MUST",
+      "text": "When current-article is supplied, repair that latest accepted version rather than restarting from draft. Preserve the selected voice passage and all unaffected edits; change only what the bound findings require. Use draft as historical context only."
+    },
+    {
       "id": "AF-CHAR-001",
       "level": "MUST",
       "text": "Reject U+2014 and encoded em-dash entities on editable public surfaces. The frozen house policy permits only unchanged, controller-bound verbatim evidence from a verified published revision source; quote/code labels alone create no exception. Preserve protected evidence exactly and reopen verification for conflicts rather than silently mutating it."
@@ -622,6 +632,11 @@
       "id": "AF-VOICE-001",
       "level": "MUST",
       "text": "Preserve the protected baseline. Supply one compact evidence-backed guide and scoped article preferences. A voice selection applies locally and creates a pending learning proposal; it never activates a global rule automatically. AI choices and publication are not human-original evidence. Retain versioned rollback."
+    },
+    {
+      "id": "AF-VOICE-002",
+      "level": "MUST",
+      "text": "Project applicable human-confirmed scoped preferences into the compact guide as one instruction with its scope, exceptions and scoped locator. Keep approval messages, candidate labels, reasons and regression examples in private evidence records; they are not writing instructions. Preserve the historical projection for runs without this rule."
     },
     {
       "id": "AF-ROUTING-001",
