@@ -712,6 +712,36 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "evaluation"
+    },
+    {
+      "path": "docs/article-flow-revision-prompt.md",
+      "scope": "spec",
+      "role": "documentation",
+      "rule_set": "editorial"
+    },
+    {
+      "path": "scripts/external_revision.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "editorial"
+    },
+    {
+      "path": "scripts/revision_import.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "editorial"
+    },
+    {
+      "path": "tests/test_external_revision_source.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "evaluation"
+    },
+    {
+      "path": "tests/test_external_revision_import.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "evaluation"
     }
   ]
 }

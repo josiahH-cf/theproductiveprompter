@@ -881,3 +881,17 @@ Sets the end-state as a finalized, CMS-ready blog folder and provides a repeatab
 ### Notes
 - Public article kept the consolidated spec constraints: developer-facing voice, no internal scaffolding terms, practical workflow guidance, and link-based references.
 - Article generated from vault intake source AI first principles and deciding when AI is the right tool.md and packaged into the completed-articles structure.
+
+
+## Controller 3.2.17 — 2026-11-04
+
+- Offer an optional GPT revision after COMPLETE without a mandatory wait.
+- Export verified public Markdown/source identity and accept separately typed
+  external Markdown and exact author feedback for same-page revision.
+- Carry external prose without invented writer attribution; preserve citations,
+  evidence, image bytes, URL and original date through normal checks.
+- Recheck stale HTML/assets before publishing; exact retries keep their original
+  owner. Requested revisions continue automatically and hold on material conflicts.
+- Public source handoffs expose body Markdown only; hidden frontmatter and exact
+  author feedback remain private. External revisions create no writer-experiment
+  result or clean-completion credit for a reserved model.

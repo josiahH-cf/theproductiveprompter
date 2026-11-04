@@ -42,3 +42,20 @@ For visual review, inspect the actual rendered SVG relationships as well as the 
 For a late missing-reasoning finding in a held editorial run, use `amend RUN_ID --reopen-development --reason "SPECIFIC FINDING"` to return to DRAFT and renew downstream checks. Preserve the current article and protected evidence; do not develop content by weakening final-edit locks. A blocked edit with a controller-proven source/lock conflict can use the same explicit upstream recovery; see the editorial reference. Honor the authorized repair limit.
 
 If actual author clarification or new source material changes the approved scope, use `amend RUN_ID --reopen-research --reason "ACTUAL SCOPED CORRECTION AND SOURCE EVIDENCE"` from held editorial review, DRAFT or DEVELOPMENT_REVIEW. This rebuilds research, intent, recipe and brief in the same unpublished run and supplies the correction to every downstream model stage. Preserve the raw seed, current prose and real voice evidence; verify new claims normally and obtain any genuinely new source-bound voice answer. Do not hand-edit frozen briefs or delete an approved addition because an older ledger omits it. An interrupted amendment must resume its original command before dispatch or publication; repeating a completed correction creates no new cycle. Existing publication authorization remains scoped to the resulting checked article.
+
+
+For an optional post-publication GPT revision, keep the published run COMPLETE
+unless the author requests edits. `revision-export --output-dir DIR` reads the
+latest published source; `--published-slug SLUG` explicitly selects an older page.
+The linked public `.revision.json` is the equivalent source handoff for new
+packages. Import with `revise --source-file SOURCE --candidate-file CANDIDATE
+--request-file FEEDBACK --unattended-editorial --authorization ACTUAL_INSTRUCTION
+--auto`. Copy the source identity unchanged, preserve exact author feedback in its
+own file, and keep the full GPT Markdown candidate separate. Never invent source
+hashes or model identity. The controller carries the candidate through ordinary
+checks and automatically republishes within that explicit revision authorization.
+A failed check or material conflict holds the candidate; return its actual findings
+to GPT rather than silently rewriting or replaying the original request. Exact
+retries return the existing owner and do not resume a Stop. Espansr only supplies
+the reusable `:article-flow-revision` prompt; editing belongs to GPT and publication
+to Article Flow.

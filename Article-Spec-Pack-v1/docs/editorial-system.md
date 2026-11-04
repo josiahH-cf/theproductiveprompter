@@ -140,3 +140,34 @@ When live verification resumes after a later collection publication, the control
 Same-URL publication recognizes older unmarked article cards by one canonical title link, using the actual page URL, document base and canonical origin. Inert markup cannot establish ownership. It rejects missing, duplicated or conflicting ownership. The controller updates only the title, summary, date and reading time on populated cards, adds the missing identifier, and preserves thumbnails, categories, card classes, featured state and position. Later revisions retain those details. This compatibility path creates no new article or author preference.
 
 After an exhausted deployment-propagation window, retain the stop until the operator explicitly authorizes one further check. Use `repair RUN_ID G-LIVE-REVISION --finding "ACTUAL AUTHORIZATION AND FINDING"`. The controller verifies the historical receipts, original pushed publication/package/approval, clean exact remote descendant and unchanged article-owned scope, then requires fresh HTTP 200 and exact bytes for every packaged site file, including styles and assets. It records a separate observation and one durable verification allowance; `verify-live` or `advance` consumes that allowance without republishing. Failure stops again, repeated recovery cannot reset it, and earlier receipts and approvals remain unchanged. A hosting build label alone does not establish settled bytes. This exceptional recovery does not create a human voice judgment.
+
+
+### Optional GPT revision after publication (controller 3.2.17)
+
+Publication still closes at COMPLETE. Its response offers `:article-flow-revision`
+without opening a question, waiting, or starting another Run. Espansr is only the
+reusable GPT prompt entry point; GPT reads and confirms the latest article from
+the blog (or the older article Jo names) before applying his stream-of-consciousness
+feedback. See [the prompt and exact handoff contract](article-flow-revision-prompt.md).
+
+New public packages include a linked `.revision.json` with the already-public
+body Markdown and a controller-computed source identity. Hidden frontmatter, private feedback, run path,
+credentials and author evidence are excluded. For an older page, `revision-export`
+reads exact Git/worktree/live source bytes and exports a private `source.json` and
+`article.md`; it starts no Run or publication.
+
+`revise --source-file SOURCE --candidate-file CANDIDATE --request-file FEEDBACK
+--unattended-editorial --authorization ACTUAL_AUTHOR_REQUEST --auto` accepts the
+complete revised Markdown separately from exact author feedback. Strict identity,
+source hash, links, source-bound quotations/code and images are checked before
+Run creation. The controller carries supplied prose through DRAFT and EDIT under
+honest external-assistant provenance; no selected writer task, exact GPT model or
+human voice judgment is invented. Normal research, development, fact, editorial,
+rendering, package and live checks remain. Failed checks that require prose changes
+hold the candidate for correction, without a replacement rewrite. Preserved image
+bytes are verified and packaged explicitly; no new diagram is requested by this
+prose import. HTML and assets are fenced again before publication. Exact retries
+return their existing Run and never resume a blocked owner. Same URL and original
+publication timestamp remain source-bound. An explicit revision request authorizes
+automatic continuation through validation and republishing within existing holds,
+capability and effect-reconciliation boundaries.
