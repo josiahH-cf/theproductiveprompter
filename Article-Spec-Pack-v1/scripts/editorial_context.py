@@ -768,7 +768,7 @@ def input_sections(packet: dict) -> list[str]:
 
 
 def sync_skill(af: Any, user_root: Path, backup_root: Path) -> list[dict]:
-    """Install the repository-owned global skill and reference, preserving prior bytes."""
+    """Install the repository-owned skill and declared references, preserving prior bytes."""
     source = af.SPEC_ROOT.parent / ".agents/skills/article-flow"
     targets = [user_root / ".agents/skills/article-flow", user_root / ".claude/skills/article-flow"]
     codex_target = user_root / ".codex/skills/article-flow"
@@ -780,7 +780,7 @@ def sync_skill(af: Any, user_root: Path, backup_root: Path) -> list[dict]:
             raise af.FlowError(f"Conflicting unmanaged skill at {target}", af.EXIT_INTEGRITY)
     results = []
     for target in targets:
-        for relative in ("SKILL.md", "references/editorial.md"):
+        for relative in ("SKILL.md", "references/editorial.md", "references/article-flow-revision-prompt.md"):
             incoming = (source / relative).read_bytes()
             destination = target / relative
             if destination.exists() and destination.read_bytes() != incoming:
