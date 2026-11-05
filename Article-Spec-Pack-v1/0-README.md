@@ -202,8 +202,10 @@ Same-URL publication recognizes older unmarked article cards by one canonical ti
 
 
 After publication, an optional GPT revision offer leaves the Run complete. Use
-`:article-flow-revision` in GPT to confirm and revise the latest article, or name
-an older one. Return complete Markdown, the unchanged verified source identity,
-and Jo's exact feedback as separate inputs. The runner validates and republishes
-a requested revision automatically, stopping on failed checks or material
-conflicts. [Prompt and command contract](docs/article-flow-revision-prompt.md).
+`:article-flow-revision` in GPT to contextualize the latest article (or a named
+older one), confirm readiness and ask for your thoughts before editing. Paste
+its final `article-flow-revision` block back into Article Flow; no internal source
+attachments are required. `revise --handoff-file RETURNED_RESPONSE.md` separates
+the verified source, complete candidate, exact feedback and optional semantic
+diagram plan, then validates and republishes within the actual authorization.
+Failed checks retain the candidate. [Prompt and command contract](docs/article-flow-revision-prompt.md).

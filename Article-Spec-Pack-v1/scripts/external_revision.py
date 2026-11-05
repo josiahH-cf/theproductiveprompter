@@ -350,10 +350,12 @@ def prepare(af: Any, args: Any) -> dict:
             return value
         envelope = json.loads(envelope_bytes, object_pairs_hook=pairs)
         provided_markdown = None
-        if isinstance(envelope, dict) and set(envelope) == {"source", "article_markdown"}:
+        provided_visuals = None
+        if isinstance(envelope, dict) and set(envelope) in ({"source", "article_markdown"}, {"source", "article_markdown", "visuals"}):
             if not isinstance(envelope["article_markdown"], str):
                 raise ValueError("public source Markdown must be a string")
             provided_markdown = envelope["article_markdown"].encode("utf-8")
+            provided_visuals = envelope.get("visuals")
             envelope = envelope["source"]
         if not isinstance(envelope, dict) or set(envelope) != SOURCE_KEYS or any(not isinstance(v, str) or not v for k, v in envelope.items() if k != "source_commit"):
             raise ValueError("unexpected, missing or non-string identity fields")
@@ -393,6 +395,12 @@ def prepare(af: Any, args: Any) -> dict:
                 if tag == "meta" and fields.get("name") == "article-flow-revision-source-sha256":
                     self.source_digests.append(fields.get("content"))
         meta = RevisionMeta(); meta.feed(snapshot["bytes"].decode("utf-8"))
+        if provided_visuals is not None:
+            if not isinstance(provided_visuals, list):
+                fail(af, "Public diagram definitions must be a list")
+            expected_meta = f'<meta name="article-flow-revision-visuals-sha256" content="{af.sha256_bytes(af.canonical_json(provided_visuals))}">'
+            if expected_meta not in snapshot["bytes"].decode("utf-8"):
+                fail(af, "Public diagram definitions are not bound by the verified HTML")
         bound = meta.source_digests if meta.source_digests else meta.digests
         if bound != [sources.digest(provided_markdown)]:
             fail(af, "Public source Markdown is not bound by the verified HTML revision metadata")
@@ -433,14 +441,27 @@ def prepare(af: Any, args: Any) -> dict:
         fail(af, "External revision removes or changes a source citation/link; resolve this material conflict explicitly")
     source_images = Counter((urljoin(canonical, image["src"]), image["alt"]) for image in source_links.images)
     target_images = Counter((urljoin(canonical, image["src"]), image["alt"]) for image in edited_links.images)
-    if target_images != source_images:
+    visual_plan, visual_plan_bytes = af.revision_handoff.visual_plan(af, args, candidate, envelope["slug"])
+    replacements = visual_plan["replace_assets"] if visual_plan else []
+    all_assets = asset_registry(af, snapshot)
+    source_paths = {item["public_path"] for item in all_assets}
+    if set(replacements) - source_paths:
+        fail(af, "A diagram replacement does not identify an existing verified source asset")
+    planned_paths = {f"/assets/articles/{envelope['slug']}/{item['visual_id']}.svg" for item in visual_plan["visuals"]} if visual_plan else set()
+    if (planned_paths & source_paths) - set(replacements):
+        fail(af, "A new diagram would overwrite a retained source asset; declare its replacement explicitly")
+    expected_images = Counter({key: count for key, count in source_images.items()
+                               if key[0] not in {urljoin(canonical, path) for path in replacements}})
+    if target_images != expected_images:
         fail(af, "External revision adds, removes, duplicates or changes a source image or its alt text; new assets require a separately verified import")
     source_args = argparse.Namespace(request_file=args.request_file, source_run_id=found[1]["run_id"] if found else None,
                                      published_slug=None if found else envelope["slug"], expected_source_sha256=envelope["source_html_sha256"])
     source = sources.prepare(af, source_args)
     # Snapshot author input once. Later source file mutation cannot change intake.
     source.update(request=request, candidate=candidate, external_source=envelope, external_source_bytes=envelope_bytes,
-                  original_markdown=markdown, assets=asset_registry(af, snapshot))
+                  original_markdown=markdown, assets=all_assets, visual_plan=visual_plan, visual_plan_bytes=visual_plan_bytes,
+                  public_visuals=provided_visuals if provided_visuals is not None else
+                      (af.revision_handoff.public_visuals(af, found[0], found[1]) if found else []))
     # Evidence checks use the same proven snapshot as an ordinary revision.
     protected = sources.Page(); protected.feed(snapshot["bytes"].decode("utf-8"))
     # Markdown rendering normalizes line endings. Preserve the submitted file

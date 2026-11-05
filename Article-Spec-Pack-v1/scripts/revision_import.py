@@ -26,17 +26,23 @@ def require_complete(af: Any, directory: Path, run: dict) -> None:
 
 
 def input_identity(af: Any, args: Any) -> dict[str, str]:
-    return {key: af.sha256_bytes(af.external_revision.read_utf8(af, value, label))
+    result = {key: af.sha256_bytes(af.external_revision.read_utf8(af, value, label))
             for key, value, label in (
                 ("source_file_sha256", args.source_file, "Revision source envelope"),
                 ("candidate_sha256", args.candidate_file, "Revision candidate"),
                 ("author_feedback_sha256", args.request_file, "Exact author feedback"))}
+    if getattr(args, "visual_plan_file", None):
+        result["visual_plan_sha256"] = af.sha256_bytes(af.external_revision.read_utf8(af, args.visual_plan_file, "Revision visual plan"))
+    return result
 
 
 def source_identity(af: Any, source: dict) -> dict[str, str]:
-    return {"source_file_sha256": af.sha256_bytes(source["external_source_bytes"]),
+    result = {"source_file_sha256": af.sha256_bytes(source["external_source_bytes"]),
             "candidate_sha256": af.sha256_bytes(source["candidate"]),
             "author_feedback_sha256": af.sha256_bytes(source["request"])}
+    if source.get("visual_plan_bytes") is not None:
+        result["visual_plan_sha256"] = af.sha256_bytes(source["visual_plan_bytes"])
+    return result
 
 
 def owner_path(af: Any, intake: dict) -> Path:
@@ -111,9 +117,7 @@ def checked(af: Any, directory: Path, run: dict, kind: str) -> tuple[Path, dict]
 
 def install(af: Any, directory: Path, run: dict, source: dict) -> None:
     candidate = source["candidate"]
-    intake = {"source_file_sha256": af.sha256_bytes(source["external_source_bytes"]),
-              "candidate_sha256": af.sha256_bytes(candidate),
-              "author_feedback_sha256": af.sha256_bytes(source["request"])}
+    intake = source_identity(af, source)
     intake_path = directory / "artifacts/external-revision-intake.json"
     af.write_json_immutable(intake_path, intake)
     af.record_artifact(directory, run, intake_path, "external-revision-intake", {"actor": "controller"})
@@ -138,6 +142,17 @@ def install(af: Any, directory: Path, run: dict, source: dict) -> None:
               "source_file_sha256": af.sha256_bytes(source["external_source_bytes"]),
               "author_feedback_sha256": af.sha256_bytes(source["request"]),
               "provenance": "Externally supplied GPT revision; exact model and client unverified; no human voice judgment."}
+    if source.get("public_visuals"):
+        public_path = directory / "artifacts/external-revision-source-visuals.json"
+        af.write_json_immutable(public_path, {"visuals": source["public_visuals"]})
+        af.record_artifact(directory, run, public_path, "external-revision-source-visuals", {"actor": "controller", "source": "verified_public_diagram_definitions"})
+        record["source_visuals_sha256"] = af.sha256_path(public_path)
+    if source.get("visual_plan_bytes") is not None:
+        plan_path = directory / "artifacts/external-revision-visual-plan.json"
+        af.immutable_write(plan_path, source["visual_plan_bytes"])
+        af.record_artifact(directory, run, plan_path, "external-revision-visual-plan", {"actor": "external_assistant", "human_original": False})
+        record["visual_plan_sha256"] = af.sha256_path(plan_path)
+        record["replaced_assets"] = source["visual_plan"]["replace_assets"]
     receipt = directory / "artifacts/external-revision.json"
     af.write_json_immutable(receipt, record)
     af.record_artifact(directory, run, receipt, "external-revision", {"actor": "controller"}, inputs=[item["artifact_id"]])
@@ -169,7 +184,8 @@ def existing(af: Any, args: Any, *, intake: dict | None = None) -> tuple[Path, d
                 raise af.FlowError("Matching external revision has damaged intake evidence; reconcile its original Run",
                                    af.EXIT_INTEGRITY, {"run_id": run["run_id"], "action": "reconciliation_required"})
             continue
-        if key == (value.get("source_file_sha256"), value["candidate_sha256"], value["author_feedback_sha256"]):
+        if (key == (value.get("source_file_sha256"), value["candidate_sha256"], value["author_feedback_sha256"])
+                and intake.get("visual_plan_sha256") == value.get("visual_plan_sha256")):
             if not af.artifact(run, "external-revision"):
                 raise af.FlowError("This exact external revision has an interrupted installation; reconcile its existing Run before continuing",
                                    af.EXIT_INTEGRITY, {"run_id": run["run_id"], "action": "reconciliation_required"})
@@ -184,13 +200,22 @@ def record(af: Any, directory: Path, run: dict) -> dict:
     candidate, item = checked(af, directory, run, "external-revision-candidate")
     request, request_item = checked(af, directory, run, "revision-request")
     reserved = run.get("run_overrides", {}).get("external_revision_intake")
-    if reserved is not None and reserved != {key: value[key] for key in (
-            "source_file_sha256", "candidate_sha256", "author_feedback_sha256")}:
+    fields = ("source_file_sha256", "candidate_sha256", "author_feedback_sha256", "visual_plan_sha256")
+    if reserved is not None and reserved != {key: value[key] for key in fields if key in value}:
         raise af.FlowError("External revision no longer matches its reserved intake", af.EXIT_INTEGRITY)
     if (value["candidate_sha256"] != item["sha256"]
             or value["author_feedback_sha256"] != request_item["sha256"]
             or value["source"]["source_html_sha256"] != run["revision"]["source_html_sha256"]):
         raise af.FlowError("External candidate/source/feedback binding changed", af.EXIT_INTEGRITY)
+    if "visual_plan_sha256" in value:
+        plan, item = checked(af, directory, run, "external-revision-visual-plan")
+        if (item["sha256"] != value["visual_plan_sha256"]
+                or af.load_json(plan)["replace_assets"] != value["replaced_assets"]):
+            raise af.FlowError("External visual plan binding changed", af.EXIT_INTEGRITY)
+    if "source_visuals_sha256" in value:
+        _, item = checked(af, directory, run, "external-revision-source-visuals")
+        if item["sha256"] != value["source_visuals_sha256"]:
+            raise af.FlowError("Source diagram definition binding changed", af.EXIT_INTEGRITY)
     for asset in value["assets"]:
         path = (directory / af.safe_relative(asset["source_path"])).resolve()
         if (not path.is_relative_to(directory.resolve()) or not path.is_file()
@@ -200,7 +225,18 @@ def record(af: Any, directory: Path, run: dict) -> dict:
 
 
 def assets(af: Any, directory: Path, run: dict) -> list[dict]:
-    return record(af, directory, run)["assets"] if enabled(af, run) else []
+    if not enabled(af, run):
+        return []
+    value = record(af, directory, run)
+    return [item for item in value["assets"] if item["public_path"] not in value.get("replaced_assets", [])]
+
+
+def visual_plan(af: Any, directory: Path, run: dict) -> dict | None:
+    value = record(af, directory, run)
+    if "visual_plan_sha256" not in value:
+        return None
+    path, _ = checked(af, directory, run, "external-revision-visual-plan")
+    return af.load_json(path)
 
 
 def assert_current_assets(af: Any, run: dict) -> None:
@@ -208,7 +244,7 @@ def assert_current_assets(af: Any, run: dict) -> None:
         return
     directory = af.run_dir(run["run_id"])
     repository = af.publication_repo_root(required=True)
-    for asset in assets(af, directory, run):
+    for asset in record(af, directory, run)["assets"]:
         relative = af.safe_relative(asset["public_path"].lstrip("/"))
         path = (repository / relative).resolve()
         if not path.is_relative_to(repository.resolve()) or not path.is_file():
@@ -220,7 +256,7 @@ def assert_current_assets(af: Any, run: dict) -> None:
             raise af.FlowError("Published revision asset changed since GPT's source snapshot", af.EXIT_INTEGRITY)
 
 
-def public_handoff(af: Any, rendered: bytes, markdown: bytes, metadata: dict) -> dict:
+def public_handoff(af: Any, rendered: bytes, markdown: bytes, metadata: dict, visuals: list | None = None) -> dict:
     """Only already-public prose and identity; never author feedback or run paths."""
     markdown = af.external_revision.public_markdown(af, markdown)
     target = af.load_json(af.SPEC_ROOT / "publication/theproductiveprompter.json")
@@ -229,7 +265,10 @@ def public_handoff(af: Any, rendered: bytes, markdown: bytes, metadata: dict) ->
               "original_published_timestamp": metadata["date_iso"],
               "source_html_sha256": af.sha256_bytes(rendered), "source_markdown_sha256": af.sha256_bytes(markdown),
               "source_commit": None, "source_observed_at": af.utc_now()}
-    return {"source": source, "article_markdown": markdown.decode("utf-8")}
+    result = {"source": source, "article_markdown": markdown.decode("utf-8")}
+    if visuals:
+        result["visuals"] = visuals
+    return result
 
 
 def block(af: Any, directory: Path, run: dict, findings: list[dict]) -> None:
@@ -342,8 +381,11 @@ def adopt(af: Any, directory: Path, run: dict) -> bool:
             "prior_plan_sha256": af.artifact(run, "visual-plan")["sha256"]})
     af.revision_sources.assert_unchanged_source(af, run)
     if state == "VISUAL_PLAN":
-        value = {"visual_plan_schema_version": "1.0.0", "run_id": run["run_id"], "visuals": [],
-                 "omission_reason": empty_plan_reason(af, directory, run)}
+        supplied = visual_plan(af, directory, run)
+        value = {"visual_plan_schema_version": "1.0.0", "run_id": run["run_id"],
+                 "visuals": supplied["visuals"] if supplied else []}
+        if not value["visuals"]:
+            value["omission_reason"] = empty_plan_reason(af, directory, run)
         destination = directory / f"artifacts/external-visual-plan-{af.sha256_bytes(af.canonical_json(value))[:16]}.json"
         af.write_json_immutable(destination, value)
         output_type = "visual-plan"
@@ -424,4 +466,5 @@ def offer(af: Any, run: dict) -> dict:
               "blog_url": "https://theproductiveprompter.com/docs/blog.html", "article_url": url,
               "source_url": source_url,
               "export_command": ["article-flow", "revision-export", "--published-slug", slug, "--output-dir", "<private handoff directory>", "--json"] if slug else None,
-              "message": "Publication is complete. If you want edits, use :article-flow-revision in GPT and return its Markdown with your exact feedback. Otherwise there is nothing more to do."}}
+              "import_command": ["article-flow", "revise", "--handoff-file", "<private response file>", "--unattended-editorial", "--authorization", "<actual author instruction>", "--auto", "--json"],
+              "message": "Publication is complete. If you want edits, use :article-flow-revision in GPT and paste its final article-flow-revision block back here. Otherwise there is nothing more to do."}}

@@ -742,6 +742,30 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "evaluation"
+    },
+    {
+      "path": "scripts/revision_handoff.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "editorial"
+    },
+    {
+      "path": "scripts/workflow_diagram.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "editorial"
+    },
+    {
+      "path": ".agents/skills/article-flow/references/article-flow-revision-prompt.md",
+      "scope": "source",
+      "role": "runtime",
+      "rule_set": "editorial"
+    },
+    {
+      "path": ".claude/skills/article-flow/references/article-flow-revision-prompt.md",
+      "scope": "source",
+      "role": "runtime",
+      "rule_set": "editorial"
     }
   ]
 }

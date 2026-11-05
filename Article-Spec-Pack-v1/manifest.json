@@ -3,7 +3,7 @@
   "workflow_version": "3.2.0",
   "hash_algorithm": "sha256",
   "generator_name_and_version": "article-flow 3.2.19",
-  "generated_at": "2026-11-05T12:27:14Z",
+  "generated_at": "2026-11-05T12:53:30Z",
   "generated_from": "index",
   "files": [
     {
@@ -15,12 +15,28 @@
       "byte_size": 61021
     },
     {
+      "path": ".agents/skills/article-flow/references/article-flow-revision-prompt.md",
+      "scope": "source",
+      "role": "runtime",
+      "rule_set": "editorial",
+      "sha256": "59e80fe57ec447e6d1dee94c559445b1eabd09804af8c244c153f67882d8a145",
+      "byte_size": 10329
+    },
+    {
       "path": ".agents/skills/article-flow/references/editorial.md",
       "scope": "source",
       "role": "runtime",
       "rule_set": "editorial",
       "sha256": "6272af4d104197ca77dfe473ec99371494719ad5aace2f1e006ce055af966dd2",
       "byte_size": 13364
+    },
+    {
+      "path": ".claude/skills/article-flow/references/article-flow-revision-prompt.md",
+      "scope": "source",
+      "role": "runtime",
+      "rule_set": "editorial",
+      "sha256": "59e80fe57ec447e6d1dee94c559445b1eabd09804af8c244c153f67882d8a145",
+      "byte_size": 10329
     },
     {
       "path": ".claude/skills/article-flow/references/editorial.md",
@@ -107,8 +123,8 @@
       "scope": "spec",
       "role": "documentation",
       "rule_set": "overview",
-      "sha256": "9bb0af40aaf08fdd671b5d00e22ac921bff757e3a7800c5975dec025c87d7d5b",
-      "byte_size": 27668
+      "sha256": "c00202dda0e04faf21fa3a69de5c081be28d53ef236ce0f9f1a8babd74479554",
+      "byte_size": 27854
     },
     {
       "path": "1-Master/Article-Master-Spec.md",
@@ -283,8 +299,8 @@
       "scope": "spec",
       "role": "documentation",
       "rule_set": "editorial",
-      "sha256": "ba576ba15b0e6791e432895f2f78e22843d572c7cf49d5a059e4d276d7ad85ac",
-      "byte_size": 8425
+      "sha256": "59e80fe57ec447e6d1dee94c559445b1eabd09804af8c244c153f67882d8a145",
+      "byte_size": 10329
     },
     {
       "path": "docs/editorial-handoff.md",
@@ -643,16 +659,16 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "schemas",
-      "sha256": "483942c4b6d780f284eee888f67ef1afee4e42d9aa80b53fe4fc326c5a96e39e",
-      "byte_size": 2020
+      "sha256": "ba9333ce51f9d825313aee6acc7bbe27a6577ece6dc21b4111c31a9959f81d72",
+      "byte_size": 2032
     },
     {
       "path": "schemas/visual-plan.schema.json",
       "scope": "spec",
       "role": "runtime",
       "rule_set": "schemas",
-      "sha256": "adc47484ee2918cb6cb51b79335bde18d66770e7ff84b85ffa51782a553d82b4",
-      "byte_size": 2123
+      "sha256": "fdb84345de5b047269e8f5f9b56c7b553cb90afbd46d1bdd294552979319d584",
+      "byte_size": 2622
     },
     {
       "path": "schemas/voice-candidates.schema.json",
@@ -715,8 +731,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "e8b932036f4c3ea7a09254956c5c09e877942ad5958a7dca7489b7507b916027",
-      "byte_size": 720921
+      "sha256": "1e6290bff7022cfbbf1de941ad554c3b88b37e4273d6c2e5452f7ab5f1bdbfc9",
+      "byte_size": 723351
     },
     {
       "path": "scripts/article_maintenance.py",
@@ -763,8 +779,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "974e72926ff7f8f172626c7a2f81cc6282a3507809508eed3de3824036c1567a",
-      "byte_size": 24282
+      "sha256": "fd80295214d47705407bdcb3d0df57df0c6f6cf3c4c1b31710223e95732e39a2",
+      "byte_size": 26046
     },
     {
       "path": "scripts/package_article.py",
@@ -783,12 +799,20 @@
       "byte_size": 4756
     },
     {
+      "path": "scripts/revision_handoff.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "editorial",
+      "sha256": "ce087303e76687eff9a093931c7e861390044f5759a9c4071862f9fd78cdd49a",
+      "byte_size": 8750
+    },
+    {
       "path": "scripts/revision_import.py",
       "scope": "spec",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "a80798d01eda9e943efc9a656263671f1049599425ef629e861b5f338817c742",
-      "byte_size": 25595
+      "sha256": "fc592582d9a84676cba69c76cc0b6bb594f0cff4c2c5d1c37c7f6c3c937b121c",
+      "byte_size": 28324
     },
     {
       "path": "scripts/revision_sources.py",
@@ -797,6 +821,14 @@
       "rule_set": "editorial",
       "sha256": "7761cbc861a86a782fc5fcb8a78f38743459d77bf4fc47aacdacfa4218a2c808",
       "byte_size": 20972
+    },
+    {
+      "path": "scripts/workflow_diagram.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "editorial",
+      "sha256": "920b5c3fa80b2529ba2af44c7ed2f257241cf9e9b9418a31caa81ffc95dba048",
+      "byte_size": 3887
     },
     {
       "path": "tests/test_agent_hosted_provenance.py",
@@ -867,8 +899,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "evaluation",
-      "sha256": "c67ea16012859cb72a4392d636191afd3cf2a5a2b1e315b809f3f70d81ea6a0f",
-      "byte_size": 42114
+      "sha256": "5d11cf334f3907a9702ecb1b00692fe81a5c534f94efd3d19ec1d9d3497907a1",
+      "byte_size": 53231
     },
     {
       "path": "tests/test_external_revision_source.py",
@@ -939,8 +971,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "integrity",
-      "sha256": "d84cda12c0fae8859b43130a7f420090c0f6a2604a6097f9bc5ea6a456f84660",
-      "byte_size": 17884
+      "sha256": "386bb9aec5bfe8ca5d9749b3a5873cc42c327371b2bd3ce97ebdb8a397a3dcb0",
+      "byte_size": 18518
     },
     {
       "path": "workflow/workflow.json",
