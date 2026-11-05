@@ -137,6 +137,11 @@ URL and first-publication timestamp. An explicit Stop, hold, failed check,
 stale source, material conflict or uncertain effect retains its existing owner
 and recovery rules.
 
+Exact retries, including simultaneous submissions, share one intake owner. If
+installation was interrupted before its artifacts or Run record were complete,
+retain the returned reserved Run identity and reconcile that owner. Do not delete
+its reservation or repeat the files under a new Run to bypass the stop.
+
 This document is the source for the reusable prompt. Install or update it
 through the active Espansr owner; do not write competing Espansr checkouts or
 claim that a saved prompt file proves installed expansion.

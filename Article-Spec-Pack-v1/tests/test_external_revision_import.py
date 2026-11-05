@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 from unittest import mock
 
 from test_article_flow_v3 import TemporaryRuntime, af, call
@@ -235,6 +237,140 @@ class ExternalRevisionImportTests(TemporaryRuntime):
         self.assertEqual((directory / 'run.json').read_bytes(), before)
         self.assertEqual(len(list(af.runs_root().glob('*/run.json'))), 1)
         start.assert_not_called(); advance.assert_not_called()
+
+    def test_early_interrupted_intake_cannot_resume_as_an_ordinary_article(self):
+        with mock.patch.object(imported, 'install', side_effect=OSError('storage interruption')):
+            with self.assertRaises(OSError):
+                self.revise()
+        owner = next(af.runs_root().glob('*/run.json'))
+        directory, run = af.load_run(owner.parent.name)
+        self.assertTrue(imported.enabled(af, run))
+        self.assertEqual(af.next_state_payload(directory, run)['action'], 'reconciliation_required')
+        before = owner.read_bytes()
+        with mock.patch.object(af, 'command_execute_stage') as execute:
+            with self.assertRaisesRegex(af.FlowError, 'intake is incomplete'):
+                call(af.command_advance, run_id=run['run_id'], max_steps=1)
+            with self.assertRaisesRegex(af.FlowError, 'intake is incomplete'):
+                af.task_packet(directory, run)
+        execute.assert_not_called()
+        self.assertEqual(owner.read_bytes(), before)
+        self.assertEqual(af.model_history()['count'], 0)
+
+    def test_two_simultaneous_processes_create_one_owner(self):
+        worker = r'''
+import argparse, json, os, sys, time
+from pathlib import Path
+from unittest import mock
+from urllib.parse import urlsplit
+scripts, runtime, repo, source, candidate, feedback, ready, index = sys.argv[1:]
+sys.path.insert(0, scripts)
+os.environ.update(ARTICLE_FLOW_HOME=runtime, ARTICLE_FLOW_RUNS_ROOT=str(Path(runtime)/'runs'),
+                  ARTICLE_FLOW_TEST_NO_PUBLISH='1', PYTHONDONTWRITEBYTECODE='1')
+import article_flow as af
+repository = Path(repo)
+original_start = af.command_start
+def slow_start(args):
+    time.sleep(0.25)  # Both requests overlap the original check/create window.
+    return original_start(args)
+def fetch(url, timeout=30):
+    path = repository / urlsplit(url).path.lstrip('/')
+    return (200, path.read_bytes(), {})
+Path(ready, index).touch()
+deadline = time.monotonic()+30
+while len(list(Path(ready).iterdir())) != 2:
+    if time.monotonic() > deadline:
+        raise RuntimeError('second intake process did not start')
+    time.sleep(0.01)
+args = argparse.Namespace(source_file=source, candidate_file=candidate, request_file=feedback,
+    source_run_id=None, published_slug=None, expected_source_sha256=None,
+    unattended_editorial=True, authorization='Automatically validate this fixture revision.',
+    hold_before_publish=False, auto=False, json=True)
+with mock.patch.object(af,'check_manifest',return_value={'ok':True}), \
+     mock.patch.object(af,'publication_repo_root',return_value=repository), \
+     mock.patch.object(af,'fetch_url',side_effect=fetch), \
+     mock.patch.object(af,'command_start',side_effect=slow_start):
+    raise SystemExit(af.command_revise(args))
+'''
+        ready = self.root / 'ready'
+        ready.mkdir()
+        command = [sys.executable, '-B', '-c', worker, str(af.SPEC_ROOT / 'scripts'),
+                   str(self.runtime), str(self.repo), str(self.envelope), str(self.candidate),
+                   str(self.feedback), str(ready)]
+        children = []
+        try:
+            for index in ('one', 'two'):
+                children.append(subprocess.Popen([*command, index], stdout=subprocess.PIPE,
+                                                  stderr=subprocess.PIPE, text=True))
+            results = []
+            for child in children:
+                stdout, stderr = child.communicate(timeout=90)
+                self.assertEqual(child.returncode, af.EXIT_OK, stdout + stderr)
+                results.append(json.loads(stdout))
+            self.assertEqual(results[0]['run_id'], results[1]['run_id'])
+            self.assertEqual(sum(bool(value.get('idempotent')) for value in results), 1)
+            self.assertEqual(len(list(af.runs_root().glob('*/run.json'))), 1)
+        finally:
+            for child in children:
+                if child.poll() is None:
+                    child.kill()
+                child.communicate()
+
+    def test_retry_before_intake_marker_keeps_the_original_owner(self):
+        with mock.patch.object(imported, 'install', side_effect=OSError('storage interruption')):
+            with self.assertRaisesRegex(OSError, 'storage interruption'):
+                self.revise()
+        owners = list(af.runs_root().glob('*/run.json'))
+        self.assertEqual(len(owners), 1)
+        directory, run = af.load_run(owners[0].parent.name)
+        self.assertIsNone(af.artifact(run, 'external-revision-intake'))
+        before = (directory / 'run.json').read_bytes()
+        with mock.patch.object(af, 'command_start') as start, mock.patch.object(af, 'command_advance') as advance:
+            with self.assertRaisesRegex(af.FlowError, 'interrupted installation') as caught:
+                self.revise(auto=True)
+        self.assertEqual(caught.exception.details['run_id'], run['run_id'])
+        self.assertEqual(caught.exception.details['action'], 'reconciliation_required')
+        self.assertEqual((directory / 'run.json').read_bytes(), before)
+        self.assertEqual(len(list(af.runs_root().glob('*/run.json'))), 1)
+        start.assert_not_called(); advance.assert_not_called()
+
+    def test_retry_after_reservation_before_run_creation_does_not_create_another_run(self):
+        with mock.patch.object(af, 'run_dir', side_effect=OSError('interrupted before mkdir')):
+            with self.assertRaisesRegex(OSError, 'interrupted before mkdir'):
+                self.revise()
+        self.assertEqual(list(af.runs_root().glob('*/run.json')), [])
+        records = list((af.runs_root() / '.external-revisions').glob('*.json'))
+        self.assertEqual(len(records), 1)
+        owner = af.load_json(records[0])
+        with mock.patch.object(af, 'command_start') as start:
+            with self.assertRaisesRegex(af.FlowError, 'interrupted installation') as caught:
+                self.revise()
+        self.assertEqual(caught.exception.details['run_id'], owner['run_id'])
+        self.assertEqual(list(af.runs_root().glob('*/run.json')), [])
+        self.assertEqual(af.load_json(records[0]), owner)
+        start.assert_not_called()
+
+    def test_damaged_owner_record_blocks_without_replacing_it(self):
+        directory, run = self.opened()
+        path = next((af.runs_root() / '.external-revisions').glob('*.json'))
+        path.write_bytes(b'{partial owner')
+        with mock.patch.object(af, 'command_start') as start:
+            with self.assertRaisesRegex(af.FlowError, 'damaged owner'):
+                self.revise()
+        self.assertEqual(path.read_bytes(), b'{partial owner')
+        self.assertEqual(len(list(af.runs_root().glob('*/run.json'))), 1)
+        start.assert_not_called()
+
+    def test_legacy_import_without_reservation_returns_its_existing_owner(self):
+        directory, run = self.opened()
+        next((af.runs_root() / '.external-revisions').glob('*.json')).unlink()
+        run['run_overrides'].pop('external_revision_intake')
+        af.save_run(directory, run)
+        with mock.patch.object(af, 'command_start') as start:
+            code, result = self.revise()
+        self.assertEqual(code, af.EXIT_OK)
+        self.assertEqual(result['run_id'], run['run_id'])
+        self.assertTrue(result['idempotent'])
+        start.assert_not_called()
 
     def interrupted_install(self):
         immutable_write = af.immutable_write

@@ -64,14 +64,17 @@ class PublicationTests(unittest.TestCase):
             self.assertIn("'name'';$(secret)'",script)
             self.assertIsNone(af.wsl_model_release_command(["status"]))
 
-    def test_wsl_reads_windows_worktree_with_native_git(self):
+    def test_wsl_reads_windows_worktree_with_explicit_linux_git_dir(self):
         with tempfile.TemporaryDirectory() as temporary, patch.dict(os.environ,{"WSL_DISTRO_NAME":"Ubuntu"}), \
-             patch.object(af.shutil,"which",return_value="git.exe"), patch.object(af.subprocess,"run") as invoke:
+             patch.object(af.shutil,"which",side_effect=AssertionError("read must not launch Windows Git")), \
+             patch.object(af.subprocess,"run") as invoke:
             root=Path(temporary)
             (root/".git").write_text("gitdir: C:/repo/.git/worktrees/feature",encoding="utf-8")
             invoke.return_value.stdout="commit\n"
             self.assertEqual(af.git(["rev-parse","HEAD"],cwd=root),"commit\n")
-            self.assertEqual(invoke.call_args.args[0][0],"git.exe")
+            self.assertEqual(invoke.call_args.args[0],["git","--no-optional-locks","-C",str(root),
+                "--git-dir",str(Path("/mnt/c/repo/.git/worktrees/feature")),
+                "--work-tree",str(root.resolve()),"rev-parse","HEAD"])
 
     def test_controller_source_integrity_does_not_follow_publication_checkout(self):
         with patch.object(af,"publication_repo_root",return_value=Path("another-checkout")):

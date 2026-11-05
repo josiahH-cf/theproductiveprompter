@@ -2,8 +2,8 @@
   "manifest_schema_version": "2.0.0",
   "workflow_version": "3.2.0",
   "hash_algorithm": "sha256",
-  "generator_name_and_version": "article-flow 3.2.17",
-  "generated_at": "2026-11-04T10:48:36Z",
+  "generator_name_and_version": "article-flow 3.2.18",
+  "generated_at": "2026-11-05T09:13:55Z",
   "generated_from": "index",
   "files": [
     {
@@ -99,8 +99,8 @@
       "scope": "source",
       "role": "runtime",
       "rule_set": "conformance",
-      "sha256": "ab99ae70675e0611da9fa1c6df94bdc834edfafd8950d9c0cdd17a0bbeb97d05",
-      "byte_size": 15098
+      "sha256": "4765c6c48ea3e827ad48649fd547f6ea96f477581e4717157417189f49c9fba5",
+      "byte_size": 15344
     },
     {
       "path": "0-README.md",
@@ -283,8 +283,8 @@
       "scope": "spec",
       "role": "documentation",
       "rule_set": "editorial",
-      "sha256": "564595af236db970341b1c029a7956867631e6cb418734640a54f52885316b9f",
-      "byte_size": 8113
+      "sha256": "ba576ba15b0e6791e432895f2f78e22843d572c7cf49d5a059e4d276d7ad85ac",
+      "byte_size": 8425
     },
     {
       "path": "docs/editorial-handoff.md",
@@ -299,8 +299,8 @@
       "scope": "spec",
       "role": "normative",
       "rule_set": "editorial",
-      "sha256": "9edc86048386b34cb2e0c0deb9cc605f5908ba0044c8f07813bb49ced45e453f",
-      "byte_size": 35953
+      "sha256": "783e1f37e4ad928a7c8dc3764d3e1872bb6b4234eaa22cb9c3be9905e598d3d7",
+      "byte_size": 36997
     },
     {
       "path": "evaluations/adversarial-cases.json",
@@ -715,8 +715,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "09a0cc9a7c3ba201c3d46b8b91b8f5f8c61697c0834952f3f84b8b080f3d28af",
-      "byte_size": 718162
+      "sha256": "6d6ba6176c12a739c5b5c1f89d6c0f35dfe2be0b7f0796a24fae80e46046e430",
+      "byte_size": 720495
     },
     {
       "path": "scripts/article_maintenance.py",
@@ -787,8 +787,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "9310cf8e4844d65bdabd5e285530e73b8fa7127e439fe8bd0d3eb5d2bdd60cbb",
-      "byte_size": 17246
+      "sha256": "812bccd54a0835c89cde80ba278bcaa05fc2df71a1a0a38be355c58e00970379",
+      "byte_size": 21586
     },
     {
       "path": "scripts/revision_sources.py",
@@ -819,8 +819,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "conformance",
-      "sha256": "931279378a800fd67747b0e1d22f6484c7783ddbdd1bf57d1b4d4c5163b78445",
-      "byte_size": 311271
+      "sha256": "9d714902d5e17aed11f726437b447377e044111d623d5998c8957ae47ddfbbe8",
+      "byte_size": 314064
     },
     {
       "path": "tests/test_codex_exec_adapter.py",
@@ -867,8 +867,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "evaluation",
-      "sha256": "8c3b506429e3ec678ea9d1241ae898cf7903a253773b19e0b650b8655b001782",
-      "byte_size": 30671
+      "sha256": "48bb7071654aeb93ceca58751bd261c371e4a7a962c88a0e5a684f483358b721",
+      "byte_size": 37941
     },
     {
       "path": "tests/test_external_revision_source.py",

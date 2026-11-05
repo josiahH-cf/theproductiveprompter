@@ -9,6 +9,12 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## November 5, 2026: Atomic revision ownership and WSL verification (3.2.18)
+
+- Reserve the hashes of an external revision's three separate input files under one durable, cross-host intake owner before creating its Run or reserving a writer. Concurrent submissions and retries after an interrupted installation retain that owner, including interruption before the Run record exists. An incomplete intake cannot dispatch or resume as an ordinary article. Preserve legacy import identities, Stops and existing continuation controls.
+- Use Linux Git for read-only object and index access to Windows-created linked worktrees from WSL, resolving their Git directory explicitly and disabling optional index writes. Retain Windows Git for repository mutations and preserve underlying integrity-read errors in diagnostics.
+- Add real simultaneous-process, early-interruption, damaged-owner, legacy-retry and Git-routing regressions. Keep the author prompt, feedback, article content, provider configuration and ordinary voice/publication controls unchanged.
+
 ## October 29, 2026: Ordinary editing scope and confirmed voice learning (3.2.16)
 
 - Distinguish an ordinary whole-article conservative EDIT from a targeted repair limited to bound findings. The current article remains canonical in both cases; source evidence, selected passages, effective phrasing and unaffected accepted edits stay protected. An ordinary edit can retain the article unchanged when no supported improvement exists.
