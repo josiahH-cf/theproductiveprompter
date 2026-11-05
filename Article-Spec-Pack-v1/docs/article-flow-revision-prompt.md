@@ -137,6 +137,11 @@ The public attribution says the revision was supplied in GPT and the exact
 model is unverified. It establishes neither human-original writing nor a new
 human voice preference.
 
+Placement anchors come only from renderer-visible body Markdown. Hidden
+frontmatter cannot anchor a new diagram or appear in public retained-diagram
+metadata. A retained diagram at the beginning has no exported placement when
+there is no visible preceding anchor.
+
 ## Diagrams
 
 Diagrams use the existing visual-plan and manifest gates. An import's optional

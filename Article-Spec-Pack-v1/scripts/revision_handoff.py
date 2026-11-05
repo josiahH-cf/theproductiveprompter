@@ -101,7 +101,8 @@ def visual_plan(af: Any, args: Any, candidate: bytes, slug: str) -> tuple[dict |
         errors = af.validate_instance_schema(plan, "visual-plan.schema.json")
         if errors:
             raise ValueError("; ".join(errors))
-        keys = [af.visual_block_key(block) for block in re.split(r"\n\s*\n", candidate.decode("utf-8").strip())]
+        public_body = af.external_revision.public_markdown(af, candidate).decode("utf-8")
+        keys = [af.visual_block_key(block) for block in re.split(r"\n\s*\n", public_body.strip())]
         ids = set()
         for visual in value["visuals"]:
             if visual["visual_id"] in ids or visual.get("claim_ids") or len(visual.get("design_rationale", "")) < 40:
@@ -131,7 +132,8 @@ def public_visuals(af: Any, directory: Path, run: dict) -> list[dict]:
             source, _ = af.revision_import.checked(af, directory, run, "external-revision-source-visuals")
             occupied = {item["public_path"] for item in result} | set(value.get("replaced_assets", []))
             body_path = af.artifact_path(directory, run, "article") or af.artifact_path(directory, run, "external-revision-candidate")
-            blocks = re.split(r"\n\s*\n", body_path.read_text(encoding="utf-8").strip()) if body_path else []
+            public_body = af.external_revision.public_markdown(af, body_path.read_bytes()).decode("utf-8") if body_path else ""
+            blocks = re.split(r"\n\s*\n", public_body.strip()) if public_body else []
             keys = [af.visual_block_key(block) for block in blocks]
             for item in af.load_json(source)["visuals"]:
                 if item["public_path"] in occupied:

@@ -279,6 +279,54 @@ class ExternalRevisionImportTests(TemporaryRuntime):
         with self.assertRaisesRegex(af.FlowError, 'cannot discard'):
             af.render_visual_svg({**visual, 'kind': 'delivery_loop'})
 
+    def test_retained_first_diagram_never_exposes_hidden_frontmatter_as_public_placement(self):
+        directory, run, package = self.render_handoff(self.handoff_value(self.workflow_plan()))
+        wrapper = af.load_json(package / f'site/docs/{self.slug}.revision.json')
+        for path in (package / 'site').rglob('*'):
+            if path.is_file():
+                relative = path.relative_to(package / 'site')
+                target = self.repo / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(path.read_bytes())
+                self.pages['https://theproductiveprompter.com/' + relative.as_posix()] = path.read_bytes()
+        self.commit()
+        visual = wrapper['visuals'][0]
+        prose = af.strip_planned_visual_blocks(wrapper['article_markdown'], af.json_artifact(directory, run, 'visual-manifest'))
+        private = 'PRIVATE_FRONTMATTER_MUST_NOT_BECOME_A_PUBLIC_ANCHOR'
+        candidate = ('---\nprivate_revision_note: ' + private + '\n---\n\n### ' + visual['title']
+                     + '\n\n![' + visual['alt_text'] + '](' + visual['public_path'] + ')\n\n'
+                     + visual['caption'] + '\n\n' + prose)
+        value = {'article_flow_revision_version': '1.0.0', 'source': wrapper,
+                 'candidate_markdown': candidate, 'author_feedback': 'Keep the diagram first and revise the prose.'}
+        code, result = self.import_handoff(value)
+        self.assertEqual(code, af.EXIT_OK, result)
+        next_dir, next_run = af.load_run(result['run_id'])
+        public = handoff.public_visuals(af, next_dir, next_run)
+        self.assertNotIn(private, json.dumps(public))
+        self.assertNotIn('placement', public[0])
+        self.carry(next_dir, next_run, 'DRAFT')
+        self.carry(next_dir, next_run, 'VISUAL_PLAN')
+        code, result = call(af.command_visual_render, run_id=next_run['run_id'], refresh=False)
+        self.assertEqual(code, af.EXIT_OK, result)
+        next_dir, next_run = af.load_run(next_run['run_id'])
+        self.carry(next_dir, next_run, 'EDIT')
+        self.record_json(next_dir, next_run, 'brief', {'title': 'Original title', 'slug': self.slug,
+                         'date': '2026-09-15', 'description': 'A clearer explanation', 'tags': []})
+        rendered = next_dir / 'first-diagram-package'
+        af.render_publication_files(next_dir, next_run, rendered, af.package_metadata(next_dir, next_run))
+        for suffix in ('.html', '.revision.json'):
+            self.assertNotIn(private, (rendered / f'site/docs/{self.slug}{suffix}').read_text(encoding='utf-8'))
+        self.assertEqual(af.artifact_path(next_dir, next_run, 'external-revision-candidate').read_bytes(), candidate.encode('utf-8'))
+
+    def test_new_diagram_cannot_anchor_to_renderer_hidden_frontmatter(self):
+        hidden = '---\nprivate_revision_note: This is not a public article paragraph.\n---'
+        self.candidate.write_bytes(hidden.encode('utf-8') + b'\n\n' + self.candidate.read_bytes())
+        plan = self.workflow_plan()
+        plan['visuals'][0]['placement'] = {'after_paragraph': hidden}
+        with self.assertRaisesRegex(af.FlowError, 'placement must match'):
+            self.import_handoff(self.handoff_value(plan))
+        self.assertEqual(list(af.runs_root().glob('*/run.json')), [])
+
     def test_intake_separates_exact_author_feedback_from_generated_candidate(self):
         directory, run = self.opened()
         self.assertEqual(af.artifact_path(directory, run, 'revision-request').read_bytes(), self.feedback.read_bytes())
