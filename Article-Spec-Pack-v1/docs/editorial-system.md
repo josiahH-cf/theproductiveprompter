@@ -171,3 +171,17 @@ return their existing Run and never resume a blocked owner. Same URL and origina
 publication timestamp remain source-bound. An explicit revision request authorizes
 automatic continuation through validation and republishing within existing holds,
 capability and effect-reconciliation boundaries.
+
+Controller 3.2.18 reserves an exact external intake before creating its Run or
+reserving a writer. The source-file, candidate and feedback hashes identify one
+durable owner under the shared runs root, with the same cross-host lock used by
+Windows and WSL. Concurrent submissions return that owner. An interruption before
+the intake artifacts, or even before Run creation, retains the reserved identity
+and requires reconciliation under it; retrying cannot create another Run or clear
+a Stop. Imports from earlier versions retain their artifact-bound retry identity.
+
+In a Windows-created linked worktree, WSL uses Linux Git with the explicitly
+resolved Git directory for object and index reads, with optional index writes
+disabled. Repository mutations keep their existing Windows Git route. This avoids
+per-file Windows interop launches during integrity checks without changing Git
+ownership, publication authority, credentials or repository configuration.

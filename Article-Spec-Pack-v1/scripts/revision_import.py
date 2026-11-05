@@ -5,6 +5,9 @@ or an instruction to waive a gate. Its original bytes remain immutable.
 """
 from __future__ import annotations
 
+import contextlib
+import os
+import tempfile
 import urllib.parse
 from pathlib import Path
 from typing import Any
@@ -13,6 +16,81 @@ from typing import Any
 def enabled(af: Any, run: dict) -> bool:
     return (af.artifact(run, "external-revision-intake") is not None
             or af.artifact(run, "external-revision-candidate") is not None)
+
+
+def input_identity(af: Any, args: Any) -> dict[str, str]:
+    return {key: af.sha256_bytes(af.external_revision.read_utf8(af, value, label))
+            for key, value, label in (
+                ("source_file_sha256", args.source_file, "Revision source envelope"),
+                ("candidate_sha256", args.candidate_file, "Revision candidate"),
+                ("author_feedback_sha256", args.request_file, "Exact author feedback"))}
+
+
+def source_identity(af: Any, source: dict) -> dict[str, str]:
+    return {"source_file_sha256": af.sha256_bytes(source["external_source_bytes"]),
+            "candidate_sha256": af.sha256_bytes(source["candidate"]),
+            "author_feedback_sha256": af.sha256_bytes(source["request"])}
+
+
+def owner_path(af: Any, intake: dict) -> Path:
+    key = af.sha256_bytes(af.canonical_json(intake))
+    return af.runs_root() / ".external-revisions" / f"{key}.json"
+
+
+@contextlib.contextmanager
+def intake_lock(af: Any, args: Any):
+    """Serialize this exact intake across Windows and WSL, before any Run exists."""
+    intake = input_identity(af, args)
+    with af.shared_lock(owner_path(af, intake).with_suffix(".lock"), wait_seconds=60):
+        yield intake
+
+
+def reserve(af: Any, intake: dict, run_id: str) -> None:
+    """Durably bind the owner before mkdir, model reservation or Run artifacts."""
+    path = owner_path(af, intake)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.")
+    staged = Path(name)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(af.canonical_json({"external_revision_owner_version": "1.0.0",
+                                           "run_id": run_id, "intake": intake}))
+            stream.flush()
+            os.fsync(stream.fileno())
+        # Publish complete bytes atomically without replacing a prior owner.
+        os.link(staged, path)
+    except OSError as exc:
+        raise af.FlowError("Cannot reserve the external revision owner; reconcile its intake record",
+                           af.EXIT_INTEGRITY, {"owner_record": str(path)}) from exc
+    finally:
+        af.release_lock_file(staged)
+
+
+def reserved_owner(af: Any, intake: dict) -> tuple[Path, dict] | None:
+    path = owner_path(af, intake)
+    if not path.exists():
+        return None
+    owner = None
+    try:
+        owner = af.load_json(path)
+        if (set(owner) != {"external_revision_owner_version", "run_id", "intake"}
+                or owner["external_revision_owner_version"] != "1.0.0"
+                or owner["intake"] != intake or not isinstance(owner["run_id"], str)):
+            raise ValueError("owner identity changed")
+        directory, run = af.load_run(owner["run_id"])
+        receipt, _ = checked(af, directory, run, "external-revision-intake")
+        if af.load_json(receipt) != intake or not af.artifact(run, "external-revision"):
+            raise ValueError("installation is incomplete")
+        record(af, directory, run)
+        return directory, run
+    except (af.FlowError, OSError, ValueError) as exc:
+        details = {"action": "reconciliation_required"}
+        if isinstance(owner, dict) and isinstance(owner.get("run_id"), str):
+            details["run_id"] = owner["run_id"]
+        else:
+            details["owner_record"] = str(path)
+        raise af.FlowError("This exact external revision has an interrupted installation or damaged owner; reconcile its existing Run before continuing",
+                           af.EXIT_INTEGRITY, details) from exc
 
 
 def checked(af: Any, directory: Path, run: dict, kind: str) -> tuple[Path, dict]:
@@ -58,15 +136,14 @@ def install(af: Any, directory: Path, run: dict, source: dict) -> None:
     af.record_artifact(directory, run, receipt, "external-revision", {"actor": "controller"}, inputs=[item["artifact_id"]])
 
 
-def existing(af: Any, args: Any) -> tuple[Path, dict] | None:
+def existing(af: Any, args: Any, *, intake: dict | None = None) -> tuple[Path, dict] | None:
     """Exact retries return their existing owner; they never resume a Stop."""
-    try:
-        source = Path(args.source_file).expanduser().resolve().read_bytes()
-        candidate = Path(args.candidate_file).expanduser().resolve().read_bytes()
-        request = Path(args.request_file).expanduser().resolve().read_bytes()
-    except (OSError, TypeError):
-        return None  # Typed preparation owns the useful input error.
-    key = (af.sha256_bytes(source), af.sha256_bytes(candidate), af.sha256_bytes(request))
+    intake = intake if intake is not None else input_identity(af, args)
+    reserved = reserved_owner(af, intake)
+    if reserved:
+        return reserved
+    key = tuple(intake[field] for field in ("source_file_sha256", "candidate_sha256", "author_feedback_sha256"))
+    # Pre-reservation imports retain their original artifact-bound identity.
     for path in af.runs_root().glob("*/run.json"):
         directory, run = af.load_run(path.parent.name)
         intake_kind = "external-revision-intake" if af.artifact(run, "external-revision-intake") else "external-revision"

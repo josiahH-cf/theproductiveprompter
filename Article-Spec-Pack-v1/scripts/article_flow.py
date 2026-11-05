@@ -50,7 +50,7 @@ import revision_sources
 import external_revision
 import revision_import
 
-CONTROLLER_VERSION = "3.2.17"
+CONTROLLER_VERSION = "3.2.18"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -284,8 +284,17 @@ def git(args: Sequence[str], *, cwd: Path | None = None, check: bool = True, bin
     cwd = cwd or REPO_ROOT
     command = ["git", "-C", str(cwd), *args]
     git_file = cwd / ".git"
-    if os.environ.get("WSL_DISTRO_NAME") and git_file.is_file() and re.match(
-            r"gitdir: [A-Za-z]:[\\/]", git_file.read_text(encoding="utf-8").strip()):
+    pointer = git_file.read_text(encoding="utf-8").strip() if os.environ.get("WSL_DISTRO_NAME") and git_file.is_file() else ""
+    windows_worktree = re.fullmatch(r"gitdir: ([A-Za-z]):[\\/](.+)", pointer)
+    object_reads = {"show", "rev-parse", "ls-files", "ls-tree", "cat-file", "log"}
+    if windows_worktree and args and args[0] in object_reads:
+        # Linux Git can read the shared objects/index once the Windows gitdir
+        # pointer is resolved explicitly. Avoid hundreds of Windows interop
+        # launches for integrity checks; never refresh the Windows-owned index.
+        git_dir = Path(f"/mnt/{windows_worktree[1].lower()}/{windows_worktree[2].replace(chr(92), '/')}")
+        command = ["git", "--no-optional-locks", "-C", str(cwd),
+                   "--git-dir", str(git_dir), "--work-tree", str(cwd.resolve()), *args]
+    elif windows_worktree:
         native_git = shutil.which("git.exe")
         if not native_git:
             raise FlowError("This Windows-created worktree requires Windows Git from WSL", EXIT_USAGE)
@@ -387,7 +396,7 @@ def source_bytes(path: str, source: str, scope: str = "spec") -> bytes:
     try:
         return git(["show", spec], binary=True)  # type: ignore[return-value]
     except FlowError as exc:
-        raise FlowError(f"Protected file is missing from {source}: {path}", EXIT_INTEGRITY) from exc
+        raise FlowError(f"Cannot read protected file from {source}: {path}: {exc}", EXIT_INTEGRITY) from exc
 
 
 def source_json(path: str, source: str, scope: str = "spec") -> dict[str, Any]:
@@ -547,8 +556,9 @@ def check_manifest(source: str, *, allow_unavailable_repository: bool = False) -
             continue
         try:
             data = source_bytes(path, source, scope)
-        except FlowError:
-            failures.append({"kind": "missing_file", "scope": scope, "path": path, "safe_to_auto_repair": False})
+        except FlowError as exc:
+            failures.append({"kind": "missing_file", "scope": scope, "path": path,
+                             "message": str(exc), "safe_to_auto_repair": False})
             continue
         actual_hash = sha256_bytes(data)
         if recorded.get("sha256") != actual_hash or recorded.get("byte_size") != len(data):
@@ -6373,6 +6383,9 @@ def command_start(args: argparse.Namespace) -> int:
     now = dt.datetime.now(dt.timezone.utc)
     stamp = now.strftime("%Y%m%dT%H%M%SZ")
     run_id = f"AF-{stamp}-{slugify(args.slug or seed)}-{secrets.token_hex(4)}"
+    intake = getattr(args, "_external_revision_intake", None)
+    if intake is not None:
+        revision_import.reserve(sys.modules[__name__], intake, run_id)
     directory = run_dir(run_id)
     directory.mkdir(parents=True, exist_ok=False)
     for name in ("artifacts", "tasks", "submissions", "receipts", "approvals", "package", "publication"):
@@ -6491,16 +6504,33 @@ def command_revise(args: argparse.Namespace) -> int:
     external = bool(getattr(args, "candidate_file", None) or getattr(args, "source_file", None))
     if external and not (getattr(args, "unattended_editorial", False) and getattr(args, "authorization", None)):
         raise FlowError("External revision requires scoped unattended author authorization", EXIT_USAGE)
+    context = revision_import.intake_lock(sys.modules[__name__], args) if external else contextlib.nullcontext(None)
+    with context as intake:
+        payload = create_revision(args, intake=intake)
+    if payload.get("idempotent"):
+        emit(payload, args.json)
+        return EXIT_WAITING if payload.get("status") == "BLOCKED" else EXIT_OK
+    # Intake ownership covers creation only. Model execution and publication
+    # retain their existing Run locks, Stops, holds and effect reconciliation.
+    if bool(getattr(args, "auto", False)):
+        return command_advance(argparse.Namespace(run_id=payload["run_id"], max_steps=100, json=args.json))
+    emit(payload, args.json)
+    return EXIT_OK
+
+
+def create_revision(args: argparse.Namespace, *, intake: dict | None) -> dict[str, Any]:
+    external = intake is not None
     if external:
-        found = revision_import.existing(sys.modules[__name__], args)
+        found = revision_import.existing(sys.modules[__name__], args, intake=intake)
         if found:
             directory, existing_run = found
-            emit({"ok": existing_run.get("status") != "BLOCKED", "idempotent": True,
-                  "run_id": existing_run["run_id"], "state": existing_run["state"],
-                  "status": existing_run.get("status"), "execution_started": False,
-                  "next": next_state_payload(directory, existing_run)}, args.json)
-            return EXIT_WAITING if existing_run.get("status") == "BLOCKED" else EXIT_OK
+            return {"ok": existing_run.get("status") != "BLOCKED", "idempotent": True,
+                    "run_id": existing_run["run_id"], "state": existing_run["state"],
+                    "status": existing_run.get("status"), "execution_started": False,
+                    "next": next_state_payload(directory, existing_run)}
     source = external_revision.prepare(sys.modules[__name__], args) if external else revision_sources.prepare(sys.modules[__name__], args)
+    if external and revision_import.source_identity(sys.modules[__name__], source) != intake:
+        raise FlowError("External revision inputs changed during validation; submit the intended three files again", EXIT_INTEGRITY)
     snapshot, source_run = source["snapshot"], source["source_run"]
     source_metadata = snapshot["metadata"]
     start_args = argparse.Namespace(
@@ -6515,6 +6545,7 @@ def command_revise(args: argparse.Namespace) -> int:
         approved_voice=not external and bool(source_run.get("run_overrides", {}).get("reuse_approved_voice")),
         model_release_campaign_id=source_run.get("run_overrides", {}).get("model_release_campaign_id"),
         json=True,
+        _external_revision_intake=intake,
     )
     code, created = _silent_command(command_start, start_args)
     if code != EXIT_OK or not created or not created.get("run_id"):
@@ -6577,10 +6608,7 @@ def command_revise(args: argparse.Namespace) -> int:
             run["parent_run_id"] = source["source_run_id"]
         append_event(directory, run, "REVISION_CREATED", "controller", revision)
         save_run(directory, run)
-    if bool(getattr(args, "auto", False)):
-        return command_advance(argparse.Namespace(run_id=run_id, max_steps=100, json=args.json))
-    emit({"ok": True, "run_id": run_id, "source_run_id": source["source_run_id"], "state": run["state"], "revision": revision, "next_command": ["article-flow", "advance", run_id]}, args.json)
-    return EXIT_OK
+    return {"ok": True, "run_id": run_id, "source_run_id": source["source_run_id"], "state": run["state"], "revision": revision, "next_command": ["article-flow", "advance", run_id]}
 
 
 def latest_run_id() -> str:

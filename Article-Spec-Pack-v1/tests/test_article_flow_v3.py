@@ -262,6 +262,46 @@ class ProcessLivenessRegressionTests(unittest.TestCase):
         pause.assert_called_once_with(0.01)
 
 
+class WslGitReadRegressionTests(unittest.TestCase):
+    def test_windows_worktree_object_reads_use_linux_git_without_index_refresh(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / '.git').write_text('gitdir: C:/repo/.git/worktrees/linked\n', encoding='utf-8')
+            with mock.patch.dict(os.environ, {'WSL_DISTRO_NAME': 'Ubuntu'}), \
+                    mock.patch.object(af.shutil, 'which', side_effect=AssertionError('Windows interop read')), \
+                    mock.patch.object(af.subprocess, 'run', return_value=mock.Mock(stdout=b'bound bytes')) as execute:
+                self.assertEqual(af.git(['show', 'HEAD:article.md'], cwd=root, binary=True), b'bound bytes')
+            self.assertEqual(execute.call_args.args[0], [
+                'git', '--no-optional-locks', '-C', str(root), '--git-dir', str(Path('/mnt/c/repo/.git/worktrees/linked')),
+                '--work-tree', str(root), 'show', 'HEAD:article.md'])
+
+    def test_windows_worktree_mutations_keep_windows_git_and_path_conversion(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / '.git').write_text('gitdir: C:/repo/.git/worktrees/linked\n', encoding='utf-8')
+            with mock.patch.dict(os.environ, {'WSL_DISTRO_NAME': 'Ubuntu'}), \
+                    mock.patch.object(af.shutil, 'which', return_value='/mnt/c/git.exe'), \
+                    mock.patch.object(af, 'windows_path', return_value='C:\\publication'), \
+                    mock.patch.object(af.subprocess, 'run', return_value=mock.Mock(stdout='')) as execute:
+                af.git(['add', '--pathspec-from-file=/mnt/c/paths.txt'], cwd=root)
+            self.assertEqual(execute.call_args.args[0], [
+                '/mnt/c/git.exe', '-C', 'C:\\publication', 'add', '--pathspec-from-file=C:\\publication'])
+
+    def test_real_source_object_read_does_not_require_windows_interop(self):
+        with mock.patch.object(af.shutil, 'which', side_effect=AssertionError('object read needs interop')):
+            actual = af.source_bytes('workflow/workflow.json', 'head')
+            tracked = af.watched_files('head')
+            self.assertTrue(tracked)
+            with contextlib.chdir(af.SPEC_ROOT / 'tests'):
+                self.assertEqual(af.watched_files('head'), tracked)
+        self.assertEqual(actual, (af.SPEC_ROOT / 'workflow/workflow.json').read_bytes())
+
+    def test_integrity_read_failure_keeps_the_transport_diagnostic(self):
+        with mock.patch.object(af, 'git', side_effect=af.FlowError('Git bridge connection timed out')):
+            with self.assertRaisesRegex(af.FlowError, 'Git bridge connection timed out'):
+                af.source_bytes('workflow/workflow.json', 'head')
+
+
 class PublicationTargetLockRegressionTests(TemporaryRuntime):
     def publication_repository(self, name="publication-repo"):
         repository = self.root / name
