@@ -50,7 +50,7 @@ import revision_sources
 import external_revision
 import revision_import
 
-CONTROLLER_VERSION = "3.2.18"
+CONTROLLER_VERSION = "3.2.19"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent

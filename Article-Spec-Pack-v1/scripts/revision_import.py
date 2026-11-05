@@ -240,6 +240,34 @@ def block(af: Any, directory: Path, run: dict, findings: list[dict]) -> None:
     af.save_run(directory, run)
 
 
+def empty_plan_reason(af: Any, directory: Path, run: dict) -> str:
+    value = record(af, directory, run)
+    count = len(value["assets"])
+    if count:
+        return f"The supplied prose revision keeps {count} verified source image asset(s) and requests no additional diagram."
+    title = value["source"]["title"]
+    return f"The supplied draft of '{title}' contains no illustrations; this prose revision adds no diagram to its existing explanations."
+
+
+def legacy_empty_plan_repair(af: Any, directory: Path, run: dict) -> bool:
+    """Repair only the controller's false claim about nonexistent old images.
+
+    This cannot reopen a candidate carry or substitute a new visual design.
+    Original artifacts remain immutable and every downstream gate runs again.
+    """
+    if run["state"] != "VISUAL_PLAN" or record(af, directory, run)["assets"]:
+        return False
+    old = af.json_artifact(directory, run, "visual-plan") or {}
+    obligations = af.json_artifact(directory, run, "editorial-repair-obligations") or {}
+    pending = obligations.get("pending", [])
+    return (old.get("visuals") == []
+            and old.get("omission_reason") == "This prose revision preserves the existing published illustrations in place and introduces no new diagrams."
+            and bool(pending)
+            and all(item.get("finding", {}).get("criterion") == "visual"
+                    and item.get("finding", {}).get("location") == "omission_reason"
+                    for item in pending))
+
+
 def adopt(af: Any, directory: Path, run: dict) -> bool:
     """Validate and carry bytes; never impersonate a model task or repair prose."""
     if not enabled(af, run) or run["state"] not in {"DRAFT", "EDIT", "VISUAL_PLAN"}:
@@ -274,14 +302,18 @@ def adopt(af: Any, directory: Path, run: dict) -> bool:
             af.transition(directory, run, definition["next_on_pass"], "controller", "Finish the original committed external carry")
             return True
         # A return to an already-carried stage reflects a downstream failure.
-        block(af, directory, run, [{"criterion": "external_candidate_conflict", "finding":
-              "A downstream check requires changes to the supplied candidate. Return its findings to GPT in a new source-bound revision."}])
-        return True
+        if not legacy_empty_plan_repair(af, directory, run):
+            block(af, directory, run, [{"criterion": "external_candidate_conflict", "finding":
+                  "A downstream check requires changes to the supplied candidate. Return its findings to GPT in a new source-bound revision."}])
+            return True
+        af.append_event(directory, run, "REPAIR", "controller", {
+            "reason": "legacy_empty_visual_plan_metadata", "candidate_unchanged": True,
+            "prior_plan_sha256": af.artifact(run, "visual-plan")["sha256"]})
     af.revision_sources.assert_unchanged_source(af, run)
     if state == "VISUAL_PLAN":
         value = {"visual_plan_schema_version": "1.0.0", "run_id": run["run_id"], "visuals": [],
-                 "omission_reason": "This prose revision preserves the existing published illustrations in place and introduces no new diagrams."}
-        destination = directory / "artifacts/external-visual-plan.json"
+                 "omission_reason": empty_plan_reason(af, directory, run)}
+        destination = directory / f"artifacts/external-visual-plan-{af.sha256_bytes(af.canonical_json(value))[:16]}.json"
         af.write_json_immutable(destination, value)
         output_type = "visual-plan"
     else:
@@ -300,7 +332,7 @@ def adopt(af: Any, directory: Path, run: dict) -> bool:
     if outcome != "PASS":
         block(af, directory, run, findings)
         return True
-    receipt = directory / f"receipts/external-revision-{state.lower()}.json"
+    receipt = directory / f"receipts/external-revision-{state.lower()}-{item['sha256'][:16]}.json"
     af.write_json_immutable(receipt, {"state": state, "output_sha256": item["sha256"],
                                      "gate_receipt_sha256": af.sha256_path(gate),
                                      "candidate_sha256": af.artifact(run, "external-revision-candidate")["sha256"]})

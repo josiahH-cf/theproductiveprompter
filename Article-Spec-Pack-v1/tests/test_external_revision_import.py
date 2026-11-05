@@ -238,6 +238,45 @@ class ExternalRevisionImportTests(TemporaryRuntime):
         self.assertEqual(len(list(af.runs_root().glob('*/run.json'))), 1)
         start.assert_not_called(); advance.assert_not_called()
 
+    def test_empty_visual_plan_does_not_claim_nonexistent_source_images(self):
+        directory, run = self.opened()
+        self.carry(directory, run, 'VISUAL_PLAN')
+        plan = af.json_artifact(directory, run, 'visual-plan')
+        self.assertEqual(plan['visuals'], [])
+        self.assertIn('contains no illustrations', plan['omission_reason'])
+        self.assertIn('Original title', plan['omission_reason'])
+
+    def test_only_legacy_false_empty_plan_metadata_can_be_repaired_in_place(self):
+        directory, run = self.opened()
+        self.record_json(directory, run, 'visual-plan', {
+            'visuals': [], 'omission_reason': 'This prose revision preserves the existing published illustrations in place and introduces no new diagrams.'})
+        self.record_json(directory, run, 'editorial-repair-obligations', {'pending': [{
+            'finding': {'criterion': 'visual', 'location': 'omission_reason'}}]})
+        self.move(directory, run, 'VISUAL_PLAN')
+        self.assertTrue(imported.legacy_empty_plan_repair(af, directory, run))
+        self.record_json(directory, run, 'editorial-repair-obligations', {'pending': [{
+            'finding': {'criterion': 'clarity', 'location': 'body'}}]})
+        self.assertFalse(imported.legacy_empty_plan_repair(af, directory, run))
+
+    def test_legacy_empty_plan_repair_preserves_bytes_and_renews_plan_binding(self):
+        directory, run = self.opened()
+        old_reason = 'This prose revision preserves the existing published illustrations in place and introduces no new diagrams.'
+        with mock.patch.object(imported, 'empty_plan_reason', return_value=old_reason):
+            self.carry(directory, run, 'VISUAL_PLAN')
+        old_plan = af.artifact_path(directory, run, 'visual-plan')
+        old_bytes = old_plan.read_bytes()
+        self.record_json(directory, run, 'editorial-repair-obligations', {'pending': [{
+            'finding': {'criterion': 'visual', 'location': 'omission_reason'}}]})
+        self.carry(directory, run, 'VISUAL_PLAN')
+        self.assertEqual(run['state'], 'VISUAL_RENDER')
+        self.assertEqual(old_plan.read_bytes(), old_bytes)
+        self.assertNotEqual(af.artifact_path(directory, run, 'visual-plan'), old_plan)
+        self.assertEqual(af.artifact_path(directory, run, 'external-revision-candidate').read_bytes(), self.candidate.read_bytes())
+        gate = af.json_artifact(directory, run, 'gate-receipt:G-VISUAL-PLAN')
+        self.assertEqual(gate['outcome'], 'PASS')
+        self.carry(directory, run, 'VISUAL_PLAN')
+        self.assertEqual(run['status'], 'BLOCKED')
+
     def test_early_interrupted_intake_cannot_resume_as_an_ordinary_article(self):
         with mock.patch.object(imported, 'install', side_effect=OSError('storage interruption')):
             with self.assertRaises(OSError):
