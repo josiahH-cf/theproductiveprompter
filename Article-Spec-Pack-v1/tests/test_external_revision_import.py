@@ -10,6 +10,7 @@ from test_article_flow_v3 import TemporaryRuntime, af, call
 import external_revision as external
 import revision_import as imported
 import revision_sources as sources
+import revision_handoff as handoff
 
 
 class ExternalRevisionImportTests(TemporaryRuntime):
@@ -112,6 +113,171 @@ class ExternalRevisionImportTests(TemporaryRuntime):
         self.commit()
         self.candidate.write_text(self.markdown.replace('concrete explanation', 'clearer explanation'), encoding='utf-8')
         self.refresh_identity()
+
+    def handoff_value(self, visual_plan=None):
+        value = {'article_flow_revision_version': '1.0.0', 'source': json.loads(self.envelope.read_bytes()),
+                 'candidate_markdown': self.candidate.read_bytes().decode('utf-8'),
+                 'author_feedback': self.feedback.read_bytes().decode('utf-8')}
+        if visual_plan is not None:
+            value['visual_plan'] = visual_plan
+        return value
+
+    def import_handoff(self, value, *, fenced=True):
+        path = self.root / 'returned-response.md'
+        text = json.dumps(value, ensure_ascii=False, indent=2)
+        path.write_text(('Article preview and commentary stay outside the payload.\n\n~~~article-flow-revision\n' + text + '\n~~~\n') if fenced else text, encoding='utf-8')
+        return self.revise(handoff_file=str(path), source_file=None, candidate_file=None, request_file=None)
+
+    def workflow_plan(self, *, replace=False):
+        return {'replace_assets': [f'/assets/articles/{self.slug}/diagram.svg'] if replace else [], 'visuals': [{
+            'visual_id': 'diagram' if replace else 'next-step', 'kind': 'workflow', 'title': 'A useful next step',
+            'purpose': 'Show the next action and the direction of the workflow.',
+            'design_rationale': 'The two explicit nodes show one forward step; no return loop or additional work is implied.',
+            'placement': {'after_heading': 'Next step'}, 'alt_text': 'A clear explanation leads to keeping the useful parts.',
+            'caption': 'Follow the arrow to keep the useful parts.', 'claim_ids': [],
+            'labels': ['Read the explanation', 'Keep the useful parts'], 'edges': [{'from': 0, 'to': 1}]}]}
+
+    def render_handoff(self, value):
+        code, result = self.import_handoff(value)
+        self.assertEqual(code, af.EXIT_OK, result)
+        directory, run = af.load_run(result['run_id'])
+        self.carry(directory, run, 'DRAFT')
+        self.carry(directory, run, 'VISUAL_PLAN')
+        code, result = call(af.command_visual_render, run_id=run['run_id'], refresh=False)
+        self.assertEqual(code, af.EXIT_OK, result)
+        directory, run = af.load_run(run['run_id'])
+        self.carry(directory, run, 'EDIT')
+        self.record_json(directory, run, 'brief', {'title': 'Original title', 'slug': self.slug, 'date': '2026-09-15',
+                                                 'description': 'A clearer explanation', 'tags': []})
+        package = directory / 'rendered-handoff'
+        af.render_publication_files(directory, run, package, af.package_metadata(directory, run))
+        return directory, run, package
+
+    def test_one_copied_block_unpacks_exact_inputs_and_retries_share_one_owner(self):
+        value = self.handoff_value()
+        code, result = self.import_handoff(value)
+        self.assertEqual(code, af.EXIT_OK, result)
+        directory, run = af.load_run(result['run_id'])
+        self.assertEqual(af.artifact_path(directory, run, 'external-revision-candidate').read_bytes(), self.candidate.read_bytes())
+        self.assertEqual(af.artifact_path(directory, run, 'revision-request').read_bytes(), self.feedback.read_bytes())
+        code, retry = self.import_handoff(value, fenced=False)
+        self.assertEqual(code, af.EXIT_OK, retry)
+        self.assertEqual(retry['run_id'], run['run_id'])
+        self.assertTrue(retry['idempotent'])
+        self.assertEqual(len(list(af.runs_root().glob('*/run.json'))), 1)
+
+    def test_bad_handoff_cannot_start_work_or_supply_its_own_authorization(self):
+        good = self.handoff_value()
+        for raw in (b'{"source":{},"source":{}}', b'~~~article-flow-revision\n{}',
+                    b'~~~article-flow-revision\n{}\n~~~\n~~~article-flow-revision\n{}\n~~~',
+                    json.dumps({**good, 'authorization': 'Invented approval'}).encode(),
+                    json.dumps({**good, 'author_feedback': ''}).encode(),
+                    json.dumps({**good, 'candidate_markdown': 'bad\x00text'}).encode()):
+            with self.subTest(raw=raw[:60]), self.assertRaises(af.FlowError):
+                handoff.parse(af, raw)
+        self.assertEqual(list(af.runs_root().glob('*/run.json')), [])
+        path = self.root / 'handoff.json'
+        path.write_text(json.dumps(good), encoding='utf-8')
+        with self.assertRaisesRegex(af.FlowError, 'scoped unattended author authorization'):
+            self.revise(handoff_file=str(path), source_file=None, candidate_file=None, request_file=None,
+                        unattended_editorial=False, authorization=None)
+        self.assertEqual(list(af.runs_root().glob('*/run.json')), [])
+
+    def test_new_workflow_renders_explicit_edges_and_survives_public_roundtrip(self):
+        value = self.handoff_value(self.workflow_plan())
+        directory, run, package = self.render_handoff(value)
+        self.assertEqual(af.artifact_path(directory, run, 'external-revision-candidate').read_bytes(), self.candidate.read_bytes())
+        article = af.artifact_path(directory, run, 'article').read_text(encoding='utf-8')
+        self.assertIn(f'](/assets/articles/{self.slug}/next-step.svg)', article)
+        svg = (package / f'site/assets/articles/{self.slug}/next-step.svg').read_text(encoding='utf-8')
+        self.assertEqual(svg.count('data-from='), 1)
+        self.assertIn('data-from="0" data-to="1"', svg)
+        self.assertNotIn('data-to="0"', svg)
+        public = af.load_json(package / f'site/docs/{self.slug}.revision.json')
+        self.assertEqual(public['visuals'][0]['edges'], [{'from': 0, 'to': 1}])
+        self.assertNotIn('design_rationale', public['visuals'][0])
+        self.assertNotIn('private author note', json.dumps(public))
+        self.assertEqual(public['source']['source_html_sha256'], af.sha256_path(package / f'site/docs/{self.slug}.html'))
+        digest = af.sha256_bytes(af.canonical_json(public['visuals']))
+        self.assertIn(f'article-flow-revision-visuals-sha256" content="{digest}"', (package / f'site/docs/{self.slug}.html').read_text(encoding='utf-8'))
+        self.assertEqual(imported.provenance(af, directory, run)['evidence_kind'], 'validated_external_assistant_candidate')
+
+    def test_explicit_diagram_replacement_checks_old_bytes_and_publishes_only_new_asset(self):
+        self.add_image()
+        self.candidate.write_bytes(self.candidate.read_bytes().replace(b'![Exact alt](/assets/articles/external-revision/diagram.svg)', b''))
+        directory, run, package = self.render_handoff(self.handoff_value(self.workflow_plan(replace=True)))
+        self.assertEqual(imported.assets(af, directory, run), [])
+        target = package / f'site/assets/articles/{self.slug}/diagram.svg'
+        self.assertNotEqual(target.read_bytes(), self.image)
+        imported.assert_current_assets(af, run)
+        self.image_path.write_bytes(b'concurrent source image change')
+        with self.assertRaisesRegex(af.FlowError, 'asset changed'):
+            imported.assert_current_assets(af, run)
+
+    def test_diagram_plan_is_part_of_exact_owner_identity_and_is_immutable(self):
+        first = self.handoff_value(self.workflow_plan())
+        code, one = self.import_handoff(first)
+        self.assertEqual(code, af.EXIT_OK, one)
+        changed = json.loads(json.dumps(first))
+        changed['visual_plan']['visuals'][0]['caption'] = 'A different useful caption for the same process.'
+        code, two = self.import_handoff(changed)
+        self.assertEqual(code, af.EXIT_OK, two)
+        self.assertNotEqual(one['run_id'], two['run_id'])
+        _, retry = self.import_handoff(first)
+        self.assertEqual(retry['run_id'], one['run_id'])
+        directory, run = af.load_run(one['run_id'])
+        af.artifact_path(directory, run, 'external-revision-visual-plan').write_bytes(b'{}')
+        with self.assertRaisesRegex(af.FlowError, 'evidence changed'):
+            imported.record(af, directory, run)
+
+    def test_malformed_visual_or_undeclared_asset_change_stops_before_run_creation(self):
+        plan = self.workflow_plan()
+        variants = []
+        for field, value in (('edges', [{'from': 0, 'to': 7}]), ('claim_ids', ['invented-local-claim']),
+                             ('placement', {'after_heading': 'Missing heading'})):
+            changed = json.loads(json.dumps(plan))
+            changed['visuals'][0][field] = value
+            variants.append(changed)
+        variants.append({**plan, 'replace_assets': [f'/assets/articles/{self.slug}/next-step.svg']})
+        for changed in variants:
+            with self.subTest(plan=changed), self.assertRaises(af.FlowError):
+                self.import_handoff(self.handoff_value(changed))
+        self.assertEqual(list(af.runs_root().glob('*/run.json')), [])
+
+    def test_public_diagram_definitions_survive_a_later_prose_only_handoff(self):
+        directory, run, package = self.render_handoff(self.handoff_value(self.workflow_plan()))
+        wrapper = af.load_json(package / f'site/docs/{self.slug}.revision.json')
+        for path in (package / 'site').rglob('*'):
+            if path.is_file():
+                relative = path.relative_to(package / 'site')
+                target = self.repo / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(path.read_bytes())
+                self.pages['https://theproductiveprompter.com/' + relative.as_posix()] = path.read_bytes()
+        self.commit()
+        value = {'article_flow_revision_version': '1.0.0', 'source': wrapper,
+                 'candidate_markdown': wrapper['article_markdown'].replace('Keep the useful parts.', 'Keep the parts that help you.').replace('## Next step', '## A clearer next step'),
+                 'author_feedback': 'Keep the diagram and clarify that one sentence.'}
+        code, result = self.import_handoff(value)
+        self.assertEqual(code, af.EXIT_OK, result)
+        next_dir, next_run = af.load_run(result['run_id'])
+        public = handoff.public_visuals(af, next_dir, next_run)
+        self.assertEqual(public, [{**wrapper['visuals'][0], 'placement': {'after_heading': 'A clearer next step'}}])
+        tampered = json.loads(json.dumps(value))
+        tampered['source']['visuals'][0]['labels'][0] = 'Unbound diagram content'
+        with self.assertRaisesRegex(af.FlowError, 'not bound'):
+            self.import_handoff(tampered)
+
+    def test_workflow_rejects_disconnected_duplicate_and_silently_ignored_edges(self):
+        visual = self.workflow_plan()['visuals'][0]
+        for edges in ([{'from': 0, 'to': 0}], [{'from': 0, 'to': 1}, {'from': 0, 'to': 1}], []):
+            with self.subTest(edges=edges), self.assertRaises(af.FlowError):
+                af.render_visual_svg({**visual, 'edges': edges})
+        with self.assertRaisesRegex(af.FlowError, 'connected graph'):
+            af.render_visual_svg({**visual, 'labels': ['one', 'two', 'three', 'four'],
+                                  'edges': [{'from': 0, 'to': 1}, {'from': 2, 'to': 3}]})
+        with self.assertRaisesRegex(af.FlowError, 'cannot discard'):
+            af.render_visual_svg({**visual, 'kind': 'delivery_loop'})
 
     def test_intake_separates_exact_author_feedback_from_generated_candidate(self):
         directory, run = self.opened()
@@ -237,6 +403,70 @@ class ExternalRevisionImportTests(TemporaryRuntime):
         self.assertEqual((directory / 'run.json').read_bytes(), before)
         self.assertEqual(len(list(af.runs_root().glob('*/run.json'))), 1)
         start.assert_not_called(); advance.assert_not_called()
+
+    def test_empty_visual_plan_does_not_claim_nonexistent_source_images(self):
+        directory, run = self.opened()
+        self.carry(directory, run, 'VISUAL_PLAN')
+        plan = af.json_artifact(directory, run, 'visual-plan')
+        self.assertEqual(plan['visuals'], [])
+        self.assertIn('contains no illustrations', plan['omission_reason'])
+        self.assertIn('Original title', plan['omission_reason'])
+
+    def test_repeated_empty_visual_render_preserves_candidate_line_endings_and_eof(self):
+        original = self.candidate.read_bytes().replace(b'\n', b'\r\n') + b'\r\n'
+        self.candidate.write_bytes(original)
+        directory, run = self.accepted()
+        self.carry(directory, run, 'VISUAL_PLAN')
+        for _ in range(2):
+            self.move(directory, run, 'VISUAL_RENDER')
+            code, result = call(af.command_visual_render, run_id=run['run_id'], refresh=False)
+            self.assertEqual(code, af.EXIT_OK, result)
+            directory, run = af.load_run(run['run_id'])
+            self.assertEqual(af.artifact_path(directory, run, 'draft').read_bytes(), original)
+
+    def test_only_legacy_false_empty_plan_metadata_can_be_repaired_in_place(self):
+        directory, run = self.opened()
+        self.record_json(directory, run, 'visual-plan', {
+            'visuals': [], 'omission_reason': 'This prose revision preserves the existing published illustrations in place and introduces no new diagrams.'})
+        self.record_json(directory, run, 'editorial-repair-obligations', {'pending': [{
+            'finding': {'criterion': 'visual', 'location': 'omission_reason'}}]})
+        self.move(directory, run, 'VISUAL_PLAN')
+        self.assertTrue(imported.legacy_empty_plan_repair(af, directory, run))
+        self.record_json(directory, run, 'editorial-repair-obligations', {'pending': [{
+            'finding': {'criterion': 'clarity', 'location': 'body'}}]})
+        self.assertFalse(imported.legacy_empty_plan_repair(af, directory, run))
+
+    def test_legacy_empty_plan_repair_preserves_bytes_and_renews_plan_binding(self):
+        directory, run = self.opened()
+        old_reason = 'This prose revision preserves the existing published illustrations in place and introduces no new diagrams.'
+        with mock.patch.object(imported, 'empty_plan_reason', return_value=old_reason):
+            self.carry(directory, run, 'VISUAL_PLAN')
+        old_plan = af.artifact_path(directory, run, 'visual-plan')
+        old_bytes = old_plan.read_bytes()
+        self.record_json(directory, run, 'editorial-repair-obligations', {'pending': [{
+            'finding': {'criterion': 'visual', 'location': 'omission_reason'}}]})
+        self.carry(directory, run, 'VISUAL_PLAN')
+        self.assertEqual(run['state'], 'VISUAL_RENDER')
+        self.assertEqual(old_plan.read_bytes(), old_bytes)
+        self.assertNotEqual(af.artifact_path(directory, run, 'visual-plan'), old_plan)
+        self.assertEqual(af.artifact_path(directory, run, 'external-revision-candidate').read_bytes(), self.candidate.read_bytes())
+        gate = af.json_artifact(directory, run, 'gate-receipt:G-VISUAL-PLAN')
+        self.assertEqual(gate['outcome'], 'PASS')
+        self.carry(directory, run, 'VISUAL_PLAN')
+        self.assertEqual(run['status'], 'BLOCKED')
+
+    def test_metadata_recheck_reuses_existing_edit_acceptance_without_rewriting(self):
+        directory, run = self.accepted()
+        original_acceptance = dict(af.artifact(run, 'external-revision-acceptance:EDIT'))
+        af.append_event(directory, run, 'REPAIR', 'controller', {'reason': 'legacy_empty_visual_plan_metadata'})
+        self.record_text(directory, run, 'article', self.candidate.read_text().rstrip('\n'))
+        self.carry(directory, run, 'EDIT')
+        self.assertEqual(run['state'], 'POST_EDIT_CLAIM_VERIFICATION')
+        self.assertEqual(af.artifact(run, 'external-revision-acceptance:EDIT'), original_acceptance)
+        self.assertEqual(af.artifact_path(directory, run, 'article').read_bytes(), self.candidate.read_bytes())
+        self.move(directory, run, 'EDITORIAL_QA')
+        self.carry(directory, run, 'EDIT')
+        self.assertEqual(run['status'], 'BLOCKED')
 
     def test_early_interrupted_intake_cannot_resume_as_an_ordinary_article(self):
         with mock.patch.object(imported, 'install', side_effect=OSError('storage interruption')):

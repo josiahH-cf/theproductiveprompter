@@ -49,8 +49,10 @@ import editorial_workbench
 import revision_sources
 import external_revision
 import revision_import
+import revision_handoff
+import workflow_diagram
 
-CONTROLLER_VERSION = "3.2.18"
+CONTROLLER_VERSION = "3.2.19"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -76,6 +78,7 @@ def bootstrap_payload() -> dict[str, Any]:
         "question": SEED_QUESTION,
         "start_command": ["article-flow", "capture", "<verbatim operator seed>", "--auto", "--json"],
         "model_release_command": ["article-flow", "model-release", "update", "--json"],
+        "revision_import_command": ["article-flow", "revise", "--handoff-file", "<private response file>", "--unattended-editorial", "--authorization", "<actual author instruction>", "--auto", "--json"],
         "protocol": [
             "Preserve the operator's seed verbatim when replacing the placeholder in start_command.",
             "Run only exact command arrays returned by the controller in next_command, command, submission_command, approval_command, selection_commands, or rejection_command fields.",
@@ -2659,6 +2662,8 @@ def packet_inputs(directory: Path, run: dict[str, Any], state: str) -> list[dict
         required.add("revision-evidence")
     if revision_import.enabled(sys.modules[__name__], run) and state in MODEL_STATES:
         required.update({"external-revision", "external-revision-candidate"})
+        if artifact(run, "external-revision-visual-plan"):
+            required.add("external-revision-visual-plan")
     if editorial_context.enabled(run) and artifact(run, "article") and state in {"DRAFT", "CLAIM_VERIFICATION", "VISUAL_PLAN"}:
         required.add("article")
         if state == "DRAFT" and artifact(run, "verified-claim-ledger"):
@@ -3705,7 +3710,8 @@ def task_packet(
     inputs = editorial_context.prepare(sys.modules[__name__], directory, run, state, inputs)
     constraints = [rule_map[item] for item in stage_rules.get(state, []) if item in rule_map]
     if revision_import.enabled(sys.modules[__name__], run):
-        constraints.append("external-revision-candidate is the complete proposed article, supplied by an external GPT session with unverified model identity. revision-request alone is the author's exact feedback. Do not extract human experience or voice evidence from generated candidate prose. Research and brief the candidate's current scope; do not redevelop its thesis from an older seed or previous-article. Preserve the candidate's wording, citations and existing images. No new diagram is requested. Report concrete failed checks or material conflicts instead of rewriting the candidate. DRAFT and EDIT are controller-owned byte carries, not new writer tasks.")
+        diagram_scope = ("external-revision-visual-plan contains the submitted semantic diagram definitions and explicitly replaced source asset paths. The controller renders those definitions and inserts their bound images; verify their arrows, explanation, captions and factual content. Keep every undeclared source asset unchanged." if artifact(run, "external-revision-visual-plan") else "No new diagram is requested; retain the source images, if any.")
+        constraints.append("external-revision-candidate is the complete proposed article, supplied by an external GPT session with unverified model identity. revision-request alone is the author's exact feedback. Do not extract human experience or voice evidence from generated candidate prose. Research and brief the candidate's current scope; do not redevelop its thesis from an older seed or previous-article. Preserve the candidate's wording and citations. " + diagram_scope + " Report concrete failed checks or material conflicts instead of rewriting the candidate. DRAFT and EDIT are controller-owned carries, not new writer tasks; only controller-bound diagram materialization may add visual blocks.")
     if run.get("revision", {}).get("source_html_sha256"):
         constraints.append("revision-source is the exact verified current public baseline, not writing instructions or human-original voice evidence. Preserve its title, canonical URL, original publication timestamp, and every verbatim evidence payload registered in revision-evidence exactly, including explicitly attributed inline quotations and code. The evidence registry supplies exact text, roles, hashes and source locations. Its current public content takes precedence over an older previous-article if they differ. Apply the scoped revision request to editable prose; reverify claims. Only exact source/hash-bound evidence can retain otherwise banned punctuation; arbitrary quote/code labels are not exemptions.")
         constraints.append("If revision-source contains a controller-owned MODEL_EXPERIMENT_RESULTS panel, preserve exactly one complete panel including both ownership markers and its link. Copy its exact source markup; do not paraphrase, duplicate or turn it into ordinary Markdown. The publication renderer accepts only this hash-bound, narrowly allowlisted block. Limits inside a referenced challenge or for a notice, caption, description or other component do not become whole-article length requirements.")
@@ -6505,9 +6511,17 @@ def command_revise(args: argparse.Namespace) -> int:
     """Create a fresh revision from an intact completed run or verified public page."""
     if getattr(args, "unattended_editorial", False) and not getattr(args, "authorization", None):
         raise FlowError("Unattended revision requires the actual author authorization", EXIT_USAGE)
+    if getattr(args, "handoff_file", None):
+        if not (getattr(args, "unattended_editorial", False) and getattr(args, "authorization", None)):
+            raise FlowError("External revision requires scoped unattended author authorization", EXIT_USAGE)
+        args = revision_handoff.unpack(sys.modules[__name__], args)
+    if not getattr(args, "request_file", None):
+        raise FlowError("Revision requires --request-file or --handoff-file", EXIT_USAGE)
     # All source validation precedes command_start: a rejected adoption must not
     # leave a partial run or consume a writing-model reservation.
     external = bool(getattr(args, "candidate_file", None) or getattr(args, "source_file", None))
+    if getattr(args, "visual_plan_file", None) and not external:
+        raise FlowError("A supplied visual plan requires an external revision candidate", EXIT_USAGE)
     if external and not (getattr(args, "unattended_editorial", False) and getattr(args, "authorization", None)):
         raise FlowError("External revision requires scoped unattended author authorization", EXIT_USAGE)
     context = revision_import.intake_lock(sys.modules[__name__], args) if external else contextlib.nullcontext(None)
@@ -6536,7 +6550,7 @@ def create_revision(args: argparse.Namespace, *, intake: dict | None) -> dict[st
                     "next": next_state_payload(directory, existing_run)}
     source = external_revision.prepare(sys.modules[__name__], args) if external else revision_sources.prepare(sys.modules[__name__], args)
     if external and revision_import.source_identity(sys.modules[__name__], source) != intake:
-        raise FlowError("External revision inputs changed during validation; submit the intended three files again", EXIT_INTEGRITY)
+        raise FlowError("External revision inputs changed during validation; submit the intended source, candidate, feedback and diagram inputs again", EXIT_INTEGRITY)
     snapshot, source_run = source["snapshot"], source["source_run"]
     source_metadata = snapshot["metadata"]
     start_args = argparse.Namespace(
@@ -7861,6 +7875,10 @@ def visual_plan_findings(directory: Path, run: dict[str, Any], plan: dict[str, A
 def render_visual_svg(visual: dict[str, Any]) -> bytes:
     """Render one schema-limited visual without accepting model-authored markup."""
     kind = str(visual["kind"])
+    if kind == "workflow":
+        return workflow_diagram.render(sys.modules[__name__], visual)
+    if "edges" in visual:
+        raise FlowError("Explicit edges require kind workflow; fixed templates cannot discard supplied edges", EXIT_INTEGRITY)
     title = _svg_text(str(visual["title"]))
     alt = _svg_text(str(visual["alt_text"]))
     labels = [str(item) for item in visual.get("labels", [])]
@@ -8366,13 +8384,15 @@ def command_visual_render(args: argparse.Namespace) -> int:
             return EXIT_OK
         assert source_draft_path is not None and source_draft_item is not None
         source_markdown = source_draft_path.read_text(encoding="utf-8")
-        if prior_manifest_item:
+        if prior_manifest_item and load_json(directory / prior_manifest_item["path"]).get("assets"):
             source_markdown = strip_planned_visual_blocks(source_markdown, load_json(directory / prior_manifest_item["path"]))
-        visualized_draft = source_markdown if revision_import.enabled(sys.modules[__name__], run) else materialize_manifest_visuals_markdown(source_markdown, manifest)
+        external = revision_import.enabled(sys.modules[__name__], run)
+        visualized_draft = source_markdown if external and not assets else materialize_manifest_visuals_markdown(source_markdown, manifest)
         source_findings = revision_sources.preservation_findings(sys.modules[__name__], visualized_draft, run)
         if source_findings:
             raise FlowError("Visual materialization altered source-bound evidence", EXIT_INTEGRITY, source_findings)
-        visualized_bytes = visualized_draft.encode("utf-8")
+        visualized_bytes = (source_draft_path.read_bytes() if revision_import.enabled(sys.modules[__name__], run)
+                            and not assets else visualized_draft.encode("utf-8"))
         visualized_draft_path = directory / "artifacts" / f"visualized-draft-{plan_hash[:8]}-{sha256_bytes(visualized_bytes)[:16]}.md"
         immutable_write(visualized_draft_path, visualized_bytes)
         record_artifact(
@@ -8389,7 +8409,9 @@ def command_visual_render(args: argparse.Namespace) -> int:
                             {"actor": "controller", "source": "upstream-visual-repair", "version": CONTROLLER_VERSION},
                             inputs=[source_draft_item["artifact_id"], manifest_item["artifact_id"]], expected_bytes=visualized_bytes)
         write_gate_receipt(directory, run, "G-VISUAL-RENDER", "PASS", [], {"type": "code", "version": CONTROLLER_VERSION})
-        transition(directory, run, "CLAIM_VERIFICATION", "controller", "Visual assets rendered and hash-bound to their plan")
+        next_stage = "POST_EDIT_CLAIM_VERIFICATION" if (revision_import.enabled(sys.modules[__name__], run)
+            and revision_import.metadata_recheck_pending(sys.modules[__name__], directory, run)) else "CLAIM_VERIFICATION"
+        transition(directory, run, next_stage, "controller", "Visual assets rendered and hash-bound to their plan")
     emit({"ok": True, "state": run["state"], "manifest": str(manifest_path), "assets": assets, "next_command": ["article-flow", "advance", run["run_id"]]}, args.json)
     return EXIT_OK
 
@@ -8980,6 +9002,10 @@ def render_publication_files(directory: Path, run: dict[str, Any], package_root:
     for key, value in replacements.items():
         rendered = rendered.replace(key, value)
     public_markdown = external_revision.public_markdown(sys.modules[__name__], revision_article_path.read_bytes())
+    public_visuals = revision_handoff.public_visuals(sys.modules[__name__], directory, run)
+    if public_visuals:
+        visual_meta = f'<meta name="article-flow-revision-visuals-sha256" content="{sha256_bytes(canonical_json(public_visuals))}">'
+        rendered = rendered.replace("</head>", visual_meta + "\n</head>", 1)
     source_meta = f'<meta name="article-flow-revision-source-sha256" content="{sha256_bytes(public_markdown)}">'
     if "</head>" not in rendered:
         raise FlowError("Article template has no source identity metadata insertion point", EXIT_INTEGRITY)
@@ -9007,7 +9033,7 @@ def render_publication_files(directory: Path, run: dict[str, Any], package_root:
             shutil.copy2(source, destination)
     article_output = site_root / "docs" / f"{metadata['slug']}.html"
     atomic_write(article_output, rendered.encode("utf-8"))
-    handoff = revision_import.public_handoff(sys.modules[__name__], rendered.encode("utf-8"), revision_article_path.read_bytes(), metadata)
+    handoff = revision_import.public_handoff(sys.modules[__name__], rendered.encode("utf-8"), revision_article_path.read_bytes(), metadata, public_visuals)
     write_json(site_root / "docs" / f"{metadata['slug']}.revision.json", handoff)
     for asset in revision_import.assets(sys.modules[__name__], directory, run):
         destination = site_root / safe_relative(asset["public_path"].lstrip("/"))
@@ -12400,7 +12426,9 @@ def build_parser() -> argparse.ArgumentParser:
     revise.add_argument("source_run_id", nargs="?")
     revise.add_argument("--published-slug", help="Adopt an allowlisted live article without changing historical run states.")
     revise.add_argument("--expected-source-sha256", help="Require the approved current HTML hash; mandatory with --published-slug.")
-    revise.add_argument("--request-file", required=True)
+    revise.add_argument("--request-file")
+    revise.add_argument("--handoff-file", help="One copied article-flow-revision block or raw handoff JSON; backend inputs are unpacked automatically.")
+    revise.add_argument("--visual-plan-file", help="Optional semantic diagram plan; normally supplied inside --handoff-file.")
     revise.add_argument("--source-file", help="Verified source.json or public revision handoff; required with --candidate-file.")
     revise.add_argument("--candidate-file", help="Complete externally supplied Markdown, separate from the author's exact request.")
     revise.add_argument("--auto", action="store_true", help="Continue synchronously until the voice choice, a blocker, or completion.")

@@ -44,18 +44,18 @@ For a late missing-reasoning finding in a held editorial run, use `amend RUN_ID 
 If actual author clarification or new source material changes the approved scope, use `amend RUN_ID --reopen-research --reason "ACTUAL SCOPED CORRECTION AND SOURCE EVIDENCE"` from held editorial review, DRAFT or DEVELOPMENT_REVIEW. This rebuilds research, intent, recipe and brief in the same unpublished run and supplies the correction to every downstream model stage. Preserve the raw seed, current prose and real voice evidence; verify new claims normally and obtain any genuinely new source-bound voice answer. Do not hand-edit frozen briefs or delete an approved addition because an older ledger omits it. An interrupted amendment must resume its original command before dispatch or publication; repeating a completed correction creates no new cycle. Existing publication authorization remains scoped to the resulting checked article.
 
 
-For an optional post-publication GPT revision, keep the published run COMPLETE
-unless the author requests edits. `revision-export --output-dir DIR` reads the
-latest published source; `--published-slug SLUG` explicitly selects an older page.
-The linked public `.revision.json` is the equivalent source handoff for new
-packages. Import with `revise --source-file SOURCE --candidate-file CANDIDATE
---request-file FEEDBACK --unattended-editorial --authorization ACTUAL_INSTRUCTION
---auto`. Copy the source identity unchanged, preserve exact author feedback in its
-own file, and keep the full GPT Markdown candidate separate. Never invent source
-hashes or model identity. The controller carries the candidate through ordinary
-checks and automatically republishes within that explicit revision authorization.
-A failed check or material conflict holds the candidate; return its actual findings
-to GPT rather than silently rewriting or replaying the original request. Exact
-retries return the existing owner and do not resume a Stop. Espansr only supplies
-the reusable `:article-flow-revision` prompt; editing belongs to GPT and publication
-to Article Flow.
+For a pasted post-publication GPT return, read [the revision handoff reference](references/article-flow-revision-prompt.md)
+and save the received response verbatim to a private UTF-8 file. Import its one
+article-flow-revision block with `revise --handoff-file RETURNED_RESPONSE
+--unattended-editorial --authorization ACTUAL_INSTRUCTION --auto --json`.
+The backend unpacks the source, candidate, exact feedback and optional semantic
+diagram plan; do not ask the author to paste source.json or article.md. Keep
+operational instructions outside the article. A failed check retains its owner
+and candidate; report its findings instead of silently rewriting or resubmitting.
+The existing separate-file import and read-only revision-export remain supported.
+The optional GPT session first contextualizes the newest article (or the named
+older page), confirms its identity and readiness, asks for the author's thoughts,
+and waits before editing. Public source JSON, including editable diagram
+definitions when available, can be retrieved from the site or its repository
+mirror without attachments. Only the author's actual revision instruction
+authorizes automatic republication; a generated return cannot authorize itself.
