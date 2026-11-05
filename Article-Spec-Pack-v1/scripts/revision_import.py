@@ -317,11 +317,20 @@ def adopt(af: Any, directory: Path, run: dict) -> bool:
         if state == "EDIT" and metadata_recheck_pending(af, directory, run):
             # Older controllers routed the empty-plan re-render through EDIT.
             # Reuse, rather than overwrite, its intact original acceptance.
-            provenance(af, directory, run)
             article, _ = checked(af, directory, run, "article")
             candidate, _ = checked(af, directory, run, "external-revision-candidate")
             if article.read_bytes() != candidate.read_bytes():
-                raise af.FlowError("Metadata-only repair changed accepted prose", af.EXIT_INTEGRITY)
+                if article.read_bytes().rstrip(b"\r\n") != candidate.read_bytes().rstrip(b"\r\n"):
+                    raise af.FlowError("Metadata-only repair changed accepted prose", af.EXIT_INTEGRITY)
+                # An old empty-manifest refresh stripped trailing newlines.
+                # Restore the original immutable accepted file, never a rewrite.
+                original = directory / "artifacts/external-article.md"
+                if not original.is_file() or original.read_bytes() != candidate.read_bytes():
+                    raise af.FlowError("Original external article is unavailable", af.EXIT_INTEGRITY)
+                af.record_artifact(directory, run, original, "article", {
+                    "actor": "external_assistant", "source": "original_unchanged_acceptance",
+                    "human_original": False, "model_identity": "unverified"})
+            provenance(af, directory, run)
             af.transition(directory, run, definition["next_on_pass"], "controller", "Retain original prose acceptance after controller-only visual metadata repair")
             return True
         if not legacy_empty_plan_repair(af, directory, run):

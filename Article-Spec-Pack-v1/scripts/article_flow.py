@@ -8366,13 +8366,14 @@ def command_visual_render(args: argparse.Namespace) -> int:
             return EXIT_OK
         assert source_draft_path is not None and source_draft_item is not None
         source_markdown = source_draft_path.read_text(encoding="utf-8")
-        if prior_manifest_item:
+        if prior_manifest_item and load_json(directory / prior_manifest_item["path"]).get("assets"):
             source_markdown = strip_planned_visual_blocks(source_markdown, load_json(directory / prior_manifest_item["path"]))
         visualized_draft = source_markdown if revision_import.enabled(sys.modules[__name__], run) else materialize_manifest_visuals_markdown(source_markdown, manifest)
         source_findings = revision_sources.preservation_findings(sys.modules[__name__], visualized_draft, run)
         if source_findings:
             raise FlowError("Visual materialization altered source-bound evidence", EXIT_INTEGRITY, source_findings)
-        visualized_bytes = visualized_draft.encode("utf-8")
+        visualized_bytes = (source_draft_path.read_bytes() if revision_import.enabled(sys.modules[__name__], run)
+                            and not assets else visualized_draft.encode("utf-8"))
         visualized_draft_path = directory / "artifacts" / f"visualized-draft-{plan_hash[:8]}-{sha256_bytes(visualized_bytes)[:16]}.md"
         immutable_write(visualized_draft_path, visualized_bytes)
         record_artifact(

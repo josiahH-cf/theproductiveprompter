@@ -281,6 +281,7 @@ class ExternalRevisionImportTests(TemporaryRuntime):
         directory, run = self.accepted()
         original_acceptance = dict(af.artifact(run, 'external-revision-acceptance:EDIT'))
         af.append_event(directory, run, 'REPAIR', 'controller', {'reason': 'legacy_empty_visual_plan_metadata'})
+        self.record_text(directory, run, 'article', self.candidate.read_text().rstrip('\n'))
         self.carry(directory, run, 'EDIT')
         self.assertEqual(run['state'], 'POST_EDIT_CLAIM_VERIFICATION')
         self.assertEqual(af.artifact(run, 'external-revision-acceptance:EDIT'), original_acceptance)
