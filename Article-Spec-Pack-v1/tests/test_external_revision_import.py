@@ -246,6 +246,18 @@ class ExternalRevisionImportTests(TemporaryRuntime):
         self.assertIn('contains no illustrations', plan['omission_reason'])
         self.assertIn('Original title', plan['omission_reason'])
 
+    def test_repeated_empty_visual_render_preserves_candidate_line_endings_and_eof(self):
+        original = self.candidate.read_bytes().replace(b'\n', b'\r\n') + b'\r\n'
+        self.candidate.write_bytes(original)
+        directory, run = self.accepted()
+        self.carry(directory, run, 'VISUAL_PLAN')
+        for _ in range(2):
+            self.move(directory, run, 'VISUAL_RENDER')
+            code, result = call(af.command_visual_render, run_id=run['run_id'], refresh=False)
+            self.assertEqual(code, af.EXIT_OK, result)
+            directory, run = af.load_run(run['run_id'])
+            self.assertEqual(af.artifact_path(directory, run, 'draft').read_bytes(), original)
+
     def test_only_legacy_false_empty_plan_metadata_can_be_repaired_in_place(self):
         directory, run = self.opened()
         self.record_json(directory, run, 'visual-plan', {
