@@ -178,7 +178,8 @@ durable owner under the shared runs root, with the same cross-host lock used by
 Windows and WSL. Concurrent submissions return that owner. An interruption before
 the intake artifacts, or even before Run creation, retains the reserved identity
 and requires reconciliation under it; retrying cannot create another Run or clear
-a Stop. Imports from earlier versions retain their artifact-bound retry identity.
+a Stop. An incomplete intake cannot dispatch model tasks or continue as an
+ordinary article. Imports from earlier versions retain their artifact-bound retry identity.
 
 In a Windows-created linked worktree, WSL uses Linux Git with the explicitly
 resolved Git directory for object and index reads, with optional index writes

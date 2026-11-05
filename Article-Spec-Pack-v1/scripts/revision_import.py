@@ -14,8 +14,15 @@ from typing import Any
 
 
 def enabled(af: Any, run: dict) -> bool:
-    return (af.artifact(run, "external-revision-intake") is not None
+    return (run.get("run_overrides", {}).get("external_revision_intake") is not None
+            or af.artifact(run, "external-revision-intake") is not None
             or af.artifact(run, "external-revision-candidate") is not None)
+
+
+def require_complete(af: Any, directory: Path, run: dict) -> None:
+    if enabled(af, run) and af.artifact(run, "external-revision") is None:
+        raise af.FlowError("External revision intake is incomplete; reconcile its reserved Run before continuation",
+                           af.EXIT_INTEGRITY, {"run_id": run["run_id"], "action": "reconciliation_required"})
 
 
 def input_identity(af: Any, args: Any) -> dict[str, str]:
@@ -176,6 +183,10 @@ def record(af: Any, directory: Path, run: dict) -> dict:
     value = af.load_json(path)
     candidate, item = checked(af, directory, run, "external-revision-candidate")
     request, request_item = checked(af, directory, run, "revision-request")
+    reserved = run.get("run_overrides", {}).get("external_revision_intake")
+    if reserved is not None and reserved != {key: value[key] for key in (
+            "source_file_sha256", "candidate_sha256", "author_feedback_sha256")}:
+        raise af.FlowError("External revision no longer matches its reserved intake", af.EXIT_INTEGRITY)
     if (value["candidate_sha256"] != item["sha256"]
             or value["author_feedback_sha256"] != request_item["sha256"]
             or value["source"]["source_html_sha256"] != run["revision"]["source_html_sha256"]):

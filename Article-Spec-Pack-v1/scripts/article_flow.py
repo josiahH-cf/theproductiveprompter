@@ -3468,6 +3468,7 @@ def task_packet(
     requested_route: str | None = None,
     allow_canary: bool = False,
 ) -> tuple[Path, dict[str, Any]]:
+    revision_import.require_complete(sys.modules[__name__], directory, run)
     require_complete_research_amendment(directory, run)
     state = run["state"]
     if revision_import.enabled(sys.modules[__name__], run) and state in {"DRAFT", "EDIT", "VISUAL_PLAN"}:
@@ -6144,6 +6145,9 @@ def require_current_question(directory: Path, run: dict[str, Any], question_id: 
 
 
 def next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
+    if revision_import.enabled(sys.modules[__name__], run) and artifact(run, "external-revision") is None:
+        return {"action": "reconciliation_required", "run_id": run["run_id"], "state": run["state"],
+                "reason": "External revision intake is incomplete; retain its reserved owner."}
     # Refresh question projections before showing passages so a concurrent
     # regeneration cannot bind old text to a newer source. Other projections,
     # including frozen v2 soft approvals, keep their existing behavior.
@@ -6417,6 +6421,8 @@ def command_start(args: argparse.Namespace) -> int:
         "publication": {},
         "route_failures": {},
     }
+    if intake is not None:
+        run["run_overrides"]["external_revision_intake"] = intake
     save_run(directory, run)
     append_event(directory, run, "RUN_CREATED", "controller", {"workflow_version": run["workflow_version"], "controller_version": CONTROLLER_VERSION})
     assignment = reserve_draft_model(
@@ -11015,6 +11021,7 @@ def command_advance(args: argparse.Namespace) -> int:
     maximum = int(getattr(args, "max_steps", 100))
     for _ in range(maximum):
         directory, run = load_run(args.run_id)
+        revision_import.require_complete(sys.modules[__name__], directory, run)
         require_complete_research_amendment(directory, run)
         state = run["state"]
         if state in {"COMPLETE", "TERMINAL"}:

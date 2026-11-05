@@ -238,6 +238,24 @@ class ExternalRevisionImportTests(TemporaryRuntime):
         self.assertEqual(len(list(af.runs_root().glob('*/run.json'))), 1)
         start.assert_not_called(); advance.assert_not_called()
 
+    def test_early_interrupted_intake_cannot_resume_as_an_ordinary_article(self):
+        with mock.patch.object(imported, 'install', side_effect=OSError('storage interruption')):
+            with self.assertRaises(OSError):
+                self.revise()
+        owner = next(af.runs_root().glob('*/run.json'))
+        directory, run = af.load_run(owner.parent.name)
+        self.assertTrue(imported.enabled(af, run))
+        self.assertEqual(af.next_state_payload(directory, run)['action'], 'reconciliation_required')
+        before = owner.read_bytes()
+        with mock.patch.object(af, 'command_execute_stage') as execute:
+            with self.assertRaisesRegex(af.FlowError, 'intake is incomplete'):
+                call(af.command_advance, run_id=run['run_id'], max_steps=1)
+            with self.assertRaisesRegex(af.FlowError, 'intake is incomplete'):
+                af.task_packet(directory, run)
+        execute.assert_not_called()
+        self.assertEqual(owner.read_bytes(), before)
+        self.assertEqual(af.model_history()['count'], 0)
+
     def test_two_simultaneous_processes_create_one_owner(self):
         worker = r'''
 import argparse, json, os, sys, time
@@ -345,6 +363,8 @@ with mock.patch.object(af,'check_manifest',return_value={'ok':True}), \
     def test_legacy_import_without_reservation_returns_its_existing_owner(self):
         directory, run = self.opened()
         next((af.runs_root() / '.external-revisions').glob('*.json')).unlink()
+        run['run_overrides'].pop('external_revision_intake')
+        af.save_run(directory, run)
         with mock.patch.object(af, 'command_start') as start:
             code, result = self.revise()
         self.assertEqual(code, af.EXIT_OK)
