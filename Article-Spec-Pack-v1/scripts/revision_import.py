@@ -268,6 +268,18 @@ def legacy_empty_plan_repair(af: Any, directory: Path, run: dict) -> bool:
                     for item in pending))
 
 
+def metadata_recheck_pending(af: Any, directory: Path, run: dict) -> bool:
+    ok, error, _, events = af.verify_event_log(directory, run)
+    if not ok:
+        raise af.FlowError("External metadata repair history changed", af.EXIT_INTEGRITY, error)
+    repairs = [event for event in events if event.get("type") == "REPAIR"
+               and event.get("payload", {}).get("reason") == "legacy_empty_visual_plan_metadata"]
+    return bool(repairs) and not any(
+        event.get("sequence", 0) > repairs[-1]["sequence"]
+        and event.get("type") == "STATE_TRANSITION"
+        and event.get("payload", {}).get("to") == "EDITORIAL_QA" for event in events)
+
+
 def adopt(af: Any, directory: Path, run: dict) -> bool:
     """Validate and carry bytes; never impersonate a model task or repair prose."""
     if not enabled(af, run) or run["state"] not in {"DRAFT", "EDIT", "VISUAL_PLAN"}:
@@ -302,6 +314,16 @@ def adopt(af: Any, directory: Path, run: dict) -> bool:
             af.transition(directory, run, definition["next_on_pass"], "controller", "Finish the original committed external carry")
             return True
         # A return to an already-carried stage reflects a downstream failure.
+        if state == "EDIT" and metadata_recheck_pending(af, directory, run):
+            # Older controllers routed the empty-plan re-render through EDIT.
+            # Reuse, rather than overwrite, its intact original acceptance.
+            provenance(af, directory, run)
+            article, _ = checked(af, directory, run, "article")
+            candidate, _ = checked(af, directory, run, "external-revision-candidate")
+            if article.read_bytes() != candidate.read_bytes():
+                raise af.FlowError("Metadata-only repair changed accepted prose", af.EXIT_INTEGRITY)
+            af.transition(directory, run, definition["next_on_pass"], "controller", "Retain original prose acceptance after controller-only visual metadata repair")
+            return True
         if not legacy_empty_plan_repair(af, directory, run):
             block(af, directory, run, [{"criterion": "external_candidate_conflict", "finding":
                   "A downstream check requires changes to the supplied candidate. Return its findings to GPT in a new source-bound revision."}])

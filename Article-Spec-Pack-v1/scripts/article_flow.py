@@ -8389,7 +8389,9 @@ def command_visual_render(args: argparse.Namespace) -> int:
                             {"actor": "controller", "source": "upstream-visual-repair", "version": CONTROLLER_VERSION},
                             inputs=[source_draft_item["artifact_id"], manifest_item["artifact_id"]], expected_bytes=visualized_bytes)
         write_gate_receipt(directory, run, "G-VISUAL-RENDER", "PASS", [], {"type": "code", "version": CONTROLLER_VERSION})
-        transition(directory, run, "CLAIM_VERIFICATION", "controller", "Visual assets rendered and hash-bound to their plan")
+        next_stage = "POST_EDIT_CLAIM_VERIFICATION" if (revision_import.enabled(sys.modules[__name__], run)
+            and revision_import.metadata_recheck_pending(sys.modules[__name__], directory, run)) else "CLAIM_VERIFICATION"
+        transition(directory, run, next_stage, "controller", "Visual assets rendered and hash-bound to their plan")
     emit({"ok": True, "state": run["state"], "manifest": str(manifest_path), "assets": assets, "next_command": ["article-flow", "advance", run["run_id"]]}, args.json)
     return EXIT_OK
 

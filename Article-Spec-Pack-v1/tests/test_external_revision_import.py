@@ -277,6 +277,18 @@ class ExternalRevisionImportTests(TemporaryRuntime):
         self.carry(directory, run, 'VISUAL_PLAN')
         self.assertEqual(run['status'], 'BLOCKED')
 
+    def test_metadata_recheck_reuses_existing_edit_acceptance_without_rewriting(self):
+        directory, run = self.accepted()
+        original_acceptance = dict(af.artifact(run, 'external-revision-acceptance:EDIT'))
+        af.append_event(directory, run, 'REPAIR', 'controller', {'reason': 'legacy_empty_visual_plan_metadata'})
+        self.carry(directory, run, 'EDIT')
+        self.assertEqual(run['state'], 'POST_EDIT_CLAIM_VERIFICATION')
+        self.assertEqual(af.artifact(run, 'external-revision-acceptance:EDIT'), original_acceptance)
+        self.assertEqual(af.artifact_path(directory, run, 'article').read_bytes(), self.candidate.read_bytes())
+        self.move(directory, run, 'EDITORIAL_QA')
+        self.carry(directory, run, 'EDIT')
+        self.assertEqual(run['status'], 'BLOCKED')
+
     def test_early_interrupted_intake_cannot_resume_as_an_ordinary_article(self):
         with mock.patch.object(imported, 'install', side_effect=OSError('storage interruption')):
             with self.assertRaises(OSError):
