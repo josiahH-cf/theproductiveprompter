@@ -30,37 +30,37 @@ def render(af, visual):
         raise af.FlowError("A workflow diagram must be one connected graph", af.EXIT_INTEGRITY)
     if len(visual["title"]) > 52:
         raise af.FlowError("Workflow title requires at most 52 characters", af.EXIT_INTEGRITY)
-    height = 170 + len(labels) * 160
+    height = 170 + len(labels) * 167
     title, alt = af._svg_text(visual["title"]), af._svg_text(visual["alt_text"])
-    elements = [f'<rect width="1000" height="{height}" rx="24" fill="#0b1020"/>',
-                f'<text x="40" y="60" class="title">{title}</text>']
+    elements = [f'<rect width="760" height="{height}" rx="24" fill="#0b1020"/>',
+                af._svg_wrapped_text(visual["title"], x=32, y=44, width=44, line_height=32, css_class="title")]
     lane = 0
     for edge in edges:
         start, end = edge["from"], edge["to"]
         label = af._svg_text(edge.get("label", ""))
         if end == start + 1:
-            y = 110 + start * 160 + 100
-            path = f"M440 {y} V{y + 55}"
-            label_svg = f'<text x="455" y="{y + 34}" class="edge-label">{label}</text>' if label else ""
+            y = 140 + start * 167 + 112
+            path = f"M295 {y} V{y + 50}"
+            label_svg = f'<text x="310" y="{y + 34}" class="edge-label">{label}</text>' if label else ""
         else:
-            x = 800 + lane * 44
+            x = 610 + lane * 34
             lane += 1
-            y1, y2 = 160 + start * 160, 160 + end * 160
-            path = f"M700 {y1} H{x} V{y2} H705"
-            label_svg = (f'<text transform="translate({x + 18} {(y1 + y2) // 2}) rotate(-90)" '
+            y1, y2 = 196 + start * 167, 196 + end * 167
+            path = f"M550 {y1} H{x} V{y2} H555"
+            label_svg = (f'<text transform="translate({x + 16} {(y1 + y2) // 2}) rotate(-90)" '
                          f'text-anchor="middle" class="edge-label">{label}</text>') if label else ""
         css = "arrow return" if end < start else "arrow"
         elements.append(f'<path d="{path}" class="{css}" data-from="{start}" data-to="{end}"/>')
         elements.append(label_svg)
     for index, label in enumerate(labels):
-        y = 110 + index * 160
-        elements.append(f'<rect x="180" y="{y}" width="520" height="100" rx="16" class="panel"/>')
-        elements.append(af._svg_wrapped_text(label, x=204, y=y + 34, width=38, line_height=27))
-    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 {height}" role="img" aria-labelledby="title desc">'
+        y = 140 + index * 167
+        elements.append(f'<rect x="40" y="{y}" width="510" height="112" rx="16" class="panel"/>')
+        elements.append(af._svg_wrapped_text(label, x=64, y=y + 36, width=31, line_height=30))
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 {height}" role="img" aria-labelledby="title desc">'
             f'<title id="title">{title}</title><desc id="desc">{alt}</desc>'
             '<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">'
             '<path d="M0,0 L8,4 L0,8 z" fill="#7dd3fc"/></marker></defs>'
-            '<style>.title{fill:#f8fafc;font:700 28px system-ui,sans-serif}.label{fill:#e8edf7;font:500 22px system-ui,sans-serif}'
+            '<style>.title{fill:#f8fafc;font:700 27px system-ui,sans-serif}.label{fill:#e8edf7;font:500 26px system-ui,sans-serif}'
             '.panel{fill:#121a2d;stroke:#33415f;stroke-width:2}.arrow{fill:none;stroke:#7dd3fc;stroke-width:3;marker-end:url(#arrow)}'
             '.return{stroke-dasharray:7 5}.edge-label{fill:#e8edf7;font:500 18px system-ui,sans-serif}</style>'
             + ''.join(elements) + '</svg>\n').encode('utf-8')

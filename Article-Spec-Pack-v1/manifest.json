@@ -3,7 +3,7 @@
   "workflow_version": "3.2.0",
   "hash_algorithm": "sha256",
   "generator_name_and_version": "article-flow 3.2.19",
-  "generated_at": "2026-11-05T12:53:30Z",
+  "generated_at": "2026-11-05T13:05:54Z",
   "generated_from": "index",
   "files": [
     {
@@ -827,8 +827,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "920b5c3fa80b2529ba2af44c7ed2f257241cf9e9b9418a31caa81ffc95dba048",
-      "byte_size": 3887
+      "sha256": "13bd33b8d77a5f9c583c5d1ff50fa1841efd429c61fea3f902a89a7ba6704561",
+      "byte_size": 3926
     },
     {
       "path": "tests/test_agent_hosted_provenance.py",
