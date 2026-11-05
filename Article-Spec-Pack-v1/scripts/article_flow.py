@@ -52,7 +52,7 @@ import revision_import
 import revision_handoff
 import workflow_diagram
 
-CONTROLLER_VERSION = "3.2.19"
+CONTROLLER_VERSION = "3.2.20"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent

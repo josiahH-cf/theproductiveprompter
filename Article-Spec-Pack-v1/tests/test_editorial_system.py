@@ -5,6 +5,7 @@ import copy
 import contextlib
 import io
 import json
+import re
 import sys
 from pathlib import Path
 from unittest import mock
@@ -543,6 +544,20 @@ class EditorialTests(TemporaryRuntime):
         self.assertEqual(len(result), 2)
         self.assertEqual(destination.read_bytes(), (af.SPEC_ROOT.parent / ".agents/skills/article-flow/SKILL.md").read_bytes())
         self.assertEqual(len(list((self.root / "backups/skill-backups").glob("*/SKILL.md"))), 1)
+
+    def test_installed_client_skills_have_every_linked_local_reference(self):
+        result = context.sync_skill(af, self.root / "user", self.root / "backups")
+        self.assertEqual(len(result), 2)
+        for installed in result:
+            root = Path(installed["path"])
+            skill = (root / "SKILL.md").read_text(encoding="utf-8")
+            references = set(re.findall(r"\]\((references/[^)#]+)(?:#[^)]*)?\)", skill))
+            self.assertTrue(references)
+            for reference in references:
+                with self.subTest(client=root, reference=reference):
+                    path = root / reference
+                    self.assertTrue(path.is_file(), f"Installed skill links to a missing reference: {path}")
+                    self.assertEqual(path.read_bytes(), (af.SPEC_ROOT.parent / ".agents/skills/article-flow" / reference).read_bytes())
 
     def test_material_question_stops_and_actual_answer_is_preserved(self):
         directory, run = self.start_current()
