@@ -5,7 +5,7 @@
     <link>https://theproductiveprompter.com/docs/blog.html</link>
     <description>Practical writing on AI workflows, prompting systems, evaluation, and publication design.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 03 Nov 2026 12:00:00 -0500</lastBuildDate>
+    <lastBuildDate>Thu, 05 Nov 2026 12:31:28 +0000</lastBuildDate>
     <atom:link href="https://theproductiveprompter.com/feed.xml" rel="self" type="application/rss+xml"/>
 
     <!-- ARTICLE_FLOW_FEED_START -->
@@ -14,7 +14,7 @@
   <link>https://theproductiveprompter.com/docs/how-much-should-you-verify-before-relying-on-ai-assisted-work.html</link>
   <guid isPermaLink="true">https://theproductiveprompter.com/docs/how-much-should-you-verify-before-relying-on-ai-assisted-work.html</guid>
   <pubDate>Tue, 03 Nov 2026 12:00:00 -0500</pubDate>
-  <description>A practical guide to scaling verification by stakes, uncertainty, reversibility, and feasible evidence while preserving a path for troubleshooting what bounded checks cannot establish.</description>
+  <description>A practical guide to verification-first and troubleshoot-as-you-go coding workflows, choosing proportionate checks, and stating what each result does and does not establish.</description>
 </item>
 <item>
   <title>Ads Are the Goal, Not the Goal?</title>
