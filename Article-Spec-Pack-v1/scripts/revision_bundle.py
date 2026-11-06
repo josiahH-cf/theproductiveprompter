@@ -78,6 +78,19 @@ def unpack(af: Any, args: Any) -> Any:
         if candidate_name == feedback_name:
             raise ValueError("candidate and feedback require separate files")
         candidate.decode('utf-8'); feedback.decode('utf-8')
+        visual_name = None
+        visual_data = None
+        if 'visual_plan_file' in manifest:
+            visual_name, visual_data = member('visual_plan_file', '.json')
+        images = manifest.get('images', [])
+        if not isinstance(images, list) or len(images) > 4:
+            raise ValueError("images must be a list of at most four local captures")
+        normalized = []
+        for image in images:
+            if not isinstance(image, dict) or set(image) != {'file', 'alt_text', 'caption'}:
+                raise ValueError("image requires file, alt_text and caption; place its image block in the draft")
+            name = filename(image['file'])
+            normalized.append({**image, 'sha256': af.sha256_bytes(files[name])})
         # Content, not ZIP timestamps/compression, owns extraction and fallback identity.
         bindings = {name: af.sha256_bytes(data) for name, data in sorted(files.items())}
         root = af.runs_root() / '.revision-bundles' / af.sha256_bytes(af.canonical_json(bindings))
@@ -88,9 +101,15 @@ def unpack(af: Any, args: Any) -> Any:
                 raise ValueError("bundle storage is a symbolic link")
             af.immutable_write(path, data)
         if manifest['source_file'] is None:
-            source_path = root / '.verified-source.json'
+            # Notes, filenames and ZIP presentation cannot refresh source identity.
+            source_key = {'slug': manifest['slug'], 'candidate': af.sha256_bytes(candidate),
+                          'feedback': af.sha256_bytes(feedback), 'images': normalized,
+                          'visual_plan': af.sha256_bytes(visual_data) if visual_data is not None else None}
+            source_root = af.runs_root() / '.revision-bundle-sources' / af.sha256_bytes(af.canonical_json(source_key))
+            source_root.mkdir(parents=True, exist_ok=True)
+            source_path = source_root / 'source.json'
             # Reserve the fallback once; an exact retry must not refresh a stale source.
-            with af.shared_lock(root / '.source.lock', wait_seconds=60):
+            with af.shared_lock(source_root / '.source.lock', wait_seconds=60):
                 if not source_path.exists():
                     snapshot = af.revision_sources.checked_snapshot(af, manifest['slug'])
                     markdown, _ = af.external_revision.material(af, snapshot)
@@ -106,19 +125,9 @@ def unpack(af: Any, args: Any) -> Any:
         result.source_file = str(source_path)
         result.candidate_file = str(root / candidate_name)
         result.request_file = str(root / feedback_name)
-        if 'visual_plan_file' in manifest:
-            name, _ = member('visual_plan_file', '.json')
-            result.visual_plan_file = str(root / name)
-        images = manifest.get('images', [])
-        if not isinstance(images, list) or len(images) > 4:
-            raise ValueError("images must be a list of at most four local captures")
+        if visual_name is not None:
+            result.visual_plan_file = str(root / visual_name)
         if images:
-            normalized = []
-            for image in images:
-                if not isinstance(image, dict) or set(image) != {'file', 'alt_text', 'caption'}:
-                    raise ValueError("image requires file, alt_text and caption; place its image block in the draft")
-                name = filename(image['file'])
-                normalized.append({**image, 'sha256': af.sha256_bytes(files[name])})
             path = root / '.image-plan.json'
             af.immutable_write(path, af.canonical_json({'images': normalized}))
             result.image_plan_file = str(path)

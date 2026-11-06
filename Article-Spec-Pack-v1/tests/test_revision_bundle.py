@@ -76,6 +76,14 @@ class RevisionBundleTests(ExternalRevisionFixture):
             _, two = self.import_zip(files)
         self.assertEqual(one['run_id'], two['run_id'])
 
+    def test_review_note_changes_cannot_refresh_missing_source_or_create_another_owner(self):
+        files = self.files(fallback=True)
+        _, first = self.import_zip(files)
+        files['README.txt'] = b'Updated private review status; the article and feedback are unchanged.'
+        with mock.patch.object(af.revision_sources, 'checked_snapshot', side_effect=AssertionError('notes refreshed source')):
+            _, retry = self.import_zip(files)
+        self.assertEqual(first['run_id'], retry['run_id'])
+
     def test_zip_source_slug_mismatch_and_unauthorized_import_create_no_run(self):
         files = self.files()
         manifest = json.loads(files['revision-bundle.json']); manifest['slug'] = 'other-article'
