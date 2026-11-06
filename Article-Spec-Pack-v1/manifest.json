@@ -2,8 +2,8 @@
   "manifest_schema_version": "2.0.0",
   "workflow_version": "3.2.0",
   "hash_algorithm": "sha256",
-  "generator_name_and_version": "article-flow 3.2.25",
-  "generated_at": "2026-11-06T20:44:08Z",
+  "generator_name_and_version": "article-flow 3.2.26",
+  "generated_at": "2026-11-06T21:24:16Z",
   "generated_from": "index",
   "files": [
     {
@@ -19,8 +19,8 @@
       "scope": "source",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "4e3df7ad23924a9af3a7d611ce2986c848db5529a59f8313a0a4274450507b73",
-      "byte_size": 17061
+      "sha256": "26d087ecb1195a095a54918e51ae3f8dc3a0aaccf2edb37cf4fcbd7198ed0fb8",
+      "byte_size": 18497
     },
     {
       "path": ".agents/skills/article-flow/references/editorial.md",
@@ -35,8 +35,8 @@
       "scope": "source",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "4e3df7ad23924a9af3a7d611ce2986c848db5529a59f8313a0a4274450507b73",
-      "byte_size": 17061
+      "sha256": "26d087ecb1195a095a54918e51ae3f8dc3a0aaccf2edb37cf4fcbd7198ed0fb8",
+      "byte_size": 18497
     },
     {
       "path": ".claude/skills/article-flow/references/editorial.md",
@@ -299,8 +299,8 @@
       "scope": "spec",
       "role": "documentation",
       "rule_set": "editorial",
-      "sha256": "4e3df7ad23924a9af3a7d611ce2986c848db5529a59f8313a0a4274450507b73",
-      "byte_size": 17061
+      "sha256": "26d087ecb1195a095a54918e51ae3f8dc3a0aaccf2edb37cf4fcbd7198ed0fb8",
+      "byte_size": 18497
     },
     {
       "path": "docs/editorial-handoff.md",
@@ -731,8 +731,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "7896d1c52776e558f651aad2f643511d342c8f33b8af2fc61edad967a34caac9",
-      "byte_size": 734073
+      "sha256": "6393841f99cf26579c5e3da900478a9c0cc9c8a00359ed148f71dc6b8951e188",
+      "byte_size": 735357
     },
     {
       "path": "scripts/article_maintenance.py",
@@ -747,8 +747,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "e2c812b4ae1d2f6015e6a3f836066754f4ae3bb91d4426b0c663da1d922e1a2c",
-      "byte_size": 25123
+      "sha256": "cfc7ff4f6e36c07a96c17137782419e4de8951b1e8d4a3d1fa36a3a98de24e53",
+      "byte_size": 28771
     },
     {
       "path": "scripts/editorial_context.py",
@@ -867,16 +867,16 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "conformance",
-      "sha256": "4bec3cef223471dd07dfd0d5d27296d659566e2b5acdaac68c113d7c4d58ded2",
-      "byte_size": 316259
+      "sha256": "d8ac9a84b7ce6242195e584f545f5ff0f29daee7c3a3ea6ae5701ab67f951087",
+      "byte_size": 318142
     },
     {
       "path": "tests/test_codex_exec_adapter.py",
       "scope": "spec",
       "role": "runtime",
       "rule_set": "conformance",
-      "sha256": "6c24ee909663fa9441988416b4498dd32db8799d5dd49d503183e80861acafc5",
-      "byte_size": 18229
+      "sha256": "a56a629eb044268fbd61d48e7efdcd883602aa4392829003b6b7d805697e6b37",
+      "byte_size": 24042
     },
     {
       "path": "tests/test_delegated_voice.py",

@@ -9,6 +9,12 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## November 6, 2026: Deliver bound raster images to provider review (3.2.26)
+
+- Recognize PNG/JPEG task inputs by their bound asset identity even when stored under opaque private filenames. Verify each hash, snapshot immutable bytes, and attach the images through native Codex CLI image inputs instead of decoding binary pixels as UTF-8.
+- Keep text/SVG inputs and host-tool restrictions unchanged. Record image IDs, hashes, MIME types and byte sizes in the transport receipt; do not log image bytes or temporary paths. Deduplicate identical inputs and bound images to 5 MiB each, 24 distinct images and 20 MiB total.
+- Reject changed or oversized image inputs, image-format mismatches and unknown binary inputs. Explain the separate generated-diagram and imported-capture binding registries to the reviewer. An explicit repair of a blocked provider-only failure with no rejected assessment retries that same stage, without reopening accepted prose or granting a gate PASS.
+
 ## November 6, 2026: Keep external verification and draft coverage consistent (3.2.25)
 
 - Reject used web evidence requiring a citation absent from an immutable external candidate before locking it. Require the verifier to use the candidate's existing exact citations or report a genuine unresolved conflict; never rewrite the supplied article silently.

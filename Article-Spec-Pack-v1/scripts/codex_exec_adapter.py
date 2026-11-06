@@ -23,6 +23,9 @@ DEFAULT_REASONING_EFFORT = "high"
 VALID_REASONING_EFFORTS = {"low", "medium", "high", "xhigh", "max", "ultra"}
 MODEL_ID_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}\Z")
 JSON_ENVELOPE_FIELD = "artifact_json"
+MAX_IMAGE_BYTES = 5 * 1024 * 1024
+MAX_IMAGE_INPUTS = 24
+MAX_TOTAL_IMAGE_BYTES = 20 * 1024 * 1024
 DEFAULT_WEB_SEARCH_MODE = "disabled"
 VALID_WEB_SEARCH_MODES = {"disabled", "live"}
 LIVE_WEB_SEARCH_STAGES = frozenset({
@@ -76,6 +79,26 @@ class CodexExecError(RuntimeError):
 class CodexExecResult:
     output_text: str
     receipt: dict[str, Any]
+
+
+@dataclasses.dataclass(frozen=True)
+class CodexImageInput:
+    input_id: str
+    data: bytes
+    mime_type: str
+    sha256: str
+
+
+def validate_image_input(value: CodexImageInput) -> None:
+    data = value.data
+    if not isinstance(data, bytes) or not data or len(data) > MAX_IMAGE_BYTES:
+        raise CodexExecError("Image input exceeds the bounded immutable byte contract", {"input": value.input_id})
+    if _sha256_bytes(data) != value.sha256:
+        raise CodexExecError("Image input changed before Codex invocation", {"input": value.input_id})
+    valid = ((value.mime_type == 'image/png' and data.startswith(b'\x89PNG\r\n\x1a\n') and data.endswith(b'\x00\x00\x00\x00IEND\xaeB`\x82'))
+             or (value.mime_type == 'image/jpeg' and data.startswith(b'\xff\xd8') and data.endswith(b'\xff\xd9')))
+    if not valid:
+        raise CodexExecError("Image input is not a complete PNG/JPEG of its declared type", {"input": value.input_id})
 
 
 def _utc_now() -> str:
@@ -168,6 +191,7 @@ def build_codex_command(
     output_schema_path: Path | None,
     reasoning_effort: str = DEFAULT_REASONING_EFFORT,
     web_search_mode: str = DEFAULT_WEB_SEARCH_MODE,
+    image_paths: Sequence[Path] = (),
 ) -> list[str]:
     """Build a fixed argv array; the prompt is intentionally supplied over stdin."""
     _validate_model_id(model)
@@ -209,6 +233,8 @@ def build_codex_command(
         command.extend(["--config", "tools.web_search=true"])
         for feature in RESEARCH_TRANSPORT_FEATURES:
             command.extend(["--enable", feature])
+    if image_paths:
+        command.extend(["--image", *(str(path) for path in image_paths)])
     command.extend([
         "--cd",
         str(working_directory),
@@ -353,6 +379,7 @@ def execute_codex(
     executable: str | Path = "codex",
     reasoning_effort: str = DEFAULT_REASONING_EFFORT,
     web_search_mode: str = DEFAULT_WEB_SEARCH_MODE,
+    image_inputs: Sequence[CodexImageInput] = (),
 ) -> CodexExecResult:
     """Execute one isolated Codex turn and return normalized output plus observations."""
     model = _validate_model_id(model)
@@ -368,6 +395,10 @@ def execute_codex(
             {"web_search_mode": web_search_mode, "allowed": sorted(VALID_WEB_SEARCH_MODES)},
         )
 
+    if len(image_inputs) > MAX_IMAGE_INPUTS or sum(len(item.data) for item in image_inputs) > MAX_TOTAL_IMAGE_BYTES:
+        raise CodexExecError("Too many or oversized image inputs")
+    for item in image_inputs:
+        validate_image_input(item)
     resolved_executable = _resolve_executable(executable)
     cli_version = codex_cli_version(resolved_executable)
     transport_prompt = (
@@ -384,6 +415,12 @@ def execute_codex(
         schema_path = workspace / "output-schema.json" if transport_schema is not None else None
         if schema_path is not None:
             schema_path.write_bytes(_canonical_json(transport_schema))
+        image_paths = []
+        for index, item in enumerate(image_inputs, 1):
+            suffix = '.png' if item.mime_type == 'image/png' else '.jpg'
+            path = workspace / f'image-{index:02d}{suffix}'
+            path.write_bytes(item.data)
+            image_paths.append(path)
         command = build_codex_command(
             executable=resolved_executable,
             model=model,
@@ -392,6 +429,7 @@ def execute_codex(
             output_schema_path=schema_path,
             reasoning_effort=reasoning_effort,
             web_search_mode=web_search_mode,
+            image_paths=image_paths,
         )
         try:
             completed = subprocess.run(
@@ -487,10 +525,14 @@ def execute_codex(
         },
         "created_at": created_at,
     }
+    if image_inputs:
+        receipt['transport']['image_inputs'] = [
+            {'input_id':item.input_id, 'sha256':item.sha256, 'mime_type':item.mime_type, 'byte_size':len(item.data)}
+            for item in image_inputs]
     return CodexExecResult(output_text=normalized, receipt=receipt)
 
 
-def _load_task_packet(packet_path: Path) -> tuple[dict[str, Any], str, str, dict[str, Any] | None]:
+def _load_task_packet(packet_path: Path) -> tuple[dict[str, Any], str, str, dict[str, Any] | None, list[CodexImageInput]]:
     try:
         packet = json.loads(packet_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -529,12 +571,25 @@ def _load_task_packet(packet_path: Path) -> tuple[dict[str, Any], str, str, dict
     if not isinstance(inputs, list):
         raise CodexExecError("Task packet inputs must be an array")
     seen_inputs: dict[str, str] = {}
+    images: list[CodexImageInput] = []
     for item in inputs:
         if not isinstance(item, dict) or not isinstance(item.get("path"), str) or not isinstance(item.get("sha256"), str):
             raise CodexExecError("Task packet input entry is incomplete")
         path = Path(item["path"])
+        suffix = path.suffix.lower()
+        if suffix not in {'.png', '.jpg', '.jpeg'} and str(item.get('id', '')).startswith('preserved-visual:'):
+            # The controller stores asset bytes under opaque local names;
+            # their bound public asset ID retains the declared image suffix.
+            suffix = Path(str(item['id']).partition(':')[2]).suffix.lower()
+        is_image = suffix in {'.png', '.jpg', '.jpeg'}
         try:
-            data = path.read_bytes()
+            if is_image:
+                with path.open('rb') as stream:
+                    data = stream.read(MAX_IMAGE_BYTES + 1)
+                if len(data) > MAX_IMAGE_BYTES:
+                    raise CodexExecError("Image input exceeds 5 MiB", {"input": item.get("id")})
+            else:
+                data = path.read_bytes()
         except OSError as exc:
             raise CodexExecError("Task packet input is unavailable", {"input": item.get("id"), "path": str(path)}) from exc
         actual_hash = _sha256_bytes(data)
@@ -543,16 +598,25 @@ def _load_task_packet(packet_path: Path) -> tuple[dict[str, Any], str, str, dict
                 "Task packet input changed before Codex invocation",
                 {"input": item.get("id"), "expected_sha256": item["sha256"], "actual_sha256": actual_hash},
             )
+        if actual_hash in seen_inputs:
+            sections.extend(["", f"INPUT ALIAS {item.get('id')} = {seen_inputs[actual_hash]} sha256={actual_hash}"])
+            continue
+        seen_inputs[actual_hash] = str(item.get("id"))
+        if is_image:
+            entry = CodexImageInput(str(item.get('id')), data, 'image/png' if suffix == '.png' else 'image/jpeg', actual_hash)
+            validate_image_input(entry)
+            images.append(entry)
+            if len(images) > MAX_IMAGE_INPUTS or sum(len(image.data) for image in images) > MAX_TOTAL_IMAGE_BYTES:
+                raise CodexExecError("Too many or oversized image inputs")
+            sections.extend(["", f"ATTACHED IMAGE {len(images)} INPUT {entry.input_id} sha256={actual_hash} mime_type={entry.mime_type}",
+                             "The exact hash-verified bytes are attached as this numbered image, not decoded as text. Inspect its visible content; capture history and dates still require their stated provenance."])
+            continue
         try:
             content = data.decode("utf-8")
         except UnicodeDecodeError as exc:
             raise CodexExecError("Task packet input is not UTF-8 text", {"input": item.get("id")}) from exc
-        if actual_hash in seen_inputs:
-            sections.extend(["", f"INPUT ALIAS {item.get('id')} = {seen_inputs[actual_hash]} sha256={actual_hash}"])
-        else:
-            seen_inputs[actual_hash] = str(item.get("id"))
-            sections.extend(["", f"INPUT {item.get('id')} sha256={actual_hash}", content])
-    return packet, "\n".join(sections), expected_format, output_schema
+        sections.extend(["", f"INPUT {item.get('id')} sha256={actual_hash}", content])
+    return packet, "\n".join(sections), expected_format, output_schema, images
 
 
 def execute_task_packet(
@@ -566,7 +630,7 @@ def execute_task_packet(
 ) -> CodexExecResult:
     """Validate and execute an Article Flow packet, optionally writing its artifact."""
     packet_file = Path(packet_path).expanduser().resolve()
-    packet, prompt, expected_format, output_schema = _load_task_packet(packet_file)
+    packet, prompt, expected_format, output_schema, images = _load_task_packet(packet_file)
     web_search_mode = (
         "live" if packet.get("stage") in LIVE_WEB_SEARCH_STAGES else DEFAULT_WEB_SEARCH_MODE
     )
@@ -579,6 +643,7 @@ def execute_task_packet(
         executable=executable,
         reasoning_effort=reasoning_effort,
         web_search_mode=web_search_mode,
+        image_inputs=images,
     )
     if output_path is not None:
         _atomic_write(Path(output_path).expanduser().resolve(), result.output_text.encode("utf-8"))

@@ -278,3 +278,27 @@ Brief coverage resolves IDs such as `CL-001 and CL-005: ...` or
 `CL-008 through CL-010: ...` against the bound ledger. The editorial instruction
 after the colon is not public prose. Missing IDs and gaps remain failures;
 coverage thresholds are unchanged.
+
+## Raster inputs in provider review
+
+The Codex CLI transport hash-checks bound PNG/JPEG inputs, including assets kept
+under opaque private names, and snapshots their exact bytes into its isolated
+workspace. It attaches these through native image inputs, while Markdown, JSON,
+source observations and SVG remain text. The receipt records image IDs, hashes,
+MIME types and sizes. Host tools remain disabled; image pixels do not establish
+capture history or dates without their stated provenance.
+
+Generated diagrams are bound in visual-manifest; imported captures are bound in
+external-revision.assets and external-revision-image-plan, plus their exact
+preserved-visual packet inputs. Review all of these registries and the actual
+article placement. A raster capture does not require a duplicate diagram entry.
+
+Image transport is bounded to 5 MiB each, 24 distinct images and 20 MiB total.
+Identical image inputs share one attachment. Changed images, format mismatches,
+oversized inputs and unknown binary inputs fail before provider execution.
+
+If an older transport exhausted a stage before producing any assessment, use
+the normal explicit `repair RUN GATE --finding "ACTUAL TRANSPORT FIX" --json`.
+For a blocked, evidenced provider-only failure with no gate rejection, this
+retries that provider stage. It preserves accepted prose, every prior attempt
+and all subsequent gates. A rejected assessment retains its normal repair path.

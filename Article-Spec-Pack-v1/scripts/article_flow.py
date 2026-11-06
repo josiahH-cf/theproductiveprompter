@@ -54,7 +54,7 @@ import revision_bundle
 import revision_images
 import workflow_diagram
 
-CONTROLLER_VERSION = "3.2.25"
+CONTROLLER_VERSION = "3.2.26"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -3723,6 +3723,7 @@ def task_packet(
         constraints.append("external-revision-candidate is the complete proposed article, supplied by an external GPT session with unverified model identity. revision-request alone is the author's exact feedback. Do not extract human experience or voice evidence from generated candidate prose. Research and brief the candidate's current scope; do not redevelop its thesis from an older seed or previous-article. Preserve the candidate's wording and citations. " + diagram_scope + " Report concrete failed checks or material conflicts instead of rewriting the candidate. DRAFT and EDIT are controller-owned carries, not new writer tasks; only controller-bound diagram materialization may add visual blocks.")
     if revision_import.enabled(sys.modules[__name__], run) and artifact(run, "external-revision-image-plan"):
         constraints.append("external-revision-image-plan binds newly supplied PNG/JPEG captures already placed in the candidate. Verify their caption and depicted evidence separately from the author's earlier anecdote. Keep their image blocks unchanged; they are explicitly imported assets, not source illustrations or a diagram omission.")
+        constraints.append("Asset registries have distinct roles: visual-manifest lists controller-rendered diagrams; external-revision.assets entries marked imported bind capture public_path, source_path, SHA-256, byte size, alt and caption, with external-revision-image-plan and preserved-visual inputs binding the same capture. Audit every exact asset and its placement across these registries. A capture need not also appear as a generated diagram in visual-manifest. Entries listed in replaced_assets are historical source assets; inspect their current generated replacements from visual-manifest. Report genuinely missing or mismatched bindings, without inventing a requirement to duplicate raster captures in the diagram-only manifest.")
     if revision_import.enabled(sys.modules[__name__], run) and state in {"CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION"}:
         constraints.append("The external candidate is immutable. A used medium/high-risk web claim must cite an exact URL already linked in that candidate; EDIT cannot add a new citation. Verify the cited source and record only its supported claims. Additional research may inform verification, but cannot become a used claim requiring an absent citation. If the candidate genuinely needs a new source or wording, report the unresolved conflict instead of inventing support or rewriting it.")
     if run.get("revision", {}).get("source_html_sha256"):
@@ -7849,6 +7850,13 @@ def command_repair(args: argparse.Namespace) -> int:
             effective_repair_state(definition, recorded_receipt.get("findings") or []) or ""
         )
         source_state = run["state"]
+        execution = stage_attempt_evidence(directory, run, source_state)
+        if (not recorded_receipt and run['status'] == 'BLOCKED' and source_state in MODEL_STATES
+                and execution['window_used'] > 0 and execution['rejection_count'] == 0
+                and execution['execution_count'] == execution['provider_failure_count']):
+            # A failed transport has produced no content judgment. Retry that
+            # provider stage instead of reopening already accepted prose.
+            repair_state = source_state
         repair_context = remember_repair_context(directory, run, source_state, definition)
         context_required = bool(
             is_v3_run(run)
