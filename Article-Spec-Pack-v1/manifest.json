@@ -3,7 +3,7 @@
   "workflow_version": "3.2.0",
   "hash_algorithm": "sha256",
   "generator_name_and_version": "article-flow 3.2.22",
-  "generated_at": "2026-11-06T18:41:03Z",
+  "generated_at": "2026-11-06T18:44:40Z",
   "generated_from": "index",
   "files": [
     {
@@ -19,8 +19,8 @@
       "scope": "source",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "aaa87a958a4ea6b245c5557ec5b3dcd89cac049d68a7c9added2a7bfcfd23e6a",
-      "byte_size": 14343
+      "sha256": "32222a832b66b81259861a2459e763250ef4807836d3afb2fccd31b2b5f7598c",
+      "byte_size": 14368
     },
     {
       "path": ".agents/skills/article-flow/references/editorial.md",
@@ -35,8 +35,8 @@
       "scope": "source",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "aaa87a958a4ea6b245c5557ec5b3dcd89cac049d68a7c9added2a7bfcfd23e6a",
-      "byte_size": 14343
+      "sha256": "32222a832b66b81259861a2459e763250ef4807836d3afb2fccd31b2b5f7598c",
+      "byte_size": 14368
     },
     {
       "path": ".claude/skills/article-flow/references/editorial.md",
@@ -299,8 +299,8 @@
       "scope": "spec",
       "role": "documentation",
       "rule_set": "editorial",
-      "sha256": "aaa87a958a4ea6b245c5557ec5b3dcd89cac049d68a7c9added2a7bfcfd23e6a",
-      "byte_size": 14343
+      "sha256": "32222a832b66b81259861a2459e763250ef4807836d3afb2fccd31b2b5f7598c",
+      "byte_size": 14368
     },
     {
       "path": "docs/editorial-handoff.md",
@@ -803,8 +803,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "3e41ec8ba6130a7e282dd6ecba5c01c8e35648e39b23bfc0104b8b4b1a8c13e3",
-      "byte_size": 7567
+      "sha256": "80f3970d45caed2bd39766eb78c0f1f9a92dd1a57bb199bd6ec8d67061d01f25",
+      "byte_size": 7740
     },
     {
       "path": "scripts/revision_handoff.py",
@@ -947,8 +947,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "evaluation",
-      "sha256": "3c686ba9831d2d19823ce0223babec01825bb0aca0ddc4b67484caf79d3739b5",
-      "byte_size": 11808
+      "sha256": "557fd1367ee9159c68e49cf3a0f3c386872100e2920646ff16595c9169590525",
+      "byte_size": 11943
     },
     {
       "path": "tests/test_revision_sources.py",

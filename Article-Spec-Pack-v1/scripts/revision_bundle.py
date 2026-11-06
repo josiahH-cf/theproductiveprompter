@@ -46,6 +46,8 @@ def read(data: bytes) -> dict[str, bytes]:
             mode = stat.S_IFMT(item.external_attr >> 16)
             if name.casefold() in seen or mode not in (0, stat.S_IFREG) or item.flag_bits & 1:
                 raise ValueError("duplicate, linked, special or encrypted ZIP member")
+            if item.compress_type not in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED):
+                raise ValueError("bundle supports only stored or deflated ZIP members")
             seen.add(name.casefold())
             if not name.lower().endswith(('.json', '.md', '.txt', '.jpg', '.jpeg', '.png')):
                 raise ValueError("unsupported ZIP file type")

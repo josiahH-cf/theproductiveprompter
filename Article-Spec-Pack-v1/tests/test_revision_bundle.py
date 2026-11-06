@@ -166,6 +166,8 @@ class RevisionBundleTests(ExternalRevisionFixture):
         with self.assertRaises(ValueError): bundle.read(path.read_bytes())
         with self.assertRaises(ValueError):
             bundle.read(self.archive({'huge.md':b'x' * (2 * 1024 * 1024 + 1)}).read_bytes())
+        with self.assertRaises(ValueError):
+            bundle.read(self.archive({'draft.md':b'text'}, zipfile.ZIP_LZMA).read_bytes())
 
     def test_capture_rejects_corrupt_png_private_metadata_and_overwrite(self):
         with self.assertRaises(ValueError):

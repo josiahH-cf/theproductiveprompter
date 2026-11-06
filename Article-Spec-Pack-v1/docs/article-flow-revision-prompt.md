@@ -127,7 +127,7 @@ feedback, authentic source (or null for verified backend retrieval), optional
 visual plan and declared local captures. README, revision notes and ingestion
 instructions are private review material and never article body inputs.
 
-The ZIP accepts at most 24 flat, unique, ordinary files and 20 MiB compressed or
+The ZIP accepts stored/deflated entries, at most 24 flat, unique, ordinary files and 20 MiB compressed or
 expanded. Text members are at most 2 MiB and captures 5 MiB each. Traversal,
 Windows reserved names, links, encrypted members, unsupported file types and
 conflicting source slugs fail before Run creation. PNG chunk CRCs/JPEG frame
