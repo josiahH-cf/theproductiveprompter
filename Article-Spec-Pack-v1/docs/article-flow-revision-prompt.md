@@ -232,3 +232,13 @@ A pre-3.2.19 empty visual plan incorrectly claimed to preserve illustrations
 when none existed. The controller can repair that exact metadata-only defect
 under its bound editorial finding without rewriting accepted prose. Other
 external-candidate failures keep their existing stop behavior.
+
+## Controller-only carry recovery
+
+If a controller defect rejected an external carry, `repair RUN GATE` can recheck
+that same unaccepted stage without inventing a model task receipt. It requires
+intact history, every original input and source unchanged, and a fresh PASS from
+the real gate. The original failed receipt and candidate stay immutable; normal
+continuation records acceptance and runs all remaining checks. A genuine failed
+check, changed input or previously accepted stage cannot use this recovery.
+Repeated recovery before continuation adds no new allowance or writer task.

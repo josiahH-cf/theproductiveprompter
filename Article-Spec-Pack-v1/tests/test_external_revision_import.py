@@ -154,6 +154,55 @@ class ExternalRevisionFixture(TemporaryRuntime):
         return directory, run, package
 
 class ExternalRevisionImportTests(ExternalRevisionFixture):
+    def failed_code_carry(self):
+        directory, run = self.opened()
+        with mock.patch.object(af, 'automatic_gate', return_value=('REPAIR', [{'criterion':'brief_claim_coverage', 'finding':'A controller check rejected this unchanged candidate.'}])):
+            self.carry(directory, run, 'DRAFT')
+        return directory, run
+
+    def test_code_only_carry_repair_rechecks_without_inventing_a_writer_task(self):
+        directory, run = self.failed_code_carry()
+        old_gate = af.artifact_path(directory, run, 'gate-receipt:G-DRAFT-COVERAGE')
+        original = old_gate.read_bytes()
+        code, result = call(af.command_repair, run_id=run['run_id'], gate_id='G-DRAFT-COVERAGE', finding='The controller check was fixed.')
+        self.assertEqual(code, af.EXIT_OK, result)
+        directory, run = af.load_run(run['run_id'])
+        self.assertEqual((run['state'], run['status']), ('DRAFT','ACTIVE'))
+        before = (directory / 'events.jsonl').read_bytes()
+        call(af.command_repair, run_id=run['run_id'], gate_id='G-DRAFT-COVERAGE', finding='Same retry')
+        self.assertEqual((directory / 'events.jsonl').read_bytes(), before)
+        with af.run_lock(directory, run):
+            imported.adopt(af, directory, run)
+        self.assertEqual(run['state'], 'DEVELOPMENT_REVIEW')
+        self.assertIsNotNone(af.artifact(run, 'external-revision-acceptance:DRAFT'))
+        self.assertEqual(old_gate.read_bytes(), original)
+        self.assertEqual(af.artifact_path(directory, run, 'external-revision-candidate').read_bytes(), self.candidate.read_bytes())
+        self.assertFalse(any(item['type'].startswith('task-packet:DRAFT:') for item in run['artifact_index']))
+
+    def test_code_carry_repair_keeps_stop_when_the_real_gate_still_fails(self):
+        directory, run = self.failed_code_carry()
+        before = (directory / 'run.json').read_bytes()
+        with mock.patch.object(af, 'automatic_gate', return_value=('REPAIR',[{'finding':'Still a real failure'}])):
+            with self.assertRaisesRegex(af.FlowError, 'still fails'):
+                call(af.command_repair, run_id=run['run_id'], gate_id='G-DRAFT-COVERAGE', finding='Retry')
+        self.assertEqual((directory / 'run.json').read_bytes(), before)
+        self.assertIsNone(af.artifact(run, 'external-revision-acceptance:DRAFT'))
+
+    def test_code_carry_repair_rejects_changed_bound_inputs(self):
+        directory, run = self.failed_code_carry()
+        self.record_json(directory, run, 'brief', {'title':'Changed inputs', 'claims_to_support':[]})
+        with self.assertRaisesRegex(af.FlowError, 'inputs changed'):
+            call(af.command_repair, run_id=run['run_id'], gate_id='G-DRAFT-COVERAGE', finding='Retry')
+        self.assertEqual(af.load_run(run['run_id'])[1]['status'], 'BLOCKED')
+
+    def test_code_carry_repair_cannot_replay_an_already_accepted_stage(self):
+        directory, run = self.opened()
+        self.carry(directory, run, 'DRAFT')
+        self.move(directory, run, 'DRAFT')
+        run['status']='BLOCKED'; af.save_run(directory, run)
+        import argparse
+        self.assertFalse(imported.recheck_failed_carry(af, directory, run, argparse.Namespace(gate_id='G-DRAFT-COVERAGE', finding='Retry')))
+
     def test_one_copied_block_unpacks_exact_inputs_and_retries_share_one_owner(self):
         value = self.handoff_value()
         code, result = self.import_handoff(value)

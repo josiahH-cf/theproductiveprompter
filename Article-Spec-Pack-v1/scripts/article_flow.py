@@ -54,7 +54,7 @@ import revision_bundle
 import revision_images
 import workflow_diagram
 
-CONTROLLER_VERSION = "3.2.22"
+CONTROLLER_VERSION = "3.2.23"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -7689,6 +7689,10 @@ def command_repair(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
     if getattr(args, "reassess_editorial_evidence", False):
         return repair_editorial_evidence(directory, run, args)
+    if revision_import.recheck_failed_carry(sys.modules[__name__], directory, run, args):
+        emit({'ok':True, 'state':run['state'], 'external_carry_recheck':True,
+              'next_command':['article-flow', 'advance', run['run_id'], '--json']}, args.json)
+        return EXIT_OK
     if run["state"] == "LIVE_VERIFICATION" and args.gate_id in {None, "G-LIVE-REVISION"}:
         events = _read_jsonl(directory / str(run["event_log"]))
         if any((event.get("payload") or {}).get("recovery_kind") == "settled_deployment_propagation" for event in events if event.get("type") == "REPAIR"):
