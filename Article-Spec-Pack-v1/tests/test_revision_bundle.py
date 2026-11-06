@@ -85,7 +85,7 @@ class RevisionBundleTests(ExternalRevisionFixture):
         self.assertEqual(code, af.EXIT_OK, result)
         directory, run = af.load_run(run['run_id']); self.carry(directory, run, 'EDIT')
         self.record_json(directory, run, 'brief', {'title':'Original title', 'slug':self.slug, 'date':'2026-09-15', 'description':'A useful explanation', 'tags':[]})
-        package = directory / 'rendered-zip'
+        package = directory / 'package'
         outputs = af.render_publication_files(directory, run, package, af.package_metadata(directory, run))
         image = package / f'site/assets/articles/{self.slug}/capture.png'
         self.assertIn(image, outputs)
@@ -94,6 +94,23 @@ class RevisionBundleTests(ExternalRevisionFixture):
         article = (package / f'site/docs/{self.slug}.html').read_text(encoding='utf-8')
         self.assertIn(f'src="/assets/articles/{self.slug}/capture.png"', article)
         self.assertNotIn('Private review notes', article)
+        af.atomic_write(package / 'public/article.md', af.artifact_path(directory, run, 'article').read_bytes())
+        af.write_json(package / 'public/metadata.json', af.package_metadata(directory, run))
+        af.write_json(package / 'public/assets.json', {'assets': []})
+        af.write_json(package / 'package.json', {'package_revision': 'f' * 64,
+            'public_files': [{'path':p.relative_to(package).as_posix(), 'sha256':af.sha256_path(p)} for p in outputs]})
+        for output in outputs:
+            self.pages['https://theproductiveprompter.com/' + output.relative_to(package / 'site').as_posix()] = output.read_bytes()
+        self.pages['https://theproductiveprompter.com/'] = (package / 'site/index.html').read_bytes()
+        expected = {key:(package / 'site' / rel).read_bytes() for key, rel in
+                    {'blog':'docs/blog.html','homepage':'index.html','feed':'feed.xml','sitemap':'sitemap.xml'}.items()}
+        self.pages[f'https://theproductiveprompter.com/assets/articles/{self.slug}/capture.png'] = b'Wrong live image'
+        self.move(directory, run, 'LIVE_VERIFICATION')
+        with mock.patch.object(af, 'live_discovery_scope', return_value=(expected, None)):
+            code, result = call(af.command_verify_live, run_id=run['run_id'])
+        self.assertEqual(code, af.EXIT_FAILED)
+        self.assertEqual([check['name'] for check in result['checks'] if not check['ok']], ['visual_asset'])
+        self.assertNotEqual(af.load_run(run['run_id'])[1].get('publication', {}).get('status'), 'VERIFIED')
         imported.assert_current_assets(af, run)
         target = self.repo / f'assets/articles/{self.slug}/capture.png'
         target.parent.mkdir(parents=True, exist_ok=True); target.write_bytes(b'different bytes')

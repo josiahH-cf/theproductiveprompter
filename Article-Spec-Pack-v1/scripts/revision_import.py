@@ -485,5 +485,5 @@ def offer(af: Any, run: dict) -> dict:
               "blog_url": "https://theproductiveprompter.com/docs/blog.html", "article_url": url,
               "source_url": source_url,
               "export_command": ["article-flow", "revision-export", "--published-slug", slug, "--output-dir", "<private handoff directory>", "--json"] if slug else None,
-              "import_command": ["article-flow", "revise", "--handoff-file", "<private response file>", "--unattended-editorial", "--authorization", "<actual author instruction>", "--auto", "--json"],
-              "message": "Publication is complete. If you want edits, use :article-flow-revision in GPT and paste its final article-flow-revision block back here. Otherwise there is nothing more to do."}}
+              "import_command": ["article-flow", "revise", "--bundle-file", "<returned ZIP>", "--unattended-editorial", "--authorization", "<actual author instruction>", "--auto", "--json"],
+              "message": "Publication is complete. If you want edits, use :article-flow-revision in GPT and return its review ZIP with the ingestion prompt. Otherwise there is nothing more to do."}}
