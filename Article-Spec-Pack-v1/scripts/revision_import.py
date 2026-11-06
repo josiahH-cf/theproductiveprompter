@@ -33,6 +33,8 @@ def input_identity(af: Any, args: Any) -> dict[str, str]:
                 ("author_feedback_sha256", args.request_file, "Exact author feedback"))}
     if getattr(args, "visual_plan_file", None):
         result["visual_plan_sha256"] = af.sha256_bytes(af.external_revision.read_utf8(af, args.visual_plan_file, "Revision visual plan"))
+    if getattr(args, "image_plan_file", None):
+        result["image_plan_sha256"] = af.sha256_bytes(af.external_revision.read_utf8(af, args.image_plan_file, "Revision image plan"))
     return result
 
 
@@ -42,6 +44,8 @@ def source_identity(af: Any, source: dict) -> dict[str, str]:
             "author_feedback_sha256": af.sha256_bytes(source["request"])}
     if source.get("visual_plan_bytes") is not None:
         result["visual_plan_sha256"] = af.sha256_bytes(source["visual_plan_bytes"])
+    if source.get("image_plan_bytes") is not None:
+        result["image_plan_sha256"] = af.sha256_bytes(source["image_plan_bytes"])
     return result
 
 
@@ -153,6 +157,11 @@ def install(af: Any, directory: Path, run: dict, source: dict) -> None:
         af.record_artifact(directory, run, plan_path, "external-revision-visual-plan", {"actor": "external_assistant", "human_original": False})
         record["visual_plan_sha256"] = af.sha256_path(plan_path)
         record["replaced_assets"] = source["visual_plan"]["replace_assets"]
+    if source.get("image_plan_bytes") is not None:
+        image_path = directory / "artifacts/external-revision-image-plan.json"
+        af.immutable_write(image_path, source["image_plan_bytes"])
+        af.record_artifact(directory, run, image_path, "external-revision-image-plan", {"actor": "controller"})
+        record["image_plan_sha256"] = af.sha256_path(image_path)
     receipt = directory / "artifacts/external-revision.json"
     af.write_json_immutable(receipt, record)
     af.record_artifact(directory, run, receipt, "external-revision", {"actor": "controller"}, inputs=[item["artifact_id"]])
@@ -200,7 +209,7 @@ def record(af: Any, directory: Path, run: dict) -> dict:
     candidate, item = checked(af, directory, run, "external-revision-candidate")
     request, request_item = checked(af, directory, run, "revision-request")
     reserved = run.get("run_overrides", {}).get("external_revision_intake")
-    fields = ("source_file_sha256", "candidate_sha256", "author_feedback_sha256", "visual_plan_sha256")
+    fields = ("source_file_sha256", "candidate_sha256", "author_feedback_sha256", "visual_plan_sha256", "image_plan_sha256")
     if reserved is not None and reserved != {key: value[key] for key in fields if key in value}:
         raise af.FlowError("External revision no longer matches its reserved intake", af.EXIT_INTEGRITY)
     if (value["candidate_sha256"] != item["sha256"]
@@ -216,6 +225,10 @@ def record(af: Any, directory: Path, run: dict) -> dict:
         _, item = checked(af, directory, run, "external-revision-source-visuals")
         if item["sha256"] != value["source_visuals_sha256"]:
             raise af.FlowError("Source diagram definition binding changed", af.EXIT_INTEGRITY)
+    if "image_plan_sha256" in value:
+        _, item = checked(af, directory, run, "external-revision-image-plan")
+        if item['sha256'] != value['image_plan_sha256']:
+            raise af.FlowError("Imported capture plan binding changed", af.EXIT_INTEGRITY)
     for asset in value["assets"]:
         path = (directory / af.safe_relative(asset["source_path"])).resolve()
         if (not path.is_relative_to(directory.resolve()) or not path.is_file()
@@ -247,6 +260,11 @@ def assert_current_assets(af: Any, run: dict) -> None:
     for asset in record(af, directory, run)["assets"]:
         relative = af.safe_relative(asset["public_path"].lstrip("/"))
         path = (repository / relative).resolve()
+        if asset.get('imported'):
+            if not path.is_relative_to(repository.resolve()) or (path.exists() and
+                    (path.is_symlink() or not path.is_file() or af.sha256_path(path) != asset['sha256'])):
+                raise af.FlowError("Imported capture would overwrite a different publication asset", af.EXIT_INTEGRITY)
+            continue
         if not path.is_relative_to(repository.resolve()) or not path.is_file():
             raise af.FlowError("Revision asset is missing or escapes the publication repository", af.EXIT_INTEGRITY)
         committed = af.git(["show", f"HEAD:{relative.as_posix()}"], cwd=repository, binary=True)

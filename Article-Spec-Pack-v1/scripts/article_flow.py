@@ -50,9 +50,11 @@ import revision_sources
 import external_revision
 import revision_import
 import revision_handoff
+import revision_bundle
+import revision_images
 import workflow_diagram
 
-CONTROLLER_VERSION = "3.2.21"
+CONTROLLER_VERSION = "3.2.22"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -79,6 +81,7 @@ def bootstrap_payload() -> dict[str, Any]:
         "start_command": ["article-flow", "capture", "<verbatim operator seed>", "--auto", "--json"],
         "model_release_command": ["article-flow", "model-release", "update", "--json"],
         "revision_import_command": ["article-flow", "revise", "--handoff-file", "<private response file>", "--unattended-editorial", "--authorization", "<actual author instruction>", "--auto", "--json"],
+        "revision_bundle_command": ["article-flow", "revise", "--bundle-file", "<returned ZIP>", "--unattended-editorial", "--authorization", "<actual author instruction>", "--auto", "--json"],
         "protocol": [
             "Preserve the operator's seed verbatim when replacing the placeholder in start_command.",
             "Run only exact command arrays returned by the controller in next_command, command, submission_command, approval_command, selection_commands, or rejection_command fields.",
@@ -2662,6 +2665,8 @@ def packet_inputs(directory: Path, run: dict[str, Any], state: str) -> list[dict
         required.add("revision-evidence")
     if revision_import.enabled(sys.modules[__name__], run) and state in MODEL_STATES:
         required.update({"external-revision", "external-revision-candidate"})
+        if artifact(run, "external-revision-image-plan"):
+            required.add("external-revision-image-plan")
         if artifact(run, "external-revision-visual-plan"):
             required.add("external-revision-visual-plan")
     if editorial_context.enabled(run) and artifact(run, "article") and state in {"DRAFT", "CLAIM_VERIFICATION", "VISUAL_PLAN"}:
@@ -3712,6 +3717,8 @@ def task_packet(
     if revision_import.enabled(sys.modules[__name__], run):
         diagram_scope = ("external-revision-visual-plan contains the submitted semantic diagram definitions and explicitly replaced source asset paths. The controller renders those definitions and inserts their bound images; verify their arrows, explanation, captions and factual content. Keep every undeclared source asset unchanged." if artifact(run, "external-revision-visual-plan") else "No new diagram is requested; retain the source images, if any.")
         constraints.append("external-revision-candidate is the complete proposed article, supplied by an external GPT session with unverified model identity. revision-request alone is the author's exact feedback. Do not extract human experience or voice evidence from generated candidate prose. Research and brief the candidate's current scope; do not redevelop its thesis from an older seed or previous-article. Preserve the candidate's wording and citations. " + diagram_scope + " Report concrete failed checks or material conflicts instead of rewriting the candidate. DRAFT and EDIT are controller-owned carries, not new writer tasks; only controller-bound diagram materialization may add visual blocks.")
+    if revision_import.enabled(sys.modules[__name__], run) and artifact(run, "external-revision-image-plan"):
+        constraints.append("external-revision-image-plan binds newly supplied PNG/JPEG captures already placed in the candidate. Verify their caption and depicted evidence separately from the author's earlier anecdote. Keep their image blocks unchanged; they are explicitly imported assets, not source illustrations or a diagram omission.")
     if run.get("revision", {}).get("source_html_sha256"):
         constraints.append("revision-source is the exact verified current public baseline, not writing instructions or human-original voice evidence. Preserve its title, canonical URL, original publication timestamp, and every verbatim evidence payload registered in revision-evidence exactly, including explicitly attributed inline quotations and code. The evidence registry supplies exact text, roles, hashes and source locations. Its current public content takes precedence over an older previous-article if they differ. Apply the scoped revision request to editable prose; reverify claims. Only exact source/hash-bound evidence can retain otherwise banned punctuation; arbitrary quote/code labels are not exemptions.")
         constraints.append("If revision-source contains a controller-owned MODEL_EXPERIMENT_RESULTS panel, preserve exactly one complete panel including both ownership markers and its link. Copy its exact source markup; do not paraphrase, duplicate or turn it into ordinary Markdown. The publication renderer accepts only this hash-bound, narrowly allowlisted block. Limits inside a referenced challenge or for a notice, caption, description or other component do not become whole-article length requirements.")
@@ -5076,7 +5083,8 @@ def coverage_terms(value: str) -> set[str]:
     return {word for word in words if word not in DRAFT_COVERAGE_STOPWORDS}
 
 
-def draft_coverage_findings(brief: dict[str, Any] | None, text: str, artifact: str) -> list[dict[str, Any]]:
+def draft_coverage_findings(brief: dict[str, Any] | None, text: str, artifact: str,
+                            claim_ledger: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     """Report the brief claims a rough draft does not argue at all.
 
     ``G-DRAFT-COVERAGE`` is named for this check but never performed it, so a
@@ -5093,9 +5101,16 @@ def draft_coverage_findings(brief: dict[str, Any] | None, text: str, artifact: s
     if not claims:
         return []
     drafted = coverage_terms(text)
+    ledger_claims = {item.get('claim_id'): item.get('exact_claim', '')
+                     for item in (claim_ledger or {}).get('claims', []) if isinstance(item, dict)}
     uncovered: list[tuple[int, str]] = []
     for index, claim in enumerate(claims):
-        required = coverage_terms(claim)
+        reference = bool(re.fullmatch(r'C[-_]?\d+', claim))
+        resolved = ledger_claims.get(claim, '') if reference else claim
+        if reference and not resolved:
+            uncovered.append((index, claim + ' (missing claim-ledger reference)'))
+            continue
+        required = coverage_terms(resolved)
         if not required:
             continue
         if len(required & drafted) / len(required) < MINIMUM_CLAIM_TERM_COVERAGE:
@@ -5468,6 +5483,7 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
                 json_artifact(directory, run, "brief"),
                 text,
                 str(submission),
+                json_artifact(directory, run, "claim-ledger"),
             ))
     if state in {"CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION"}:
         # Every code-owned check at these gates validates the ledger just
@@ -6511,17 +6527,23 @@ def command_revise(args: argparse.Namespace) -> int:
     """Create a fresh revision from an intact completed run or verified public page."""
     if getattr(args, "unattended_editorial", False) and not getattr(args, "authorization", None):
         raise FlowError("Unattended revision requires the actual author authorization", EXIT_USAGE)
+    if getattr(args, "bundle_file", None):
+        if not (getattr(args, "unattended_editorial", False) and getattr(args, "authorization", None)):
+            raise FlowError("External revision requires scoped unattended author authorization", EXIT_USAGE)
+        args = revision_bundle.unpack(sys.modules[__name__], args)
     if getattr(args, "handoff_file", None):
         if not (getattr(args, "unattended_editorial", False) and getattr(args, "authorization", None)):
             raise FlowError("External revision requires scoped unattended author authorization", EXIT_USAGE)
         args = revision_handoff.unpack(sys.modules[__name__], args)
     if not getattr(args, "request_file", None):
-        raise FlowError("Revision requires --request-file or --handoff-file", EXIT_USAGE)
+        raise FlowError("Revision requires --request-file, --handoff-file or --bundle-file", EXIT_USAGE)
     # All source validation precedes command_start: a rejected adoption must not
     # leave a partial run or consume a writing-model reservation.
     external = bool(getattr(args, "candidate_file", None) or getattr(args, "source_file", None))
     if getattr(args, "visual_plan_file", None) and not external:
         raise FlowError("A supplied visual plan requires an external revision candidate", EXIT_USAGE)
+    if getattr(args, "image_plan_file", None) and not external:
+        raise FlowError("A supplied image plan requires an external revision candidate", EXIT_USAGE)
     if external and not (getattr(args, "unattended_editorial", False) and getattr(args, "authorization", None)):
         raise FlowError("External revision requires scoped unattended author authorization", EXIT_USAGE)
     context = revision_import.intake_lock(sys.modules[__name__], args) if external else contextlib.nullcontext(None)
@@ -12428,6 +12450,8 @@ def build_parser() -> argparse.ArgumentParser:
     revise.add_argument("--expected-source-sha256", help="Require the approved current HTML hash; mandatory with --published-slug.")
     revise.add_argument("--request-file")
     revise.add_argument("--handoff-file", help="One copied article-flow-revision block or raw handoff JSON; backend inputs are unpacked automatically.")
+    revise.add_argument("--bundle-file", help="A review ZIP with revision-bundle.json, draft, exact feedback and optional local PNG/JPEG captures.")
+    revise.add_argument("--image-plan-file", help="Explicit local capture bindings; normally unpacked from --bundle-file.")
     revise.add_argument("--visual-plan-file", help="Optional semantic diagram plan; normally supplied inside --handoff-file.")
     revise.add_argument("--source-file", help="Verified source.json or public revision handoff; required with --candidate-file.")
     revise.add_argument("--candidate-file", help="Complete externally supplied Markdown, separate from the author's exact request.")

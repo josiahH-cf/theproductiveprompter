@@ -766,6 +766,24 @@
       "scope": "source",
       "role": "runtime",
       "rule_set": "editorial"
+    },
+    {
+      "path": "scripts/revision_bundle.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "editorial"
+    },
+    {
+      "path": "scripts/revision_images.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "editorial"
+    },
+    {
+      "path": "tests/test_revision_bundle.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "evaluation"
     }
   ]
 }

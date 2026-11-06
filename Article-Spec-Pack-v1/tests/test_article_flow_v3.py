@@ -3907,6 +3907,15 @@ class SourceResolutionRegressionTests(TemporaryRuntime):
 
 
 class DraftCoverageRegressionTests(TemporaryRuntime):
+    def test_claim_ids_are_resolved_before_coverage_and_missing_ids_still_fail(self):
+        prose = "Memory settings control sharing. Voice settings control speech."
+        brief = {'claims_to_support': ['C1', 'C10']}
+        ledger = {'claims': [{'claim_id':'C1', 'exact_claim':'Memory settings control sharing.'},
+                             {'claim_id':'C10', 'exact_claim':'Voice settings control speech.'}]}
+        self.assertEqual(af.draft_coverage_findings(brief, prose, 'candidate', ledger), [])
+        self.assertTrue(af.draft_coverage_findings(brief, 'An unrelated refusal to write.', 'candidate', ledger))
+        self.assertTrue(af.draft_coverage_findings(brief, prose, 'candidate'))
+
     CLAIMS = [
         "Model upgrades do not automatically update the schemas and counters that surround a model.",
         "An output schema fixed at integration time can outlive the capability that motivated it.",
