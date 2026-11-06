@@ -9,6 +9,12 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## November 6, 2026: Keep external verification and draft coverage consistent (3.2.25)
+
+- Reject used web evidence requiring a citation absent from an immutable external candidate before locking it. Require the verifier to use the candidate's existing exact citations or report a genuine unresolved conflict; never rewrite the supplied article silently.
+- Recover the exact legacy EDIT citation conflict through `repair RUN G-CLAIMS-VERIFIED`, bound to its unchanged failed carry and original verification task. Reverify normally and renew locks and downstream checks; preserve the candidate, owner and old receipts.
+- Resolve prefixed claim-ID groups and bounded ranges in brief coverage against the ledger instead of searching public prose for editorial instructions. Missing IDs, range gaps and unrelated drafts still fail under the unchanged coverage thresholds.
+
 ## November 6, 2026: Bound source observations for evidence repairs (3.2.24)
 
 - Add `repair --source-note-file` for a hash-bound rejected research or factual-verification task. Copy the caller's source-access or inspection observations into private immutable evidence, then include them in subsequent model packets.
