@@ -57,7 +57,7 @@ def parse(af: Any, data: bytes) -> dict:
 
 def unpack(af: Any, args: Any) -> Any:
     if any(getattr(args, field, None) for field in ("source_file", "candidate_file", "request_file", "visual_plan_file",
-                                                   "source_run_id", "published_slug", "expected_source_sha256")):
+                                                   "source_run_id", "published_slug", "expected_source_sha256", "image_plan_file", "bundle_file")):
         raise af.FlowError("--handoff-file supplies all revision inputs; do not combine input variants", af.EXIT_USAGE)
     value = parse(af, af.external_revision.read_utf8(af, args.handoff_file, "GPT revision handoff"))
     root = (af.runtime_home() / "revision-imports").resolve()

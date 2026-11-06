@@ -13,7 +13,7 @@ import revision_sources as sources
 import revision_handoff as handoff
 
 
-class ExternalRevisionImportTests(TemporaryRuntime):
+class ExternalRevisionFixture(TemporaryRuntime):
     def setUp(self):
         super().setUp()
         self.repo = self.root / "publication"
@@ -153,6 +153,7 @@ class ExternalRevisionImportTests(TemporaryRuntime):
         af.render_publication_files(directory, run, package, af.package_metadata(directory, run))
         return directory, run, package
 
+class ExternalRevisionImportTests(ExternalRevisionFixture):
     def test_one_copied_block_unpacks_exact_inputs_and_retries_share_one_owner(self):
         value = self.handoff_value()
         code, result = self.import_handoff(value)

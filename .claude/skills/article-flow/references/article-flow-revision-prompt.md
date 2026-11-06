@@ -26,8 +26,11 @@ repository base. Add a fresh unique ?article-flow=REQUEST_TAG to mirror requests
 to avoid a stale cached index or source. Keep the canonical article URL from
 the source identity. Never invent identity fields, calculate source hashes
 from browser-rendered text, or use an older article because retrieval failed.
-If required source material is still missing, identify it; do not ask me to
-supply backend files or claim you have everything.
+If the legacy page has no public source JSON, say so and retain its canonical
+URL, title and date from the page. You can contextualize that published page and
+prepare a review draft; use source_file: null in the ZIP manifest so the backend
+retrieves its verified source before import. Do not invent a source object or
+claim the source-bound return is already validated. Never ask me for backend files.
 
 After I give my thoughts, revise the complete article body in Markdown.
 Preserve effective wording, factual qualifications, citations, quotations,
@@ -49,7 +52,8 @@ characters), placement (one exact after_heading or full after_paragraph from
 the candidate), alt_text (20–320 characters), caption (10–320 characters),
 claim_ids: [], and labels (2–8 distinct strings, each at most 90 characters).
 For a general workflow use kind "workflow" and explicit edges:
-[{"from":0,"to":1,"label":"optional"}], indexing labels from zero. Connect every
+[{"from":0,"to":1,"label":"optional"}], indexing labels from zero. Edge labels
+are at most 20 characters. Connect every
 label; use at most 12 edges and four nonconsecutive branch/return edges.
 An arrow exists only when you supply it; do not add an implicit return loop.
 Fixed supported kinds are delivery_loop (2–8 steps, includes a return),
@@ -65,26 +69,80 @@ The controller inserts the revised diagram at its bound placement. Retain other
 assets unchanged. Omit visual_plan entirely if no diagram changes are needed.
 Describe unsupported changes or material conflicts separately; do not hide them.
 
-Once we have finished the revision, show the readable revised article, then end
-with ONE code block named article-flow-revision containing valid JSON:
-{"article_flow_revision_version":"1.0.0","source":COMPLETE_RETRIEVED_SOURCE_JSON,
-"candidate_markdown":"COMPLETE_REVISED_BODY","author_feedback":"MY_EXACT_FEEDBACK"}
-Include visual_plan only when needed. Use the actual full values, no placeholders
-or ellipses; escape Markdown newlines inside JSON strings. Copy the complete
-retrieved source JSON as an object, including its original article_markdown.
+Once we have finished the revision, create and return a downloadable ZIP file
+named SLUG-revision-bundle.zip. Use the same review-bundle format: a complete
+article-body Markdown file, exact author feedback, private revision notes or
+README, and any optional diagram plan and actual screenshot files. Put all
+files at the ZIP root. Do not return only loose files or a pasted JSON block.
 Keep my feedback verbatim, joining multiple feedback messages in order with
-two newlines. I can paste that single block, or the whole response, back into
-Article Flow. The backend unpacks it, validates it, and automatically republishes
-within my revision authorization. Failed checks retain the candidate for
-resolution rather than silently rewriting it.
+two newlines. Write UTF-8 files and validate the archive before returning it.
+
+Include revision-bundle.json with these fields, using actual filenames:
+{"article_flow_bundle_version":"1.0.0","slug":"ACTUAL_SLUG",
+"candidate_file":"SLUG.revised.md","author_feedback_file":"author-feedback.txt",
+"source_file":"source.json"}
+Save the COMPLETE retrieved source JSON unchanged in source.json. If it was
+unavailable on a legacy page, omit that file and use JSON null for source_file;
+the backend must retrieve and verify it. Include visual_plan_file pointing to
+the semantic plan JSON only when diagrams change. The source identity is never
+reconstructed by the external chat. No placeholders or ellipses in actual files.
+
+If a screenshot helps, include the actual cropped PNG/JPEG file and declare it
+in the manifest's optional images list:
+[{"file":"capture-name.png","alt_text":"DESCRIPTIVE_ALT","caption":"EXACT_CAPTION"}].
+Use unique lowercase slug filenames, at most four images, each under 5 MiB and
+80–8000 pixels per dimension with at most 32 million pixels. Export clean images
+without EXIF, comments, hidden text or personal identifiers. Explain what was
+actually captured and when; never present a new capture as an earlier anecdote.
+Place exactly one ![DESCRIPTIVE_ALT](/assets/articles/SLUG/capture-name.png)
+block in the draft followed by a blank line and its exact caption. Alt text is
+20–320 characters and captions 10–600, using plain text without markup. Do not
+add remote image URLs, screenshots that were not captured or invented assets.
+Semantic diagrams stay in their plan; the backend renders them.
+
+Include INGESTION.txt and return its text below the ZIP download as a copyable
+prompt: "Use Article Flow to import the attached revision ZIP and publish it to
+its existing article URL. Preserve the original publication date, validate the
+source, keep feedback and revision notes private, render the declared diagrams
+and import the declared captures. Verify the published article and every asset
+live, then report the result. Use my instruction as the scoped unattended
+revision authorization; stop and report any unresolved check."
+The ZIP is the deliverable; the prompt is how I feed it back into Article Flow.
+The backend unpacks it, validates it, and automatically republishes within my
+revision authorization. Failed checks retain the candidate for resolution
+rather than silently rewriting it. If file-generation tools are unavailable,
+report that limitation; do not claim you returned a ZIP.
 
 For your first reply, after contextualization, confirm you have everything you
 need to get started, give the article's title, canonical link, original date and
 a brief account of what it says, then ask for my thoughts. Stop and wait for my
-reply before drafting or producing the return block.
+reply before drafting or producing the ZIP.
 ```
 
-## Copy-back intake
+## ZIP intake
+
+Use `revise --bundle-file RETURNED.zip --unattended-editorial --authorization
+"ACTUAL AUTHOR INSTRUCTION" --auto --json`. The manifest maps the draft, exact
+feedback, authentic source (or null for verified backend retrieval), optional
+visual plan and declared local captures. README, revision notes and ingestion
+instructions are private review material and never article body inputs.
+
+The ZIP accepts stored/deflated entries, at most 24 flat, unique, ordinary files and 20 MiB compressed or
+expanded. Text members are at most 2 MiB and captures 5 MiB each. Traversal,
+Windows reserved names, links, encrypted members, unsupported file types and
+conflicting source slugs fail before Run creation. PNG chunk CRCs/JPEG frame
+headers and dimensions are checked; review actual image contents and appearance
+separately. Captures cannot overwrite existing assets. Their exact bytes enter
+immutable intake, package integrity and live verification alongside diagrams.
+
+A missing legacy source is retrieved from checked Git/worktree/live material
+once under a shared Windows/WSL lock. Exact ZIP retries, including recompression,
+reuse those stored source bytes and the original Run rather than refreshing the
+source or creating duplicate work. A failed fallback remains unimported. A ZIP
+cannot authorize itself. Original copied-block and separate-file intake remain
+supported.
+
+## Legacy copy-back intake
 
 Save the received response verbatim to a private UTF-8 file. No separate source,
 candidate or feedback attachments are required. Run:

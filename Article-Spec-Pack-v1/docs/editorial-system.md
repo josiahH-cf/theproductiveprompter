@@ -148,7 +148,10 @@ Publication still closes at COMPLETE. Its response offers `:article-flow-revisio
 without opening a question, waiting, or starting another Run. Espansr is only the
 reusable GPT prompt entry point; GPT reads and confirms the latest article from
 the blog (or the older article Jo names) before applying his stream-of-consciousness
-feedback. See [the prompt and exact handoff contract](article-flow-revision-prompt.md).
+feedback. The completed session returns a review ZIP plus its ingestion prompt;
+`revise --bundle-file` validates the draft, feedback, source and optional diagrams
+and captures. Missing legacy source is retrieved once from verified backend
+material, never supplied by the author. See [the prompt and exact handoff contract](article-flow-revision-prompt.md).
 
 New public packages include a linked `.revision.json` with the already-public
 body Markdown and a controller-computed source identity. Hidden frontmatter, private feedback, run path,

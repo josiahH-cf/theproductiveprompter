@@ -9,6 +9,13 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## November 6, 2026: Revision review ZIPs and local captures (3.2.22)
+
+- Return a downloadable review ZIP and ingestion prompt from `:article-flow-revision`, preserving the contextualize/ask/wait sequence. Include readable article Markdown, exact feedback, private notes, authentic source when available, semantic diagram plans and actual captures.
+- Add bounded `revise --bundle-file` intake and explicit PNG/JPEG capture bindings. Keep archive instructions separate from author authorization; verify source, preserve source evidence, reject unsafe archives/asset conflicts, and include capture bytes in package/live checks.
+- Resolve brief claim IDs through their actual ledger statements before draft coverage, including IDs longer than two characters; missing references and unrelated drafts still fail.
+- Cache missing legacy source exports once under a shared Windows/WSL lock. Recompressed retries retain their source and owner. Existing block/separate-file imports and ordinary voice/build/publication controls remain supported.
+
 ## November 5, 2026: Atomic revision ownership and WSL verification (3.2.18)
 
 - Reserve the hashes of an external revision's three separate input files under one durable, cross-host intake owner before creating its Run or reserving a writer. Concurrent submissions and retries after an interrupted installation retain that owner, including interruption before the Run record exists. An incomplete intake cannot dispatch or resume as an ordinary article. Preserve legacy import identities, Stops and existing continuation controls.

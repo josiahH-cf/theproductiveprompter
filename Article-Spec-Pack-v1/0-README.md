@@ -203,9 +203,9 @@ Same-URL publication recognizes older unmarked article cards by one canonical ti
 
 After publication, an optional GPT revision offer leaves the Run complete. Use
 `:article-flow-revision` in GPT to contextualize the latest article (or a named
-older one), confirm readiness and ask for your thoughts before editing. Paste
-its final `article-flow-revision` block back into Article Flow; no internal source
-attachments are required. `revise --handoff-file RETURNED_RESPONSE.md` separates
-the verified source, complete candidate, exact feedback and optional semantic
-diagram plan, then validates and republishes within the actual authorization.
-Failed checks retain the candidate. [Prompt and command contract](docs/article-flow-revision-prompt.md).
+older one), confirm readiness and ask for thoughts before editing. It returns a
+review ZIP and ingestion prompt. `revise --bundle-file RETURNED.zip` separates
+verified source, complete candidate, exact feedback, private notes, optional
+semantic diagrams and local captures. It validates and republishes within actual
+authorization, preserving failed candidates and exact retry ownership. Legacy
+copy-back and separate-file intake remain supported. [Prompt and ZIP contract](docs/article-flow-revision-prompt.md).

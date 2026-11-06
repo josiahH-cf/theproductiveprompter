@@ -452,6 +452,10 @@ def prepare(af: Any, args: Any) -> dict:
         fail(af, "A new diagram would overwrite a retained source asset; declare its replacement explicitly")
     expected_images = Counter({key: count for key, count in source_images.items()
                                if key[0] not in {urljoin(canonical, path) for path in replacements}})
+    imported_images, image_plan_bytes = af.revision_images.prepare(af, args, candidate, envelope['slug'])
+    if {item['public_path'] for item in imported_images} & (source_paths | planned_paths):
+        fail(af, "A new capture conflicts with a source image or planned diagram")
+    expected_images.update((urljoin(canonical, item['public_path']), item['alt']) for item in imported_images)
     if target_images != expected_images:
         fail(af, "External revision adds, removes, duplicates or changes a source image or its alt text; new assets require a separately verified import")
     source_args = argparse.Namespace(request_file=args.request_file, source_run_id=found[1]["run_id"] if found else None,
@@ -459,7 +463,8 @@ def prepare(af: Any, args: Any) -> dict:
     source = sources.prepare(af, source_args)
     # Snapshot author input once. Later source file mutation cannot change intake.
     source.update(request=request, candidate=candidate, external_source=envelope, external_source_bytes=envelope_bytes,
-                  original_markdown=markdown, assets=all_assets, visual_plan=visual_plan, visual_plan_bytes=visual_plan_bytes,
+                  original_markdown=markdown, assets=all_assets + imported_images,
+                  image_plan_bytes=image_plan_bytes, visual_plan=visual_plan, visual_plan_bytes=visual_plan_bytes,
                   public_visuals=provided_visuals if provided_visuals is not None else
                       (af.revision_handoff.public_visuals(af, found[0], found[1]) if found else []))
     # Evidence checks use the same proven snapshot as an ordinary revision.
