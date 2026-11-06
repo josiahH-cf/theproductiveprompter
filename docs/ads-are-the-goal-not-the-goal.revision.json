@@ -1,0 +1,59 @@
+{
+  "source": {
+    "revision_source_version": "1.0.0",
+    "canonical_url": "https://theproductiveprompter.com/docs/ads-are-the-goal-not-the-goal.html",
+    "slug": "ads-are-the-goal-not-the-goal",
+    "title": "Ads Are the Goal, Not the Goal?",
+    "original_published_timestamp": "2026-10-28T12:00:00-05:00",
+    "source_html_sha256": "19bf484734f309a2cff1632b0699bb9740f4cb839fbd3950e757b53f1515784b",
+    "source_markdown_sha256": "4e3c2dc7c95e295ef77c38c35b8b132bec7062546e76ce22840e3f593cbdb962",
+    "source_commit": null,
+    "source_observed_at": "2026-11-06T22:09:33Z"
+  },
+  "article_markdown": "When I searched for Dotloop on Google, the actual link was the fourth thing down.\n\nI had typed the name of the site I wanted to visit. Getting me there should have been an easy job for a search engine. Instead, I had to get past the ads.\n\nTo me, that is broken search. The product was serving its revenue model ahead of the thing I was using it for. I wanted to reach a website, and the page gave other businesses the first chance at my attention.\n\nI had the same feeling watching YouTube. About halfway through a video, an ad showed up that seemed to take up half the screen. It interrupted my attention, and for that stretch, the ad was what I was watching.\n\nI was there for the video. The application had given the ad priority over the experience that brought me there.\n\nI had two straightforward things to do, and the ads made both harder.\n\n![A Google search for Dotloop shows four sponsored listings above the ordinary Dotloop homepage result.](/assets/articles/ads-are-the-goal-not-the-goal/dotloop-google-search-2026-11-06.jpg)\n\nA fresh Google search for Dotloop on November 6, 2026 shows four sponsored listings before the ordinary homepage result, including a paid Dotloop listing.\n\n## What the ad is paying for\n\nThe pricing model helps explain why that space is valuable.\n\nWith Google's [cost-per-click model](https://support.google.com/google-ads/answer/6297?hl=en), the advertiser pays for a click. The auction uses the bid, ad quality, competition, and other factors to determine placement and price. Google says ads above search results often have higher clickthrough rates and higher actual costs per click than ads below them.\n\nYouTube advertising uses several billing models. Under [cost-per-view bidding for skippable in-stream ads](https://support.google.com/google-ads/answer/2375464?hl=en), an advertiser pays when someone watches 30 seconds, finishes a shorter ad, or interacts with it, whichever happens first. Other campaigns charge for impressions. [CPM](https://support.google.com/google-ads/answer/9158634?hl=en) expresses the cost per thousand times an ad is shown.\n\nA click, a qualifying view, or an impression gives the business something it can charge for. From my side of the screen, the same moment can be another thing between me and what I came to do.\n\nAdvertising accounted for about 73% of Alphabet's 2025 revenue: $294.691 billion out of $402.836 billion, according to its [annual report](https://www.sec.gov/Archives/edgar/data/1652044/000165204426000018/goog-20251231.htm).\n\nWhat interests me is what happens to the product as that business grows. There is a financial reason to make an ad more visible or more likely to get a click. I want product teams to be just as interested in whether that change makes the experience worse for the person using it.\n\nGoogle's [consumer information page](https://support.google.com/websearch/answer/7585859?hl=en) says, \"If we have no relevant ads, we show no ads at all.\" When I type the name of a particular website, my destination already seems fairly clear. An alternative can relate to the words I typed and still get in the way of what I meant.\n\n## A keyboard full of E keys\n\n![A conceptual comparison of two keyboard designs. Designing for a sentence keeps all letters accessible; prioritizing E replaces other keys and makes the sentence harder to type.](/assets/articles/ads-are-the-goal-not-the-goal/support-obstruction-branches.svg)\n\n*The keyboard analogy: giving one favored part more space can make the whole product worse at the job people need it to do.*\n\nImagine deciding that E is the most important key on a keyboard.\n\nYou put another E in a convenient place. Then another. Eventually, several positions that used to hold other letters become E keys.\n\nThe person trying to write a sentence now has to work around your enthusiasm for E.\n\nYou have made a worse keyboard. The keyboard's job depends on the whole layout, including the letters that are less important to you. Giving one key more space has made the thing less useful.\n\nThat is how I think about product design that gets carried away with its revenue model. A useful part of the business becomes the priority for the entire experience. More space goes to the thing that earns money, and the person using the product has to work around it.\n\nOn Google, I work around the ads to reach the site. On YouTube, I lose attention to an ad while trying to watch a video. Each experience asks me to accommodate the company's priorities before I can finish my own task.\n\nThe product still has a search box or a video player. Its design has started making those things harder to use for their original purpose.\n\n## What I like about open source\n\nThis is part of why I like open source projects. The community matters, and so do the useful components people make available to one another. I also like the idea that the work can become useful beyond whatever its creator originally wanted from it.\n\nSomeone else can adapt it to a different need. A component can become part of another person's project. The value of the work can spread beyond the product it started in.\n\nThat takes some ego out of building. The thing you made can help someone without requiring their entire experience to revolve around you.\n\nThat is the attitude I want from products more generally. Start with what people need to accomplish. Make that easier. Let usefulness guide the decisions about what deserves space, attention, and development effort.\n\nWhen a business starts treating every part of the experience as another opportunity to capture more from the person using it, I think it loses sight of why that person showed up.\n\n## The same concern follows me into AI\n\nI have the same concern about advertising in AI assistants. A conversation is supposed to help me think, understand something, or get something done. I want the product to stay organized around that request.\n\nOpenAI says, [\"Ads do not influence the answers ChatGPT gives you.\"](https://openai.com/index/testing-ads-in-chatgpt/) Its [help page](https://help.openai.com/en/articles/20001047-ads-in-chatgpt) also says, \"Ads run on separate systems from our chat model.\"\n\nI want that separation to hold. I also want the experience around the answer to respect what I asked for. Where an ad appears, why it was selected, and whether it affects an answer are different design questions. [OpenAI says](https://help.openai.com/en/articles/20001047-ads-in-chatgpt) the conversation can inform the ad while advertising remains separate from the answer.\n\nMy concern is what happens when the conversation becomes another place to compete for attention. I came with a question. The product should help me finish the thought.\n\n## People before profits\n\nA product needs a way to keep operating. The choice of how to pay for it becomes part of the design, and I want that choice to support the reason people use it.\n\nI think putting people before profits is how you win over time. Give people something useful, respect their attention, and keep improving the thing they came for. Those are reasons to return to a product and want it to succeed.\n\nHelp me reach the site, watch the video, and type the sentence. Build the business around doing those things well.\n\n## Sources and further reading\n\n- Google Search: [where Search Network ads can appear](https://support.google.com/google-ads/answer/1722047?hl=en), [consumer information](https://support.google.com/websearch/answer/7585859?hl=en), [Ad Rank](https://support.google.com/google-ads/answer/1722122?hl=en), and the [sponsored-results design](https://blog.google/products/ads-commerce/google-search-sponsored-results-label/).\n- YouTube: [mid-roll ads](https://support.google.com/youtube/answer/6175006) and [advertising formats](https://support.google.com/youtube/answer/2467968?hl=en).\n- Advertising research: the [in-stream video-ad experiment](https://pure.psu.edu/en/publications/does-in-stream-video-advertising-work-effects-of-position-and-con/), the [2024 CHI study of YouTube advertising experiences](https://smhsu.github.io/pubs/youtube_ads.pdf), and the [randomized search-ad prominence experiment](https://link.springer.com/article/10.1007/s11129-023-09270-z).\n- ChatGPT advertising: OpenAI's [initial announcement](https://openai.com/index/our-approach-to-advertising-and-expanding-access/), [testing announcement](https://openai.com/index/testing-ads-in-chatgpt/), [help page](https://help.openai.com/en/articles/20001047-ads-in-chatgpt), and [August 2026 business update](https://openai.com/index/expanding-access-to-ai-with-chatgpt-ads/), plus an [independent 2026 preprint](https://arxiv.org/abs/2608.05008).\n",
+  "visuals": [
+    {
+      "visual_id": "support-obstruction-branches",
+      "kind": "workflow",
+      "title": "What Happens When E Takes Over",
+      "placement": {
+        "after_heading": "A keyboard full of E keys"
+      },
+      "alt_text": "A conceptual comparison of two keyboard designs. Designing for a sentence keeps all letters accessible; prioritizing E replaces other keys and makes the sentence harder to type.",
+      "caption": "The keyboard analogy: giving one favored part more space can make the whole product worse at the job people need it to do.",
+      "labels": [
+        "Design a keyboard",
+        "Help a person type a sentence",
+        "Keep all the letters accessible",
+        "Treat E as the priority",
+        "Replace other keys with E",
+        "Make the sentence harder to type"
+      ],
+      "edges": [
+        {
+          "from": 0,
+          "to": 1,
+          "label": "Start with the task"
+        },
+        {
+          "from": 1,
+          "to": 2
+        },
+        {
+          "from": 0,
+          "to": 3,
+          "label": "Favor one part"
+        },
+        {
+          "from": 3,
+          "to": 4
+        },
+        {
+          "from": 4,
+          "to": 5
+        }
+      ],
+      "public_path": "/assets/articles/ads-are-the-goal-not-the-goal/support-obstruction-branches.svg"
+    }
+  ]
+}
