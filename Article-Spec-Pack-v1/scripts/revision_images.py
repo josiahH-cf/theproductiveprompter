@@ -45,7 +45,9 @@ def dimensions(data: bytes, suffix: str) -> tuple[int, int]:
         length = struct.unpack('>H', data[pos:pos + 2])[0]
         if length < 2 or pos + length > len(data):
             raise ValueError("invalid JPEG segment")
-        if marker == 0xfe or 0xe1 <= marker <= 0xef and marker != 0xee:
+        payload = data[pos + 2:pos + length]
+        color_profile = marker == 0xe2 and payload.startswith(b'ICC_PROFILE\x00') and len(payload) >= 14 and 1 <= payload[12] <= payload[13]
+        if marker == 0xfe or (0xe1 <= marker <= 0xef and marker != 0xee and not color_profile):
             raise ValueError("JPEG has EXIF, comment or unsupported application metadata; export a clean capture")
         if marker in {0xc0, 0xc1, 0xc2}:
             height, width = struct.unpack('>HH', data[pos + 3:pos + 7]); size = (width, height)

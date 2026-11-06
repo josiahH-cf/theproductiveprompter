@@ -18,6 +18,17 @@ def png(color=b"\x00\x80\xff"):
 
 
 class RevisionBundleTests(ExternalRevisionFixture):
+    def test_jpeg_color_profile_is_allowed_but_exif_and_comments_are_rejected(self):
+        def segment(marker, payload):
+            return bytes((255, marker)) + struct.pack('>H', len(payload) + 2) + payload
+        frame = segment(0xc0, b'\x08' + struct.pack('>HH', 1160, 920) + b'\x03\x01\x11\x00\x02\x11\x00\x03\x11\x00')
+        end = segment(0xda, b'\x01\x01\x00\x00\x3f\x00') + b'\xff\xd9'
+        profile = segment(0xe2, b'ICC_PROFILE\x00\x01\x01' + b'color profile')
+        self.assertEqual(captures.dimensions(b'\xff\xd8' + profile + frame + end, '.jpg'), (920, 1160))
+        for marker, payload in ((0xe1, b'Exif\x00private'), (0xfe, b'private comment'), (0xe2, b'other metadata')):
+            with self.assertRaises(ValueError):
+                captures.dimensions(b'\xff\xd8' + segment(marker, payload) + frame + end, '.jpg')
+
     def files(self, *, fallback=False, image=False):
         manifest = {'article_flow_bundle_version': '1.0.0', 'slug': self.slug,
                     'candidate_file': 'draft.revised.md', 'author_feedback_file': 'author-feedback.txt',
