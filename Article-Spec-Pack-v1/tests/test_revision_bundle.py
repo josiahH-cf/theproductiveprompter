@@ -18,6 +18,15 @@ def png(color=b"\x00\x80\xff"):
 
 
 class RevisionBundleTests(ExternalRevisionFixture):
+    def test_oversized_archive_is_rejected_before_extraction_or_run_creation(self):
+        path = self.root / 'oversized.zip'
+        with path.open('wb') as stream:
+            stream.seek(20 * 1024 * 1024)
+            stream.write(b'x')
+        with self.assertRaisesRegex(af.FlowError, 'ZIP exceeds 20 MiB'):
+            self.revise(bundle_file=str(path), source_file=None, candidate_file=None, request_file=None)
+        self.assertEqual(list(af.runs_root().glob('AF-*')), [])
+
     def test_jpeg_color_profile_is_allowed_but_exif_and_comments_are_rejected(self):
         def segment(marker, payload):
             return bytes((255, marker)) + struct.pack('>H', len(payload) + 2) + payload

@@ -63,7 +63,9 @@ def unpack(af: Any, args: Any) -> Any:
              'visual_plan_file', 'image_plan_file', 'source_run_id', 'published_slug', 'expected_source_sha256')):
         raise af.FlowError("--bundle-file supplies all inputs; do not combine input variants", af.EXIT_USAGE)
     try:
-        files = read(Path(args.bundle_file).expanduser().read_bytes())
+        with Path(args.bundle_file).expanduser().open('rb') as stream:
+            data = stream.read(20 * 1024 * 1024 + 1)
+        files = read(data)
         manifest = json_object(files['revision-bundle.json'])
         required = {'article_flow_bundle_version', 'slug', 'candidate_file', 'author_feedback_file', 'source_file'}
         if not required <= set(manifest) or set(manifest) - required - {'visual_plan_file', 'images'}:
