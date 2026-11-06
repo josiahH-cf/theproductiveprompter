@@ -7709,7 +7709,7 @@ def record_source_observation(directory: Path, run: dict[str, Any], filename: st
         return existing
     if sum(item['type'].startswith('source-observation:') for item in run['artifact_index']) >= 4:
         raise FlowError('This Run already has four source observations; retain its evidence for review', EXIT_USAGE)
-    path = directory / 'artifacts' / ('source-observation-' + digest + '.txt')
+    path = directory / 'artifacts' / ('source-' + digest[:16] + '.txt')
     immutable_write(path, data)
     return record_artifact(directory, run, path, kind,
                            {'actor':'operator_or_controller', 'source':'explicit_repair_source_note', 'not_a_gate_decision':True},

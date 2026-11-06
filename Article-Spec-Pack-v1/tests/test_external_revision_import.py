@@ -219,6 +219,18 @@ class ExternalRevisionImportTests(ExternalRevisionFixture):
         with self.assertRaisesRegex(af.FlowError, 'evidence-stage'):
             call(af.command_repair, run_id=run['run_id'], gate_id='G-DRAFT-COVERAGE', finding='Reverify', source_note_file=str(note))
 
+    def test_source_note_records_in_a_deep_windows_compatible_run_directory(self):
+        import shutil
+        directory, run=self.opened()
+        deep=self.root/('d'*(215-len(str(self.root))-1))
+        deep.mkdir()
+        for name in ('run.json','events.jsonl'):
+            shutil.copy2(directory/name,deep/name)
+        note=self.root/'source-note.txt';data=b'A bounded source observation in a deep workspace.';note.write_bytes(data)
+        item=af.record_source_observation(deep,run,str(note))
+        self.assertEqual((deep/item['path']).read_bytes(),data)
+        self.assertEqual(item['sha256'],af.sha256_bytes(data))
+
     def failed_code_carry(self):
         directory, run = self.opened()
         with mock.patch.object(af, 'automatic_gate', return_value=('REPAIR', [{'criterion':'brief_claim_coverage', 'finding':'A controller check rejected this unchanged candidate.'}])):

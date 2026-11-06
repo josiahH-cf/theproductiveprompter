@@ -3,7 +3,7 @@
   "workflow_version": "3.2.0",
   "hash_algorithm": "sha256",
   "generator_name_and_version": "article-flow 3.2.24",
-  "generated_at": "2026-11-06T19:59:37Z",
+  "generated_at": "2026-11-06T20:14:45Z",
   "generated_from": "index",
   "files": [
     {
@@ -731,8 +731,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "a1247f0006a9cec607514826d63713aada58f372e189ad4240c16a643dea7c1e",
-      "byte_size": 729188
+      "sha256": "5cf2a68b653e9f3eb4223c57a1d8d2e85718bed8da6aa7cc844ba4519f841350",
+      "byte_size": 729181
     },
     {
       "path": "scripts/article_maintenance.py",
@@ -915,8 +915,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "evaluation",
-      "sha256": "e97bc1dba07ef26857566023b4ca57efbd761c5fe4d2cdea3512e1a238f3b095",
-      "byte_size": 64733
+      "sha256": "ceb05c03521f8428a16c53fe906e6b05313e36b888b228ac88b46d9fa84d01ee",
+      "byte_size": 65365
     },
     {
       "path": "tests/test_external_revision_source.py",
