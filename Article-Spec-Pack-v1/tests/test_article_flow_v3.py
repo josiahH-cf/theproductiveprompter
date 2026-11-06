@@ -1381,6 +1381,30 @@ class RepairAttemptBoundRegressionTests(TemporaryRuntime):
         self.assertEqual(claims[0]["payload"]["execution_number"], 1)
         self.assertTrue(af.verify_event_log(directory, run)[0])
 
+    def test_provider_only_qa_repair_retries_qa_instead_of_reopening_accepted_prose(self):
+        run_id = self.start('A transport failure is not a content rejection.')
+        directory, run = af.load_run(run_id)
+        for kind in af.state_definition('EDITORIAL_QA',run)['required_inputs']:
+            if not af.artifact(run,kind):
+                if kind=='article': self.record_text(directory,run,kind,'The accepted article remains unchanged.\n')
+                else: self.record_json(directory,run,kind,{'fixture':kind})
+        af.transition(directory,run,'EDITORIAL_QA','test','Exercise a provider-only QA failure')
+        article=af.artifact_path(directory,run,'article');original=article.read_bytes()
+        with (mock.patch.object(af,'route_candidates',side_effect=lambda stage,excluded_routes=None:self.route_set(stage)),
+              mock.patch.object(af,'invoke_route',side_effect=af.FlowError('Image transport failed before producing an assessment')),
+              mock.patch.object(af,'emit')):
+            with self.assertRaises(af.FlowError):af.command_execute_stage(namespace(run_id=run_id,route=None,canary=False))
+        directory,run=af.load_run(run_id)
+        self.assertEqual(run['status'],'BLOCKED')
+        self.assertIsNone(af.artifact(run,'gate-receipt:G-EDITORIAL-QA'))
+        code,result=call(af.command_repair,run_id=run_id,gate_id='G-EDITORIAL-QA',finding='Repair the transport, then run QA normally.')
+        self.assertEqual(code,af.EXIT_OK,result)
+        directory,run=af.load_run(run_id)
+        self.assertEqual((run['state'],run['status']),('EDITORIAL_QA','ACTIVE'))
+        self.assertEqual(af.stage_attempt_evidence(directory,run,'EDITORIAL_QA')['window_used'],0)
+        self.assertEqual(article.read_bytes(),original)
+        self.assertFalse(any(item['type'].startswith('task-packet:EDIT:') for item in run['artifact_index']))
+
     def test_provider_failures_consume_two_unique_bound_executions(self):
         run_id = self.start("Every failed provider call must consume the bounded window.")
         with (
