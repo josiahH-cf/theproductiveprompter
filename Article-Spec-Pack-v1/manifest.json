@@ -2,8 +2,8 @@
   "manifest_schema_version": "2.0.0",
   "workflow_version": "3.2.0",
   "hash_algorithm": "sha256",
-  "generator_name_and_version": "article-flow 3.2.23",
-  "generated_at": "2026-11-06T19:12:20Z",
+  "generator_name_and_version": "article-flow 3.2.24",
+  "generated_at": "2026-11-06T20:14:45Z",
   "generated_from": "index",
   "files": [
     {
@@ -19,8 +19,8 @@
       "scope": "source",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "9a37bc58dbf0e7a22fa640381cdec6eed7ebdf31c7a4b9b7abb12c7e6f2e2069",
-      "byte_size": 14957
+      "sha256": "467ea947548a63e4edbec928d6d6a804c378a08d11735002e10538b57d8d6f68",
+      "byte_size": 16000
     },
     {
       "path": ".agents/skills/article-flow/references/editorial.md",
@@ -35,8 +35,8 @@
       "scope": "source",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "9a37bc58dbf0e7a22fa640381cdec6eed7ebdf31c7a4b9b7abb12c7e6f2e2069",
-      "byte_size": 14957
+      "sha256": "467ea947548a63e4edbec928d6d6a804c378a08d11735002e10538b57d8d6f68",
+      "byte_size": 16000
     },
     {
       "path": ".claude/skills/article-flow/references/editorial.md",
@@ -299,8 +299,8 @@
       "scope": "spec",
       "role": "documentation",
       "rule_set": "editorial",
-      "sha256": "9a37bc58dbf0e7a22fa640381cdec6eed7ebdf31c7a4b9b7abb12c7e6f2e2069",
-      "byte_size": 14957
+      "sha256": "467ea947548a63e4edbec928d6d6a804c378a08d11735002e10538b57d8d6f68",
+      "byte_size": 16000
     },
     {
       "path": "docs/editorial-handoff.md",
@@ -731,8 +731,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "266bfbed501a5a241f1ea498ab34a58bfc5ca014161eb3af067191d444b90788",
-      "byte_size": 725802
+      "sha256": "5cf2a68b653e9f3eb4223c57a1d8d2e85718bed8da6aa7cc844ba4519f841350",
+      "byte_size": 729181
     },
     {
       "path": "scripts/article_maintenance.py",
@@ -915,8 +915,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "evaluation",
-      "sha256": "c7007f341561ccf6941833e8afe46731a1a10795d494db52d11eed03cf1f34ca",
-      "byte_size": 59832
+      "sha256": "ceb05c03521f8428a16c53fe906e6b05313e36b888b228ac88b46d9fa84d01ee",
+      "byte_size": 65365
     },
     {
       "path": "tests/test_external_revision_source.py",

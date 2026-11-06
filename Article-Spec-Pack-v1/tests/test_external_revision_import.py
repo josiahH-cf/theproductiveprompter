@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 import subprocess
 import sys
 from unittest import mock
@@ -154,6 +155,82 @@ class ExternalRevisionFixture(TemporaryRuntime):
         return directory, run, package
 
 class ExternalRevisionImportTests(ExternalRevisionFixture):
+    def failed_evidence_task(self):
+        directory, run = self.opened()
+        self.record_json(directory, run, 'research-plan', {'research_plan_schema_version':'1.0.0','run_id':run['run_id']})
+        self.move(directory, run, 'RESEARCH')
+        _, packet = call(af.command_next, run_id=run['run_id'])
+        ledger = {'claim_ledger_schema_version':'1.0.0','run_id':run['run_id'],'generated_at':af.utc_now(), 'claims':[{
+            'claim_id':'C1','exact_claim':'A source needs inspection.','class':'fact','risk':'high',
+            'source_tier':'unresolved','source_url_or_local_id':'revision-request',
+            'source_title_and_publisher':'Supplied source','exact_locator_or_supporting_excerpt':'Not yet inspected.',
+            'checked_at':af.utc_now(),'freshness_horizon':'current revision','contradiction_status':'unresolved',
+            'allowed_wording':'Retain the Stop until verified.','confidence':0.0,'disposition':'escalate'}]}
+        path = Path(packet['expected_output']['path'])
+        af.write_json(path, ledger)
+        _, result = call(af.command_submit, run_id=run['run_id'], stage='RESEARCH', file=str(path))
+        self.assertEqual(result['outcome'], 'REPAIR')
+        return af.load_run(run['run_id'])
+
+    def test_source_note_repair_binds_observations_without_passing_the_evidence_gate(self):
+        directory, run = self.failed_evidence_task()
+        gate = af.artifact_path(directory, run, 'gate-receipt:G-EVIDENCE-COVERAGE'); prior = gate.read_bytes()
+        note = self.root / 'source-observation.txt'; data = b'A lead host inspected the source; this is context, not a gate decision.\n';note.write_bytes(data)
+        code, result = call(af.command_repair, run_id=run['run_id'], gate_id='G-EVIDENCE-COVERAGE', finding='Reverify with the observed source.', source_note_file=str(note))
+        self.assertEqual(code, af.EXIT_OK, result)
+        directory, run = af.load_run(run['run_id'])
+        _, packet = call(af.command_next, run_id=run['run_id'])
+        inputs = [item for item in af.load_json(Path(packet['task_packet']))['inputs'] if item['id'].startswith('source-observation:')]
+        self.assertEqual(len(inputs), 1)
+        copied = Path(inputs[0]['path'])
+        self.assertEqual(copied.read_bytes(), data)
+        note.write_bytes(b'Changed outside the Run')
+        self.assertEqual(copied.read_bytes(), data)
+        self.assertEqual(gate.read_bytes(), prior)
+        self.assertEqual(af.load_run(run['run_id'])[1]['state'], 'RESEARCH')
+        later = af.packet_inputs(directory, run, 'RESEARCH_PLAN')
+        self.assertTrue(any(item['id'].startswith('source-observation:') for item in later))
+        with self.assertRaisesRegex(af.FlowError, 'required artifacts are missing'):
+            af.packet_inputs(directory, run, 'EDITORIAL_QA')
+        self.assertEqual(af.artifact_path(directory, run, 'external-revision-candidate').read_bytes(), self.candidate.read_bytes())
+
+    def test_changed_source_note_cannot_be_accepted_with_a_dispatched_task(self):
+        directory, run = self.failed_evidence_task()
+        note=self.root/'note.txt';note.write_bytes(b'A source observation for normal verification.')
+        call(af.command_repair, run_id=run['run_id'], gate_id='G-EVIDENCE-COVERAGE', finding='Reverify', source_note_file=str(note))
+        _, packet=call(af.command_next, run_id=run['run_id'])
+        value=af.load_json(Path(packet['task_packet']))
+        item=next(item for item in value['inputs'] if item['id'].startswith('source-observation:'))
+        Path(item['path']).write_bytes(b'Tampered observation')
+        out=Path(packet['expected_output']['path']);af.write_json(out, {'claim_ledger_schema_version':'1.0.0','run_id':run['run_id'],'generated_at':af.utc_now(),'claims':[]})
+        with self.assertRaises(af.FlowError):
+            call(af.command_submit, run_id=run['run_id'], stage='RESEARCH', file=str(out))
+        self.assertEqual(af.load_run(run['run_id'])[1]['status'], 'BLOCKED')
+
+    def test_source_notes_reject_invalid_text_and_non_evidence_stages(self):
+        directory, run=self.failed_evidence_task()
+        before=(directory/'run.json').read_bytes();note=self.root/'invalid-note.txt'
+        for data in (b'',b'private\x00control',b'x'*(16*1024+1)):
+            note.write_bytes(data)
+            with self.assertRaises(af.FlowError):
+                call(af.command_repair, run_id=run['run_id'], gate_id='G-EVIDENCE-COVERAGE', finding='Reverify', source_note_file=str(note))
+            self.assertEqual((directory/'run.json').read_bytes(), before)
+        self.move(directory, run, 'DRAFT');note.write_bytes(b'A valid observation cannot waive a draft gate.')
+        with self.assertRaisesRegex(af.FlowError, 'evidence-stage'):
+            call(af.command_repair, run_id=run['run_id'], gate_id='G-DRAFT-COVERAGE', finding='Reverify', source_note_file=str(note))
+
+    def test_source_note_records_in_a_deep_windows_compatible_run_directory(self):
+        import shutil
+        directory, run=self.opened()
+        deep=self.root/('d'*(215-len(str(self.root))-1))
+        deep.mkdir()
+        for name in ('run.json','events.jsonl'):
+            shutil.copy2(directory/name,deep/name)
+        note=self.root/'source-note.txt';data=b'A bounded source observation in a deep workspace.';note.write_bytes(data)
+        item=af.record_source_observation(deep,run,str(note))
+        self.assertEqual((deep/item['path']).read_bytes(),data)
+        self.assertEqual(item['sha256'],af.sha256_bytes(data))
+
     def failed_code_carry(self):
         directory, run = self.opened()
         with mock.patch.object(af, 'automatic_gate', return_value=('REPAIR', [{'criterion':'brief_claim_coverage', 'finding':'A controller check rejected this unchanged candidate.'}])):
