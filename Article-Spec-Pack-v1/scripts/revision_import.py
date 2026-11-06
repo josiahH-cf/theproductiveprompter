@@ -298,6 +298,65 @@ def block(af: Any, directory: Path, run: dict, findings: list[dict]) -> None:
     af.save_run(directory, run)
 
 
+def recheck_failed_carry(af: Any, directory: Path, run: dict, args: Any) -> bool:
+    """Reopen an unchanged code-only rejection only after its real gate passes."""
+    state = run['state']
+    if not enabled(af, run) or state not in {'DRAFT', 'EDIT', 'VISUAL_PLAN'}:
+        return False
+    gate_id = af.state_definition(state, run)['gate']
+    if args.gate_id != gate_id or af.artifact(run, 'external-revision-acceptance:' + state):
+        return False
+    output_kind = {'DRAFT':'draft', 'EDIT':'article', 'VISUAL_PLAN':'visual-plan'}[state]
+    if not af.artifact(run, output_kind) or not af.artifact(run, 'gate-receipt:' + gate_id):
+        return False
+    with af.run_lock(directory, run):
+        record(af, directory, run)
+        path, gate_item = checked(af, directory, run, 'gate-receipt:' + gate_id)
+        gate = af.load_json(path)
+        output, output_item = checked(af, directory, run, output_kind)
+        if (gate.get('outcome') not in {'REPAIR','FAIL'} or gate.get('repair_state') != state
+                or (gate.get('evaluator') or {}).get('type') != 'code' or gate.get('task_binding')
+                or output_item.get('producer', {}).get('source') != 'validated_external_candidate'
+                or any(item['type'].startswith('task-packet:' + state + ':') for item in run['artifact_index'])):
+            return False
+        ok, error, _, events = af.verify_event_log(directory, run)
+        if not ok:
+            raise af.FlowError('External carry recovery history changed', af.EXIT_INTEGRITY, error)
+        hashes = gate.get('artifact_hashes') or {}
+        if hashes.get(output_kind) != output_item['sha256']:
+            raise af.FlowError('External carry gate lost its output binding', af.EXIT_INTEGRITY)
+        current = {item['type']:item['sha256'] for item in run['artifact_index'] if item['type'] != 'gate-receipt:' + gate_id}
+        bound = {kind:digest for kind, digest in hashes.items() if kind != 'gate-receipt:' + gate_id}
+        if current != bound:
+            raise af.FlowError('External carry inputs changed since rejection', af.EXIT_INTEGRITY)
+        for kind, digest in hashes.items():
+            if kind != 'gate-receipt:' + gate_id:
+                _, item = checked(af, directory, run, kind)
+                if item['sha256'] != digest:
+                    raise af.FlowError('External carry inputs changed since rejection: ' + kind, af.EXIT_INTEGRITY)
+        prior = any(event.get('type') == 'REPAIR'
+                    and event.get('payload', {}).get('recovery_kind') == 'unchanged_external_carry'
+                    and event['payload'].get('gate_receipt_sha256') == gate_item['sha256']
+                    and event['payload'].get('output_sha256') == output_item['sha256'] for event in events)
+        if run['status'] != 'BLOCKED' and not prior:
+            return False
+        af.revision_sources.assert_unchanged_source(af, run)
+        outcome, findings = af.automatic_gate(directory, run, state, output)
+        if outcome != 'PASS':
+            raise af.FlowError('Unchanged external candidate still fails its real gate; retain the Stop',
+                               af.EXIT_WAITING, {'findings': findings})
+        if not prior:
+            af.append_event(directory, run, 'REPAIR', 'controller', {
+                'recovery_kind':'unchanged_external_carry', 'gate_id':gate_id,
+                'gate_receipt_sha256':gate_item['sha256'], 'output_sha256':output_item['sha256'],
+                'candidate_sha256':af.artifact(run, 'external-revision-candidate')['sha256'],
+                'controller_version':af.CONTROLLER_VERSION, 'finding':args.finding,
+                'task_packet_created':False})
+        if run['status'] == 'BLOCKED':
+            af.transition(directory, run, state, 'controller', 'Recheck unchanged external carry through its original owner; no writer task')
+    return True
+
+
 def empty_plan_reason(af: Any, directory: Path, run: dict) -> str:
     value = record(af, directory, run)
     captures = sum(bool(item.get('imported')) for item in value['assets'])

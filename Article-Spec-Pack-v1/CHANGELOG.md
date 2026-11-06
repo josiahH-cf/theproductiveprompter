@@ -9,6 +9,11 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## November 6, 2026: Recover rejected controller-owned carries (3.2.23)
+
+- Route `repair RUN GATE` for an unaccepted external controller carry through its own receipt, not a nonexistent model task. Require an intact event history, unchanged bound inputs and source, and a fresh PASS from the real code gate before reopening the same owner.
+- Preserve the original failing receipt and candidate bytes, create no writer task or voice judgment, and keep Stops for genuine failures, changed inputs or an already accepted stage. Repeated recovery before continuation reuses its recorded identity.
+
 ## November 6, 2026: Revision review ZIPs and local captures (3.2.22)
 
 - Return a downloadable review ZIP and ingestion prompt from `:article-flow-revision`, preserving the contextualize/ask/wait sequence. Include readable article Markdown, exact feedback, private notes, authentic source when available, semantic diagram plans and actual captures.
