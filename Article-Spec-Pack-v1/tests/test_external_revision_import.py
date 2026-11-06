@@ -155,6 +155,87 @@ class ExternalRevisionFixture(TemporaryRuntime):
         return directory, run, package
 
 class ExternalRevisionImportTests(ExternalRevisionFixture):
+    def citation_verification_task(self):
+        directory, run = self.opened()
+        self.carry(directory, run, 'DRAFT')
+        self.carry(directory, run, 'VISUAL_PLAN')
+        call(af.command_visual_render, run_id=run['run_id'], refresh=False)
+        directory, run = af.load_run(run['run_id'])
+        claim = {'claim_id':'C1','exact_claim':'A clearer explanation retains useful parts.','class':'fact','risk':'medium',
+                 'source_tier':'primary','source_url_or_local_id':'https://example.com/reference',
+                 'source_title_and_publisher':'Direct source','exact_locator_or_supporting_excerpt':'The relevant explanation.',
+                 'checked_at':af.utc_now(),'freshness_horizon':'current revision','contradiction_status':'none_found',
+                 'allowed_wording':'A clearer explanation retains useful parts.','confidence':0.9,'disposition':'use'}
+        ledger = {'claim_ledger_schema_version':'1.0.0','run_id':run['run_id'],'generated_at':af.utc_now(),
+                  'claims':[claim, {**claim,'claim_id':'C2','source_url_or_local_id':'https://example.com/additional-source'}]}
+        self.record_json(directory, run, 'claim-ledger', ledger)
+        self.record_json(directory, run, 'article-recipe', {'citation_mode':'links'})
+        self.move(directory, run, 'CLAIM_VERIFICATION')
+        _, result = call(af.command_next, run_id=run['run_id'])
+        path = Path(result['expected_output']['path']); af.write_json(path, ledger)
+        return directory, run, path, ledger
+
+    def legacy_citation_carry(self):
+        directory, run, path, ledger = self.citation_verification_task()
+        actual = af.automatic_gate
+        def legacy_gate(directory, run, state, submission):
+            outcome, findings = actual(directory, run, state, submission)
+            findings = [item for item in findings if item.get('criterion') != 'external_verification_citation']
+            return ('REPAIR' if findings else 'PASS'), findings
+        with mock.patch.object(af, 'automatic_gate', side_effect=legacy_gate):
+            _, result = call(af.command_submit, run_id=run['run_id'], stage='CLAIM_VERIFICATION', file=str(path))
+        self.assertEqual(result['outcome'], 'PASS')
+        directory, run = af.load_run(run['run_id'])
+        self.carry(directory, run, 'EDIT')
+        self.assertEqual(run['status'], 'BLOCKED')
+        return directory, run, ledger
+
+    def test_external_verification_rejects_a_citation_the_immutable_candidate_cannot_add(self):
+        directory, run, path, ledger = self.citation_verification_task()
+        _, result = call(af.command_submit, run_id=run['run_id'], stage='CLAIM_VERIFICATION', file=str(path))
+        self.assertEqual(result['outcome'], 'REPAIR')
+        directory, run = af.load_run(run['run_id'])
+        gate = af.json_artifact(directory, run, 'gate-receipt:G-CLAIMS-VERIFIED')
+        finding = next(item for item in gate['findings'] if item['criterion']=='external_verification_citation')
+        self.assertEqual(finding['repair_state'], 'CLAIM_VERIFICATION')
+        self.assertIn('https://example.com/additional-source', finding['finding'])
+        self.assertIsNone(af.artifact(run, 'locked-fields'))
+        ledger['claims'] = ledger['claims'][:1]; af.write_json(path, ledger)
+        self.assertEqual(af.automatic_gate(directory, run, 'CLAIM_VERIFICATION', path), ('PASS', []))
+
+    def test_legacy_external_citation_stop_reverifies_without_changing_the_candidate(self):
+        directory, run, ledger = self.legacy_citation_carry()
+        old = af.artifact_path(directory, run, 'gate-receipt:G-NATURALIZATION'); original = old.read_bytes()
+        code, result = call(af.command_repair, run_id=run['run_id'], gate_id='G-CLAIMS-VERIFIED', finding='Reverify the existing exact citations.')
+        self.assertEqual(code, af.EXIT_OK, result)
+        directory, run = af.load_run(run['run_id'])
+        self.assertEqual(run['state'], 'CLAIM_VERIFICATION')
+        self.assertEqual(old.read_bytes(), original)
+        self.assertEqual(af.artifact_path(directory, run, 'external-revision-candidate').read_bytes(), self.candidate.read_bytes())
+        _, packet = call(af.command_next, run_id=run['run_id'])
+        path = Path(packet['expected_output']['path'])
+        ledger['claims'] = ledger['claims'][:1]; af.write_json(path, ledger)
+        _, accepted = call(af.command_submit, run_id=run['run_id'], stage='CLAIM_VERIFICATION', file=str(path))
+        self.assertEqual(accepted['outcome'], 'PASS')
+        directory, run = af.load_run(run['run_id'])
+        self.carry(directory, run, 'EDIT')
+        self.assertEqual(run['state'], 'POST_EDIT_CLAIM_VERIFICATION')
+        self.assertFalse(any(item['type'].startswith('task-packet:EDIT:') for item in run['artifact_index']))
+
+    def test_legacy_external_citation_recovery_rejects_changed_inputs(self):
+        directory, run, _ = self.legacy_citation_carry()
+        self.record_json(directory, run, 'brief', {'title':'Changed after rejection'})
+        before = (directory/'run.json').read_bytes()
+        with self.assertRaisesRegex(af.FlowError, 'unchanged rejected citation carry'):
+            call(af.command_repair, run_id=run['run_id'], gate_id='G-CLAIMS-VERIFIED', finding='Reverify')
+        self.assertEqual((directory/'run.json').read_bytes(), before)
+
+    def test_legacy_external_citation_recovery_does_not_reopen_other_failures(self):
+        directory, run, _ = self.legacy_citation_carry()
+        af.write_gate_receipt(directory, run, 'G-NATURALIZATION', 'REPAIR', [{'criterion':'locked_fields','finding':'A different defect'}], {'type':'code'}, 'EDIT')
+        with self.assertRaisesRegex(af.FlowError, 'unchanged rejected citation carry'):
+            call(af.command_repair, run_id=run['run_id'], gate_id='G-CLAIMS-VERIFIED', finding='Reverify')
+
     def failed_evidence_task(self):
         directory, run = self.opened()
         self.record_json(directory, run, 'research-plan', {'research_plan_schema_version':'1.0.0','run_id':run['run_id']})

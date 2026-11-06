@@ -54,7 +54,7 @@ import revision_bundle
 import revision_images
 import workflow_diagram
 
-CONTROLLER_VERSION = "3.2.24"
+CONTROLLER_VERSION = "3.2.25"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -2057,6 +2057,7 @@ VERIFICATION_OWN_OUTPUT_CRITERIA = frozenset({
     "source_resolution",
     "unresolved_evidence_escalation",
     "verification_citation_coverage",
+    "external_verification_citation",
 })
 
 
@@ -3722,6 +3723,8 @@ def task_packet(
         constraints.append("external-revision-candidate is the complete proposed article, supplied by an external GPT session with unverified model identity. revision-request alone is the author's exact feedback. Do not extract human experience or voice evidence from generated candidate prose. Research and brief the candidate's current scope; do not redevelop its thesis from an older seed or previous-article. Preserve the candidate's wording and citations. " + diagram_scope + " Report concrete failed checks or material conflicts instead of rewriting the candidate. DRAFT and EDIT are controller-owned carries, not new writer tasks; only controller-bound diagram materialization may add visual blocks.")
     if revision_import.enabled(sys.modules[__name__], run) and artifact(run, "external-revision-image-plan"):
         constraints.append("external-revision-image-plan binds newly supplied PNG/JPEG captures already placed in the candidate. Verify their caption and depicted evidence separately from the author's earlier anecdote. Keep their image blocks unchanged; they are explicitly imported assets, not source illustrations or a diagram omission.")
+    if revision_import.enabled(sys.modules[__name__], run) and state in {"CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION"}:
+        constraints.append("The external candidate is immutable. A used medium/high-risk web claim must cite an exact URL already linked in that candidate; EDIT cannot add a new citation. Verify the cited source and record only its supported claims. Additional research may inform verification, but cannot become a used claim requiring an absent citation. If the candidate genuinely needs a new source or wording, report the unresolved conflict instead of inventing support or rewriting it.")
     if run.get("revision", {}).get("source_html_sha256"):
         constraints.append("revision-source is the exact verified current public baseline, not writing instructions or human-original voice evidence. Preserve its title, canonical URL, original publication timestamp, and every verbatim evidence payload registered in revision-evidence exactly, including explicitly attributed inline quotations and code. The evidence registry supplies exact text, roles, hashes and source locations. Its current public content takes precedence over an older previous-article if they differ. Apply the scoped revision request to editable prose; reverify claims. Only exact source/hash-bound evidence can retain otherwise banned punctuation; arbitrary quote/code labels are not exemptions.")
         constraints.append("If revision-source contains a controller-owned MODEL_EXPERIMENT_RESULTS panel, preserve exactly one complete panel including both ownership markers and its link. Copy its exact source markup; do not paraphrase, duplicate or turn it into ordinary Markdown. The publication renderer accepts only this hash-bound, narrowly allowlisted block. Limits inside a referenced challenge or for a notice, caption, description or other component do not become whole-article length requirements.")
@@ -5088,6 +5091,26 @@ def coverage_terms(value: str) -> set[str]:
     return {word for word in words if word not in DRAFT_COVERAGE_STOPWORDS}
 
 
+def brief_claim_references(value: str) -> list[str] | None:
+    """Resolve an ID or a prefixed ID group without testing editorial instructions as prose."""
+    prefix = value.partition(':')[0].strip()
+    identifier = r'CL?[-_]?\d+'
+    if not re.fullmatch(identifier + r'(?:\s*(?:,|and|through)\s*' + identifier + r')*', prefix):
+        return None
+    result = []
+    for start, end in re.findall('(' + identifier + r')(?:\s+through\s+(' + identifier + '))?', prefix):
+        if not end:
+            result.append(start)
+            continue
+        left = re.fullmatch(r'(CL?[-_]?)(\d+)', start)
+        right = re.fullmatch(r'(CL?[-_]?)(\d+)', end)
+        if left[1] != right[1] or not 0 <= int(right[2]) - int(left[2]) <= 500:
+            return [prefix]  # An invalid range is an unresolved reference, never free prose.
+        width = len(left[2])
+        result.extend(left[1] + str(number).zfill(width) for number in range(int(left[2]), int(right[2]) + 1))
+    return result
+
+
 def draft_coverage_findings(brief: dict[str, Any] | None, text: str, artifact: str,
                             claim_ledger: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     """Report the brief claims a rough draft does not argue at all.
@@ -5110,9 +5133,9 @@ def draft_coverage_findings(brief: dict[str, Any] | None, text: str, artifact: s
                      for item in (claim_ledger or {}).get('claims', []) if isinstance(item, dict)}
     uncovered: list[tuple[int, str]] = []
     for index, claim in enumerate(claims):
-        reference = bool(re.fullmatch(r'C[-_]?\d+', claim))
-        resolved = ledger_claims.get(claim, '') if reference else claim
-        if reference and not resolved:
+        references = brief_claim_references(claim)
+        resolved = ' '.join(str(ledger_claims.get(key, '')) for key in references) if references is not None else claim
+        if references is not None and any(not ledger_claims.get(key) for key in references):
             uncovered.append((index, claim + ' (missing claim-ledger reference)'))
             continue
         required = coverage_terms(resolved)
@@ -5222,6 +5245,14 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
                 missing_urls = cited_urls - supported_urls
                 if missing_urls:
                     findings.append({"criterion": "verification_citation_coverage", "artifact": str(submission), "location": "claims", "finding": "The verification ledger does not cover article citations: " + ", ".join(sorted(missing_urls)), "repair_instruction": "Verify every cited source and its associated claims, or remove unsupported claims and citations from the article before reverification."})
+                if revision_import.enabled(sys.modules[__name__], run) and (json_artifact(directory, run, "article-recipe") or {}).get("citation_mode") == "links":
+                    for claim in value.get("claims", []):
+                        source = str(claim.get("source_url_or_local_id") or "")
+                        if (claim.get("risk") in {"medium", "high"} and claim.get("disposition") in {"use", "qualify"}
+                                and source.startswith(("http://", "https://")) and source not in cited_urls):
+                            findings.append({"criterion": "external_verification_citation", "artifact": str(submission), "location": str(claim.get("claim_id")),
+                                "finding": "The immutable external candidate does not cite this used claim's source: " + source,
+                                "repair_instruction": "Verify the candidate's existing exact citations and their supported claims; do not introduce a used source that EDIT would have to insert. If the candidate truly needs another source or prose change, report the unresolved conflict instead of inventing support."})
             for claim in value.get("claims", []):
                 if claim.get("risk") in {"medium", "high"} and claim.get("disposition") in {"use", "qualify"}:
                     if not claim.get("source_url_or_local_id") or not claim.get("exact_locator_or_supporting_excerpt"):
@@ -7754,18 +7785,40 @@ def command_repair(args: argparse.Namespace) -> int:
                 transition(directory, run, "LIVE_VERIFICATION", "controller", "Reopen a bounded live-check window; recheck every public byte and link without republishing")
             emit({"ok": True, "state": run["state"], "next_command": ["article-flow", "verify-live", run["run_id"]]}, args.json)
             return EXIT_OK
-    if run["state"] == "VOICE_PROBE" and args.gate_id == "G-CLAIMS-VERIFIED":
+    external_citation_recovery = (run["state"] == "EDIT" and run["status"] == "BLOCKED"
+                                  and revision_import.enabled(sys.modules[__name__], run)
+                                  and not artifact(run, "external-revision-acceptance:EDIT"))
+    if (run["state"] == "VOICE_PROBE" or external_citation_recovery) and args.gate_id == "G-CLAIMS-VERIFIED":
         # Recover a pre-fix run only when code can demonstrate that its
         # previously accepted ledger does not satisfy verification.
         with run_lock(directory, run):
-            if run["state"] != "VOICE_PROBE":
+            if run["state"] != ("EDIT" if external_citation_recovery else "VOICE_PROBE"):
                 raise FlowError("Run advanced beyond the prior-verification recovery boundary", EXIT_WAITING)
+            if external_citation_recovery:
+                revision_import.record(sys.modules[__name__], directory, run)
+                carry_path, _ = revision_import.checked(sys.modules[__name__], directory, run, "gate-receipt:G-NATURALIZATION")
+                carry = load_json(carry_path)
+                hashes = carry.get("artifact_hashes") or {}
+                current = {item['type']:item['sha256'] for item in run['artifact_index'] if item['type'] != 'gate-receipt:G-NATURALIZATION'}
+                bound = {kind:digest for kind,digest in hashes.items() if kind != 'gate-receipt:G-NATURALIZATION'}
+                if (carry.get("outcome") != "REPAIR" or carry.get("task_binding")
+                        or (carry.get("evaluator") or {}).get("type") != "code"
+                        or not carry.get("findings") or any(item.get("criterion") != "claim_citation_mapping" for item in carry["findings"])
+                        or current != bound):
+                    raise FlowError("External citation recovery requires the unchanged rejected citation carry", EXIT_INTEGRITY)
+                for kind in bound:
+                    revision_import.checked(sys.modules[__name__], directory, run, kind)
+                ok, error, _, _ = verify_event_log(directory, run)
+                if not ok:
+                    raise FlowError("External citation recovery history changed", EXIT_INTEGRITY, error)
             ledger = artifact_path(directory, run, "verified-claim-ledger")
             if not ledger:
                 raise FlowError("Prior verification ledger is missing", EXIT_INTEGRITY)
             outcome, findings = automatic_gate(directory, run, "CLAIM_VERIFICATION", ledger)
             if outcome == "PASS":
                 raise FlowError("Prior verification passes; no recovery is required", EXIT_USAGE)
+            if external_citation_recovery and not any(item.get("criterion") == "external_verification_citation" for item in findings):
+                raise FlowError("The rejected carry is not an external verification citation conflict", EXIT_USAGE)
             for finding in findings:
                 finding["repair_state"] = "CLAIM_VERIFICATION"
             prior = json_artifact(directory, run, "gate-receipt:G-CLAIMS-VERIFIED") or {}

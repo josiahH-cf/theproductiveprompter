@@ -259,3 +259,22 @@ retains the old findings. It grants no PASS, prose-change authority or human
 voice evidence. All normal source, factual, editorial and publication checks
 remain required. A changed note invalidates its dispatched task. Do not change
 provider grants or manuscript bytes to hide a source-access limitation.
+
+## Immutable-candidate evidence and coverage
+
+Verification must not introduce a used medium/high-risk web source that is not
+already linked in the supplied candidate. Such a ledger now fails verification
+before facts are locked. Verify the candidate's exact citations and their actual
+support; report a genuine source or wording conflict without rewriting the draft.
+
+A pre-3.2.25 Run held at its unaccepted EDIT carry solely because verification
+introduced an absent citation can use `repair RUN G-CLAIMS-VERIFIED --finding
+"ACTUAL CITATION CONFLICT" --json`. This requires every rejected input and its
+history unchanged, rechecks the real verifier gate, and returns the original
+verification task for normal repair. It grants no PASS and cannot recover other
+EDIT failures or replay an accepted carry.
+
+Brief coverage resolves IDs such as `CL-001 and CL-005: ...` or
+`CL-008 through CL-010: ...` against the bound ledger. The editorial instruction
+after the colon is not public prose. Missing IDs and gaps remain failures;
+coverage thresholds are unchanged.

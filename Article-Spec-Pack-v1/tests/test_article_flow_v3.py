@@ -3907,6 +3907,23 @@ class SourceResolutionRegressionTests(TemporaryRuntime):
 
 
 class DraftCoverageRegressionTests(TemporaryRuntime):
+    def test_prefixed_claim_groups_and_ranges_resolve_without_editorial_instruction_terms(self):
+        prose = 'Memory settings control sharing. Voice settings control speech. Tools execute approved actions.'
+        ledger = {'claims':[{'claim_id':key,'exact_claim':text} for key,text in [
+            ('CL-001','Memory settings control sharing.'), ('CL-002','Voice settings control speech.'),
+            ('CL-003','Tools execute approved actions.')]]}
+        for references in ('CL-001 and CL-003', 'CL-001 through CL-003', 'CL-001, CL-002 and CL-003'):
+            brief = {'claims_to_support':[references + ': Preserve attribution and distinguish operational evidence carefully.']}
+            self.assertEqual(af.draft_coverage_findings(brief, prose, 'candidate', ledger), [])
+            self.assertTrue(af.draft_coverage_findings(brief, 'An unrelated refusal.', 'candidate', ledger))
+
+    def test_prefixed_unknown_or_gapped_claim_ranges_remain_uncovered(self):
+        ledger = {'claims':[{'claim_id':'CL-001','exact_claim':'Memory settings control sharing.'},
+                            {'claim_id':'CL-003','exact_claim':'Voice settings control speech.'}]}
+        prose = 'Memory settings control sharing. Voice settings control speech.'
+        for references in ('CL-001 through CL-003', 'CL-999', 'CL-003 through CL-001'):
+            self.assertTrue(af.draft_coverage_findings({'claims_to_support':[references + ': Preserve these claims.']}, prose, 'candidate', ledger))
+
     def test_claim_ids_are_resolved_before_coverage_and_missing_ids_still_fail(self):
         prose = "Memory settings control sharing. Voice settings control speech."
         brief = {'claims_to_support': ['C1', 'C10']}

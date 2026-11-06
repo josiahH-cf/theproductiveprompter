@@ -2,8 +2,8 @@
   "manifest_schema_version": "2.0.0",
   "workflow_version": "3.2.0",
   "hash_algorithm": "sha256",
-  "generator_name_and_version": "article-flow 3.2.24",
-  "generated_at": "2026-11-06T20:14:45Z",
+  "generator_name_and_version": "article-flow 3.2.25",
+  "generated_at": "2026-11-06T20:44:08Z",
   "generated_from": "index",
   "files": [
     {
@@ -19,8 +19,8 @@
       "scope": "source",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "467ea947548a63e4edbec928d6d6a804c378a08d11735002e10538b57d8d6f68",
-      "byte_size": 16000
+      "sha256": "4e3df7ad23924a9af3a7d611ce2986c848db5529a59f8313a0a4274450507b73",
+      "byte_size": 17061
     },
     {
       "path": ".agents/skills/article-flow/references/editorial.md",
@@ -35,8 +35,8 @@
       "scope": "source",
       "role": "runtime",
       "rule_set": "editorial",
-      "sha256": "467ea947548a63e4edbec928d6d6a804c378a08d11735002e10538b57d8d6f68",
-      "byte_size": 16000
+      "sha256": "4e3df7ad23924a9af3a7d611ce2986c848db5529a59f8313a0a4274450507b73",
+      "byte_size": 17061
     },
     {
       "path": ".claude/skills/article-flow/references/editorial.md",
@@ -299,8 +299,8 @@
       "scope": "spec",
       "role": "documentation",
       "rule_set": "editorial",
-      "sha256": "467ea947548a63e4edbec928d6d6a804c378a08d11735002e10538b57d8d6f68",
-      "byte_size": 16000
+      "sha256": "4e3df7ad23924a9af3a7d611ce2986c848db5529a59f8313a0a4274450507b73",
+      "byte_size": 17061
     },
     {
       "path": "docs/editorial-handoff.md",
@@ -731,8 +731,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "controller",
-      "sha256": "5cf2a68b653e9f3eb4223c57a1d8d2e85718bed8da6aa7cc844ba4519f841350",
-      "byte_size": 729181
+      "sha256": "7896d1c52776e558f651aad2f643511d342c8f33b8af2fc61edad967a34caac9",
+      "byte_size": 734073
     },
     {
       "path": "scripts/article_maintenance.py",
@@ -867,8 +867,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "conformance",
-      "sha256": "fdd715ac9723fe20da890ceccbff4abb24527fa60b17f63f29b8fa79d6c5dd6e",
-      "byte_size": 314767
+      "sha256": "4bec3cef223471dd07dfd0d5d27296d659566e2b5acdaac68c113d7c4d58ded2",
+      "byte_size": 316259
     },
     {
       "path": "tests/test_codex_exec_adapter.py",
@@ -915,8 +915,8 @@
       "scope": "spec",
       "role": "runtime",
       "rule_set": "evaluation",
-      "sha256": "ceb05c03521f8428a16c53fe906e6b05313e36b888b228ac88b46d9fa84d01ee",
-      "byte_size": 65365
+      "sha256": "e64442159575107fe18cc57fa7ac8daf47058ac600e5c62157e621b698c7022e",
+      "byte_size": 71198
     },
     {
       "path": "tests/test_external_revision_source.py",
