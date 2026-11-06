@@ -300,6 +300,10 @@ def block(af: Any, directory: Path, run: dict, findings: list[dict]) -> None:
 
 def empty_plan_reason(af: Any, directory: Path, run: dict) -> str:
     value = record(af, directory, run)
+    captures = sum(bool(item.get('imported')) for item in value['assets'])
+    if captures:
+        retained = len(value['assets']) - captures
+        return f"The supplied prose revision retains {retained} source image asset(s), imports {captures} declared capture(s), and requests no additional diagram."
     count = len(value["assets"])
     if count:
         return f"The supplied prose revision keeps {count} verified source image asset(s) and requests no additional diagram."

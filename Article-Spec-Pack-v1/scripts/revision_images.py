@@ -67,7 +67,7 @@ def prepare(af: Any, args: Any, candidate: bytes, slug: str) -> tuple[list[dict]
         plan = revision_bundle.json_object(raw)
         if set(plan) != {'images'} or not isinstance(plan['images'], list) or not 1 <= len(plan['images']) <= 4:
             raise ValueError("image plan requires one to four images")
-        text = af.external_revision.public_markdown(af, candidate).decode('utf-8')
+        text = af.external_revision.public_markdown(af, candidate).decode('utf-8').replace('\r\n', '\n')
         assets = []; seen = set()
         for image in plan['images']:
             if not isinstance(image, dict) or set(image) != {'file', 'sha256', 'alt_text', 'caption'}:

@@ -81,6 +81,7 @@ class RevisionBundleTests(ExternalRevisionFixture):
         self.assertEqual(code, af.EXIT_OK, result)
         directory, run = af.load_run(result['run_id'])
         self.carry(directory, run, 'DRAFT'); self.carry(directory, run, 'VISUAL_PLAN')
+        self.assertIn('imports 1 declared capture(s)', af.json_artifact(directory, run, 'visual-plan')['omission_reason'])
         code, result = call(af.command_visual_render, run_id=run['run_id'], refresh=False)
         self.assertEqual(code, af.EXIT_OK, result)
         directory, run = af.load_run(run['run_id']); self.carry(directory, run, 'EDIT')
