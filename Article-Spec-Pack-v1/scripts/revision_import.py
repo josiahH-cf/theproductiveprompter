@@ -194,7 +194,8 @@ def existing(af: Any, args: Any, *, intake: dict | None = None) -> tuple[Path, d
                                    af.EXIT_INTEGRITY, {"run_id": run["run_id"], "action": "reconciliation_required"})
             continue
         if (key == (value.get("source_file_sha256"), value["candidate_sha256"], value["author_feedback_sha256"])
-                and intake.get("visual_plan_sha256") == value.get("visual_plan_sha256")):
+                and intake.get("visual_plan_sha256") == value.get("visual_plan_sha256")
+                and intake.get("image_plan_sha256") == value.get("image_plan_sha256")):
             if not af.artifact(run, "external-revision"):
                 raise af.FlowError("This exact external revision has an interrupted installation; reconcile its existing Run before continuing",
                                    af.EXIT_INTEGRITY, {"run_id": run["run_id"], "action": "reconciliation_required"})
