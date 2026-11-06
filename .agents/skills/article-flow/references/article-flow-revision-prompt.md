@@ -242,3 +242,20 @@ the real gate. The original failed receipt and candidate stay immutable; normal
 continuation records acceptance and runs all remaining checks. A genuine failed
 check, changed input or previously accepted stage cannot use this recovery.
 Repeated recovery before continuation adds no new allowance or writer task.
+
+## Source access and inspection observations
+
+If an evidence worker cannot access a source that the lead host can inspect,
+use `repair RUN GATE --source-note-file PRIVATE_OBSERVATIONS.txt --finding
+"ACTUAL SOURCE FINDING" --json`. This applies only to a bound rejected RESEARCH,
+CLAIM_VERIFICATION or POST_EDIT_CLAIM_VERIFICATION task whose repair stays with
+that evidence stage. Keep observations precise: source URL or asset digest,
+what the host actually retrieved or saw, provenance and remaining limits. Do
+not invent capture history, author answers or a model's source access.
+
+The controller snapshots the UTF-8 note privately (16 KiB each; at most four
+unique notes), includes its hash-bound data in subsequent model packets and
+retains the old findings. It grants no PASS, prose-change authority or human
+voice evidence. All normal source, factual, editorial and publication checks
+remain required. A changed note invalidates its dispatched task. Do not change
+provider grants or manuscript bytes to hide a source-access limitation.

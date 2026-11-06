@@ -9,6 +9,12 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## November 6, 2026: Bound source observations for evidence repairs (3.2.24)
+
+- Add `repair --source-note-file` for a hash-bound rejected research or factual-verification task. Copy the caller's source-access or inspection observations into private immutable evidence, then include them in subsequent model packets.
+- Keep original findings, manuscript bytes, source identity, owner, voice questions and gate controls. Notes are corpus data, not author instructions, human-original writing or a PASS; ordinary verification must still resolve every finding.
+- Bound notes to 16 KiB each and four per Run. Reject changed task inputs, invalid notes and use outside a current evidence-stage repair. Existing repair calls retain their prior behavior.
+
 ## November 6, 2026: Recover rejected controller-owned carries (3.2.23)
 
 - Route `repair RUN GATE` for an unaccepted external controller carry through its own receipt, not a nonexistent model task. Require an intact event history, unchanged bound inputs and source, and a fresh PASS from the real code gate before reopening the same owner.
