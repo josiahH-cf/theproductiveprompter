@@ -5,10 +5,17 @@
     <link>https://theproductiveprompter.com/docs/blog.html</link>
     <description>Practical writing on AI workflows, prompting systems, evaluation, and publication design.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 06 Nov 2026 22:09:32 +0000</lastBuildDate>
+    <lastBuildDate>Wed, 11 Nov 2026 12:00:00 -0500</lastBuildDate>
     <atom:link href="https://theproductiveprompter.com/feed.xml" rel="self" type="application/rss+xml"/>
 
     <!-- ARTICLE_FLOW_FEED_START -->
+<item>
+  <title>Todoist Nirvana Is Not the Outcome</title>
+  <link>https://theproductiveprompter.com/docs/todoist-nirvana-is-not-the-outcome.html</link>
+  <guid isPermaLink="true">https://theproductiveprompter.com/docs/todoist-nirvana-is-not-the-outcome.html</guid>
+  <pubDate>Wed, 11 Nov 2026 12:00:00 -0500</pubDate>
+  <description>A reflective account of what a mature Todoist system can and cannot prove, and why AI-assisted execution leaves people responsible for choosing worthwhile outcomes, supplying context, monitoring progress, verifying results, exercising judgment, and recovering from failure.</description>
+</item>
 <item>
   <title>How Much Should You Verify Before Relying on AI-Assisted Work?</title>
   <link>https://theproductiveprompter.com/docs/how-much-should-you-verify-before-relying-on-ai-assisted-work.html</link>
