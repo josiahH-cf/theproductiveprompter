@@ -5,10 +5,17 @@
     <link>https://theproductiveprompter.com/docs/blog.html</link>
     <description>Practical writing on AI workflows, prompting systems, evaluation, and publication design.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 13 Nov 2026 15:43:20 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 26 Nov 2026 18:52:23 +0000</lastBuildDate>
     <atom:link href="https://theproductiveprompter.com/feed.xml" rel="self" type="application/rss+xml"/>
 
     <!-- ARTICLE_FLOW_FEED_START -->
+<item>
+  <title>Operations Park: Following Northstar Cloud Through FedRAMP 20x</title>
+  <link>https://theproductiveprompter.com/docs/operations-park-following-northstar-cloud-through-fedramp-20x.html</link>
+  <guid isPermaLink="true">https://theproductiveprompter.com/docs/operations-park-following-northstar-cloud-through-fedramp-20x.html</guid>
+  <pubDate>Thu, 26 Nov 2026 18:52:23 +0000</pubDate>
+  <description>Follow fictional Northstar Cloud through FedRAMP 20x in Operations Park, and see how the guided simulation keeps its explanations tied to source material.</description>
+</item>
 <item>
   <title>What Todoist Nirvana Taught Me About AI</title>
   <link>https://theproductiveprompter.com/docs/todoist-nirvana-is-not-the-outcome.html</link>
