@@ -9,6 +9,12 @@ Complete record of all changes made during migration from chapter-oriented docum
 
 ---
 
+## November 26, 2026: Continue Article Flow draft work while verification is pending (3.2.28)
+
+- Preserve the seed and writer request before acquiring the shared model lock. A denied write returns the original Run ID, a recovery command and an export path.
+- Add private Markdown and JSON handoffs, bound visual assets, optional private author decisions and open findings. Accept exact returned Markdown independently of stage or editor and detect a stale base.
+- Recheck affected ledger rows while retaining dated evidence for unchanged, unambiguous claims. Resume normal verification on the returned draft and keep author judgments and publication scoped to their own evidence.
+
 ## November 6, 2026: Deliver bound raster images to provider review (3.2.26)
 
 - Recognize PNG/JPEG task inputs by their bound asset identity even when stored under opaque private filenames. Verify each hash, snapshot immutable bytes, and attach the images through native Codex CLI image inputs instead of decoding binary pixels as UTF-8.

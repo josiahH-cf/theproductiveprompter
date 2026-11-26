@@ -46,6 +46,7 @@ except ModuleNotFoundError:  # Supports importlib-based conformance tests.
 import editorial_context
 import editorial_learning
 import editorial_workbench
+import draft_work
 import revision_sources
 import external_revision
 import revision_import
@@ -54,7 +55,7 @@ import revision_bundle
 import revision_images
 import workflow_diagram
 
-CONTROLLER_VERSION = "3.2.26"
+CONTROLLER_VERSION = "3.2.28"
 SCRIPT_PATH = Path(__file__).resolve()
 SPEC_ROOT = SCRIPT_PATH.parent.parent
 REPO_ROOT = SPEC_ROOT.parent
@@ -79,6 +80,7 @@ def bootstrap_payload() -> dict[str, Any]:
         "action": "request_seed",
         "question": SEED_QUESTION,
         "start_command": ["article-flow", "capture", "<verbatim operator seed>", "--auto", "--json"],
+        "draft_work_command": ["article-flow", "work", "--help"],
         "model_release_command": ["article-flow", "model-release", "update", "--json"],
         "revision_import_command": ["article-flow", "revise", "--handoff-file", "<private response file>", "--unattended-editorial", "--authorization", "<actual author instruction>", "--auto", "--json"],
         "revision_bundle_command": ["article-flow", "revise", "--bundle-file", "<returned ZIP>", "--unattended-editorial", "--authorization", "<actual author instruction>", "--auto", "--json"],
@@ -92,7 +94,8 @@ def bootstrap_payload() -> dict[str, Any]:
             "Preserve question_id, question_record and every --question-id argument when carrying a question or answer between clients. A/B/C alone is not a cross-client answer identity. For requested Dot delivery, use only the actual supported receiving owner, retain its receipt and native question/version alongside this controller identity, and return the actual author's answer to the same run. A pending question file or returned JSON is not proof of delivery; report a missing transport instead of inventing one.",
             "For human_action, show the controller's single handoff and wait for the operator or a credentialed host to complete it.",
             "For run_command, run the exact command array returned by the controller. Use advance for active-session automation and safe resumption.",
-            "Stop on complete, terminal, or an unresolved capability or decision.",
+            "A failed check, pending question or unavailable tool can pause this verification route. Use draft_work to keep editing, return portable Markdown or review affected claims. Only an actual author answer represents their judgment and publication still requires its scoped authority.",
+            "For intake_recovery, use the existing Run and the exact retry command; its draft_work is available without a dispatch.",
         ],
         "capability_requirement": "This interface requires local command execution. A cloud-only chat without access to this machine cannot run it.",
     }
@@ -1033,8 +1036,9 @@ def model_history() -> dict[str, Any]:
         except FlowError:
             directory = None
             run = {}
-        if directory and revision_import.enabled(sys.modules[__name__], run):
-            continue  # Imported prose is not an observation of the reserved writer.
+        if directory and (revision_import.enabled(sys.modules[__name__], run)
+                          or draft_work.active(sys.modules[__name__], run)):
+            continue  # External prose is inconclusive about the reserved writer.
         metadata = json_artifact(directory, run, "brief") if directory else None
         live = json_artifact(directory, run, "live-verification") if directory else None
         experiment = run.get("model_experiment", {}) if isinstance(run, dict) else {}
@@ -1136,7 +1140,8 @@ def summarize_model_experiment(directory: Path, run: dict[str, Any], assignment:
 
 
 def record_experiment_outcome(directory: Path, run: dict[str, Any]) -> dict[str, Any] | None:
-    if not is_v3_run(run) or revision_import.enabled(sys.modules[__name__], run):
+    if (not is_v3_run(run) or revision_import.enabled(sys.modules[__name__], run)
+            or draft_work.active(sys.modules[__name__], run)):
         return None
     assignment_path = artifact_path(directory, run, "model-assignment")
     assignment = json_artifact(directory, run, "model-assignment")
@@ -2685,6 +2690,20 @@ def packet_inputs(directory: Path, run: dict[str, Any], state: str) -> list[dict
             overrides.get("reuse_approved_voice") and state in {"RESEARCH_PLAN", "RESEARCH"}):
         required.add("voice-profile")
     latest = {str(item["type"]): item for item in run.get("artifact_index", [])}
+    if draft_work.active(sys.modules[__name__], run):
+        if state == "VISUAL_PLAN":
+            required.discard("draft")
+            required.add("article")
+        elif state == "POST_EDIT_CLAIM_VERIFICATION":
+            required.discard("verified-claim-ledger")
+            required.update({"claim-ledger", draft_work.ADOPTION})
+        elif state == "EDITORIAL_QA":
+            # The verified post-edit ledger owns the returned article. A voice
+            # preference is optional on this path; any actual choice stays in
+            # the record instead of being replaced by a synthetic choice.
+            required.discard("verified-claim-ledger")
+            if "voice-learning" not in latest:
+                required.discard("voice-learning")
     missing = sorted(required - set(latest))
     if missing:
         raise FlowError(f"Cannot dispatch {state}; required artifacts are missing: {', '.join(missing)}", EXIT_INTEGRITY)
@@ -3485,7 +3504,8 @@ def task_packet(
     revision_import.require_complete(sys.modules[__name__], directory, run)
     require_complete_research_amendment(directory, run)
     state = run["state"]
-    if revision_import.enabled(sys.modules[__name__], run) and state in {"DRAFT", "EDIT", "VISUAL_PLAN"}:
+    if (revision_import.enabled(sys.modules[__name__], run) and not draft_work.active(sys.modules[__name__], run)
+            and state in {"DRAFT", "EDIT", "VISUAL_PLAN"}):
         raise FlowError("External revision carry uses advance, not a model task", EXIT_USAGE)
     if run.get("repair_recovery_error"):
         run["status"] = "BLOCKED"
@@ -3718,7 +3738,9 @@ def task_packet(
         inputs.append(revision_input)
     inputs = editorial_context.prepare(sys.modules[__name__], directory, run, state, inputs)
     constraints = [rule_map[item] for item in stage_rules.get(state, []) if item in rule_map]
-    if revision_import.enabled(sys.modules[__name__], run):
+    if revision_import.enabled(sys.modules[__name__], run) and draft_work.active(sys.modules[__name__], run):
+        constraints.append("article is the latest returned manuscript. The immutable external-revision-candidate and revision-request retain earlier input and author feedback. Preserve source-bound evidence and approved captures; review the current plan and current prose.")
+    elif revision_import.enabled(sys.modules[__name__], run):
         diagram_scope = ("external-revision-visual-plan contains the submitted semantic diagram definitions and explicitly replaced source asset paths. The controller renders those definitions and inserts their bound images; verify their arrows, explanation, captions and factual content. Keep every undeclared source asset unchanged." if artifact(run, "external-revision-visual-plan") else "No new diagram is requested; retain the source images, if any.")
         constraints.append("external-revision-candidate is the complete proposed article, supplied by an external GPT session with unverified model identity. revision-request alone is the author's exact feedback. Do not extract human experience or voice evidence from generated candidate prose. Research and brief the candidate's current scope; do not redevelop its thesis from an older seed or previous-article. Preserve the candidate's wording and citations. " + diagram_scope + " Report concrete failed checks or material conflicts instead of rewriting the candidate. DRAFT and EDIT are controller-owned carries, not new writer tasks; only controller-bound diagram materialization may add visual blocks.")
     if revision_import.enabled(sys.modules[__name__], run) and artifact(run, "external-revision-image-plan"):
@@ -3736,7 +3758,14 @@ def task_packet(
             "Cover every citation in the current article using its exact source locator, including a cited URL that redirects. "
             "Do not silently replace that locator with an equivalent DOI or another page."
         )
-    if state == "POST_EDIT_CLAIM_VERIFICATION":
+    if state == "POST_EDIT_CLAIM_VERIFICATION" and draft_work.active(sys.modules[__name__], run):
+        constraints.append(
+            "The operator returned the exact current manuscript. Use working-draft-adoption for the changed passages "
+            "and reusable proof. Verify changed or new claims and their exact links. Copy each unchanged carried row "
+            "from the bound verified baseline intact unless you find a material reason to revisit it. "
+            "Return a complete coverage ledger for the current text. Do not rewrite the manuscript or invent a human choice."
+        )
+    elif state == "POST_EDIT_CLAIM_VERIFICATION":
         constraints.append(
             "For an unchanged claim, preserve the exact source_url_or_local_id from the verified-claim-ledger. "
             "Put scope qualifications in allowed_wording or the supporting excerpt, not beside the source locator."
@@ -5192,7 +5221,10 @@ def naturalization_review_findings(directory: Path, run: dict[str, Any], assessm
     return findings
 
 
-def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission: Path) -> tuple[str, list[dict[str, Any]]]:
+def automatic_gate(
+    directory: Path, run: dict[str, Any], state: str, submission: Path, *,
+    verification_text: str | None = None, carried_claims: dict[str, dict] | None = None,
+) -> tuple[str, list[dict[str, Any]]]:
     findings: list[dict[str, Any]] = []
     if not submission.is_file() or submission.stat().st_size == 0:
         findings.append({"criterion": "artifact_present", "artifact": str(submission), "location": None, "finding": "Requested output is missing or empty.", "repair_instruction": "Create the requested observable artifact."})
@@ -5240,19 +5272,23 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
                     findings.append({"criterion": "unresolved_evidence_escalation", "artifact": str(submission), "location": str(claim.get("claim_id")), "finding": "The evidence worker reported an unresolved blocker.", "repair_instruction": "Resolve the missing evidence or use an eligible host with source access; do not advance on an escalation ledger."})
             if state in {"CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION"}:
                 prose_path = artifact_path(directory, run, verification_source_type(run, state))
-                prose = prose_path.read_text(encoding="utf-8") if prose_path else ""
-                cited_urls = set(re.findall(r"(?<!!)\[[^\]\n]+\]\((https?://[^)\s]+)\)", prose))
+                prose = verification_text if verification_text is not None else (
+                    prose_path.read_text(encoding="utf-8") if prose_path else ""
+                )
+                cited_urls = draft_work.source_links(prose)
                 supported_urls = {claim.get("source_url_or_local_id") for claim in value.get("claims", []) if claim.get("disposition") in {"use", "qualify"}}
                 missing_urls = cited_urls - supported_urls
                 if missing_urls:
                     findings.append({"criterion": "verification_citation_coverage", "artifact": str(submission), "location": "claims", "finding": "The verification ledger does not cover article citations: " + ", ".join(sorted(missing_urls)), "repair_instruction": "Verify every cited source and its associated claims, or remove unsupported claims and citations from the article before reverification."})
-                if revision_import.enabled(sys.modules[__name__], run) and (json_artifact(directory, run, "article-recipe") or {}).get("citation_mode") == "links":
+                exact_candidate = (verification_text is not None or draft_work.active(sys.modules[__name__], run)
+                                   or revision_import.enabled(sys.modules[__name__], run))
+                if exact_candidate and (json_artifact(directory, run, "article-recipe") or {}).get("citation_mode") == "links":
                     for claim in value.get("claims", []):
                         source = str(claim.get("source_url_or_local_id") or "")
                         if (claim.get("risk") in {"medium", "high"} and claim.get("disposition") in {"use", "qualify"}
                                 and source.startswith(("http://", "https://")) and source not in cited_urls):
                             findings.append({"criterion": "external_verification_citation", "artifact": str(submission), "location": str(claim.get("claim_id")),
-                                "finding": "The immutable external candidate does not cite this used claim's source: " + source,
+                                "finding": "The supplied manuscript does not cite this used claim's source: " + source,
                                 "repair_instruction": "Verify the candidate's existing exact citations and their supported claims; do not introduce a used source that EDIT would have to insert. If the candidate truly needs another source or prose change, report the unresolved conflict instead of inventing support."})
             for claim in value.get("claims", []):
                 if claim.get("risk") in {"medium", "high"} and claim.get("disposition") in {"use", "qualify"}:
@@ -5266,6 +5302,8 @@ def automatic_gate(directory: Path, run: dict[str, Any], state: str, submission:
                         findings.append({"criterion": "source_disagreement", "artifact": str(submission), "location": str(claim.get("claim_id")), "finding": "A claim with unresolved source disagreement cannot be used without escalation.", "repair_instruction": "Represent the disagreement, qualify/omit the claim, or escalate."})
                     source = str(claim.get("source_url_or_local_id") or "")
                     if state in {"CLAIM_VERIFICATION", "POST_EDIT_CLAIM_VERIFICATION"} and source.startswith(("http://", "https://")):
+                        if carried_claims and carried_claims.get(claim.get("claim_id")) == claim:
+                            continue
                         status, _, _ = fetch_url(source, timeout=15)
                         if not (200 <= status < 400 or status in {0, 401, 403, 429, 999}):
                             detail = (
@@ -6204,9 +6242,19 @@ def require_current_question(directory: Path, run: dict[str, Any], question_id: 
 
 
 def next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
+    guidance = draft_work.guidance(run)
+    review = draft_work.review_offer(sys.modules[__name__], directory, run)
+    if review:
+        guidance["outside_review"] = review
+    return {**_next_state_payload(directory, run), "draft_work": guidance}
+
+
+def _next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
     if revision_import.enabled(sys.modules[__name__], run) and artifact(run, "external-revision") is None:
         return {"action": "reconciliation_required", "run_id": run["run_id"], "state": run["state"],
                 "reason": "External revision intake is incomplete; retain its reserved owner."}
+    if run["state"] in {"NEW", "INTAKE"}:
+        return intake_guidance(run)
     # Refresh question projections before showing passages so a concurrent
     # regeneration cannot bind old text to a newer source. Other projections,
     # including frozen v2 soft approvals, keep their existing behavior.
@@ -6227,7 +6275,8 @@ def next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
     if state in {"COMPLETE", "TERMINAL"}:
         return {"action": state.lower(), "run_id": run["run_id"], "state": state,
                 **revision_import.offer(sys.modules[__name__], run)}
-    if revision_import.enabled(sys.modules[__name__], run) and state in {"DRAFT", "EDIT", "VISUAL_PLAN"} and run.get("status") != "BLOCKED":
+    if (revision_import.enabled(sys.modules[__name__], run) and not draft_work.active(sys.modules[__name__], run)
+            and state in {"DRAFT", "EDIT", "VISUAL_PLAN"} and run.get("status") != "BLOCKED"):
         return {"action": "run_command", "run_id": run["run_id"], "state": state,
                 "command": ["article-flow", "advance", run["run_id"]],
                 "reason": "Validate and carry the supplied external candidate without rewriting"}
@@ -6236,8 +6285,14 @@ def next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
                 "command": ["article-flow", "advance", run["run_id"]],
                 "reason": "Operator authorized reuse of the pinned approved author voice"}
     if run.get("status") == "BLOCKED":
-        definition = state_definition(state, run)
-        return {"action": "repair_required", "run_id": run["run_id"], "state": state, "gate": definition.get("gate"), "command": ["article-flow", "repair", run["run_id"], definition.get("gate")]}
+        gate = state_definition(state, run).get("gate")
+        receipt = json_artifact(directory, run, f"gate-receipt:{gate}") or {}
+        findings = receipt.get("findings", []) if receipt.get("outcome") != "PASS" else []
+        return {
+            "action": "repair_required", "run_id": run["run_id"], "state": state, "gate": gate,
+            "reason": "The current verification route is paused. Continue draft work or repair the verification inputs.",
+            "findings": findings, "command": ["article-flow", "repair", run["run_id"], gate],
+        }
     if is_v3_run(run) and state == "VOICE_PROBE":
         committed = committed_voice_selection(directory, run)
         if committed is not None:
@@ -6320,6 +6375,10 @@ def next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
         return {"action": "run_command", "run_id": run["run_id"], "state": state, "command": ["article-flow", "voice", "apply", run["run_id"]]}
     if state == "VISUAL_RENDER":
         return {"action": "run_command", "run_id": run["run_id"], "state": state, "command": ["article-flow", "render-visuals", run["run_id"]]}
+    if state in {"PACKAGE", "PUBLISH_APPROVAL"} and draft_work.has_pending(sys.modules[__name__], run):
+        return {"action": "working_draft_ready", "run_id": run["run_id"], "state": state,
+                "reason": "A newer returned manuscript is ready for verification.",
+                "command": draft_work.guidance(run)["resume_command"]}
     if state == "PACKAGE":
         return {"action": "run_command", "run_id": run["run_id"], "state": state, "command": ["article-flow", "package", run["run_id"]]}
     if state == "PUBLISH_APPROVAL":
@@ -6484,19 +6543,82 @@ def command_start(args: argparse.Namespace) -> int:
         run["run_overrides"]["external_revision_intake"] = intake
     save_run(directory, run)
     append_event(directory, run, "RUN_CREATED", "controller", {"workflow_version": run["workflow_version"], "controller_version": CONTROLLER_VERSION})
+    # Save the seed and exact route request before acquiring the shared
+    # writing-model lock. A denied lock write must leave recoverable intake.
+    request = {
+        "draft_model": getattr(args, "draft_model", None),
+        "draft_provider": getattr(args, "draft_provider", None),
+        "model_release": bool(getattr(args, "model_release", False)),
+        "approved_voice": bool(getattr(args, "approved_voice", False)),
+        "model_release_campaign_id": getattr(args, "model_release_campaign_id", None),
+    }
+    seed_path = directory / "artifacts" / "seed.txt"
+    immutable_write(seed_path, seed.encode("utf-8"))
+    record_artifact(directory, run, seed_path, "seed", {"actor": "operator", "preserved_verbatim": True})
+    request_path = directory / "artifacts" / "capture-request.json"
+    write_json_immutable(request_path, request)
+    record_artifact(directory, run, request_path, "capture-request", {"actor": "controller"})
+    try:
+        with run_lock(directory, run):
+            assignment = finish_capture(directory, run, args)
+    except (OSError, FlowError) as exc:
+        # Surface the original cause and this exact durable identity. External
+        # revision intake still owns its separate reconciliation boundary.
+        details = intake_guidance(run) if intake is None else {
+            "action": "reconciliation_required", "run_id": run_id,
+        }
+        if isinstance(exc, FlowError):
+            details["cause"] = exc.details
+        raise FlowError(f"Intake interrupted for {run_id}: {exc}", EXIT_WAITING, details) from exc
+    next_command = ["article-flow", "advance", run_id] if automation_enabled(run) else ["article-flow", "next", run_id]
+    payload = {
+        "ok": True,
+        "run_id": run_id,
+        "state": run["state"],
+        "run_directory": str(directory),
+        "draft_model": assignment["assigned_model_id"] if assignment else None,
+        "draft_provider": assignment["provider_id"] if assignment else None,
+        "next_command": next_command,
+    }
+    if bool(getattr(args, "auto", False)):
+        return command_advance(argparse.Namespace(run_id=run_id, max_steps=100, json=args.json))
+    emit(payload, args.json)
+    return EXIT_OK
+
+
+
+def intake_guidance(run: dict[str, Any]) -> dict[str, Any]:
+    run_id = run["run_id"]
+    command = ["article-flow", "resume-intake", run_id, "--json"]
+    if not artifact(run, "seed"):
+        command += ["--seed-file", "<original UTF-8 seed file>"]
+    if not artifact(run, "capture-request") and not artifact(run, "model-assignment"):
+        command += ["<original --draft-model/--draft-provider flags or --use-rotation>"]
+    return {
+        "action": "intake_recovery", "run_id": run_id, "state": run["state"],
+        "reason": "Intake did not commit its model assignment and seed-preserved transition.",
+        "repair_instruction": "Retry the original Run once its owning host can write. Use the existing seed or supply the exact original seed when it was never saved.",
+        "command": command,
+        "draft_work": draft_work.guidance(run),
+    }
+
+
+def finish_capture(directory: Path, run: dict[str, Any], args: argparse.Namespace) -> dict[str, Any] | None:
+    run_id = run["run_id"]
     assignment = reserve_draft_model(
         run_id, getattr(args, "draft_model", None), getattr(args, "draft_provider", None),
     ) if is_v3_run(run) else None
-    if assignment:
+    if assignment and not run.get("model_experiment"):
         assignment_path = directory / "artifacts" / "model-assignment.json"
-        write_json(assignment_path, assignment)
-        record_artifact(
-            directory,
-            run,
-            assignment_path,
-            "model-assignment",
-            {"actor": "controller", "version": CONTROLLER_VERSION},
-        )
+        write_json_immutable(assignment_path, assignment)
+        if not artifact(run, "model-assignment"):
+            record_artifact(
+                directory,
+                run,
+                assignment_path,
+                "model-assignment",
+                {"actor": "controller", "version": CONTROLLER_VERSION},
+            )
         run["model_experiment"] = {
             "pool_id": assignment["pool_id"],
             "pool_version": assignment["pool_version"],
@@ -6522,12 +6644,10 @@ def command_start(args: argparse.Namespace) -> int:
             "override": assignment["override"],
         })
         save_run(directory, run)
-    seed_path = directory / "artifacts" / "seed.txt"
-    atomic_write(seed_path, seed.encode("utf-8"))
-    record_artifact(directory, run, seed_path, "seed", {"actor": "operator", "preserved_verbatim": True})
-    if editorial_context.enabled(run):
+    if editorial_context.enabled(run) and not artifact(run, "effective-definitions"):
         editorial_context.freeze(sys.modules[__name__], directory, run)
-    record_static_controls(directory, run)
+    if not artifact(run, "environment"):
+        record_static_controls(directory, run)
     if getattr(args, "model_release", False):
         profile = artifact(run, "voice-profile")
         run["run_overrides"]["model_release"] = "model-release-v1"
@@ -6541,22 +6661,61 @@ def command_start(args: argparse.Namespace) -> int:
                      {"reuse_approved_voice": run["run_overrides"].get("reuse_approved_voice"),
                       "experiment": "model-release-v1"})
         save_run(directory, run)
-    transition(directory, run, "INTAKE", "controller", "Run identity and event chain created")
-    write_gate_receipt(directory, run, "G-SEED-PRESERVED", "PASS", [], {"type": "code", "version": CONTROLLER_VERSION})
+    if run["state"] == "NEW":
+        transition(directory, run, "INTAKE", "controller", "Run identity and event chain created")
+    if not artifact(run, "gate-receipt:G-SEED-PRESERVED"):
+        write_gate_receipt(directory, run, "G-SEED-PRESERVED", "PASS", [], {"type": "code", "version": CONTROLLER_VERSION})
     transition(directory, run, "RESEARCH_PLAN", "controller", "Seed bytes recorded verbatim")
-    next_command = ["article-flow", "advance", run_id] if automation_enabled(run) else ["article-flow", "next", run_id]
-    payload = {
-        "ok": True,
-        "run_id": run_id,
-        "state": run["state"],
-        "run_directory": str(directory),
-        "draft_model": assignment["assigned_model_id"] if assignment else None,
-        "draft_provider": assignment["provider_id"] if assignment else None,
-        "next_command": next_command,
-    }
-    if bool(getattr(args, "auto", False)):
-        return command_advance(argparse.Namespace(run_id=run_id, max_steps=100, json=args.json))
-    emit(payload, args.json)
+    return assignment
+
+
+def command_resume_intake(args: argparse.Namespace) -> int:
+    directory, run = load_run(args.run_id)
+    revision_import.require_complete(sys.modules[__name__], directory, run)
+    if run["state"] not in {"NEW", "INTAKE"}:
+        emit({"ok": True, "idempotent": True, "run_id": args.run_id, "state": run["state"],
+              "next_command": ["article-flow", "next", args.run_id]}, args.json)
+        return EXIT_OK
+    try:
+        with run_lock(directory, run):
+            if run["state"] not in {"NEW", "INTAKE"}:
+                emit({"ok": True, "idempotent": True, "run_id": args.run_id, "state": run["state"]}, args.json)
+                return EXIT_OK
+            seed = artifact(run, "seed")
+            supplied = getattr(args, "seed_file", None)
+            if seed:
+                seed_path = artifact_path(directory, run, "seed")
+                if not seed_path or sha256_path(seed_path) != seed["sha256"]:
+                    raise FlowError("The saved seed has changed; reconcile the existing record", EXIT_INTEGRITY)
+                if supplied and sha256_path(Path(supplied)) != seed["sha256"]:
+                    raise FlowError("The supplied seed differs from the saved original", EXIT_INTEGRITY)
+            elif supplied:
+                seed_bytes = Path(supplied).read_bytes()
+                if not seed_bytes.decode("utf-8").strip():
+                    raise FlowError("The original seed must be nonempty UTF-8", EXIT_USAGE)
+                seed_path = directory / "artifacts" / "seed.txt"
+                immutable_write(seed_path, seed_bytes)
+                record_artifact(directory, run, seed_path, "seed", {"actor": "operator", "preserved_verbatim": True})
+            else:
+                raise FlowError("The old intake has no saved seed; supply the exact original seed", EXIT_WAITING)
+            request = editorial_context.checked_json(sys.modules[__name__], directory, run, "capture-request")
+            if request is None:
+                # Old NEW runs did not record their original route settings.
+                # Preserve any reservation, or require the operator's exact
+                # original route instruction before making a new reservation.
+                request = {"draft_model": args.draft_model, "draft_provider": args.draft_provider}
+                if not artifact(run, "model-assignment") and not (args.draft_model or args.use_rotation):
+                    raise FlowError("This earlier intake lacks a route record. Supply the original model/provider or --use-rotation if it used rotation.", EXIT_WAITING)
+            elif args.draft_model or args.draft_provider or args.use_rotation:
+                raise FlowError("Intake already records its route; retry using that exact route", EXIT_USAGE)
+            finish_capture(directory, run, argparse.Namespace(**request))
+    except (OSError, FlowError, UnicodeError) as exc:
+        details = intake_guidance(run)
+        if isinstance(exc, FlowError):
+            details["cause"] = exc.details
+        raise FlowError(f"Intake still interrupted for {args.run_id}: {exc}", EXIT_WAITING, details) from exc
+    emit({"ok": True, "run_id": args.run_id, "state": run["state"],
+          "next_command": ["article-flow", "next", args.run_id]}, args.json)
     return EXIT_OK
 
 
@@ -6754,6 +6913,7 @@ def command_status(args: argparse.Namespace) -> int:
         "event_log_integrity": True,
         "derived_state": run["state"],
         "compatibility_warning": compatibility_warning,
+        "draft_work": draft_work.guidance(run),
         "next_action_summary": (
             "complete" if run["state"] == "COMPLETE"
             else "terminal" if run["state"] == "TERMINAL"
@@ -6769,10 +6929,13 @@ def command_status(args: argparse.Namespace) -> int:
 
 def command_next(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
-    with run_lock(directory, run):
+    if run["state"] in {"NEW", "INTAKE"}:
         payload = next_state_payload(directory, run)
+    else:
+        with run_lock(directory, run):
+            payload = next_state_payload(directory, run)
     emit(payload, args.json)
-    return EXIT_WAITING if payload["action"] in {"human_decision", "perform_task", "repair_required", "author_clarification"} else EXIT_OK
+    return EXIT_WAITING if payload["action"] in {"human_decision", "perform_task", "repair_required", "author_clarification", "intake_recovery"} else EXIT_OK
 
 
 def command_resume(args: argparse.Namespace) -> int:
@@ -7007,7 +7170,12 @@ def command_submit(args: argparse.Namespace) -> int:
                 EXIT_INTEGRITY,
                 issue,
             ) from exc
-        outcome, findings = automatic_gate(directory, run, args.stage, destination)
+        if args.stage == "POST_EDIT_CLAIM_VERIFICATION" and draft_work.active(sys.modules[__name__], run):
+            scoped = draft_work.checked_json(sys.modules[__name__], directory, run, draft_work.ADOPTION)
+            carried_claims = {row["claim_id"]: row for row in scoped["carried_claims"]}
+            outcome, findings = automatic_gate(directory, run, args.stage, destination, carried_claims=carried_claims)
+        else:
+            outcome, findings = automatic_gate(directory, run, args.stage, destination)
         try:
             accepted_hash = sha256_path(destination) if destination.is_file() else None
         except OSError:
@@ -7200,6 +7368,9 @@ def command_submit(args: argparse.Namespace) -> int:
             run,
             args.stage,
             repair_destination,
+        ) or (
+            draft_work.active(sys.modules[__name__], run)
+            and repair_destination in {"DRAFT", "EDIT", "VISUAL_PLAN"}
         )
         gate_receipt_path = write_gate_receipt(
             directory,
@@ -7355,6 +7526,9 @@ def create_publish_approval(
     renewed_from: str | None = None,
     actor: str = "operator",
 ) -> tuple[str, Path]:
+    draft_work.require_consistent_publication(sys.modules[__name__], directory, run)
+    if actor == "policy" and draft_work.active(sys.modules[__name__], run):
+        raise FlowError("Returned draft work requires publication authorization for its exact package", EXIT_APPROVAL)
     if renewed_from is not None:
         prior = json_artifact(directory, run, "publish-approval") or {}
         if (prior.get("approval_id") != renewed_from
@@ -7959,7 +8133,8 @@ def visual_plan_findings(directory: Path, run: dict[str, Any], plan: dict[str, A
         fail("visual_policy", "visuals", "The recipe explicitly disables diagrams.", "Obtain a scoped recipe amendment before planning visuals.")
     if not visuals and len(str(plan.get("omission_reason") or "").strip()) < 20:
         fail("visual_omission_reason", "omission_reason", "An empty plan needs an article-specific explanation.", "Explain why a diagram would not improve comprehension.")
-    draft_path = artifact_path(directory, run, "draft")
+    source_type = "article" if draft_work.active(sys.modules[__name__], run) else "draft"
+    draft_path = artifact_path(directory, run, source_type)
     draft = draft_path.read_text(encoding="utf-8") if draft_path else ""
     blocks = re.split(r"\n\s*\n", draft.strip())
     block_keys = [visual_block_key(block) for block in blocks]
@@ -8511,6 +8686,18 @@ def command_visual_render(args: argparse.Namespace) -> int:
             return EXIT_OK
         assert source_draft_path is not None and source_draft_item is not None
         source_markdown = source_draft_path.read_text(encoding="utf-8")
+        if draft_work.active(sys.modules[__name__], run):
+            findings = unplanned_visual_reference_findings(directory, run, source_markdown, str(source_draft_path))
+            if findings:
+                write_gate_receipt(directory, run, "G-VISUAL-RENDER", "REPAIR", findings,
+                                   {"type": "code", "version": CONTROLLER_VERSION}, "VISUAL_PLAN")
+                raise FlowError("Repair the draft's visual references before review", EXIT_WAITING, findings)
+            write_gate_receipt(directory, run, "G-VISUAL-RENDER", "PASS", [], {"type": "code", "version": CONTROLLER_VERSION})
+            transition(directory, run, "POST_EDIT_CLAIM_VERIFICATION", "controller",
+                       "Rendered visuals are bound to the returned manuscript; verify affected claims")
+            emit({"ok": True, "state": run["state"], "manifest": str(manifest_path), "assets": assets,
+                  "next_command": ["article-flow", "next", run["run_id"]]}, args.json)
+            return EXIT_OK
         if prior_manifest_item and load_json(directory / prior_manifest_item["path"]).get("assets"):
             source_markdown = strip_planned_visual_blocks(source_markdown, load_json(directory / prior_manifest_item["path"]))
         external = revision_import.enabled(sys.modules[__name__], run)
@@ -8745,7 +8932,8 @@ def package_metadata(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
     experiment = run.get("model_experiment", {})
     actual_models = [str(item) for item in experiment.get("actual_models", []) if str(item)]
     external = revision_import.enabled(sys.modules[__name__], run)
-    if is_v3_run(run) and not actual_models and not external:
+    external_work = draft_work.active(sys.modules[__name__], run)
+    if is_v3_run(run) and not actual_models and not (external or external_work):
         raise FlowError("Workflow 3 packaging requires exact accepted writing-model provenance", EXIT_INTEGRITY)
     display_names = writing_model_policy()["display_names"]
     drafting_models = [
@@ -8771,8 +8959,9 @@ def package_metadata(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
         "narrative_person": recipe.get("narrative_person"),
         "workflow_version": run["workflow_version"],
         "voice_profile_version": effective_profile["version"],
-        "drafting_models": drafting_models,
-        "external_revision": {"source": "external_assistant", "exact_model": None, "human_original": False} if external else None,
+        "drafting_models": [] if external_work else drafting_models,
+        **({"external_work": True} if external_work else {}),
+        "external_revision": {"source": "external_assistant", "exact_model": None, "human_original": False} if external and not external_work else None,
         "model_experiment_contaminated": bool(experiment.get("contaminated", False)),
         "style_policy_sha256": style_policy_sha256(run),
         "revision_mode": "replace_in_place" if revision else "new",
@@ -9080,7 +9269,7 @@ def render_publication_files(directory: Path, run: dict[str, Any], package_root:
         article_markdown = strip_planned_visual_blocks(article_markdown, load_json(manifest_path))
     body = inject_manifest_visuals(directory, run, revision_sources.render_article_markdown(sys.modules[__name__], article_markdown, run))
     drafting_models = metadata.get("drafting_models", [])
-    if is_v3_run(run) and not drafting_models and not metadata.get("external_revision"):
+    if is_v3_run(run) and not drafting_models and not (metadata.get("external_revision") or metadata.get("external_work")):
         raise FlowError("Cannot render a workflow 3 article without drafting-model disclosure", EXIT_INTEGRITY)
     if drafting_models:
         names = [str(item.get("public_display_name")) for item in drafting_models if isinstance(item, dict)]
@@ -9089,8 +9278,9 @@ def render_publication_files(directory: Path, run: dict[str, Any], package_root:
             f"data-style-policy-sha256=\"{html.escape(metadata['style_policy_sha256'], quote=True)}\">"
             f"<p>Drafting model: {html.escape(', '.join(names))}</p></footer>"
         )
-    if metadata.get("external_revision"):
-        body += ('\n<footer class="article-external-revision-attribution"><p>Revision text supplied in GPT; exact model unverified.</p></footer>')
+    if metadata.get("external_revision") or metadata.get("external_work"):
+        attribution = draft_work.ATTRIBUTION if metadata.get("external_work") else "Revision text supplied in GPT; exact model unverified."
+        body += f'\n<footer class="article-external-revision-attribution"><p>{html.escape(attribution)}</p></footer>'
     body += (f'\n<footer class="article-revision-handoff"><p><a href="{html.escape(metadata["slug"], quote=True)}.revision.json">Article revision source (Markdown)</a></p></footer>')
     canonical = target["canonical_url"].format(slug=metadata["slug"])
     words = len(re.findall(r"\b\w+\b", article_markdown))
@@ -9737,6 +9927,9 @@ def command_amend(args: argparse.Namespace) -> int:
     article_argument = getattr(args, "article", None)
     if args.title is None and args.description is None and article_argument is None:
         raise FlowError("Amend requires --title, --description, and/or --article", EXIT_USAGE)
+    if article_argument is not None and draft_work.active(sys.modules[__name__], run):
+        raise FlowError("Return the amended working manuscript with its current base SHA-256",
+                        EXIT_WAITING, draft_work.guidance(run))
     if article_argument is not None and run["state"] not in ARTICLE_AMENDABLE_STATES:
         raise FlowError(
             f"Amending the article requires EDITORIAL_QA, PACKAGE, or PUBLISH_APPROVAL, current state is {run['state']}"
@@ -9806,6 +9999,8 @@ def command_amend(args: argparse.Namespace) -> int:
             append_event(directory, run, "PUBLIC_ARTICLE_AMENDED", "operator", {"source_sha256": sha256_path(article_source)})
             write_gate_receipt(directory, run, "G-NATURALIZATION", "PASS", [], {"type": "code", "version": CONTROLLER_VERSION})
             transition(directory, run, "POST_EDIT_CLAIM_VERIFICATION", "operator", "Article prose changed; reverify post-edit claims and editorial QA")
+        elif changed and run["state"] in {"PACKAGE", "PUBLISH_APPROVAL"} and draft_work.active(sys.modules[__name__], run):
+            transition(directory, run, "EDITORIAL_QA", "operator", "Public display text changed; review the affected display fields")
         elif changed and run["state"] == "PUBLISH_APPROVAL":
             transition(directory, run, "PACKAGE", "operator", "Public display text changed; rebuild the package")
         else:
@@ -9836,6 +10031,10 @@ def package_writing_provenance(directory: Path, run: dict[str, Any]) -> dict[str
     ok, error, _, events = verify_event_log(directory, run)
     if not ok:
         raise FlowError("Writing provenance event log failed validation", EXIT_INTEGRITY, error)
+    if draft_work.active(sys.modules[__name__], run):
+        adoption = artifact(run, draft_work.ADOPTION)
+        draft_work.checked_bytes(sys.modules[__name__], directory, adoption)
+        return {"source_receipt_hashes": [adoption["sha256"]], "agent_hosted_acceptances": []}
     if revision_import.enabled(sys.modules[__name__], run):
         return revision_import.provenance(sys.modules[__name__], directory, run)
     call_hashes = {
@@ -9962,6 +10161,10 @@ def command_package(args: argparse.Namespace) -> int:
     if not integrity["ok"]:
         raise FlowError("Protected workflow bytes changed; packaging is blocked until the reviewed manifest matches", EXIT_INTEGRITY, integrity)
     with run_lock(directory, run):
+        if run["state"] != "PACKAGE":
+            raise FlowError("Run state changed before packaging; inspect the current draft", EXIT_WAITING)
+        draft_work.require_consistent_publication(sys.modules[__name__], directory, run)
+        article_path = artifact_path(directory, run, "article")
         writing_provenance = package_writing_provenance(directory, run) if is_v3_run(run) else None
         package_root = directory / "package"
         if package_root.exists():
@@ -10036,14 +10239,18 @@ def command_package(args: argparse.Namespace) -> int:
             assert writing_provenance is not None
             receipt_hashes = writing_provenance["source_receipt_hashes"]
             model_names = [str(item["public_display_name"]) for item in metadata["drafting_models"]]
-            attribution = ("Revision text supplied in GPT; exact model unverified." if metadata.get("external_revision") else f"Drafting model: {', '.join(model_names)}")
+            attribution = f"Drafting model: {', '.join(model_names)}"
+            if metadata.get("external_revision"):
+                attribution = "Revision text supplied in GPT; exact model unverified."
+            elif metadata.get("external_work"):
+                attribution = draft_work.ATTRIBUTION
             experiment = run.get("model_experiment", {})
             package.update({
                 "automation_mode": str(run.get("run_overrides", {}).get("automation_mode", "manual")),
                 "effective_voice_profile_version": metadata["voice_profile_version"],
                 "model_assignment": assignment_value,
                 "model_attribution": {
-                    "public_display_name": ", ".join(model_names) if model_names else "Externally supplied GPT revision; exact model unverified",
+                    "public_display_name": ", ".join(model_names) if model_names else attribution,
                     "footer_text": attribution,
                     "source_receipt_hashes": receipt_hashes,
                 },
@@ -10088,6 +10295,7 @@ def command_publish_plan(args: argparse.Namespace) -> int:
     require_complete_research_amendment(directory, run)
     if run["state"] != "PUBLISH_APPROVAL":
         raise FlowError(f"Publication planning requires PUBLISH_APPROVAL, current state is {run['state']}")
+    draft_work.require_consistent_publication(sys.modules[__name__], directory, run)
     revision_sources.assert_unchanged_source(sys.modules[__name__], run)
     revision_import.assert_current_assets(sys.modules[__name__], run)
     package = load_json(directory / "package" / "package.json")
@@ -10377,6 +10585,7 @@ def _command_publish_execute_locked(
     require_complete_research_amendment(directory, run)
     if run["state"] != "PUBLISH":
         raise FlowError(f"Publication execution requires PUBLISH, current state is {run['state']}")
+    draft_work.require_consistent_publication(sys.modules[__name__], directory, run)
     approval_path = directory / "approvals" / f"{args.approval}.json"
     if not approval_path.is_file():
         raise FlowError("Scoped publication approval not found", EXIT_APPROVAL)
@@ -10562,6 +10771,7 @@ def command_deployment_attest(args: argparse.Namespace) -> int:
     directory, run = load_run(args.run_id)
     if run["state"] != "PUBLISH":
         raise FlowError(f"Deployment attestation requires PUBLISH, current state is {run['state']}")
+    draft_work.require_consistent_publication(sys.modules[__name__], directory, run)
     repository = publication_repo_root(required=True)
     plan = load_json(directory / "publication" / "plan.json")
     package = load_json(directory / "package" / "package.json")
@@ -11177,6 +11387,9 @@ def command_advance(args: argparse.Namespace) -> int:
         revision_import.require_complete(sys.modules[__name__], directory, run)
         require_complete_research_amendment(directory, run)
         state = run["state"]
+        if state in {"NEW", "INTAKE"}:
+            emit({**next_state_payload(directory, run), "ok": False, "progress": progress}, args.json)
+            return EXIT_WAITING
         if state in {"COMPLETE", "TERMINAL"}:
             payload = {"ok": state == "COMPLETE", "action": state.lower(), "run_id": run["run_id"], "state": state, "progress": progress,
                        **revision_import.offer(sys.modules[__name__], run)}
@@ -11210,7 +11423,8 @@ def command_advance(args: argparse.Namespace) -> int:
             payload = {**next_state_payload(directory, run), "ok": False, "progress": progress}
             emit(payload, args.json)
             return EXIT_WAITING
-        if revision_import.enabled(sys.modules[__name__], run) and state in {"DRAFT", "EDIT", "VISUAL_PLAN"}:
+        if (revision_import.enabled(sys.modules[__name__], run) and not draft_work.active(sys.modules[__name__], run)
+                and state in {"DRAFT", "EDIT", "VISUAL_PLAN"}):
             with run_lock(directory, run):
                 revision_import.adopt(sys.modules[__name__], directory, run)
             progress.append({"state": state, "command": "external-candidate-validation"})
@@ -11331,6 +11545,9 @@ def command_advance(args: argparse.Namespace) -> int:
                 emit({"ok": False, "action": "blocked", "run_id": run["run_id"], "state": state, "progress": progress}, args.json)
                 return code
             continue
+        if state in {"PACKAGE", "PUBLISH_APPROVAL"} and draft_work.has_pending(sys.modules[__name__], run):
+            emit({**next_state_payload(directory, run), "ok": False, "progress": progress}, args.json)
+            return EXIT_WAITING
         if state == "PACKAGE":
             code, result = _silent_command(command_package, argparse.Namespace(run_id=run["run_id"], json=True))
             progress.append({"state": state, "command": "package", "exit_code": code, "result": result})
@@ -11346,7 +11563,8 @@ def command_advance(args: argparse.Namespace) -> int:
                 emit({"ok": False, "action": "blocked", "run_id": run["run_id"], "state": state, "progress": progress}, args.json)
                 return code
             directory, run = load_run(args.run_id)
-            if not run.get("run_overrides", {}).get("auto_publish", False):
+            if (not run.get("run_overrides", {}).get("auto_publish", False)
+                    or draft_work.active(sys.modules[__name__], run)):
                 run["status"] = "WAITING_HUMAN"
                 save_run(directory, run)
                 payload = {"ok": True, "action": "publication_hold", "run_id": run["run_id"], "state": state, "plan": str(plan_path), "progress": progress}
@@ -12530,6 +12748,14 @@ def build_parser() -> argparse.ArgumentParser:
     add_json(capture)
 
     editorial_workbench.parser(sub, add_json)
+    draft_work.parser(sub, add_json)
+    intake_resume = sub.add_parser("resume-intake", help="Finish the existing capture after an interrupted intake.")
+    intake_resume.add_argument("run_id")
+    intake_resume.add_argument("--seed-file", help="Exact original seed for older intakes without a saved copy.")
+    intake_resume.add_argument("--draft-model", help="Original model for an older intake without its route request.")
+    intake_resume.add_argument("--draft-provider", help="Original provider for an older intake without its route request.")
+    intake_resume.add_argument("--use-rotation", action="store_true", help="The original older intake used model rotation.")
+    add_json(intake_resume)
     clarify = sub.add_parser("clarify", help="Record an actual author answer to a material intent question and continue.")
     clarify.add_argument("run_id")
     clarify.add_argument("--response-file", required=True)
@@ -12783,6 +13009,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             return EXIT_OK
         if args.command == "editorial":
             return editorial_workbench.command(sys.modules[__name__], args)
+        if args.command == "work":
+            return draft_work.command(sys.modules[__name__], args)
+        if args.command == "resume-intake":
+            return command_resume_intake(args)
         if args.command == "clarify":
             return command_clarify(args)
         if args.command == "install":
@@ -12884,16 +13114,30 @@ def main(argv: Sequence[str] | None = None) -> int:
             return command_mcp(args)
         parser.error(f"Unknown command: {args.command}")
         return EXIT_USAGE
-    except FlowError as exc:
-        payload = {"ok": False, "error": str(exc), "details": exc.details, "exit_code": exc.code}
+    except (FlowError, PermissionError) as exc:
+        code = exc.code if isinstance(exc, FlowError) else EXIT_WAITING
+        details = exc.details if isinstance(exc, FlowError) else {
+            "repair_instruction": "Retry from the existing writable owner or use a local draft export."
+        }
+        payload = {"ok": False, "error": str(exc), "details": details, "exit_code": code}
+        run_id = getattr(args, "run_id", None)
+        if run_id:
+            guidance = draft_work.guidance({"run_id": run_id})
+            if args.command in {"advance", "execute-stage", "next", "resume"}:
+                with contextlib.suppress(FlowError, OSError, ValueError):
+                    directory, run = load_run(run_id)
+                    review = draft_work.review_offer(sys.modules[__name__], directory, run)
+                    if review:
+                        guidance["outside_review"] = review
+            payload["draft_work"] = guidance
         as_json = bool(getattr(args, "json", False))
         if as_json:
             print(json.dumps(payload, indent=2, ensure_ascii=False))
         else:
             print(str(exc), file=sys.stderr)
-            if exc.details is not None:
-                print(json.dumps(exc.details, indent=2, ensure_ascii=False), file=sys.stderr)
-        return exc.code
+            if details is not None:
+                print(json.dumps(details, indent=2, ensure_ascii=False), file=sys.stderr)
+        return code
 
 
 if __name__ == "__main__":
