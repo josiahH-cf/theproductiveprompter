@@ -25,7 +25,7 @@ The controller preserves that seed verbatim, creates a resumable run, and return
 3. Make the one routine human decision at the voice gate: the host shows the three exact passages and native selectable A, B, C options in the console. Free-text feedback can reject the set for regeneration without learning. A plain-text letter prompt is the fallback only when the host has no selection control; a preselected option is never an answer.
 4. Selecting a passage automatically continues through editing, verification, build, push, and exact live verification, which returns the `theproductiveprompter.com` article URL. No further routine publication confirmation is needed. `choose-voice` continues by default; use `--no-auto` only for an explicit request to pause after recording the choice.
 
-Ambiguity, exhausted repair windows, missing capability, a publication hold, a merge conflict, or failed live verification still stops explicitly. These are exceptional safety stops, not additional editorial approvals.
+Ambiguity, exhausted repair windows and unavailable tools pause the automatic route. Use the returned draft-work commands to keep writing or reviewing. Publication holds, repository conflicts and failed live verification still control publication and claims about what went live.
 
 Material clarifications and ordinary voice choices return a durable `question_id`,
 `question_revision`, source artifact binding and `question_record`. Repeated reads
@@ -40,10 +40,9 @@ For requested Dot delivery, use the actual supported native receiving owner and
 retain its receiving receipt, account/host/workspace/session and native question
 identity/version alongside the Article Flow question. `delivery_status:
 unverified` and a pending question file do not prove transport or voice delivery.
-Only the author's real answer can continue that run; no fixture, elapsed time or
-model selection is a human answer. If that client cannot deliver or return an
-answer through a supported route, report the exact boundary and keep the run
-waiting. This controller does not add an HTTP bridge or grant client access.
+Only the author's real answer can resolve that question. If delivery or the
+answer route is unavailable, report the limitation, retain the question and offer
+the draft-work commands. This controller does not add an HTTP bridge or grant client access.
 
 Later editorial repairs receive the latest accepted article and preserve its selected voice passage. Visual preparation preserves literal code whitespace and source evidence before facts are locked. An older blocked edit with a proven source/lock conflict can explicitly reopen development; see [editorial recovery](docs/editorial-system.md). Live citation connection failures remain failed checks and receive bounded retries. Once connectivity recovers, `repair RUN_ID G-LIVE-REVISION` can reopen a live-check window when all public revision checks passed and only transient external-link failures remain; it rechecks every public byte and link without republishing or deleting earlier receipts. An exhausted deployment-propagation stop may receive one explicitly authorized check only after the controller observes the exact published bytes. Use `repair RUN_ID G-LIVE-REVISION --finding "ACTUAL AUTHORIZATION AND FINDING"`; the durable allowance cannot be reset by repeating repair. See [settled-deployment recovery](docs/editorial-system.md).
 
@@ -59,6 +58,51 @@ real gate-receipt hashes alongside any ordinary provider-call receipts. These
 records establish controller acceptance of the selected route; independent client
 or server model/effort proof and API usage, latency and cost remain separate.
 Unavailable writing-call latency is recorded as null, not measured zero.
+
+## Continue draft work from any stage
+
+Run the work commands from the same installed entry point. A text editor or
+outside model can edit the exported files on any machine. Use a private local
+directory and review the files before sharing them.
+
+```
+article-flow work export RUN_ID --directory PRIVATE_NEW_DIRECTORY
+article-flow work import RUN_ID --file EDITED.md --base-sha256 BASE_FROM_HANDOFF
+article-flow work check RUN_ID --ledger AFFECTED_CLAIMS.json
+article-flow work resume RUN_ID
+```
+
+The export contains the current editable manuscript, a JSON handoff with source
+links, unresolved checks and asset mappings, and available bound visual assets.
+Use `--include-private` for a separate file with recorded author decisions and
+detailed findings. Share that file only within the author's authorization.
+The return preserves the exact Markdown bytes under the same Run ID and detects
+a stale base so two edits cannot silently overwrite one another.
+
+`work check` without a ledger shows the affected scope. A supplied ledger needs
+only the affected rows. Exact unchanged, uniquely located claims can carry
+forward their dated proof from an earlier verified ledger. New or changed text
+and uncertain matches stay in review. The result describes a scoped source and
+ledger check. Whole-article coverage, editorial QA and publication have their
+own evidence.
+
+`work resume` brings the returned text into the same Run's normal fact and QA
+checks once its editorial brief and evidence context are ready. Use
+`--visual-plan FILE` to update the semantic plan or give an article-specific
+reason to omit optional visuals. The code checks placements and renders assets
+locally. An unchanged plan and its bound assets can be reused. Ordinary
+verification of the returned draft needs no new voice selection. Existing
+author answers remain available, and publication requires authority for the
+exact checked package.
+
+If capture reports `intake_recovery`, use `resume-intake RUN_ID` after write
+access is restored. The saved seed and writer request carry forward. A legacy
+intake that stopped before saving either may need the original seed and route.
+The export remains available during a lock-write denial.
+
+See [outside-model handoff](docs/editorial-handoff.md) for the file and review
+contract. The published-revision ZIP remains available for work on an already
+published URL.
 
 ## Automatic model-release articles
 

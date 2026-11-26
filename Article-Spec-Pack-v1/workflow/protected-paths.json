@@ -426,6 +426,12 @@
       "rule_set": "schemas"
     },
     {
+      "path": "scripts/draft_work.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "editorial"
+    },
+    {
       "path": "scripts/article_flow.py",
       "scope": "spec",
       "role": "runtime",
@@ -451,6 +457,12 @@
     },
     {
       "path": "tests/test_article_flow_v3.py",
+      "scope": "spec",
+      "role": "runtime",
+      "rule_set": "conformance"
+    },
+    {
+      "path": "tests/test_draft_work.py",
       "scope": "spec",
       "role": "runtime",
       "rule_set": "conformance"
