@@ -89,7 +89,8 @@ def draft_item(af: Any, run: dict) -> dict | None:
     # ordinary stage is still useful for editing. Earlier official prose must
     # not supersede a newer development repair.
     items = [item for item in run.get("artifact_index", []) if item["type"] in {"article", "draft"}]
-    return af.artifact(run, DRAFT) or (items[-1] if items else af.artifact(run, "previous-article"))
+    return (af.artifact(run, DRAFT) or (items[-1] if items else None)
+            or af.artifact(run, "external-revision-candidate") or af.artifact(run, "previous-article"))
 
 
 def source_links(text: str) -> set[str]:
@@ -491,9 +492,13 @@ def resume(af: Any, directory: Path, run: dict, args: Any) -> dict:
         }:
             return {"ok": True, "state": run["state"], "idempotent": True,
                     "next_command": ["article-flow", "next", run["run_id"], "--json"], **guidance(run)}
-        if run["state"] in PUBLICATION_STATES or af.revision_import.enabled(af, run):
-            raise af.FlowError("Resume the existing publication or revision owner. The returned draft remains available for a separately authorized revision.",
+        if run["state"] in PUBLICATION_STATES:
+            raise af.FlowError("Resume the existing publication owner. The returned draft remains available for a separately authorized revision.",
                                af.EXIT_WAITING, guidance(run))
+        af.revision_import.require_complete(af, directory, run)
+        if af.revision_import.enabled(af, run):
+            # Keep the immutable imported baseline, feedback and asset owner.
+            af.revision_import.record(af, directory, run)
         required = {"article-recipe", "brief", "claim-ledger"}
         missing = sorted(kind for kind in required if not af.artifact(run, kind))
         if (not af.editorial_context.enabled(run) or run["state"] not in REVIEW_STATES or missing

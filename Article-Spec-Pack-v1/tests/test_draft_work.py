@@ -207,3 +207,35 @@ class DraftWorkTests(TemporaryRuntime):
         self.assertIsNone(af.artifact(checked, "live-verification"))
         packaged = af.load_json(directory / "package/package.json")
         self.assertEqual(packaged["model_attribution"]["footer_text"], af.draft_work.ATTRIBUTION)
+
+    def test_returning_a_second_edit_keeps_the_imported_revision_source_and_owner(self):
+        quote = "This exact observation belongs to the published source."
+        first = "An earlier outside candidate prepared the example.\n\n> " + quote
+        second = "A second editor clarifies the unfinished example.\n\n> " + quote
+        directory, run = self.prepare_review("CLAIM_VERIFICATION", first)
+        published = self.record_text(directory, run, "revision-source",
+                                     f"<article><blockquote><p>{quote}</p></blockquote></article>", "published.html")
+        run["revision"] = {"source_html_sha256": af.sha256_path(published)}
+        af.save_run(directory, run)
+        candidate = self.record_text(directory, run, "external-revision-candidate", first, "first-external.md")
+        feedback = self.record_text(directory, run, "revision-request", "Clarify the example.")
+        self.record_json(directory, run, "external-revision", {
+            "candidate_sha256": af.sha256_path(candidate), "author_feedback_sha256": af.sha256_path(feedback),
+            "assets": [], "source": {"source_html_sha256": run["revision"]["source_html_sha256"]},
+        })
+        path, handoff = self.export(run, "revision-work")
+        code, returned = self.return_draft(run, path / "draft.md", handoff["base_sha256"], "An edit that removed the quote.")
+        self.assertEqual(code, af.EXIT_OK, returned)
+        code, blocked = self.cli("work", "resume", run["run_id"])
+        self.assertEqual(code, af.EXIT_WAITING, blocked)
+        self.assertIn("revision_verbatim_evidence", [row["criterion"] for row in blocked["details"]["findings"]])
+        code, corrected = self.return_draft(run, path / "draft.md", returned["draft_sha256"], second)
+        self.assertEqual(code, af.EXIT_OK, corrected)
+        code, resumed = self.cli("work", "resume", run["run_id"])
+        self.assertEqual(code, af.EXIT_OK, resumed)
+        self.assertEqual(resumed["state"], "VISUAL_PLAN")
+        _, active = af.load_run(run["run_id"])
+        self.assertEqual(af.artifact_path(directory, active, "article").read_text(encoding="utf-8"), second)
+        self.assertEqual(candidate.read_text(encoding="utf-8"), first)
+        self.assertEqual(af.revision_import.record(af, directory, active)["candidate_sha256"], af.sha256_path(candidate))
+        self.assertIsNone(af.artifact(active, "publish-approval"))

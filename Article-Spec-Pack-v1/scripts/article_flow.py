@@ -3504,7 +3504,8 @@ def task_packet(
     revision_import.require_complete(sys.modules[__name__], directory, run)
     require_complete_research_amendment(directory, run)
     state = run["state"]
-    if revision_import.enabled(sys.modules[__name__], run) and state in {"DRAFT", "EDIT", "VISUAL_PLAN"}:
+    if (revision_import.enabled(sys.modules[__name__], run) and not draft_work.active(sys.modules[__name__], run)
+            and state in {"DRAFT", "EDIT", "VISUAL_PLAN"}):
         raise FlowError("External revision carry uses advance, not a model task", EXIT_USAGE)
     if run.get("repair_recovery_error"):
         run["status"] = "BLOCKED"
@@ -3737,7 +3738,9 @@ def task_packet(
         inputs.append(revision_input)
     inputs = editorial_context.prepare(sys.modules[__name__], directory, run, state, inputs)
     constraints = [rule_map[item] for item in stage_rules.get(state, []) if item in rule_map]
-    if revision_import.enabled(sys.modules[__name__], run):
+    if revision_import.enabled(sys.modules[__name__], run) and draft_work.active(sys.modules[__name__], run):
+        constraints.append("article is the latest returned manuscript. The immutable external-revision-candidate and revision-request retain earlier input and author feedback. Preserve source-bound evidence and approved captures; review the current plan and current prose.")
+    elif revision_import.enabled(sys.modules[__name__], run):
         diagram_scope = ("external-revision-visual-plan contains the submitted semantic diagram definitions and explicitly replaced source asset paths. The controller renders those definitions and inserts their bound images; verify their arrows, explanation, captions and factual content. Keep every undeclared source asset unchanged." if artifact(run, "external-revision-visual-plan") else "No new diagram is requested; retain the source images, if any.")
         constraints.append("external-revision-candidate is the complete proposed article, supplied by an external GPT session with unverified model identity. revision-request alone is the author's exact feedback. Do not extract human experience or voice evidence from generated candidate prose. Research and brief the candidate's current scope; do not redevelop its thesis from an older seed or previous-article. Preserve the candidate's wording and citations. " + diagram_scope + " Report concrete failed checks or material conflicts instead of rewriting the candidate. DRAFT and EDIT are controller-owned carries, not new writer tasks; only controller-bound diagram materialization may add visual blocks.")
     if revision_import.enabled(sys.modules[__name__], run) and artifact(run, "external-revision-image-plan"):
@@ -6272,7 +6275,8 @@ def _next_state_payload(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
     if state in {"COMPLETE", "TERMINAL"}:
         return {"action": state.lower(), "run_id": run["run_id"], "state": state,
                 **revision_import.offer(sys.modules[__name__], run)}
-    if revision_import.enabled(sys.modules[__name__], run) and state in {"DRAFT", "EDIT", "VISUAL_PLAN"} and run.get("status") != "BLOCKED":
+    if (revision_import.enabled(sys.modules[__name__], run) and not draft_work.active(sys.modules[__name__], run)
+            and state in {"DRAFT", "EDIT", "VISUAL_PLAN"} and run.get("status") != "BLOCKED"):
         return {"action": "run_command", "run_id": run["run_id"], "state": state,
                 "command": ["article-flow", "advance", run["run_id"]],
                 "reason": "Validate and carry the supplied external candidate without rewriting"}
@@ -8957,7 +8961,7 @@ def package_metadata(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
         "voice_profile_version": effective_profile["version"],
         "drafting_models": [] if external_work else drafting_models,
         **({"external_work": True} if external_work else {}),
-        "external_revision": {"source": "external_assistant", "exact_model": None, "human_original": False} if external else None,
+        "external_revision": {"source": "external_assistant", "exact_model": None, "human_original": False} if external and not external_work else None,
         "model_experiment_contaminated": bool(experiment.get("contaminated", False)),
         "style_policy_sha256": style_policy_sha256(run),
         "revision_mode": "replace_in_place" if revision else "new",
@@ -10027,12 +10031,12 @@ def package_writing_provenance(directory: Path, run: dict[str, Any]) -> dict[str
     ok, error, _, events = verify_event_log(directory, run)
     if not ok:
         raise FlowError("Writing provenance event log failed validation", EXIT_INTEGRITY, error)
-    if revision_import.enabled(sys.modules[__name__], run):
-        return revision_import.provenance(sys.modules[__name__], directory, run)
     if draft_work.active(sys.modules[__name__], run):
         adoption = artifact(run, draft_work.ADOPTION)
         draft_work.checked_bytes(sys.modules[__name__], directory, adoption)
         return {"source_receipt_hashes": [adoption["sha256"]], "agent_hosted_acceptances": []}
+    if revision_import.enabled(sys.modules[__name__], run):
+        return revision_import.provenance(sys.modules[__name__], directory, run)
     call_hashes = {
         str(item["sha256"])
         for item in run.get("artifact_index", [])
@@ -11419,7 +11423,8 @@ def command_advance(args: argparse.Namespace) -> int:
             payload = {**next_state_payload(directory, run), "ok": False, "progress": progress}
             emit(payload, args.json)
             return EXIT_WAITING
-        if revision_import.enabled(sys.modules[__name__], run) and state in {"DRAFT", "EDIT", "VISUAL_PLAN"}:
+        if (revision_import.enabled(sys.modules[__name__], run) and not draft_work.active(sys.modules[__name__], run)
+                and state in {"DRAFT", "EDIT", "VISUAL_PLAN"}):
             with run_lock(directory, run):
                 revision_import.adopt(sys.modules[__name__], directory, run)
             progress.append({"state": state, "command": "external-candidate-validation"})
